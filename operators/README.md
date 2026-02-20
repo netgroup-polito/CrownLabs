@@ -402,7 +402,7 @@ The actions performed by the operator are the following:
   - delete all managed resources upon workspace deletion
   - upon deletion, unsubscribe all tenants which previously subscribed to the workspace
 - `Instance` ([details](pkg/controller/instance/))
-  - ensures that the tenant has sufficient resources for the instance in the workspace, using a webhook
+  - ensures that the tenant has enough resources for the instance in the workspace, using a webhook
 
 ### Keycloak integration
 The operator integrates with Keycloak to manage the users and roles of the CrownLabs platform.
@@ -410,12 +410,12 @@ In order to connect to Keycloak, a dedicated Keycloak client is required, which 
 More information are available in the [dedicated page](./Keycloak.md).
 
 ### Instance quota validation
-The operator is responsible for ensuring that a tenant does not use more resources than those made available by a workspace.
+The operator guarantees that a tenant does not use more resources than those made available by a workspace.
 
-Since all instances created by a tenant are placed in the same namespace regardless of the workspace, the ResourceQuota created by the tenant operator is only a final global security barrier.
+Since all instances created by a tenant are placed in the same namespace regardless of the (CrownLabs) workspace they belong to, the `ResourceQuota` parameter created by the tenant operator represents only a _last resort_ global security barrier.
 The operator exposes a validation webhook for instances that controls the creation or unpause of instances.
 
-To increase the resources available to a Tenant in their personal workspace, you must modify the personalWorkspace field in the Tenant CR.
+To increase the resources available to a Tenant in their personal workspace, you must modify the `personalWorkspace` field in the Tenant CR.
 
 ### Usage
 
