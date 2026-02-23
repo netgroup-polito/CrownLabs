@@ -310,8 +310,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
               )}
               <label className="ml-3 cursor-pointer">
                 <Space>
-                  {template.name}
-                  <Tooltip title={<span><strong>Template Long Description:</strong> {template.description}</span>}><InfoCircleFilled/></Tooltip>
+                  {template.description != '' ? (
+                    <Tooltip title={<span><strong>Template Long Description:</strong> {template.description}</span>}>{template.name}</Tooltip>
+                  ) : (template.name)} 
                   {!template.hasMultipleEnvironments &&
                     template.allowPublicExposure && (
                       <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">

@@ -213,9 +213,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const handleFormFinish = async (template: TemplateForm) => {
     let nodeSelectorObject: { [key: string]: string } | undefined;
-    if (nodeSelectorMode === 'Let user choose') {
+    if (nodeSelectorMode === NodeSelectorOptionMap['AnyNode']) {
       nodeSelectorObject = {};
-    } else if (nodeSelectorMode === 'Fixed Labels' && selectedLabels.length > 0) {
+    } else if (nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length > 0) {
       nodeSelectorObject = selectedLabels.reduce((acc, jsonStr) => {
         try {
           const labelPair = JSON.parse(jsonStr);
@@ -298,10 +298,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       // Set node selector mode and labels based on template
       if (template.nodeSelector) {
         if (Object.keys(template.nodeSelector).length === 0) {
-          setNodeSelectorMode('Let user choose');
+          setNodeSelectorMode(NodeSelectorOptionMap['SelectAnyNode']);
           setSelectedLabels([]);
         } else {
-          setNodeSelectorMode('Fixed Labels');
+          setNodeSelectorMode(NodeSelectorOptionMap['FixedSelection']);
           // Convert nodeSelector object to JSON values matching the Select options
           // Map camelCase keys back to original format using available labels
           const jsonValues = Object.entries(template.nodeSelector)
@@ -317,7 +317,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           setSelectedLabels(jsonValues);
         }
       } else {
-        setNodeSelectorMode('Disabled');
+        setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
         setSelectedLabels([]);
       }
 
@@ -329,16 +329,26 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       deleteAfter: { value: 0, unit: '' },
     });
     setAutomaticStoppingEnabled(false);
-    setNodeSelectorMode('Disabled');
+    setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
     setSelectedLabels([]);
     setIsPublicExposureEnabled(false);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, [template, show, form, getInitialValues]);
 
-  const NodeSelectorOption: string[] = ['Disabled', 'Let user choose', 'Fixed Labels'];
+  const NodeSelectorOptionMap: { [key: string]: string } = {
+    'NodeSelectorDisabled': 'Disabled',
+    'SelectAnyNode': 'Any node',
+    'FixedSelection': 'Fixed',
+  };
+  const nodeSelectorTooltips: { [key: string]: string } = {
+    'NodeSelectorDisabled': 'No node selection constraints will be applied',
+    'SelectAnyNode': 'User can select any node available in the cluster when creating an instance based on this template',
+    'FixedSelection': 'Select specific node labels to constrain where instances can run',
+  };
+
   const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
-  const [nodeSelectorMode, setNodeSelectorMode] = useState<string>('Disabled');
+  const [nodeSelectorMode, setNodeSelectorMode] = useState<string>(NodeSelectorOptionMap['NodeSelectorDisabled']);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isPublicExposureEnabled, setIsPublicExposureEnabled] = useState(false);
 
@@ -387,7 +397,7 @@ const handleSelectorLabelChange = useCallback((values: string[]) => {
 
 const handleNodeSelectorModeChange = useCallback((value: string) => {
   setNodeSelectorMode(value);
-  if (value === 'Disabled') {
+  if (value === NodeSelectorOptionMap['NodeSelectorDisabled']) {
     setSelectedLabels([]);
   }
 }, []);
@@ -619,15 +629,15 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     />
     </Form.Item>
           <Form.Item
-            label="Pub. Exposure"
             name="allowPublicExposure"
             valuePropName="checked"
-            className="gap-6 "
-              {...formItemLayout}
-          >
-              <Checkbox onChange={(e) => setIsPublicExposureEnabled(e.target.checked)}><Tooltip title="Allow instances based on this template to be publicly accessible via Public IP">
+            className="gap-6 ">
+              <Checkbox onChange={(e) => setIsPublicExposureEnabled(e.target.checked)} className='ml-4'>
+                Port Exposure / Port Forwarding{' '}
+                <Tooltip title="Allow instances based on this template to be publicly accessible via Public IP">
                   <InfoCircleOutlined />
-                </Tooltip></Checkbox>
+                </Tooltip>
+              </Checkbox>
           </Form.Item>
         
    <Flex justify='space-around' className="mb-0 gap-2" {...formItemLayout}  align="center">
@@ -639,23 +649,29 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
         onChange={handleNodeSelectorModeChange}
 
       >
-        {NodeSelectorOption.map(option => (
-              <Select.Option key={option} value={option}>{option}</Select.Option>
-            ))}
+        {NodeSelectorOptionMap && Object.entries(NodeSelectorOptionMap).map(([key, label]) => (
+          <Select.Option key={label} value={label}>
+            <Tooltip title={nodeSelectorTooltips[key]} placement="left">
+              <span>{label}</span>
+            </Tooltip>
+          </Select.Option>
+        ))}
       </Select>
     </Space>
     <Space direction='vertical'  style={{width:"50%"}}>
-      <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed Labels</strong> is selected. For the same tag, only one value can be selected (e.g. nodeSize=big and nodeSize=small cannot be selected simultaneously).</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
-    <Select
-          disabled={nodeSelectorMode !== 'Fixed Labels'}
+       {nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && (<>
+      <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed</strong> is selected. For the same tag, only one value can be selected (e.g. nodeSize=big and nodeSize=small cannot be selected simultaneously).</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
+       <Select
+          disabled={nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection']}
           style={{width:"100%"}}
           mode="multiple"
           placeholder="Select"
           onChange={handleSelectorLabelChange}
           options={getNodeLabelsOptions()}
           value={selectedLabels}
-          status={nodeSelectorMode === 'Fixed Labels' && selectedLabels.length === 0 ? 'error' : undefined}
+          status={nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length === 0 ? 'error' : undefined}
         />
+      </>)}
     </Space>
     </Flex>
 
@@ -694,7 +710,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     label: <Typography.Text strong>Advanced Features</Typography.Text>,
     children: advancedFeaturesForm,
     style: panelStyle,
-    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== 'Disabled' ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
+    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['Disabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
   },
 ];
 
@@ -748,7 +764,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
               const fieldsError = form.getFieldsError();
               const hasErrors = fieldsError.some(
                 ({ errors }) => errors.length > 0,
-              ) || (nodeSelectorMode === 'Fixed Labels' && selectedLabels.length === 0)
+              ) || (nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length === 0)
 
               return (
                 <Button htmlType="submit" type="primary" disabled={hasErrors}>
