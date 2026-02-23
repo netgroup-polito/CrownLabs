@@ -213,7 +213,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const handleFormFinish = async (template: TemplateForm) => {
     let nodeSelectorObject: { [key: string]: string } | undefined;
-    if (nodeSelectorMode === NodeSelectorOptionMap['AnyNode']) {
+    if (nodeSelectorMode === NodeSelectorOptionMap['SelectAnyNode']) {
       nodeSelectorObject = {};
     } else if (nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length > 0) {
       nodeSelectorObject = selectedLabels.reduce((acc, jsonStr) => {
@@ -400,7 +400,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
   if (value === NodeSelectorOptionMap['NodeSelectorDisabled']) {
     setSelectedLabels([]);
   }
-}, []);
+}, [NodeSelectorOptionMap]);
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
@@ -640,7 +640,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
               </Checkbox>
           </Form.Item>
         
-   <Flex justify='space-around' className="mb-0 gap-2" {...formItemLayout}  align="center">
+   <Flex justify='space-around' className="mb-0 gap-2"  {...formItemLayout} align="center">
     <Space direction='vertical' style={{width:"50%"}}>
       <Typography.Paragraph className="mb-0">Node Selector: <Tooltip title="Allow instances based on this template to be scheduled on specific nodes"><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
       <Select 
@@ -688,32 +688,6 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     
   };
 
-
-
-  const collapseFormItems: CollapseProps['items'] = [
-  {
-    key: '1',
-    label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
-    children: automaticInstanceSavingResource,
-    style: panelStyle,
-    extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
-  },
-  {
-    key: '2',
-    label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
-    children: environmentListForm,
-    style: panelStyle,
-    extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment set' : `${infoNumberTemplate} environments set` : 'No environments set'}</Text>
-  },
-  {
-    key: '3',
-    label: <Typography.Text strong>Advanced Features</Typography.Text>,
-    children: advancedFeaturesForm,
-    style: panelStyle,
-    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['Disabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
-  },
-];
-
   return (
     
     <Modal
@@ -751,7 +725,29 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
           <Input placeholder="Insert template name" allowClear />
         </Form.Item>
         
-          <Collapse size="small" bordered={false} ghost accordion items={collapseFormItems} defaultActiveKey={['2']}  />
+          <Collapse size="small" bordered={false} ghost accordion items={[
+  {
+    key: '1',
+    label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
+    children: automaticInstanceSavingResource,
+    style: panelStyle,
+    extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
+  },
+  {
+    key: '2',
+    label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
+    children: environmentListForm,
+    style: panelStyle,
+    extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment set' : `${infoNumberTemplate} environments set` : 'No environments set'}</Text>
+  },
+  {
+    key: '3',
+    label: <Typography.Text strong>Advanced Features</Typography.Text>,
+    children: advancedFeaturesForm,
+    style: panelStyle,
+    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['Disabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
+  },
+]} defaultActiveKey={['2']}  />
         
 
         <div className="flex justify-end gap-2">

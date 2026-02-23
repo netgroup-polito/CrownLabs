@@ -5,8 +5,8 @@ import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
 export const internalRegistry = 'registry.internal.crownlabs.polito.it';
 
 export const formItemLayout = {
-  labelCol: { span: 5 },
-  wrapperCol: { span: 18 },
+  labelcol: { span: 5 },
+  wrappercol: { span: 18 },
   style: { marginBottom: 14 },
 };
 

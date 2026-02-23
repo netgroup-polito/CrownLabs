@@ -22,8 +22,8 @@ import { formItemLayout, getImageNameNoVer } from './utils';
 const environmentTypeOptions = [
   { value: EnvironmentType.VirtualMachine, label: 'Virtual Machine' },
   { value: EnvironmentType.CloudVm, label: 'Cloud VM' },
-  { value: EnvironmentType.Standalone, label: 'Standalone' },
-  { value: EnvironmentType.Container, label: 'Container' },
+  { value: EnvironmentType.Standalone, label: 'Container (Standalone)' },
+  //{ value: EnvironmentType.Container, label: 'Container' },
 ];
 
 const getImageNames = (images: Image[]) => {
@@ -480,7 +480,7 @@ export const Environment: FC<EnvironmentProps> = ({
         {...propInputField}
       > 
         <InputNumber
-          step={0.5}
+          step={1}
           style={{width:"120px", textAlignLast: "center"}}
           min={resources.cpu.min}
           max={resources.cpu.max}

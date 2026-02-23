@@ -297,8 +297,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         }),
       );
       
-      console.log("nodeSelector edit:", t.nodeSelector);
-      console.log(JSON.stringify(t.nodeSelector));
       const patches = [
         { op: 'replace', path: '/spec/environmentList', value: environmentList },
         { op: 'replace', path: '/spec/prettyName', value: t.name },

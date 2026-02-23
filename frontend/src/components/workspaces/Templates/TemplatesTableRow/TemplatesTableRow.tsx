@@ -5,7 +5,6 @@ import {
   SelectOutlined,
   AppstoreAddOutlined,
   DockerOutlined,
-  InfoCircleFilled,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
