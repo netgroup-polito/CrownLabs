@@ -401,11 +401,25 @@ The actions performed by the operator are the following:
   - create the corresponding keycloak roles to allow tenant to consume them
   - delete all managed resources upon workspace deletion
   - upon deletion, unsubscribe all tenants which previously subscribed to the workspace
+- `Instance` ([details](pkg/controller/instance/))
+  - ensures that the tenant has enough resources for the instance in the workspace, using a webhook
 
 ### Keycloak integration
 The operator integrates with Keycloak to manage the users and roles of the CrownLabs platform.
 In order to connect to Keycloak, a dedicated Keycloak client is required, which can be created using the Keycloak admin console, and some authorization needs to be granted to the client.
 More information are available in the [dedicated page](./Keycloak.md).
+
+### Instance quota validation
+The operator guarantees that a tenant does not use more resources than those made available by a workspace.
+
+Since all instances created by a tenant are placed in the same namespace regardless of the (CrownLabs) workspace they belong to, the `ResourceQuota` parameter created by the tenant operator represents only a _last resort_ global security barrier.
+The operator creates a validation webhook that is triggered when an instance is created or resumed (after been paused), hence updating the amount of used resources, and ensuring that those do not exceed the resource quota.
+
+Each user can therefore leverage the resources granted by the workspace his pods belongs to.
+In other words, a user can consume a quota Q1 for all the pods belonging to workspace W1, a quota Q2 for all the pods belonging to workspace W2, and more.
+Furthermore, a further quota (e.g., QP) is specified for the pods belonging to his Personal Workspace.
+
+To increase the resources available to a Tenant in their personal workspace, you must modify the `personalWorkspace` field in the Tenant CR.
 
 ### Usage
 
@@ -436,6 +450,12 @@ Arguments:
                 The client secret for authentication with keycloak
   --keycloak-roles-client-id
                 The target client for keycloak users and roles
+  --enable-tenant
+                Enable the tenant controller
+  --enable-workspace
+                Enable the workspace controller
+  --enable-instance
+                Enable the instance controller
   --enable-webhooks
                 Enable webhook endpoints in the operator
   --mydrive-pvcs-size
