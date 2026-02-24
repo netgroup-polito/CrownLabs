@@ -4,6 +4,7 @@ import './App.css';
 import {
   VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX,
   VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM,
+  VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL,
 } from './env';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
@@ -48,7 +49,7 @@ function App() {
   return (
     <AppLayout
       TooltipButtonLink={
-        'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
+        `${VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL}?&var-namespace=` +
         tenantData?.tenant?.status?.personalNamespace?.name
       }
       TooltipButtonData={{
