@@ -36,8 +36,8 @@ spec:
       - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      {{- include "webssh.labels" . | nindent 4 }}
-      {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 4 }}
+      {{- include "webssh.labels" . | nindent 6 }}
+      {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 6 }}
   endpoints:
     - interval: 15s
       path: /metrics
