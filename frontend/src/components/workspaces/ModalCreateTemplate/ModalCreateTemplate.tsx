@@ -5,7 +5,6 @@ import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
-import type { CollapseProps } from 'antd';
 import {
   useNodesLabelsQuery,
 } from '../../../generated-types';
@@ -337,9 +336,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 }, [template, show, form, getInitialValues]);
 
   const NodeSelectorOptionMap: { [key: string]: string } = {
-    'NodeSelectorDisabled': 'Disabled',
-    'SelectAnyNode': 'Any node',
-    'FixedSelection': 'Fixed',
+    'NodeSelectorDisabled': 'Automatic',
+    'SelectAnyNode': 'Let user choose',
+    'FixedSelection': 'Fixed Labels',
   };
   const nodeSelectorTooltips: { [key: string]: string } = {
     'NodeSelectorDisabled': 'No node selection constraints will be applied',
@@ -400,7 +399,8 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
   if (value === NodeSelectorOptionMap['NodeSelectorDisabled']) {
     setSelectedLabels([]);
   }
-}, [NodeSelectorOptionMap]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
@@ -642,7 +642,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
         
    <Flex justify='space-around' className="mb-0 gap-2"  {...formItemLayout} align="center">
     <Space direction='vertical' style={{width:"50%"}}>
-      <Typography.Paragraph className="mb-0">Node Selector: <Tooltip title="Allow instances based on this template to be scheduled on specific nodes"><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
+      <Typography.Paragraph className="mb-0">Server Type: <Tooltip title="Allow instances based on this template to be scheduled on specific nodes"><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
       <Select 
         style={{width:"100%"}} 
         value={nodeSelectorMode}
@@ -745,7 +745,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     label: <Typography.Text strong>Advanced Features</Typography.Text>,
     children: advancedFeaturesForm,
     style: panelStyle,
-    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['Disabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
+    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['NodeSelectorDisabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
   },
 ]} defaultActiveKey={['2']}  />
         

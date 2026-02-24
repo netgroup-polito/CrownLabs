@@ -310,7 +310,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
               <label className="ml-3 cursor-pointer">
                 <Space>
                   {template.description != '' ? (
-                    <Tooltip title={<span><strong>Template Long Description:</strong> {template.description}</span>}>{template.name}</Tooltip>
+                    <Tooltip title={<span>{template.description}</span>}>{template.name}</Tooltip>
                   ) : (template.name)} 
                   {!template.hasMultipleEnvironments &&
                     template.allowPublicExposure && (
