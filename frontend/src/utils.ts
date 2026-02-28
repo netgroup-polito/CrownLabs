@@ -137,6 +137,7 @@ export enum LinkPosition {
   MenuButton,
   NavbarButton,
   Hidden,
+  WebSSH,
 }
 
 export enum WorkspacesAvailableAction {
