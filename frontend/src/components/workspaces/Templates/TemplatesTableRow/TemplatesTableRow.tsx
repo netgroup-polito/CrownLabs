@@ -141,6 +141,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
     editTemplate(template);
   };
 
+
   return (
     <>
       <ModalAlert
@@ -308,7 +309,9 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
               )}
               <label className="ml-3 cursor-pointer">
                 <Space>
-                  {template.name}
+                  {template.description != '' ? (
+                    <Tooltip title={<span>{template.description}</span>}>{template.name}</Tooltip>
+                  ) : (template.name)} 
                   {!template.hasMultipleEnvironments &&
                     template.allowPublicExposure && (
                       <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">
@@ -363,6 +366,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
           ) : (
             ''
           )}
+          
           <Tooltip
             placement="left"
             title={
@@ -430,7 +434,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                 )}
               </>
             }
-          >
+          > 
             <Button type="link" color="orange" size="middle" className="px-0">
               Info
             </Button>

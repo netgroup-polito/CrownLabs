@@ -195,6 +195,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
+  
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -217,6 +218,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     });
   }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
 
+
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateForm>();
 
@@ -224,7 +226,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
   });
 
-  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
+  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null)
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
@@ -276,8 +278,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           environmentType: env.environmentType,
           resources: {
             reservedCPUPercentage:
-              usedTemplate?.environmentList.find(e => e.name === env.name)
-                ?.resources.reservedCPUPercentage ?? 50,
+             env.reservedCpu,
             cpu: env.cpu,
             memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
             disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
@@ -295,29 +296,28 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ),
         }),
       );
-
-      const patchJson = JSON.stringify([
-        {
-          op: 'replace',
-          path: '/spec/environmentList',
-          value: environmentList,
-        },
+      
+      const patches = [
+        { op: 'replace', path: '/spec/environmentList', value: environmentList },
         { op: 'replace', path: '/spec/prettyName', value: t.name },
         { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-        {
-          op: 'replace',
-          path: '/spec/inactivityTimeout',
-          value: t.inactivityTimeout,
-        },
-      ]);
+        { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
+        { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
+        { op: 'replace', path: '/spec/description', value: t.description },
+        ...(t.nodeSelector !== null && t.nodeSelector !== undefined 
+          ? [{ op: 'replace', path: '/spec/nodeSelector', value: t.nodeSelector }] 
+          : []),
+        ...(t.nodeSelector === undefined 
+          ? [{ op: 'remove', path: '/spec/nodeSelector', value: {} }] 
+          : [])
+      ];
 
-      //    console.log('Patch JSON:', patchJson);
 
       return await applyTemplateJsonPatchMutation({
         variables: {
           workspaceNamespace,
           templateId: usedTemplate?.id ?? '',
-          patchJson: patchJson,
+          patchJson: JSON.stringify(patches),
           manager: 'frontend-template-patch',
         },
       });
@@ -382,9 +382,13 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
+                  
                   const templateForm: TemplateForm = {
                     name: template.name,
+                    ...(template.nodeSelector !== undefined && template.nodeSelector !== null ? { nodeSelector: template.nodeSelector } : {}),
+                    description: template.description ?? template.name,
                     deleteAfter: template.deleteAfter,
+                    allowPublicExposure: template.allowPublicExposure,
                     inactivityTimeout: template.inactivityTimeout,
                     environments: template.environmentList.map(env => ({
                       name: env.name,
@@ -392,6 +396,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                       environmentType:
                         env.environmentType ?? EnvironmentType.VirtualMachine,
                       cpu: env.resources.cpu,
+                      reservedCpu: env.resources.reservedCPUPercentage ?? 50,
                       ram: parseInt(env.resources.memory) / 1000, // assuming memory is in 'XMi' format
                       disk: env.resources.disk
                         ? parseInt(env.resources.disk) / 1000

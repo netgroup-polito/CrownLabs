@@ -6,23 +6,24 @@ import {
   Form,
   Input,
   Select,
-  Slider,
+  Flex,
   Tooltip,
+  InputNumber,
+  Space
 } from 'antd';
 import { useEffect, useState, type FC } from 'react';
 import { EnvironmentType } from '../../../generated-types';
 import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
 import type { ChildFormItem, Resources, TemplateFormEnv, Image } from './types';
-import { EnvironmentDisk } from './EnvironmentDisk';
 import { formItemLayout, getImageNameNoVer } from './utils';
 
 // Environment type options
 const environmentTypeOptions = [
   { value: EnvironmentType.VirtualMachine, label: 'Virtual Machine' },
   { value: EnvironmentType.CloudVm, label: 'Cloud VM' },
-  { value: EnvironmentType.Standalone, label: 'Standalone' },
-  { value: EnvironmentType.Container, label: 'Container' },
+  { value: EnvironmentType.Standalone, label: 'Container (Standalone)' },
+  //{ value: EnvironmentType.Container, label: 'Container' },
 ];
 
 const getImageNames = (images: Image[]) => {
@@ -50,6 +51,12 @@ export const Environment: FC<EnvironmentProps> = ({
   const environments = Form.useWatch<TemplateFormEnv[] | undefined>(
     'environments',
   );
+
+  const propInputField = {
+    labelCol: { span: 24 },
+    wrapperCol: { span: 24 },
+    className: "mb-0",
+  }
 
   // Custom validator for unique environment names
   const validateUniqueName = (currIndex: number) => {
@@ -109,6 +116,13 @@ export const Environment: FC<EnvironmentProps> = ({
     );
   };
 
+  const isPersistent = (currIndex: number) => {
+    if (!environments) return false;
+    if (!environments[currIndex]) return false;
+
+    return environments[currIndex].persistent;
+  };
+
   const getImageAlert = (currIndex: number) => {
     if (!environments) return <></>;
     if (!environments[currIndex]) return <></>;
@@ -133,7 +147,7 @@ export const Environment: FC<EnvironmentProps> = ({
     switch (environments[currIndex].environmentType) {
       case EnvironmentType.Container:
       case EnvironmentType.Standalone:
-        return 'Standalone and Container environments only work with GUI and not SSH';
+        return 'Standalone and Container environments only work with GUI and not SSH access';
       case EnvironmentType.CloudVm:
         return 'CloudVM instances do not support GUI access';
     }
@@ -197,11 +211,12 @@ export const Environment: FC<EnvironmentProps> = ({
     });
   };
 
-  const handleSliderChange = (
+  const handleResourceChange = (
     currIndex: number,
-    field: 'cpu' | 'ram',
-    value: number,
+    field: 'cpu' | 'ram' | 'reservedCpu',
+    value: number | null,
   ) => {
+    if (value === null) return;
     if (!environments) return;
     if (!environments[currIndex]) return;
 
@@ -250,6 +265,24 @@ export const Environment: FC<EnvironmentProps> = ({
     }
   };
 
+    const handlePersistentChange = (checked: boolean) => {
+    if (!environments) return;
+    if (!environments[name]) return;
+
+    form.setFieldsValue({
+      environments: environments.map((env, idx) => {
+        if (idx === name) {
+          return {
+            ...env,
+            persistent: checked,
+            disk: checked ? resources.disk.min : 0,
+          };
+        }
+        return env;
+      }),
+    });
+  };
+
   return (
     <>
       {/* Environment Name */}
@@ -260,6 +293,10 @@ export const Environment: FC<EnvironmentProps> = ({
         validateTrigger={['onChange', 'onBlur']}
         rules={[
           { required: true, message: 'Environment name is required' },
+          { 
+            pattern: /^[a-z\d][a-z\d-]{2,10}[a-z\d]$/,
+            message: 'Name must be 4-12 characters: lowercase letters, digits, hyphens (no hyphens at start/end)'
+          },
           { validator: validateUniqueName(name) },
         ]}
         validateDebounce={500}
@@ -351,13 +388,14 @@ export const Environment: FC<EnvironmentProps> = ({
             name={[name, 'image']}
             required
             validateTrigger="onChange"
+            labelCol={{ span: 6 }}
             rules={[
               {
                 required: true,
                 message: 'Enter an external image',
               },
             ]}
-            {...formItemLayout}
+
             extra={getExternalImageExample(name)}
           >
             <Input
@@ -371,105 +409,138 @@ export const Environment: FC<EnvironmentProps> = ({
           </Form.Item>
         </>
       )}
-
+      
+    <Flex vertical={!isVM(name)} {...isVM(name)&& {justify: "space-evenly"}} className='ml-6 gap-2'>
       {/* GUI Toggle */}
-      <Form.Item label="GUI" {...formItemLayout}>
-        <div className="flex gap-2">
+      <Form.Item label="GUI" className="mb-0">
+        <div className="flex items-center gap-2">
           <Form.Item
             {...restField}
             name={[name, 'gui']}
             valuePropName="checked"
-            noStyle
+            className="mb-0"
           >
             <Checkbox
-              disabled={!isVM(name)} // Disable GUI for CloudVM, Standalone, and Container
+              disabled={!isVM(name)}
             />
           </Form.Item>
 
-          <div className="ant-form-item-extra text-xs pt-1">
+          <div className="ant-form-item-extra text-xs">
             {getGUIDescription(name)}
           </div>
         </div>
       </Form.Item>
 
-      {/* Rewrite URL toggle (per-environment) - only for Standalone */}
+      {/* Persistent Checkbox */}
+      <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
+        <Form.Item label="Persistent" className="mb-0">
+          <div className="flex items-center ">
+            <Form.Item
+              {...restField}
+              name={[name, 'persistent']}
+              valuePropName="checked"
+              className="mb-0"
+            >
+              <Checkbox
+                disabled={getEnvironmentType(name) === EnvironmentType.CloudVm}
+                onChange={value => handlePersistentChange(value.target.checked)}
+              />
+            </Form.Item>
+          </div>
+        </Form.Item>
+      </Tooltip>
+
+      {/* Rewrite URL toggle - only for Standalone */}
       {getEnvironmentType(name) === EnvironmentType.Standalone && (
-        <Form.Item label="Rewrite URL" {...formItemLayout}>
-          <div className="flex gap-2 items-center">
+        <Form.Item label="Rewrite URL" className="mb-0">
+          <div className="flex items-center gap-2">
             <Form.Item
               {...restField}
               name={[name, 'rewriteUrl']}
               valuePropName="checked"
-              noStyle
+              className="mb-0"
             >
               <Checkbox disabled />
             </Form.Item>
 
-            <div className="ant-form-item-extra text-xs pt-1">
-              Rewrite incoming URLs to the application URL (required for
-              Standalone).
+            <div className="ant-form-item-extra text-xs">
+              Rewrite incoming URLs to the application URL (required for Standalone).
             </div>
           </div>
         </Form.Item>
       )}
-
-      {/* CPU Slider */}
-      <Form.Item
+    </Flex>
+      
+      <Space direction="horizontal" className='ml-2 mb-4'  >
+      {/* CPU Input */}
+      <Form.Item 
         {...restField}
-        label="CPU"
+        label={<>CPU <Tooltip title="Number of virtual CPUs allocated to the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
         name={[name, 'cpu']}
-        {...formItemLayout}
-      >
-        <Slider
-          className="ml-2"
-          tooltip={{
-            defaultOpen: false,
-            formatter: value => `${value} Cores`,
-          }}
+        {...propInputField}
+      > 
+        <InputNumber
+          step={1}
+          style={{width:"120px", textAlignLast: "center"}}
           min={resources.cpu.min}
           max={resources.cpu.max}
-          marks={{
-            [resources.cpu.min]: `${resources.cpu.min}`,
-            [resources.cpu.max]: `${resources.cpu.max}`,
-          }}
-          onChangeComplete={value => handleSliderChange(name, 'cpu', value)}
+          onChange={value => handleResourceChange(name, 'cpu', value)}
+          addonAfter="vCPU"
         />
       </Form.Item>
 
-      {/* RAM Slider */}
+
+      {/* RAM Input */}
       <Form.Item
         {...restField}
-        label="RAM"
         name={[name, 'ram']}
-        {...formItemLayout}
+        label={<>RAM <Tooltip title="Amount of RAM allocated to the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
+        {...propInputField}
       >
-        <Slider
-          className="ml-2"
-          tooltip={{
-            defaultOpen: false,
-            formatter: value => `${value} GB`,
-          }}
+        <InputNumber
+          style={{width:"120px", textAlignLast: "center"}}
           min={resources.ram.min}
           max={resources.ram.max}
-          marks={{
-            [resources.ram.min]: `${resources.ram.min}GB`,
-            [resources.ram.max]: `${resources.ram.max}GB`,
-          }}
           step={0.25}
-          onChangeComplete={value => handleSliderChange(name, 'ram', value)}
+          onChange={value => handleResourceChange(name, 'ram', value)}
+          addonAfter="GB"
+          
         />
       </Form.Item>
 
-      {/* Persistance/Disk */}
-      <EnvironmentDisk
-        parentFormName={name}
-        restField={restField}
-        diskResources={resources.disk}
-        isCloudVm={getEnvironmentType(name) === EnvironmentType.CloudVm}
-      />
+      {/* Disk */}
+        {/* TODO: The minimum disk size should be dynamically set based on the VM image metadata. Right now, if instance is a VM, min 10; otherwise minimum 1 */}
+        <Form.Item {...restField} name={[name,'disk']} 
+        label={<>Disk <Tooltip title="Amount of disk space allocated to the environment, if persistent"><InfoCircleOutlined className='ml-1' /></Tooltip></>} 
+        {...propInputField} >
+            <InputNumber
+              step={1}
+              style={{ width: "120px", textAlignLast: "center" }}
+              addonAfter="GB"
+              disabled={!isPersistent(name)}
+              max={resources.disk.max}
+              min={getEnvironmentType(name) === EnvironmentType.VirtualMachine ? isPersistent(name) ? resources.disk.min : 0 : 0}
+            />
+          </Form.Item>
+
+        {/* Reserved CPU Percentage */}
+        <Form.Item {...restField} name={[name,'reservedCpu']} 
+        label={<>Reserved CPU <Tooltip title="Percentage of CPU reserved for the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>} 
+        {...propInputField} >
+            <InputNumber
+              onChange={value => handleResourceChange(name, 'reservedCpu', value)}
+              step={1}
+              style={{ width: "120px", textAlignLast: "center" }}
+              addonAfter="%"
+              max={100}
+              min={1}
+            />
+          </Form.Item>
+      </Space>
+
 
       {!isPersonal && (
-        <SharedVolumeList parentFormName={name} sharedVolumes={sharedVolumes} />
+        <SharedVolumeList parentFormName={name} sharedVolumes={sharedVolumes}  />
       )}
     </>
   );

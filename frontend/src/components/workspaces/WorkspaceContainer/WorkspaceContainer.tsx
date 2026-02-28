@@ -51,7 +51,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         mountMyDriveVolume: true,
         resources: {
           cpu: formEnv.cpu,
-          reservedCPUPercentage: 50,
+          reservedCPUPercentage: formEnv.reservedCpu,
           memory: `${formEnv.ram * 1000}M`,
         },
         guiEnabled: formEnv.gui,
@@ -98,10 +98,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         workspaceNamespace: workspaceNamespace,
         templateId: templateIdValue,
         templateName: t.name?.trim() || '',
-        descriptionTemplate: t.name?.trim() || '',
+        descriptionTemplate: t.description,
         environmentList: environmentList,
         deleteAfter: t.deleteAfter,
         inactivityTimeout: t.inactivityTimeout,
+        allowPublicExposure: t.allowPublicExposure,
+        ...(t.nodeSelector !== null && { nodeSelector: t.nodeSelector }),
       },
     }).catch(error => {
       console.error('WorkspaceContainer createTemplateMutation error:', error);
