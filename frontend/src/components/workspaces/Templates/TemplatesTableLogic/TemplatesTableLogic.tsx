@@ -296,7 +296,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ),
         }),
       );
-      
       // Define patches array with explicit typing to support all JSON Patch operations
       const patches: Array<
         | { op: 'replace' | 'add'; path: string; value: unknown }
@@ -314,9 +313,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       // - if undefined: not touched by user, keep existing value (don't patch)
       // - if null: user wants to remove it (from Fixed/Let user choose to Automatic)
       // - if defined (can be {} or {...}): set it using 'add' (works for both create and update)
-      if (t.nodeSelector === null && usedTemplate?.nodeSelector !== undefined) {
+      if (t.nodeSelector === null && usedTemplate?.nodeSelector !== null) {
         patches.push({ op: 'remove', path: '/spec/nodeSelector' });
-      } else if (t.nodeSelector !== undefined && t.nodeSelector !== null) {
+      } else if (t.nodeSelector !== null) {
         patches.push({ op: 'add', path: '/spec/nodeSelector', value: t.nodeSelector });
       }
 
@@ -390,7 +389,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
-                  
                   const templateForm: TemplateForm = {
                     name: template.name,
                     // Include nodeSelector for modal initialization (state setup), but it won't be in the form
@@ -411,13 +409,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         ? parseInt(env.resources.disk) / 1000
                         : 0, // convert from Mi to Gi
                       image:
-                        getImageNameNoVer(env.image)
-                          .split('/')
-                          .slice(-2)
-                          .join('/') ?? '',
+                        env.environmentType === EnvironmentType.VirtualMachine
+                          ? getImageNameNoVer(env.image)
+                              .split('/')
+                              .slice(-2)
+                              .join('/') ?? ''
+                          : env.image,
                       registry:
-                        getImageNameNoVer(env.image).split('/').slice(0)[0] ??
-                        '',
+                        env.environmentType !== EnvironmentType.CloudVm ? getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '' : '',
                       sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
                         sharedVolume: svm.name,
                         mountPath: svm.mountPath,
