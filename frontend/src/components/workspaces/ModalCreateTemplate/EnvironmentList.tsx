@@ -1,5 +1,5 @@
 import { Form, Tabs } from 'antd';
-import { useState, type FC } from 'react';
+import { useState, useEffect, type FC } from 'react';
 import { EnvironmentTabLabel } from './EnvironmentTabLabel';
 import { EnvironmentType } from '../../../generated-types';
 import type { SharedVolume } from '../../../utils';
@@ -47,6 +47,20 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
 
   const [activeTabItem, setActiveTabItem] = useState('0');
 
+  // Update the count of environments with images actually set
+  useEffect(() => {
+    if (!environments) {
+      setInfoNumberTemplate(0);
+      return;
+    }
+
+    const envWithImages = environments.filter(
+      env => env.image && env.image.trim() !== ''
+    ).length;
+
+    setInfoNumberTemplate(envWithImages);
+  }, [environments, setInfoNumberTemplate]);
+
   const addEnv = () => {
     const envIndex = environments ? environments.length : 0;
 
@@ -90,11 +104,9 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
     switch (action) {
       case 'add':
         addEnv();
-        setInfoNumberTemplate((prev) => prev + 1);
         return;
       case 'remove':
         removeEnv(targetKey);
-        setInfoNumberTemplate((prev) => prev == 1 ? prev : prev - 1);
         return;
     }
   };

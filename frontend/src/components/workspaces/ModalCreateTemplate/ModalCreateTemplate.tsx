@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState, useContext, useEffect, useCallback } from 'react';
+import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
@@ -333,7 +333,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setIsPublicExposureEnabled(false);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [template, show, form, getInitialValues]);
+}, [template, show, form]);
 
   const NodeSelectorOptionMap: { [key: string]: string } = {
     'NodeSelectorDisabled': 'Automatic',
@@ -350,23 +350,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const [nodeSelectorMode, setNodeSelectorMode] = useState<string>(NodeSelectorOptionMap['NodeSelectorDisabled']);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isPublicExposureEnabled, setIsPublicExposureEnabled] = useState(false);
-
-   const getNodeLabelsOptions = () => {
-    if (loadingLabels || labelsError) {
-      return [
-        {
-          value: 'error',
-          label: loadingLabels ? 'Loading labels...' : 'Error loading labels',
-          disabled: true,
-        },
-      ];
-    }
-    
-    return labelsData?.labels?.map(({ key, value }) => ({
-      value: JSON.stringify({ [key]: value }),
-      label: `${cleanupLabels(key)}=${value}`,
-    })) ?? [];
-  };
 
   
 const handleSelectorLabelChange = useCallback((values: string[]) => {
@@ -482,7 +465,28 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       data: labelsData,
       loading: loadingLabels,
       error: labelsError,
-    } = useNodesLabelsQuery({ fetchPolicy: 'no-cache' });
+    } = useNodesLabelsQuery({ 
+      fetchPolicy: 'cache-first',
+      skip: !show, // Only fetch when modal is open
+    });
+
+  // Memoize processed labels to avoid recalculating on every render
+  const getNodeLabelsOptions = useMemo(() => {
+    if (loadingLabels || labelsError) {
+      return [
+        {
+          value: 'error',
+          label: loadingLabels ? 'Loading labels...' : 'Error loading labels',
+          disabled: true,
+        },
+      ];
+    }
+    
+    return labelsData?.labels?.map(({ key, value }) => ({
+      value: JSON.stringify({ [key]: value }),
+      label: `${cleanupLabels(key)}=${value}`,
+    })) ?? [];
+  }, [labelsData, loadingLabels, labelsError]);
 
   // Helper function to map camelCase keys back to original format
   const findOriginalLabelKey = (camelCaseKey: string, value: string): { key: string; value: string } | null => {
@@ -667,7 +671,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
           mode="multiple"
           placeholder="Select"
           onChange={handleSelectorLabelChange}
-          options={getNodeLabelsOptions()}
+          options={getNodeLabelsOptions}
           value={selectedLabels}
           status={nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length === 0 ? 'error' : undefined}
         />
@@ -760,12 +764,71 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
               const fieldsError = form.getFieldsError();
               const hasErrors = fieldsError.some(
                 ({ errors }) => errors.length > 0,
-              ) || (nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length === 0)
+              );
+
+              // Check required fields
+              const templateName = form.getFieldValue('name');
+              const environments = form.getFieldValue('environments') as TemplateForm['environments'];
+
+              const hasTemplateName = templateName && templateName.trim() !== '';
+              
+              // ALL environments must have all required fields filled
+              const hasValidEnvironments = environments && environments.length > 0 && 
+                environments.every(env => 
+                  env.name && env.name.trim() !== '' &&
+                  env.environmentType &&
+                  env.image && env.image.trim() !== ''
+                );
+
+              // Node selector validation
+              const nodeSelectorValid = nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection'] || 
+                selectedLabels.length > 0;
+
+              const isDisabled = hasErrors || !hasTemplateName || !hasValidEnvironments || !nodeSelectorValid;
+
+              // Build tooltip message with missing fields
+              const missingFields: string[] = [];
+              if (!hasTemplateName) missingFields.push('Template name');
+              if (!hasValidEnvironments) {
+                if (!environments || environments.length === 0) {
+                  missingFields.push('At least one environment');
+                } else {
+                  const incompleteEnvs = environments
+                    .map((env, idx) => {
+                      const missing = [];
+                      if (!env.name || env.name.trim() === '') missing.push('name');
+                      if (!env.environmentType) missing.push('type');
+                      if (!env.image || env.image.trim() === '') missing.push('image');
+                      return missing.length > 0 ? `Env ${idx + 1}: ${missing.join(', ')}` : null;
+                    })
+                    .filter((item): item is string => item !== null);
+                  if (incompleteEnvs.length > 0) {
+                    missingFields.push(...incompleteEnvs);
+                  }
+                }
+              }
+              if (!nodeSelectorValid) missingFields.push('Node selector labels (when Fixed Labels is selected)');
+              if (hasErrors) missingFields.push('Fix validation errors');
+
+              const tooltipTitle = isDisabled && missingFields.length > 0 ? (
+                <div>
+                  <div>Missing required fields:</div>
+                  <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
+                    {missingFields.map((field, idx) => (
+                      <li key={idx}>{field}</li>
+                    ))}
+                  </ul>
+                </div>
+              ) : '';
 
               return (
-                <Button htmlType="submit" type="primary" disabled={hasErrors}>
-                  {!loading && (template ? 'Modify' : 'Create')}
-                </Button>
+                <Tooltip title={tooltipTitle} placement="topRight">
+                  <span>
+                    <Button htmlType="submit" type="primary" disabled={isDisabled}>
+                      {!loading && (template ? 'Modify' : 'Create')}
+                    </Button>
+                  </span>
+                </Tooltip>
               );
             }}
           </Form.Item>
