@@ -54,114 +54,115 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
 
   const userGroups = (profile?.groups || []) as string[];
 
-  const buttons = routes
-    .filter(
-      b =>
-        !b.requiredGroups ||
-        (profile && b.requiredGroups.some(g => userGroups.includes(g))),
-    )
-    .map((b, i) => {
-      const routeData = b.route;
-      const isExtLink = routeData.path.indexOf('http') === 0;
-      const hasCustomOnClick = !!routeData.onClick;
-      const isLoading = routeData.loading || false;
-      const isDrive = routeData.name === 'Drive';
-      const driveUrl = getDriveUrl();
-      const isDriveStarting =
-        mydriveInstance &&
-        (mydriveInstance.status === Phase2.Starting ||
-          mydriveInstance.status === Phase2.Importing);
+  // To be visible, the route must not be hidden and the user must have the required groups (if any)
+  const visibleRoutes = routes.filter(
+    b =>
+      b.linkPosition !== LinkPosition.Hidden &&
+      (!b.requiredGroups ||
+        (profile && b.requiredGroups.some(g => userGroups.includes(g)))),
+  );
+  const buttons = visibleRoutes.map((b, i) => {
+    const routeData = b.route;
+    const isExtLink = routeData.path.indexOf('http') === 0;
+    const hasCustomOnClick = !!routeData.onClick;
+    const isLoading = routeData.loading || false;
+    const isDrive = routeData.name === 'Drive';
+    const driveUrl = getDriveUrl();
+    const isDriveStarting =
+      mydriveInstance &&
+      (mydriveInstance.status === Phase2.Starting ||
+        mydriveInstance.status === Phase2.Importing);
 
-      return {
-        linkPosition: b.linkPosition,
-        content: (
-          <Link
-            key={i}
-            to={{
-              pathname:
-                b.linkPosition === LinkPosition.Hidden && isSSHRoute
-                  ? currentPath
-                  : isExtLink || hasCustomOnClick
-                    ? ''
-                    : routeData.path,
-            }}
-            rel={isExtLink ? 'noopener noreferrer' : ''}
-          >
-            <Button
-              onClick={e => {
-                if (hasCustomOnClick) {
-                  e.preventDefault();
-                  if (!isLoading) {
-                    routeData.onClick!();
-                  }
-                } else if (isExtLink) {
-                  window.open(routeData.path, '_blank');
-                } else {
-                  setShow(false);
-                }
-              }}
-              loading={isLoading}
-              disabled={isLoading}
-              ghost={
-                b.linkPosition === LinkPosition.Hidden
-                  ? false
-                  : currentPath !== routeData.path
-              }
-              className={
-                'my-3 ' +
-                (isSSHRoute
-                  ? 'flex-1 min-w-[100px] max-w-[160px] mx-2 '
-                  : 'w-full flex justify-center ') +
-                (routes.length <= 4
-                  ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
-                  : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
-                (b.linkPosition === LinkPosition.Hidden
+    return {
+      linkPosition: b.linkPosition,
+      content: (
+        <Link
+          key={i}
+          to={{
+            pathname:
+              b.linkPosition === LinkPosition.WebSSH && isSSHRoute
+                ? currentPath
+                : isExtLink || hasCustomOnClick
                   ? ''
-                  : currentPath !== routeData.path
-                    ? ' navbar-button '
-                    : '')
+                  : routeData.path,
+          }}
+          rel={isExtLink ? 'noopener noreferrer' : ''}
+        >
+          <Button
+            onClick={e => {
+              if (hasCustomOnClick) {
+                e.preventDefault();
+                if (!isLoading) {
+                  routeData.onClick!();
+                }
+              } else if (isExtLink) {
+                window.open(routeData.path, '_blank');
+              } else {
+                setShow(false);
               }
-              size="large"
-              type={
-                b.linkPosition === LinkPosition.Hidden
-                  ? 'primary'
-                  : currentPath !== routeData.path
-                    ? 'default'
-                    : 'primary'
-              }
-              shape="round"
-            >
-              {isDrive ? (
-                <div className="flex items-center gap-2">
-                  <span>{routeData.name}</span>
-                  {isDriveStarting && <LoadingOutlined className="ml-2" spin />}
-                  {driveUrl && (
-                    <div
-                      className="flex items-center justify-center rounded hover:bg-white/20 transition-colors z-50 pointer-events-auto"
-                      style={{
-                        padding: '0 4px',
-                        marginRight: '-8px',
-                        cursor: 'pointer',
-                      }}
-                      onClick={e => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        window.open(driveUrl, '_blank');
-                      }}
-                      title="Open in new tab"
-                    >
-                      <ExportOutlined />
-                    </div>
-                  )}
-                </div>
-              ) : (
-                routeData.name
-              )}
-            </Button>
-          </Link>
-        ),
-      };
-    });
+            }}
+            loading={isLoading}
+            disabled={isLoading}
+            ghost={
+              b.linkPosition === LinkPosition.WebSSH
+                ? false
+                : currentPath !== routeData.path
+            }
+            className={
+              'my-3 ' +
+              (isSSHRoute
+                ? 'flex-1 min-w-[100px] max-w-[160px] mx-2 '
+                : 'w-full flex justify-center ') +
+              (visibleRoutes.length <= 4
+                ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
+                : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
+              (b.linkPosition === LinkPosition.WebSSH
+                ? ''
+                : currentPath !== routeData.path
+                  ? ' navbar-button '
+                  : '')
+            }
+            size="large"
+            type={
+              b.linkPosition === LinkPosition.WebSSH
+                ? 'primary'
+                : currentPath !== routeData.path
+                  ? 'default'
+                  : 'primary'
+            }
+            shape="round"
+          >
+            {isDrive ? (
+              <div className="flex items-center gap-2">
+                <span>{routeData.name}</span>
+                {isDriveStarting && <LoadingOutlined className="ml-2" spin />}
+                {driveUrl && (
+                  <div
+                    className="flex items-center justify-center rounded hover:bg-white/20 transition-colors z-50 pointer-events-auto"
+                    style={{
+                      padding: '0 4px',
+                      marginRight: '-8px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.open(driveUrl, '_blank');
+                    }}
+                    title="Open in new tab"
+                  >
+                    <ExportOutlined />
+                  </div>
+                )}
+              </div>
+            ) : (
+              routeData.name
+            )}
+          </Button>
+        </Link>
+      ),
+    };
+  });
 
   const [isHeightTooSmall, setIsHeightTooSmall] = useState(false);
   const headerRef = useRef<HTMLDivElement | null>(null);
@@ -211,7 +212,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             <h2
               className={
                 'flex whitespace-nowrap py-0 my-0 ml-4 navbar-title ' +
-                (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+                (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
               }
             >
               {displayName}
@@ -220,28 +221,28 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
           <div
             className={
               'hidden justify-around ' +
-              (routes.length > 4 ? 'lg:flex' : 'md:flex')
+              (visibleRoutes.length > 4 ? 'lg:flex' : 'md:flex')
             }
           >
             {buttons
               .filter(
                 b =>
                   b.linkPosition === LinkPosition.NavbarButton ||
-                  (b.linkPosition === LinkPosition.Hidden && isSSHRoute),
+                  (b.linkPosition === LinkPosition.WebSSH && isSSHRoute),
               )
               .map(b => b.content)}
           </div>
           <div
             className={
               'w-full hidden sm:flex justify-end ' +
-              (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+              (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
             }
           >
             {buttons
               .filter(
                 b =>
                   b.linkPosition === LinkPosition.NavbarButton ||
-                  (b.linkPosition === LinkPosition.Hidden && isSSHRoute),
+                  (b.linkPosition === LinkPosition.WebSSH && isSSHRoute),
               )
               .slice(0, 2)
               .map((b, i) => (
@@ -253,7 +254,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
           <div
             className={
               'flex items-center justify-end w-auto ' +
-              (routes.length > 4
+              (visibleRoutes.length > 4
                 ? 'lg:flex-none lg:w-24'
                 : 'md:flex:none md:w-24')
             }
@@ -261,7 +262,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             <div
               className={
                 'hidden flex items-center justify-end ' +
-                (routes.length > 4 ? 'lg:flex' : 'md:flex')
+                (visibleRoutes.length > 4 ? 'lg:flex' : 'md:flex')
               }
             >
               <ThemeSwitcher />
@@ -270,7 +271,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
                 <>
                   <Divider className="ml-4 mr-0" type="vertical" />
                   <NavbarMenu
-                    routes={routes
+                    routes={visibleRoutes
                       .filter(r => r.linkPosition === LinkPosition.MenuButton)
                       .map(r => r.route)}
                   />
@@ -280,7 +281,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             <Button
               className={
                 'flex items-center ' +
-                (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+                (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
               }
               shape="round"
               size="large"
@@ -305,7 +306,8 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
       )}
       <Drawer
         className={
-          'cl-navbar block ' + (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+          'cl-navbar block ' +
+          (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
         }
         styles={{
           body: {
@@ -316,7 +318,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
         placement="top"
         open={show}
         onClose={() => setShow(false)}
-        height={76 + 52 * routes.length + 25}
+        height={76 + 52 * visibleRoutes.length + 25}
         closeIcon={null}
       >
         <div className="px-4 mt-2">
@@ -337,8 +339,8 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
           {buttons
             .filter(
               b =>
-                b.linkPosition !== LinkPosition.Hidden ||
-                (b.linkPosition === LinkPosition.Hidden && isSSHRoute),
+                b.linkPosition !== LinkPosition.WebSSH ||
+                (b.linkPosition === LinkPosition.WebSSH && isSSHRoute),
             )
             .map(b => b.content)}
         </div>

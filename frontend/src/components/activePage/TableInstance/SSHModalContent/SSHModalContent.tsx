@@ -3,6 +3,7 @@ import { Typography, Space, List, Tag, Button } from 'antd';
 import { Link } from 'react-router-dom';
 import { CodeOutlined } from '@ant-design/icons';
 import { Phase2 } from '../../../../generated-types';
+import { VITE_APP_CROWNLABS_BASTION_HOST } from '../../../../env'
 import type { InstanceEnvironment } from '../../../../utils';
 
 const { Text } = Typography;
@@ -45,7 +46,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
   };
 
   const getSshCommand = (envIP: string) => {
-    return `ssh -J bastion@ssh.crownlabs.polito.it crownlabs@${envIP}`;
+    return `ssh -J bastion@${VITE_APP_CROWNLABS_BASTION_HOST} crownlabs@${envIP}`;
   };
 
   return (
