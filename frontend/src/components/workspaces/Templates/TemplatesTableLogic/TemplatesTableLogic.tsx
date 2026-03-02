@@ -297,20 +297,28 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         }),
       );
       
-      const patches = [
+      // Define patches array with explicit typing to support all JSON Patch operations
+      const patches: Array<
+        | { op: 'replace' | 'add'; path: string; value: unknown }
+        | { op: 'remove'; path: string }
+      > = [
         { op: 'replace', path: '/spec/environmentList', value: environmentList },
         { op: 'replace', path: '/spec/prettyName', value: t.name },
         { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
         { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
         { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
         { op: 'replace', path: '/spec/description', value: t.description },
-        ...(t.nodeSelector !== null && t.nodeSelector !== undefined 
-          ? [{ op: 'replace', path: '/spec/nodeSelector', value: t.nodeSelector }] 
-          : []),
-        ...(t.nodeSelector === undefined 
-          ? [{ op: 'remove', path: '/spec/nodeSelector', value: {} }] 
-          : [])
       ];
+
+      // nodeSelector logic:
+      // - if undefined: not touched by user, keep existing value (don't patch)
+      // - if null: user wants to remove it (from Fixed/Let user choose to Automatic)
+      // - if defined (can be {} or {...}): set it using 'add' (works for both create and update)
+      if (t.nodeSelector === null && usedTemplate?.nodeSelector !== undefined) {
+        patches.push({ op: 'remove', path: '/spec/nodeSelector' });
+      } else if (t.nodeSelector !== undefined && t.nodeSelector !== null) {
+        patches.push({ op: 'add', path: '/spec/nodeSelector', value: t.nodeSelector });
+      }
 
 
       return await applyTemplateJsonPatchMutation({
@@ -385,7 +393,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                   
                   const templateForm: TemplateForm = {
                     name: template.name,
-                    ...(template.nodeSelector !== undefined && template.nodeSelector !== null ? { nodeSelector: template.nodeSelector } : {}),
+                    // Include nodeSelector for modal initialization (state setup), but it won't be in the form
+                    nodeSelector: template.nodeSelector,
                     description: template.description ?? template.name,
                     deleteAfter: template.deleteAfter,
                     allowPublicExposure: template.allowPublicExposure,

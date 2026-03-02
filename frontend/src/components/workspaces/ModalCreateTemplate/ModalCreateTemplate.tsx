@@ -211,7 +211,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   };
 
   const handleFormFinish = async (template: TemplateForm) => {
-    let nodeSelectorObject: { [key: string]: string } | undefined;
+    let nodeSelectorObject: { [key: string]: string } | undefined | null;
     if (nodeSelectorMode === NodeSelectorOptionMap['SelectAnyNode']) {
       nodeSelectorObject = {};
     } else if (nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length > 0) {
@@ -224,6 +224,10 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           return acc;
         }
       }, {});
+    } else if (nodeSelectorMode === NodeSelectorOptionMap['NodeSelectorDisabled'] && props.template) {
+      // If we're in edit mode (props.template exists) and mode is Automatic,
+      // set to null to indicate removal from the template
+      nodeSelectorObject = null;
     }
 
     
@@ -279,6 +283,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
   });
 
+    const {
+      data: labelsData,
+      loading: loadingLabels,
+      error: labelsError,
+    } = useNodesLabelsQuery({ 
+      fetchPolicy: 'cache-first',
+      skip: !show, // Only fetch when modal is open
+    });
+
+
   useEffect(() => {
   if (!show) return;
 
@@ -303,17 +317,20 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           setNodeSelectorMode(NodeSelectorOptionMap['FixedSelection']);
           // Convert nodeSelector object to JSON values matching the Select options
           // Map camelCase keys back to original format using available labels
-          const jsonValues = Object.entries(template.nodeSelector)
-            .map(([key, value]) => {
-              const originalLabel = findOriginalLabelKey(key, value as string);
-              if (originalLabel) {
-                return JSON.stringify({ [originalLabel.key]: originalLabel.value });
-              }
-              // Fallback to the key as-is if we can't find a match
-              console.warn('Could not find original label for:', key, value);
-              return JSON.stringify({ [key]: value });
-            });
-          setSelectedLabels(jsonValues);
+          // Only process if labelsData is available
+          if (labelsData?.labels) {
+            const jsonValues = Object.entries(template.nodeSelector)
+              .map(([key, value]) => {
+                const originalLabel = findOriginalLabelKey(key, value as string);
+                if (originalLabel) {
+                  return JSON.stringify({ [originalLabel.key]: originalLabel.value });
+                }
+                // Fallback to the key as-is if we can't find a match
+                console.warn('Could not find original label for:', key, value);
+                return JSON.stringify({ [key]: value });
+              });
+            setSelectedLabels(jsonValues);
+          }
         }
       } else {
         setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
@@ -333,7 +350,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setIsPublicExposureEnabled(false);
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [template, show, form]);
+}, [template, show, form, labelsData]);
 
   const NodeSelectorOptionMap: { [key: string]: string } = {
     'NodeSelectorDisabled': 'Automatic',
@@ -461,14 +478,6 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
 
   const [infoNumberTemplate, setInfoNumberTemplate] = useState<number>(template?.environments?.length ?? 1 );
 
-  const {
-      data: labelsData,
-      loading: loadingLabels,
-      error: labelsError,
-    } = useNodesLabelsQuery({ 
-      fetchPolicy: 'cache-first',
-      skip: !show, // Only fetch when modal is open
-    });
 
   // Memoize processed labels to avoid recalculating on every render
   const getNodeLabelsOptions = useMemo(() => {
