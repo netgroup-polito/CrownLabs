@@ -1,6 +1,5 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import {
-  Alert,
   AutoComplete,
   Checkbox,
   Form,
@@ -283,6 +282,27 @@ export const Environment: FC<EnvironmentProps> = ({
     });
   };
 
+  const getTypeLabelTooltip = (currIndex: number) => {
+    const envType = getEnvironmentType(currIndex);
+    const text = (
+      <span>
+      <strong>{envType} Image Requirements</strong>
+      {getImageAlert(currIndex)}
+      </span>
+    );
+
+   return (
+      <span>
+        Type
+        <Tooltip title={text}>
+          {!isVM(currIndex) && (<InfoCircleOutlined style={{ marginLeft: 4 }}/>)}
+        </Tooltip>
+      </span>
+    );
+  } 
+
+  
+
   return (
     <>
       {/* Environment Name */}
@@ -311,7 +331,7 @@ export const Environment: FC<EnvironmentProps> = ({
 
       {/* Environment Type Selection */}
       <Form.Item
-        label="Type"
+        label={getTypeLabelTooltip(name)}
         name={[name, 'environmentType']}
         required
         {...formItemLayout}
@@ -372,15 +392,6 @@ export const Environment: FC<EnvironmentProps> = ({
         </Form.Item>
       ) : (
         <>
-          {/* External Image Input for Container, CloudVM, Standalone */}
-          <Alert
-            message={`${getEnvironmentType(name)} Image Requirements`}
-            description={getImageAlert(name)}
-            type="info"
-            showIcon
-            style={{ marginBottom: 16 }}
-          />
-
           {/* External Image Input */}
           <Form.Item
             {...restField}

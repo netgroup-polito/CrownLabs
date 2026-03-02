@@ -739,19 +739,19 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
         </Form.Item>
         
           <Collapse size="small" bordered={false} ghost accordion items={[
-  {
+   {
     key: '1',
-    label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
-    children: automaticInstanceSavingResource,
-    style: panelStyle,
-    extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
-  },
-  {
-    key: '2',
     label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
     children: environmentListForm,
     style: panelStyle,
     extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment set' : `${infoNumberTemplate} environments set` : 'No environments set'}</Text>
+  },
+  {
+    key: '2',
+    label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
+    children: automaticInstanceSavingResource,
+    style: panelStyle,
+    extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
   },
   {
     key: '3',
@@ -760,7 +760,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     style: panelStyle,
     extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['NodeSelectorDisabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
   },
-]} defaultActiveKey={['2']}  />
+]} defaultActiveKey={['1']}  />
         
 
         <div className="flex justify-end gap-2">
