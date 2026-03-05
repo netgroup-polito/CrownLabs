@@ -39,7 +39,6 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
@@ -76,10 +75,6 @@ func main() {
 		"( e.g. key1=value1&key2=value2")
 
 	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
-
-	sharedVolumeStorageClass := flag.String("shared-volume-storage-class", "rook-nfs", "The StorageClass to be used for all SharedVolumes' PVC (if unique can be used to enforce ResourceQuota on Workspaces, about number and size of ShVols)")
-
-	maxConcurrentShVolReconciles := flag.Int("max-concurrent-reconciles-shvol", 1, "The maximum number of concurrent Reconciles which can be run for the Instance Shared Volume controller")
 
 	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
@@ -173,18 +168,6 @@ func main() {
 		PublicExposureOpts:    publicExposureOpts,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
-		os.Exit(1)
-	}
-
-	// Configure the SharedVolume controller
-	const sharedVolumeCtrl = "SharedVolume"
-	if err := (&shvolctrl.SharedVolumeReconciler{
-		Client:             mgr.GetClient(),
-		EventsRecorder:     mgr.GetEventRecorderFor(sharedVolumeCtrl),
-		NamespaceWhitelist: nsWhitelist,
-		PVCStorageClass:    *sharedVolumeStorageClass,
-	}).SetupWithManager(mgr, *maxConcurrentShVolReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", sharedVolumeCtrl)
 		os.Exit(1)
 	}
 

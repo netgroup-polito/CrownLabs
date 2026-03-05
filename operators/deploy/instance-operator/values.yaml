@@ -25,9 +25,6 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
-  maxConcurrentShVolReconciles: 1
-  sharedVolumeOptions:
-    storageClass: rook-nfs
   monitoring:
     prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
