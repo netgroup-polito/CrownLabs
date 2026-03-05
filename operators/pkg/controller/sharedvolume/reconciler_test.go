@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shvolctrl_test
+package sharedvolume_test
 
 import (
 	"context"
@@ -87,7 +87,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 	}
 
 	BeforeAll(func() {
-		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: whiteListMap}}
+		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: labelMap}}
 		sc = storagev1.StorageClass{
 			ObjectMeta:           metav1.ObjectMeta{Name: pvcStorageClass},
 			AllowVolumeExpansion: ptr.To(true),

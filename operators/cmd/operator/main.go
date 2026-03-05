@@ -75,10 +75,12 @@ func main() {
 	var enableTenant bool
 	var enableWorkspace bool
 	var enableInstance bool
+	var enableSharedVolume bool
 	var enableKeycloak bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
 	flag.BoolVar(&enableInstance, "enable-instance", true, "Enable the instance controller.")
+	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", true, "Enable the sharedvolume controller.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
@@ -143,6 +145,14 @@ func main() {
 		err := setupInstance(mgr)
 		if err != nil {
 			klog.Fatal(err, "Unable to create instance webhook")
+		}
+	}
+
+	if enableSharedVolume {
+		log.Info("Starting the sharedvolume controller")
+		err := setupSharedVolume(mgr, targetLabel)
+		if err != nil {
+			klog.Fatal(err, "Unable to create sharedvolume controller")
 		}
 	}
 

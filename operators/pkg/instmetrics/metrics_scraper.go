@@ -17,6 +17,7 @@ package instmetrics
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sync"
 	"time"
 
@@ -26,7 +27,6 @@ import (
 
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // StatsScraper interface.
@@ -197,7 +197,7 @@ func (ms *MetricsScraper) findApplicationContainerIDs(ctx context.Context) ([]*c
 
 	watchedContainers := []*criapi.Container{}
 	for _, container := range containers {
-		if utils.Contains(instancePodIDs, container.PodSandboxId) && !utils.Contains(ms.ignoredContainerNames, container.Metadata.Name) {
+		if slices.Contains(instancePodIDs, container.PodSandboxId) && !slices.Contains(ms.ignoredContainerNames, container.Metadata.Name) {
 			watchedContainers = append(watchedContainers, container)
 		}
 	}
