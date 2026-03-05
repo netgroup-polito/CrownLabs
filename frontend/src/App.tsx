@@ -28,24 +28,6 @@ function App() {
     ),
   );
 
-  const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
-
-  // Early return if tenant namespace not available
-  if (!tenantNs) {
-    return (
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-        }}
-      >
-        <div>Loading tenant information...</div>
-      </div>
-    );
-  }
-
   return (
     <AppLayout
       TooltipButtonLink={
