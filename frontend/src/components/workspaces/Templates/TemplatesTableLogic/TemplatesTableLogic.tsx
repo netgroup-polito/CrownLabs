@@ -283,7 +283,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
             disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
           },
-          image: env.registry ? `${env.registry}/${env.image}` : env.image,
+          image: env.image,
           sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
             (svm): SharedVolumeMountsListItemInput => ({
               mountPath: svm.mountPath,

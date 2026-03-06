@@ -199,7 +199,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         return `${internalRegistry}/${selectedImage.name}`;
       }
     }
-
     // For other types, use the external image
     let finalImage = image;
     // If it doesn't include a registry, default to internal registry

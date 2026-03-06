@@ -240,7 +240,7 @@ export const Environment: FC<EnvironmentProps> = ({
       case EnvironmentType.Container:
         return 'Examples: ubuntu:22.04, docker.io/library/nginx:latest';
       case EnvironmentType.Standalone:
-        return 'Example: crownlabs/vscode-rust:v0.2.0';
+        return 'Examples: crownlabs/vscode-rust:v0.2.0, harbor.crownlabs.polito.it/sid/vscode-latex:latest ';
       case EnvironmentType.CloudVm:
         return 'Example: https://cloud-images.ubuntu.com/minimal/releases/noble/release/ubuntu-24.04-minimal-cloudimg-amd64.img';
       default:
@@ -256,7 +256,7 @@ export const Environment: FC<EnvironmentProps> = ({
       case EnvironmentType.Container:
         return 'Enter image name (e.g., ubuntu:22.04)';
       case EnvironmentType.Standalone:
-        return 'Enter image name (e.g., crownlabs/vscode-rust:v0.2.0)';
+        return 'Enter image name (e.g., crownlabs/vscode-rust:v0.2.0, harbor.crownlabs.polito.it/sid/vscode-latex:latest)';
       case EnvironmentType.CloudVm:
         return 'Enter image URL (e.g., https://cloud-images.ubuntu.com/...)';
       default:
