@@ -128,6 +128,10 @@ export const makeGuiTemplate = (
     environmentList: environmentList.map(env => ({
       name: env?.name ?? '',
       guiEnabled: !!env?.guiEnabled,
+      disableControls: env?.disableControls ?? undefined,
+      containerStartupOptions: env?.containerStartupOptions ?? undefined,
+      storageClassName: env?.storageClassName,
+      rewriteUrl: !!env?.rewriteURL,
       persistent: !!env?.persistent,
       environmentType: env?.environmentType,
       mountMyDriveVolume: env?.mountMyDriveVolume ?? true,

@@ -3607,7 +3607,7 @@ export type ApplyTemplateJsonPatchMutationVariables = Exact<{
 }>;
 
 
-export type ApplyTemplateJsonPatchMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, image: string, environmentType: EnvironmentType, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', namespace?: string | null, name: string } } | null> | null } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null } | null };
+export type ApplyTemplateJsonPatchMutation = { __typename?: 'Mutation', applyTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, image: string, disableControls?: boolean | null, rewriteURL?: boolean | null, storageClassName?: string | null, mountMyDriveVolume: boolean, environmentType: EnvironmentType, containerStartupOptions?: { __typename?: 'ContainerStartupOptions', sourceArchiveURL?: string | null, contentPath?: string | null, startupArgs?: Array<string | null> | null, enforceWorkdir?: boolean | null } | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', namespace?: string | null, name: string } } | null> | null } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null } | null };
 
 export type ApplyTenantMutationVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -3733,7 +3733,7 @@ export type WorkspaceTemplatesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, deleteAfter?: string | null, inactivityTimeout?: string | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, mountMyDriveVolume: boolean, image: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', name: string, namespace?: string | null } } | null> | null } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, deleteAfter?: string | null, inactivityTimeout?: string | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, mountMyDriveVolume: boolean, image: string, guiEnabled?: boolean | null, disableControls?: boolean | null, rewriteURL?: boolean | null, persistent?: boolean | null, containerStartupOptions?: { __typename?: 'ContainerStartupOptions', sourceArchiveURL?: string | null, contentPath?: string | null, startupArgs?: Array<string | null> | null, enforceWorkdir?: boolean | null } | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', name: string, namespace?: string | null } } | null> | null } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -3985,6 +3985,16 @@ export const ApplyTemplateJsonPatchDocument = gql`
         guiEnabled
         persistent
         image
+        disableControls
+        rewriteURL
+        storageClassName
+        mountMyDriveVolume
+        containerStartupOptions {
+          sourceArchiveURL
+          contentPath
+          startupArgs
+          enforceWorkdir
+        }
         environmentType
         resources {
           cpu
@@ -4866,7 +4876,6 @@ export const WorkspaceTemplatesDocument = gql`
         description
         allowPublicExposure
         deleteAfter
-        description
         inactivityTimeout
         nodeSelector
         environmentList {
@@ -4875,7 +4884,16 @@ export const WorkspaceTemplatesDocument = gql`
           mountMyDriveVolume
           image
           guiEnabled
+          disableControls
+          rewriteURL
           persistent
+          containerStartupOptions {
+            sourceArchiveURL
+            contentPath
+            startupArgs
+            enforceWorkdir
+          }
+          mountMyDriveVolume
           resources {
             cpu
             disk

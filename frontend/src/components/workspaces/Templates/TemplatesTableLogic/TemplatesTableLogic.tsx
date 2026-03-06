@@ -77,6 +77,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   });
 
   const dataTemplate = useMemo(() => {
+
     const templates =
       templateListData?.templateList?.templates
         ?.map(t =>
@@ -89,6 +90,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           }),
         )
         .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
+       
     return templates;
   }, [templateListData?.templateList?.templates]);
 
@@ -266,7 +268,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       //     ),
       //   },
       // });
-
+      console.log(t.environments[0].disableControls)
       const environmentList = t.environments.map(
         (env): EnvironmentListListItemInput => ({
           name: env.name,
@@ -284,6 +286,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
           },
           image: env.image,
+          disableControls: env.disableControls,
+          containerStartupOptions: env.containerStartupOptions,
+          storageClassName: env.storageClassName,
           sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
             (svm): SharedVolumeMountsListItemInput => ({
               mountPath: svm.mountPath,
@@ -389,6 +394,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
+                  console.log('Editing template:', template);
                   const templateForm: TemplateForm = {
                     name: template.name,
                     // Include nodeSelector for modal initialization (state setup), but it won't be in the form
@@ -424,6 +430,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                       })),
                       rewriteUrl: false,
                       gui: env.guiEnabled,
+                      disableControls: env.disableControls,
+                      containerStartupOptions: env.containerStartupOptions,
+                      storageClassName: env.storageClassName,
                     })),
                   };
                   setEditingTemplate(templateForm);

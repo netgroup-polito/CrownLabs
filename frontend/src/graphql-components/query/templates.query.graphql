@@ -8,7 +8,6 @@ query workspaceTemplates($workspaceNamespace: String!) {
         description
         allowPublicExposure
         deleteAfter
-        description
         inactivityTimeout
         nodeSelector
         environmentList {
@@ -17,7 +16,16 @@ query workspaceTemplates($workspaceNamespace: String!) {
           mountMyDriveVolume
           image
           guiEnabled
+          disableControls
+          rewriteURL
           persistent
+          containerStartupOptions{
+            sourceArchiveURL
+            contentPath
+            startupArgs
+            enforceWorkdir
+          }
+          mountMyDriveVolume
           resources {
             cpu
             disk

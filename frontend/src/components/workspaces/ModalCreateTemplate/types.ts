@@ -34,7 +34,18 @@ export type TemplateFormEnv = {
   disk: number;
   sharedVolumeMounts: TemplateFormEnvShVol[];
   rewriteUrl: boolean;
+  disableControls?: boolean;
+  containerStartupOptions?: ContainerStartupOptionsForm;
+  storageClassName?: string;
+  mountMyDriveVolume?: boolean;
 };
+
+export type ContainerStartupOptionsForm = {
+  sourceArchive: string;
+  contentPath: string;
+  startupArgs: string[];
+  EnforceWorkDir: boolean;
+}
 
 export type ChildFormItem = {
   parentFormName: number;
