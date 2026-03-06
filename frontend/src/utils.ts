@@ -1,6 +1,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { EnvironmentType, Phase2, Phase5 } from './generated-types';
 import { Role } from './generated-types';
+import type { ContainerStartupOptionsForm } from './components/workspaces/ModalCreateTemplate/types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
   user = Role.User,
@@ -37,6 +38,10 @@ export type TemplateEnvironment = {
     mountPath: string;
     readOnly: boolean;
   }>;
+  rewriteUrl?: boolean;
+  containerStartupOptions?: ContainerStartupOptionsForm;
+  storageClassName?: string;
+  disableControls?: boolean;
 };
 
 export type InstanceResources = {
