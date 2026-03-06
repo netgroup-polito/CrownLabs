@@ -422,25 +422,27 @@ export const Environment: FC<EnvironmentProps> = ({
       )}
       
     <Flex vertical={!isVM(name)} {...isVM(name)&& {justify: "space-evenly"}} className='ml-6 gap-2'>
-      {/* GUI Toggle */}
-      <Form.Item label="GUI" className="mb-0">
-        <div className="flex items-center gap-2">
-          <Form.Item
-            {...restField}
-            name={[name, 'gui']}
-            valuePropName="checked"
-            className="mb-0"
-          >
-            <Checkbox
-              disabled={!isVM(name)}
-            />
-          </Form.Item>
+      {/* GUI Toggle - hidden for Standalone as it's always enabled */}
+      {getEnvironmentType(name) !== EnvironmentType.Standalone && (
+        <Form.Item label="GUI" className="mb-0">
+          <div className="flex items-center gap-2">
+            <Form.Item
+              {...restField}
+              name={[name, 'gui']}
+              valuePropName="checked"
+              className="mb-0"
+            >
+              <Checkbox
+                disabled={!isVM(name)}
+              />
+            </Form.Item>
 
-          <div className="ant-form-item-extra text-xs">
-            {getGUIDescription(name)}
+            <div className="ant-form-item-extra text-xs">
+              {getGUIDescription(name)}
+            </div>
           </div>
-        </div>
-      </Form.Item>
+        </Form.Item>
+      )}
 
       {/* Persistent Checkbox */}
       <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
@@ -462,7 +464,7 @@ export const Environment: FC<EnvironmentProps> = ({
       </Tooltip>
 
       {/* Rewrite URL toggle - only for Standalone */}
-      {getEnvironmentType(name) === EnvironmentType.Standalone && (
+      {/* {getEnvironmentType(name) === EnvironmentType.Standalone && (
         <Form.Item label="Rewrite URL" className="mb-0">
           <div className="flex items-center gap-2">
             <Form.Item
@@ -479,7 +481,7 @@ export const Environment: FC<EnvironmentProps> = ({
             </div>
           </div>
         </Form.Item>
-      )}
+      )} */}
     </Flex>
       
       <Space direction="horizontal" className='ml-2 mb-4'  >

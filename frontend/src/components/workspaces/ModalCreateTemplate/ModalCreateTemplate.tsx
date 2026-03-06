@@ -744,7 +744,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
     children: environmentListForm,
     style: panelStyle,
-    extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment set' : `${infoNumberTemplate} environments set` : 'No environments set'}</Text>
+    extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment' : `${infoNumberTemplate} environments` : 'No environments'}</Text>
   },
   {
     key: '2',

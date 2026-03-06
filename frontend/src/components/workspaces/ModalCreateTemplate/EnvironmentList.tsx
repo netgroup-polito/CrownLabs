@@ -54,11 +54,7 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
       return;
     }
 
-    const envWithImages = environments.filter(
-      env => env.image && env.image.trim() !== ''
-    ).length;
-
-    setInfoNumberTemplate(envWithImages);
+    setInfoNumberTemplate(environments.length > 0 ? environments.length : 0);
   }, [environments, setInfoNumberTemplate]);
 
   const addEnv = () => {
