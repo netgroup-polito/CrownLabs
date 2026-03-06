@@ -38,7 +38,7 @@ export type TemplateEnvironment = {
     mountPath: string;
     readOnly: boolean;
   }>;
-  rewriteUrl: boolean;
+  rewriteUrl?: boolean;
   containerStartupOptions?: ContainerStartupOptionsForm;
   storageClassName?: string;
   disableControls?: boolean;

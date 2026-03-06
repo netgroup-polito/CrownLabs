@@ -715,6 +715,7 @@ export const getTemplatesMapped = (
         image: '',
         mountMyDriveVolume: false,
         sharedVolumeMounts: [],
+        rewriteUrl: false,
       })) || [];
 
     return {
