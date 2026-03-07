@@ -3,7 +3,7 @@ import { Tooltip } from 'antd';
 import { Button } from 'antd';
 import {
   ExclamationCircleOutlined,
-  CloseCircleOutlined,
+  PoweroffOutlined,
   PlayCircleOutlined,
 } from '@ant-design/icons';
 import { type Instance } from '../../../../utils';
@@ -64,7 +64,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
   }, [instance, workspaceAvailableQuota]);
 
   return status === Phase2.Ready || status === Phase2.ResourceQuotaExceeded ? (
-    <Tooltip placement="top" title="Stop">
+    <Tooltip placement="top" title="Power off">
       <Button
         loading={disabled}
         className={`hidden ${
@@ -76,7 +76,7 @@ const RowInstanceActionsPersistent: FC<IRowInstanceActionsPersistentProps> = ({
         size="middle"
         disabled={disabled}
         icon={
-          <CloseCircleOutlined
+          <PoweroffOutlined
             className="flex justify-center items-center"
             style={font22px}
           />
