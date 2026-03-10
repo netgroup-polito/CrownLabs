@@ -794,49 +794,12 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
 
               const isDisabled = hasErrors || !hasTemplateName || !hasValidEnvironments || !nodeSelectorValid;
 
-              // Build tooltip message with missing fields
-              const missingFields: string[] = [];
-              if (!hasTemplateName) missingFields.push('Template name');
-              if (!hasValidEnvironments) {
-                if (!environments || environments.length === 0) {
-                  missingFields.push('At least one environment');
-                } else {
-                  const incompleteEnvs = environments
-                    .map((env, idx) => {
-                      const missing = [];
-                      if (!env.name || env.name.trim() === '') missing.push('name');
-                      if (!env.environmentType) missing.push('type');
-                      if (!env.image || env.image.trim() === '') missing.push('image');
-                      return missing.length > 0 ? `Env ${idx + 1}: ${missing.join(', ')}` : null;
-                    })
-                    .filter((item): item is string => item !== null);
-                  if (incompleteEnvs.length > 0) {
-                    missingFields.push(...incompleteEnvs);
-                  }
-                }
-              }
-              if (!nodeSelectorValid) missingFields.push('Node selector labels (when Fixed Labels is selected)');
-              if (hasErrors) missingFields.push('Fix validation errors');
-
-              const tooltipTitle = isDisabled && missingFields.length > 0 ? (
-                <div>
-                  <div>Missing required fields:</div>
-                  <ul style={{ margin: '4px 0', paddingLeft: '20px' }}>
-                    {missingFields.map((field, idx) => (
-                      <li key={idx}>{field}</li>
-                    ))}
-                  </ul>
-                </div>
-              ) : '';
-
               return (
-                <Tooltip title={tooltipTitle} placement="topRight">
-                  <span>
-                    <Button htmlType="submit" type="primary" disabled={isDisabled}>
-                      {!loading && (template ? 'Modify' : 'Create')}
-                    </Button>
-                  </span>
-                </Tooltip>
+                <span>
+                  <Button htmlType="submit" type="primary" disabled={isDisabled}>
+                    {!loading && (template ? 'Modify' : 'Create')}
+                  </Button>
+                </span>
               );
             }}
           </Form.Item>
