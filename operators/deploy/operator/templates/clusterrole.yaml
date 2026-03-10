@@ -18,12 +18,12 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
 - apiGroups: [""]
-  resources: ["persistentvolumeclaims"]
-  verbs: ["get","list","watch","create","patch","update"]
+  resources: ["persistentvolumeclaims", "persistentvolumes"]
+  verbs: ["get", "list", "watch", "create", "patch", "update"]
 
-- apiGroups: [""]
-  resources: ["persistentvolumes"]
-  verbs: ["get","list","watch"]
+- apiGroups: ["batch"]
+  resources: ["jobs", "jobs/status"]
+  verbs: ["get", "list", "watch", "create", "patch", "update"]
 
 - apiGroups: ["rbac.authorization.k8s.io"]
   resources: ["rolebindings", "clusterroles", "clusterrolebindings"]

@@ -221,9 +221,10 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 					// Labels on PVC
 					Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)).To(Succeed())
 					Expect(pvc.Labels[forge.ProvisionJobLabel]).To(Equal(forge.ProvisionJobValueOk))
+					Expect(pvc.Labels[forge.LabelManagedByKey]).To(Equal("sharedvolume"))
 
 					// Labels and Finalizers on ShVol
-					Expect(shvol.Labels).To(HaveKeyWithValue(ContainSubstring("managed-by"), ContainSubstring("instance")))
+					Expect(shvol.Labels[forge.LabelManagedByKey]).To(Equal("sharedvolume"))
 					Expect(ctrlUtil.ContainsFinalizer(&shvol, clv1alpha2.ShVolCtrlFinalizerName))
 				})
 

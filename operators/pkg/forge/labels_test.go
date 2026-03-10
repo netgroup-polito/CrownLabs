@@ -638,13 +638,56 @@ var _ = Describe("Labels forging", func() {
 		})
 	})
 
+	Describe("The forge.SharedVolumeLabels function", func() {
+		var (
+			input    map[string]string
+			output   map[string]string
+			updated  bool
+			expected = map[string]string{
+				"key":                            "value",
+				"crownlabs.polito.it/managed-by": "sharedvolume",
+			}
+		)
+
+		JustBeforeEach(func() {
+			output, updated = forge.SharedVolumeLabels(input)
+		})
+
+		When("the managed-by label has not been added yet", func() {
+			BeforeEach(func() {
+				input = map[string]string{
+					"key": "value",
+				}
+			})
+
+			It("Should have the same labels", func() {
+				Expect(output).To(Equal(expected))
+				Expect(updated).To(BeTrue())
+			})
+		})
+
+		When("the managed-by label has been added yet", func() {
+			BeforeEach(func() {
+				input = map[string]string{
+					"key":                            "value",
+					"crownlabs.polito.it/managed-by": "sharedvolume",
+				}
+			})
+
+			It("Should have the same labels", func() {
+				Expect(output).To(Equal(expected))
+				Expect(updated).To(BeFalse())
+			})
+		})
+	})
+
 	Describe("The forge.SharedVolumeObjectLabels function", func() {
 		var (
 			input    map[string]string
 			output   map[string]string
 			expected = map[string]string{
 				"key":                             "value",
-				"crownlabs.polito.it/managed-by":  "instance",
+				"crownlabs.polito.it/managed-by":  "sharedvolume",
 				"crownlabs.polito.it/volume-type": "sharedvolume",
 			}
 		)
