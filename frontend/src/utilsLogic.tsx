@@ -128,6 +128,10 @@ export const makeGuiTemplate = (
     environmentList: environmentList.map(env => ({
       name: env?.name ?? '',
       guiEnabled: !!env?.guiEnabled,
+      disableControls: env?.disableControls ?? undefined,
+      containerStartupOptions: env?.containerStartupOptions ?? undefined,
+      storageClassName: env?.storageClassName,
+      rewriteUrl: !!env?.rewriteURL,
       persistent: !!env?.persistent,
       environmentType: env?.environmentType,
       mountMyDriveVolume: env?.mountMyDriveVolume ?? true,
@@ -410,7 +414,7 @@ export const makeGuiInstance = (
     tenantId: tenantName || '',
     tenantNamespace: tenantNamespace || '',
     workspaceName: workspaceName,
-    running: running || true,
+    running: running || false,
     nodeName: status?.nodeName || '',
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,
@@ -711,6 +715,7 @@ export const getTemplatesMapped = (
         image: '',
         mountMyDriveVolume: false,
         sharedVolumeMounts: [],
+        rewriteUrl: false,
       })) || [];
 
     return {
