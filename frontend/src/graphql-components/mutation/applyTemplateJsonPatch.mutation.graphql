@@ -18,6 +18,17 @@ mutation applyTemplateJsonPatch(
         guiEnabled
         persistent
         image
+        disableControls
+        rewriteURL
+        storageClassName
+        mountMyDriveVolume
+        containerStartupOptions {
+          sourceArchiveURL
+          contentPath
+          startupArgs
+          enforceWorkdir
+
+        }
         environmentType
         resources {
           cpu
