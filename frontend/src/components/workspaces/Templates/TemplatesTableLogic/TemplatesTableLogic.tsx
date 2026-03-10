@@ -77,6 +77,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   });
 
   const dataTemplate = useMemo(() => {
+
     const templates =
       templateListData?.templateList?.templates
         ?.map(t =>
@@ -89,6 +90,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           }),
         )
         .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
+       
     return templates;
   }, [templateListData?.templateList?.templates]);
 
@@ -195,6 +197,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
+  
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -217,6 +220,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     });
   }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
 
+
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateForm>();
 
@@ -224,7 +228,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
   });
 
-  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
+  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null)
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
@@ -264,7 +268,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       //     ),
       //   },
       // });
-
+      console.log(t.environments[0].disableControls)
       const environmentList = t.environments.map(
         (env): EnvironmentListListItemInput => ({
           name: env.name,
@@ -276,13 +280,15 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           environmentType: env.environmentType,
           resources: {
             reservedCPUPercentage:
-              usedTemplate?.environmentList.find(e => e.name === env.name)
-                ?.resources.reservedCPUPercentage ?? 50,
+             env.reservedCpu,
             cpu: env.cpu,
             memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
             disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
           },
-          image: env.registry ? `${env.registry}/${env.image}` : env.image,
+          image: env.image,
+          disableControls: env.disableControls,
+          containerStartupOptions: env.containerStartupOptions,
+          storageClassName: env.storageClassName,
           sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
             (svm): SharedVolumeMountsListItemInput => ({
               mountPath: svm.mountPath,
@@ -295,29 +301,35 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ),
         }),
       );
-
-      const patchJson = JSON.stringify([
-        {
-          op: 'replace',
-          path: '/spec/environmentList',
-          value: environmentList,
-        },
+      // Define patches array with explicit typing to support all JSON Patch operations
+      const patches: Array<
+        | { op: 'replace' | 'add'; path: string; value: unknown }
+        | { op: 'remove'; path: string }
+      > = [
+        { op: 'replace', path: '/spec/environmentList', value: environmentList },
         { op: 'replace', path: '/spec/prettyName', value: t.name },
         { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-        {
-          op: 'replace',
-          path: '/spec/inactivityTimeout',
-          value: t.inactivityTimeout,
-        },
-      ]);
+        { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
+        { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
+        { op: 'replace', path: '/spec/description', value: t.description },
+      ];
 
-      //    console.log('Patch JSON:', patchJson);
+      // nodeSelector logic:
+      // - if undefined: not touched by user, keep existing value (don't patch)
+      // - if null: user wants to remove it (from Fixed/Let user choose to Automatic)
+      // - if defined (can be {} or {...}): set it using 'add' (works for both create and update)
+      if (t.nodeSelector === null && usedTemplate?.nodeSelector !== null) {
+        patches.push({ op: 'remove', path: '/spec/nodeSelector' });
+      } else if (t.nodeSelector !== null) {
+        patches.push({ op: 'add', path: '/spec/nodeSelector', value: t.nodeSelector });
+      }
+
 
       return await applyTemplateJsonPatchMutation({
         variables: {
           workspaceNamespace,
           templateId: usedTemplate?.id ?? '',
-          patchJson: patchJson,
+          patchJson: JSON.stringify(patches),
           manager: 'frontend-template-patch',
         },
       });
@@ -383,9 +395,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
+                  console.log('Editing template:', template);
                   const templateForm: TemplateForm = {
                     name: template.name,
+                    // Include nodeSelector for modal initialization (state setup), but it won't be in the form
+                    nodeSelector: template.nodeSelector,
+                    description: template.description ?? template.name,
                     deleteAfter: template.deleteAfter,
+                    allowPublicExposure: template.allowPublicExposure,
                     inactivityTimeout: template.inactivityTimeout,
                     environments: template.environmentList.map(env => ({
                       name: env.name,
@@ -393,18 +410,20 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                       environmentType:
                         env.environmentType ?? EnvironmentType.VirtualMachine,
                       cpu: env.resources.cpu,
+                      reservedCpu: env.resources.reservedCPUPercentage ?? 50,
                       ram: parseInt(env.resources.memory) / 1000, // assuming memory is in 'XMi' format
                       disk: env.resources.disk
                         ? parseInt(env.resources.disk) / 1000
                         : 0, // convert from Mi to Gi
                       image:
-                        getImageNameNoVer(env.image)
-                          .split('/')
-                          .slice(-2)
-                          .join('/') ?? '',
+                        env.environmentType === EnvironmentType.VirtualMachine
+                          ? getImageNameNoVer(env.image)
+                              .split('/')
+                              .slice(-2)
+                              .join('/') ?? ''
+                          : env.image,
                       registry:
-                        getImageNameNoVer(env.image).split('/').slice(0)[0] ??
-                        '',
+                        env.environmentType !== EnvironmentType.CloudVm ? getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '' : '',
                       sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
                         sharedVolume: svm.name,
                         mountPath: svm.mountPath,
@@ -412,6 +431,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                       })),
                       rewriteUrl: false,
                       gui: env.guiEnabled,
+                      disableControls: env.disableControls,
+                      containerStartupOptions: env.containerStartupOptions,
+                      storageClassName: env.storageClassName,
                     })),
                   };
                   setEditingTemplate(templateForm);
