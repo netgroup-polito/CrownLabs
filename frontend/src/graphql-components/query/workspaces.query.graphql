@@ -7,6 +7,11 @@ query workspaces($labels: String) {
       spec {
         prettyName
         autoEnroll
+        quota {
+          cpu
+          memory
+          instances
+        }
       }
     }
   }

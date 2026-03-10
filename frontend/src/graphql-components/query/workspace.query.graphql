@@ -1,0 +1,13 @@
+query workspace($name: String!) {
+  workspace: itPolitoCrownlabsV1alpha1Workspace(name: $name) {
+    metadata {
+      name
+      namespace
+      labels
+    }
+    spec {
+      prettyName
+      autoEnroll
+    }
+  }
+}

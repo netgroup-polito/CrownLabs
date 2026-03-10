@@ -13,6 +13,7 @@ const config: CodegenConfig = {
     './src/generated-types.tsx': {
       config: {
         preResolveTypes: true,
+        skipDocumentsValidation: true,
       },
       plugins: [
         'typescript',

@@ -1,0 +1,35 @@
+mutation createWorkspace(
+  $name: String!
+  $prettyName: String!
+  $autoEnroll: AutoEnroll
+  $cpu: JSON!
+  $memory: JSON!
+  $instances: BigInt!
+) {
+  createdWorkspace: createCrownlabsPolitoItV1alpha1Workspace(
+    itPolitoCrownlabsV1alpha1WorkspaceInput: {
+      kind: "Workspace"
+      apiVersion: "crownlabs.polito.it/v1alpha1"
+      spec: {
+        prettyName: $prettyName
+        autoEnroll: $autoEnroll
+        quota: { cpu: $cpu, memory: $memory, instances: $instances }
+      }
+      metadata: { name: $name }
+    }
+  ) {
+    spec {
+      prettyName
+      autoEnroll
+      quota {
+        cpu
+        memory
+        instances
+      }
+    }
+    metadata {
+      name
+      namespace
+    }
+  }
+}
