@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { useXTerm } from 'react-xtermjs';
 import { AuthContext } from '../../../contexts/AuthContext';
 import './SSHTerminal.css';
-import { FitAddon } from 'xterm-addon-fit';
+import { FitAddon } from '@xterm/addon-fit';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { ErrorTypes } from '../../../errorHandling/utils';
 import type { SupportedError } from '../../../errorHandling/utils';
@@ -31,6 +31,15 @@ const SSHTerminal: React.FC = () => {
   const wsRef = useRef<WebSocket | null>(null);
 
   const keepAliveRef = useRef<number | null>(null);
+  const tokenRef = useRef<string | undefined>(token);
+
+  useEffect(() => {
+    // we need to keep token in a ref because it's needed only during ws.onopen
+    // and needs not to be re-done upon token change. This way, if token changes
+    // while the WS connection is open, the new token will be used only on the
+    // next WS connection attempt.
+    tokenRef.current = token;
+  }, [token]);
 
   useEffect(() => {
     if (!instance) return;
@@ -89,7 +98,7 @@ const SSHTerminal: React.FC = () => {
         JSON.stringify({
           namespace,
           vmName: VmName,
-          token,
+          token: tokenRef.current,
           InitialWidth: instance.cols,
           InitialHeight: instance.rows,
           Environment: environment,
@@ -168,7 +177,7 @@ const SSHTerminal: React.FC = () => {
     instance,
     namespace,
     VmName,
-    token,
+    tokenRef,
     ref,
     environment,
     genericErrorCatcher,

@@ -414,7 +414,7 @@ export const makeGuiInstance = (
     tenantId: tenantName || '',
     tenantNamespace: tenantNamespace || '',
     workspaceName: workspaceName,
-    running: running || true,
+    running: running || false,
     nodeName: status?.nodeName || '',
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,

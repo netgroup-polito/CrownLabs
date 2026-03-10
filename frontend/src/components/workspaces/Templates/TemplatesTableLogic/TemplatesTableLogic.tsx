@@ -346,7 +346,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         display: 'flex',
         flexDirection: 'column',
         flex: '1 1 auto',
-        minHeight: 0,
+        minHeight: '100%',
+        overflow: 'hidden',
       }}
     >
       {/* full-height flex column so TemplatesTable can take the remaining space and scroll */}
