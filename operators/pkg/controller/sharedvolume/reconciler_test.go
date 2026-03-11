@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shvolctrl_test
+package sharedvolume_test
 
 import (
 	"context"
@@ -87,7 +87,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 	}
 
 	BeforeAll(func() {
-		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: whiteListMap}}
+		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: labelMap}}
 		sc = storagev1.StorageClass{
 			ObjectMeta:           metav1.ObjectMeta{Name: pvcStorageClass},
 			AllowVolumeExpansion: ptr.To(true),
@@ -221,9 +221,10 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 					// Labels on PVC
 					Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)).To(Succeed())
 					Expect(pvc.Labels[forge.ProvisionJobLabel]).To(Equal(forge.ProvisionJobValueOk))
+					Expect(pvc.Labels[forge.LabelManagedByKey]).To(Equal("sharedvolume"))
 
 					// Labels and Finalizers on ShVol
-					Expect(shvol.Labels).To(HaveKeyWithValue(ContainSubstring("managed-by"), ContainSubstring("instance")))
+					Expect(shvol.Labels[forge.LabelManagedByKey]).To(Equal("sharedvolume"))
 					Expect(ctrlUtil.ContainsFinalizer(&shvol, clv1alpha2.ShVolCtrlFinalizerName))
 				})
 

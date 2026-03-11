@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package shvolctrl groups the functionalities related to the SharedVolume controller.
-package shvolctrl
+// Package sharedvolume groups the functionalities related to the SharedVolume controller.
+package sharedvolume
 
 import (
 	"context"
@@ -35,16 +35,17 @@ import (
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// SharedVolumeReconciler reconciles a SharedVolume object.
-type SharedVolumeReconciler struct {
+// Reconciler reconciles a SharedVolume object.
+type Reconciler struct {
 	client.Client
-	EventsRecorder     record.EventRecorder
-	NamespaceWhitelist metav1.LabelSelector
-	PVCStorageClass    string
+	TargetLabel     common.KVLabel
+	EventsRecorder  record.EventRecorder
+	PVCStorageClass string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -53,8 +54,7 @@ type SharedVolumeReconciler struct {
 }
 
 // SetupWithManager registers a new controller for SharedVolume resources.
-func (r *SharedVolumeReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
-	mgr.GetLogger().Info("setup manager")
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.SharedVolume{}).
 		Owns(&v1.PersistentVolumeClaim{}).
@@ -68,7 +68,7 @@ func (r *SharedVolumeReconciler) SetupWithManager(mgr ctrl.Manager, concurrency 
 }
 
 // Reconcile reconciles the state of a SharedVolume resource.
-func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ctrl.Result, err error) {
 	if r.ReconcileDeferHook != nil {
 		defer r.ReconcileDeferHook()
 	}
@@ -89,18 +89,20 @@ func (r *SharedVolumeReconciler) Reconcile(ctx context.Context, req ctrl.Request
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Check the selector label, in order to know whether to perform or not reconciliation.
-	if proceed, err := utils.CheckSelectorLabel(ctrl.LoggerInto(ctx, log), r.Client, shvolume.GetNamespace(), r.NamespaceWhitelist.MatchLabels); !proceed {
+	// Check the target label, in order to know whether to perform or not reconciliation.
+	if proceed, err := utils.CheckNamespaceTargetLabel(ctx, r.Client, shvolume.GetNamespace(), r.TargetLabel); !proceed {
 		// If there was an error while checking, show the error and try again.
 		if err != nil {
-			log.Error(err, "Failed checking selector labels")
+			log.Error(err, "Failed checking target label")
 			return ctrl.Result{}, err
 		}
+		log.Info("SharedVolume is not responsibility of this controller, skipping reconcile")
 		return ctrl.Result{}, nil
 	}
+	log.Info("Reconciling sharedvolume")
 
 	// Defer the function to update the SharedVolume status depending on the modifications
-	// performed while enforcing the desired environments. This is deferred early to
+	// performed while enforcing the desired specification. This is deferred early to
 	// allow setting the Error phase in case of errors.
 	defer func(original, updated *clv1alpha2.SharedVolume) {
 		// Avoid triggering the status update if not necessary.
@@ -236,7 +238,7 @@ func isResourceQuotaExceeded(err error) bool {
 	return kerrors.IsForbidden(err) && strings.Contains(err.Error(), "exceeded quota")
 }
 
-func (r *SharedVolumeReconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol *clv1alpha2.SharedVolume) error {
+func (r *Reconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol *clv1alpha2.SharedVolume) error {
 	var templates clv1alpha2.TemplateList
 	if err := r.List(ctx, &templates, &client.ListOptions{}); err != nil {
 		log.Error(err, "unable to retrieve template list")

@@ -15,6 +15,7 @@
 package forge
 
 import (
+	"maps"
 	"strconv"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -68,6 +69,7 @@ const (
 	labelManagedByInstanceValue  = "instance"
 	labelManagedByTenantValue    = "tenant"
 	labelManagedByWorkspaceValue = "workspace"
+	labelManagedByShVolValue     = "sharedvolume"
 	labelTypeWorkspaceValue      = "workspace"
 	labelTypeSandboxValue        = "sandbox"
 
@@ -222,7 +224,7 @@ func SharedVolumeLabels(labels map[string]string) (map[string]string, bool) {
 	labels = deepCopyLabels(labels)
 	update := false
 
-	update = updateLabel(labels, LabelManagedByKey, labelManagedByInstanceValue) || update
+	update = updateLabel(labels, LabelManagedByKey, labelManagedByShVolValue) || update
 
 	return labels, update
 }
@@ -231,7 +233,7 @@ func SharedVolumeLabels(labels map[string]string) (map[string]string, bool) {
 func SharedVolumeObjectLabels(labels map[string]string) map[string]string {
 	labels = deepCopyLabels(labels)
 
-	labels[LabelManagedByKey] = labelManagedByInstanceValue
+	labels[LabelManagedByKey] = labelManagedByShVolValue
 	labels[LabelVolumeTypeKey] = VolumeTypeValueShVol
 
 	return labels
@@ -251,9 +253,7 @@ func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLab
 // deepCopyLabels creates a copy of the labels map.
 func deepCopyLabels(input map[string]string) map[string]string {
 	output := map[string]string{}
-	for key, value := range input {
-		output[key] = value
-	}
+	maps.Copy(output, input)
 	return output
 }
 

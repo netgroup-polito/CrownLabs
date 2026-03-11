@@ -100,13 +100,18 @@ run-instance-local: install-local samples-res-local run-instance
 run-instance-automation-local: install-local samples-res-local run-instance-automation
 
 run-operator: generate
-	go run cmd/operator/main.go\
+	go run cmd/operator/*.go\
 				--target-label=crownlabs.polito.it/operator-selector=local\
 				--keycloak-url=$(KEYCLOAK_URL)\
 				--keycloak-realm=$(KEYCLOAK_REALM)\
 				--keycloak-client-id=$(KEYCLOAK_CLIENT_ID)\
 				--keycloak-client-secret=$(KEYCLOAK_CLIENT_SECRET)\
 				--keycloak-roles-client-id=$(KEYCLOAK_TARGET_CLIENT)\
+				--enable-tenant=true\
+				--enable-workspace=true\
+				--enable-instance=true\
+				--enable-sharedvolume=true\
+				--enable-keycloak=true\
 				--enable-webhooks=false
 
 #kept for compatibility

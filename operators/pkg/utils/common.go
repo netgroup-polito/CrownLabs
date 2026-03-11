@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -27,6 +28,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 // ParseDockerDirectory returns a valid Docker image directory.
@@ -46,12 +48,13 @@ func CheckLabels(ns *corev1.Namespace, matchLabels map[string]string) bool {
 }
 
 // CheckSelectorLabel checks if the given namespace belongs to the whitelisted namespaces where to perform reconciliation.
+// TODO: Delete this and CheckLabels when the instctrl and instautoctrl will be converted to a KVLabel selector.
 func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceName string, matchLabels map[string]string) (bool, error) {
-	ns := corev1.Namespace{}
 	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
+	ns := corev1.Namespace{}
 
-	// It performs reconciliation only if the InstanceSnapshot belongs to whitelisted namespaces
-	// by checking the existence of keys in the namespace of the InstanceSnapshot.
+	// It performs reconciliation only if the resource belongs to whitelisted namespaces
+	// by checking the existence of keys in the namespace of the resource.
 	if err := k8sClient.Get(ctx, namespaceLookupKey, &ns); err == nil {
 		if !CheckLabels(&ns, matchLabels) {
 			ctrl.LoggerFrom(ctx).V(LogDebugLevel).Info("selector labels not met")
@@ -65,22 +68,25 @@ func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceN
 	return true, nil
 }
 
+// CheckNamespaceTargetLabel checks if the given namespace has the specified target label where to perform reconciliation.
+func CheckNamespaceTargetLabel(ctx context.Context, k8sClient client.Client, namespaceName string, targetLabel common.KVLabel) (bool, error) {
+	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
+	ns := corev1.Namespace{}
+
+	if err := k8sClient.Get(ctx, namespaceLookupKey, &ns); err != nil {
+		return false, fmt.Errorf("error when retrieving namespace %q: %w", namespaceName, err)
+	}
+
+	if targetLabel.IsIncluded(ns.GetLabels()) {
+		return true, nil
+	}
+	return false, nil
+}
+
 // MatchOneInStringSlices checks if there's at least one common string between two string slices.
 func MatchOneInStringSlices(a, b []string) bool {
 	for _, valA := range a {
-		for _, valB := range b {
-			if valA == valB {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-// Contains checks if the value is contained in the slice.
-func Contains(slice []string, value string) bool {
-	for _, val := range slice {
-		if val == value {
+		if slices.Contains(b, valA) {
 			return true
 		}
 	}

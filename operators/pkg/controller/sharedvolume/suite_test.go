@@ -12,7 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package shvolctrl_test
+// Package sharedvolume_test implements sharedvolume controller tests.
+package sharedvolume_test
 
 import (
 	"path/filepath"
@@ -20,7 +21,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/textlogger"
@@ -32,31 +32,37 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/shvolctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/sharedvolume"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
 
 // These tests use Ginkgo (BDD-style Go testing framework). Refer to
 // http://onsi.github.io/ginkgo/ to learn more about Ginkgo.
 
+var (
+	shvolReconciler sharedvolume.Reconciler
+	k8sClient       client.Client
+	testEnv         = envtest.Environment{
+		CRDDirectoryPaths: []string{
+			filepath.Join("..", "..", "..", "deploy", "crds"),
+			filepath.Join("..", "..", "..", "tests", "crds"),
+		},
+		ErrorIfCRDPathMissing: true,
+	}
+
+	targetLabel = common.NewLabel("production", "true")
+	labelMap    = map[string]string{
+		targetLabel.GetKey(): targetLabel.GetValue(),
+	}
+
+	pvcStorageClass = "rook-ceph-shvol"
+)
+
 func TestAPIs(t *testing.T) {
 	RegisterFailHandler(Fail)
 	RunSpecs(t, "SharedVolume Controller Suite")
 }
-
-var (
-	shvolReconciler shvolctrl.SharedVolumeReconciler
-	k8sClient       client.Client
-	testEnv         = envtest.Environment{
-		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "deploy", "crds"),
-			filepath.Join("..", "..", "tests", "crds"),
-		},
-		ErrorIfCRDPathMissing: true,
-	}
-	whiteListMap    = map[string]string{"production": "true"}
-	pvcStorageClass = "rook-ceph-shvol"
-)
 
 var _ = BeforeSuite(func() {
 	tests.LogsToGinkgoWriter()
@@ -76,12 +82,12 @@ var _ = BeforeSuite(func() {
 	Expect(err).ToNot(HaveOccurred())
 	Expect(k8sClient).NotTo(BeNil())
 
-	shvolReconciler = shvolctrl.SharedVolumeReconciler{
+	shvolReconciler = sharedvolume.Reconciler{
 		Client:             k8sClient,
+		TargetLabel:        targetLabel,
 		EventsRecorder:     record.NewFakeRecorder(1024),
-		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
-		ReconcileDeferHook: GinkgoRecover,
 		PVCStorageClass:    pvcStorageClass,
+		ReconcileDeferHook: GinkgoRecover,
 	}
 })
 
