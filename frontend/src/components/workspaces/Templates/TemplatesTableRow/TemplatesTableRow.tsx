@@ -62,10 +62,20 @@ export interface ITemplatesTableRowProps {
   expandRow: (value: string, create: boolean) => void;
 }
 
-const convertMemory = (s: string): string =>
-  s.includes('M') && Number(s.split('M')[0]) >= 1000
-    ? `${Number(s.split('M')[0]) / 1000}G`
-    : s;
+const convertMemory = (quantity?: string): string => {
+  if (!quantity) return '';
+
+  const match = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*([mMgG])$/);
+  if (!match) return quantity;
+
+  const value = Number.parseFloat(match[1]);
+  if (!Number.isFinite(value)) return '';
+
+  const gbValue = match[2].toUpperCase() === 'M' ? value / 1000 : value;
+  const rounded = Number(gbValue.toFixed(2));
+
+  return `${rounded}G`;
+};
 
 const canCreateInstance = (
   template: Template,

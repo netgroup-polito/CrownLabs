@@ -41,6 +41,20 @@ export interface ITemplateTableLogicProps {
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
+
+const parseResourceToGB = (quantity?: string, fallback = 0): number => {
+  if (!quantity) return fallback;
+
+  const match = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*([mMgG])$/);
+  if (!match) return fallback;
+
+  const value = Number.parseFloat(match[1]);
+  if (!Number.isFinite(value)) return fallback;
+
+  const unit = match[2].toUpperCase();
+  return unit === 'M' ? value / 1000 : value;
+};
+
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
@@ -268,7 +282,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       //     ),
       //   },
       // });
-      console.log(t.environments[0].disableControls)
       const environmentList = t.environments.map(
         (env): EnvironmentListListItemInput => ({
           name: env.name,
@@ -282,13 +295,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             reservedCPUPercentage:
              env.reservedCpu,
             cpu: env.cpu,
-            memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
-            disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
+            memory: `${env.ram * 1000}M`,
+            disk: env.disk ? `${env.disk * 1000}M` : undefined, 
           },
           image: env.image,
           disableControls: env.disableControls,
           containerStartupOptions: env.containerStartupOptions,
           storageClassName: env.storageClassName,
+          rewriteURL: env.rewriteUrl,
           sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
             (svm): SharedVolumeMountsListItemInput => ({
               mountPath: svm.mountPath,
@@ -411,10 +425,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         env.environmentType ?? EnvironmentType.VirtualMachine,
                       cpu: env.resources.cpu,
                       reservedCpu: env.resources.reservedCPUPercentage ?? 50,
-                      ram: parseInt(env.resources.memory) / 1000, // assuming memory is in 'XMi' format
+                      ram: parseResourceToGB(env.resources.memory),
                       disk: env.resources.disk
-                        ? parseInt(env.resources.disk) / 1000
-                        : 0, // convert from Mi to Gi
+                        ? parseResourceToGB(env.resources.disk)
+                        : 0,
                       image:
                         env.environmentType === EnvironmentType.VirtualMachine
                           ? getImageNameNoVer(env.image)
@@ -429,7 +443,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         mountPath: svm.mountPath,
                         readOnly: svm.readOnly,
                       })),
-                      rewriteUrl: false,
+                      rewriteUrl: env.rewriteUrl,
                       gui: env.guiEnabled,
                       disableControls: env.disableControls,
                       containerStartupOptions: env.containerStartupOptions,
