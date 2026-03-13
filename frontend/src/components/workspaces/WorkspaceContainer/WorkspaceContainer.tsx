@@ -52,7 +52,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         resources: {
           cpu: formEnv.cpu,
           reservedCPUPercentage: formEnv.reservedCpu,
-          memory: `${formEnv.ram * 1000}M`,
+          memory: `${formEnv.ram}Gi`,
         },
         guiEnabled: formEnv.gui,
         // preserve rewriteUrl flag from the form (matches old modal behaviour)
@@ -62,7 +62,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       // Handle persistent environments
       if (formEnv.persistent) {
         env.persistent = formEnv.persistent;
-        env.resources.disk = `${formEnv.disk * 1000}M`;
+        env.resources.disk = `${formEnv.disk}Gi`;
       }
 
       // Handle shared volume mounts

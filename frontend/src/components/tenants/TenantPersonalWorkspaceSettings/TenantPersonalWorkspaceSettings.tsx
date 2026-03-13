@@ -6,7 +6,7 @@ import {
   type TenantQuery,
 } from '../../../generated-types';
 import type { RuleRender, RuleObject } from 'antd/es/form';
-import { convertToGB } from '../../../utils';
+import { convertToGiB } from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { CheckOutlined } from '@ant-design/icons';
 
@@ -112,7 +112,7 @@ const TenantPersonalWorkspaceSettings: FC<
       initialValues={{
         enabled: tenant.tenant?.spec?.personalWorkspace != null,
         cpu: parseFloat(tenant.tenant?.spec?.personalWorkspace?.cpu ?? '0'),
-        memory: convertToGB(
+        memory: convertToGiB(
           tenant.tenant?.spec?.personalWorkspace?.memory ?? '0GiB',
         ),
         instances: tenant.tenant?.spec?.personalWorkspace?.instances ?? 0,
