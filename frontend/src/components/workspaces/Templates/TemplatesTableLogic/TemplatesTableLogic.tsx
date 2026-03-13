@@ -246,42 +246,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
-      // const patchJson = getTemplatePatchJson({
-      //   spec: {
-      //     prettyName: t.name,
-      //     deleteAfter: t.deleteAfter,
-      //     inactivityTimeout: t.inactivityTimeout,
-      //     description: usedTemplate?.description ?? t.name,
-      //     environmentList: t.environments.map(
-      //       (env): EnvironmentListListItemInput => ({
-      //         name: env.name,
-      //         mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
-      //         guiEnabled: env.gui,
-      //         persistent: env.persistent,
-      //         environmentType: env.environmentType,
-      //         resources: {
-      //           reservedCPUPercentage: usedTemplate?.environmentList.find(e => e.name === env.name)?.resources.reservedCPUPercentage ?? 50,
-      //           cpu: env.cpu,
-      //           memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
-      //           disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
-      //         },
-      //         image: env.registry
-      //           ? `${env.registry}/${env.image}`
-      //           : env.image,
-      //         sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
-      //           (svm): SharedVolumeMountsListItemInput => ({
-      //             mountPath: svm.mountPath,
-      //             readOnly: svm.readOnly,
-      //             sharedVolume: {
-      //               name: svm.sharedVolume,
-      //               namespace: workspaceNamespace,
-      //             }
-      //           }),
-      //         ),
-      //       }),
-      //     ),
-      //   },
-      // });
       const environmentList = t.environments.map(
         (env): EnvironmentListListItemInput => ({
           name: env.name,
@@ -315,6 +279,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ),
         }),
       );
+      console.log("allowPublicExposure value in submitPatchHandler:", t.allowPublicExposure);
       // Define patches array with explicit typing to support all JSON Patch operations
       const patches: Array<
         | { op: 'replace' | 'add'; path: string; value: unknown }
@@ -408,8 +373,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 }
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
-                  setUsedTemplate(template);
                   console.log('Editing template:', template);
+                  setUsedTemplate(template);
                   const templateForm: TemplateForm = {
                     name: template.name,
                     // Include nodeSelector for modal initialization (state setup), but it won't be in the form
