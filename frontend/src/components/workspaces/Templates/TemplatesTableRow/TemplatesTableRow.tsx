@@ -27,7 +27,7 @@ import {
   type IQuota,
 } from '../../../../contexts/OwnedInstancesContext';
 import type { Template } from '../../../../utils';
-import { cleanupLabels, convertToGB, WorkspaceRole } from '../../../../utils';
+import { cleanupLabels, convertToGiB, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
@@ -85,8 +85,8 @@ const canCreateInstance = (
   if (!availableQuota) return true;
 
   const templateCpu = template.resources?.cpu || 0;
-  const templateMemory = convertToGB(template.resources?.memory || '0GB');
-  // TODO: add this when disk quota is available - const templateDisk = convertToGB(template.resources?.disk || '0GB');
+  const templateMemory = convertToGiB(template.resources?.memory || '0Gi');
+  // TODO: add this when disk quota is available - const templateDisk = convertToGiB(template.resources?.disk || '0Gi');
 
   return (
     availableQuota.instances >= 1 &&
@@ -108,7 +108,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
   workspaceAvailableQuota,
 }) => {
   const canCreate = canCreateInstance(template, workspaceAvailableQuota);
-
+  
   const {
     data: labelsData,
     loading: loadingLabels,
@@ -396,13 +396,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                         <div>CPU: {env.resources.cpu} core(s)</div>
                         <div>
                           RAM:{' '}
-                          {convertMemory(env.resources.memory) || 'unavailable'}
+                          {convertToGiB(env.resources.memory) || 'unavailable'}
                           B
                         </div>
                         {env.persistent && (
                           <div>
                             DISK:{' '}
-                            {convertMemory(env.resources.disk) || 'unavailable'}
+                            {convertToGiB(env.resources.disk) || 'unavailable'}
                             B
                           </div>
                         )}
@@ -412,11 +412,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                       <div className="font-medium">Total Resources:</div>
                       <div>Total CPU: {template.resources.cpu} core(s)</div>
                       <div>
-                        Total RAM: {convertMemory(template.resources.memory)}B
+                        Total RAM: {convertToGiB(template.resources.memory) || 'unavailable'} GiB
                       </div>
                       {template.persistent && (
                         <div>
-                          Total DISK: {convertMemory(template.resources.disk)}B
+                          Total DISK: {convertToGiB(template.resources.disk) || 'unavailable'} GiB
                         </div>
                       )}
                     </div>
@@ -428,16 +428,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                     </div>
                     <div>
                       RAM:{' '}
-                      {convertMemory(template.resources.memory) ||
-                        'unavailable'}
-                      B
+                      {convertToGiB(template.resources.memory) || 'unavailable'}
+                      GiB
                     </div>
                     <div>
                       {template.persistent
                         ? ` DISK: ${
-                            convertMemory(template.resources.disk) ||
+                            convertToGiB(template.resources.disk) ||
                             'unavailable'
-                          }B`
+                          }GiB`
                         : ``}
                     </div>
                   </>

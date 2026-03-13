@@ -17,7 +17,7 @@ import {
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
-import { type Template, WorkspaceRole } from '../../../../utils';
+import { convertToGiB, type Template, WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
   makeGuiTemplate,
@@ -41,19 +41,6 @@ export interface ITemplateTableLogicProps {
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
-
-const parseResourceToGB = (quantity?: string, fallback = 0): number => {
-  if (!quantity) return fallback;
-
-  const match = quantity.trim().match(/^(\d+(?:\.\d+)?)\s*([mMgG])$/);
-  if (!match) return fallback;
-
-  const value = Number.parseFloat(match[1]);
-  if (!Number.isFinite(value)) return fallback;
-
-  const unit = match[2].toUpperCase();
-  return unit === 'M' ? value / 1000 : value;
-};
 
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
@@ -246,6 +233,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
+      console.log(t.environments[0]);
       const environmentList = t.environments.map(
         (env): EnvironmentListListItemInput => ({
           name: env.name,
@@ -259,8 +247,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             reservedCPUPercentage:
              env.reservedCpu,
             cpu: env.cpu,
-            memory: `${env.ram * 1000}M`,
-            disk: env.disk ? `${env.disk * 1000}M` : undefined, 
+            memory: `${env.ram}Gi`,
+            disk: env.disk ? `${env.disk}Gi` : undefined, 
           },
           image: env.image,
           disableControls: env.disableControls,
@@ -279,7 +267,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           ),
         }),
       );
-      console.log("allowPublicExposure value in submitPatchHandler:", t.allowPublicExposure);
       // Define patches array with explicit typing to support all JSON Patch operations
       const patches: Array<
         | { op: 'replace' | 'add'; path: string; value: unknown }
@@ -390,9 +377,11 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         env.environmentType ?? EnvironmentType.VirtualMachine,
                       cpu: env.resources.cpu,
                       reservedCpu: env.resources.reservedCPUPercentage ?? 50,
-                      ram: parseResourceToGB(env.resources.memory),
+                      ram: env.resources.memory
+                        ? convertToGiB(env.resources.memory)
+                        : 0,
                       disk: env.resources.disk
-                        ? parseResourceToGB(env.resources.disk)
+                        ? convertToGiB(env.resources.disk)
                         : 0,
                       image:
                         env.environmentType === EnvironmentType.VirtualMachine
@@ -416,6 +405,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                     })),
                   };
                   setEditingTemplate(templateForm);
+                  console.log('Initialized template form for editing:', templateForm);
                   setShowTemplateModal(true);
                 }}
                 createInstance={createInstance}

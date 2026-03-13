@@ -10,6 +10,8 @@ export const formItemLayout = {
   style: { marginBottom: 14 },
 };
 
+
+
 export const getImageNameNoVer = (image: string) => {
   // split on the last ':' to correctly handle registry:port/repo:tag cases
   return image.includes(':') ? image.slice(0, image.lastIndexOf(':')) : image;
