@@ -233,7 +233,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
-      console.log(t.environments[0]);
       const environmentList = t.environments.map(
         (env): EnvironmentListListItemInput => ({
           name: env.name,
@@ -360,7 +359,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 }
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
-                  console.log('Editing template:', template);
                   setUsedTemplate(template);
                   const templateForm: TemplateForm = {
                     name: template.name,
@@ -405,7 +403,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                     })),
                   };
                   setEditingTemplate(templateForm);
-                  console.log('Initialized template form for editing:', templateForm);
                   setShowTemplateModal(true);
                 }}
                 createInstance={createInstance}

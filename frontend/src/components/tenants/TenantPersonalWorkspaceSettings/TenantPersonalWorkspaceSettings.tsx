@@ -6,7 +6,7 @@ import {
   type TenantQuery,
 } from '../../../generated-types';
 import type { RuleRender, RuleObject } from 'antd/es/form';
-import { convertToGB, convertToGiB } from '../../../utils';
+import { convertToGiB } from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { CheckOutlined } from '@ant-design/icons';
 
