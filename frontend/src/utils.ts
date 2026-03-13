@@ -276,16 +276,17 @@ export const convertToGiB = (sizeStr: string): number => {
   const value = Number.parseFloat(valueStr);
   // Strip trailing 'i' and uppercase to normalise both X and Xi to the same prefix
   const unit = unitRaw.replace(/i$/i, '').toUpperCase();
-
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  
   switch (unit) {
     case 'G':
-      return value;
+      return round2(value);
     case 'M':
-      return value / 1000;
+      return round2(value / 1024);
     case 'K':
-      return value / (1000 * 1000);
+      return round2(value / (1024 * 1024));
     case 'T':
-      return value * 1000;
+      return round2(value * 1024);
     default:
       throw new Error('Unsupported size unit');
   }
