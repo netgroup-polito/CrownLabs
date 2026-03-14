@@ -158,6 +158,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 		pvc.SetLabels(forge.SharedVolumeObjectLabels(pvc.GetLabels()))
 
+		// Set mirror authorization annotation
+		if pvc.Annotations == nil {
+			pvc.Annotations = make(map[string]string, 1)
+		}
+		pvc.Annotations[forge.AuthorizationAnnotationKey] = forge.ShVolAuthorizationAnnotationValue
+
 		// Set Error phase if ShVol size is forbidden (less than previous)
 		if sizeDiff := shvolume.Spec.Size.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
 			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: shvolume.Spec.Size}
