@@ -1,10 +1,12 @@
 import { useContext, useMemo, useState } from 'react';
-import { Table, Input, Spin, Col, Tooltip, Button } from 'antd';
+import { App, Modal, Table, Input, Spin, Col, Tooltip, Button } from 'antd';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { useWorkspacesQuery, useAllTemplatesQuery, AutoEnroll } from '../../../generated-types';
+import { useWorkspacesQuery, useAllTemplatesQuery, useDeleteWorkspaceMutation, AutoEnroll } from '../../../generated-types';
 import Box from '../../common/Box';
-import { EditOutlined, PlusOutlined } from '@ant-design/icons';
+import { DeleteOutlined, EditOutlined, ExclamationCircleOutlined, PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
 import ModalCreateWorkspace, { type WorkspaceEditData } from '../ModalCreateWorkspace';
+import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
+import { WorkspaceRole, type Workspace } from '../../../utils';
 
 interface WorkspaceData {
   name: string;
@@ -19,11 +21,15 @@ interface WorkspaceData {
 
 export default function WorkspaceListPage() {
   const { apolloErrorCatcher } = useContext(ErrorContext);
+  const { modal, message } = App.useApp();
+  const [deleteWorkspace] = useDeleteWorkspaceMutation({
+    onError: apolloErrorCatcher,
+  });
 
   const [searchText, setSearchText] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editWorkspace, setEditWorkspace] = useState<WorkspaceEditData | null>(null);
-  const [editWorkspaceTemplateCount, setEditWorkspaceTemplateCount] = useState<number>(0);
+  const [usersModalWorkspace, setUsersModalWorkspace] = useState<WorkspaceData | null>(null);
 
   const { data, loading, error, refetch } = useWorkspacesQuery({
     onError: apolloErrorCatcher,
@@ -89,14 +95,28 @@ export default function WorkspaceListPage() {
       memory: workspace.memory,
       instances: workspace.instances,
     });
-    setEditWorkspaceTemplateCount(workspace.templateCount);
     setShowCreateModal(true);
   };
 
   const handleCloseModal = () => {
     setShowCreateModal(false);
     setEditWorkspace(null);
-    setEditWorkspaceTemplateCount(0);
+  };
+
+  const handleDeleteWorkspace = (workspace: WorkspaceData) => {
+    modal.confirm({
+      title: 'Delete Workspace',
+      icon: <ExclamationCircleOutlined />,
+      content: `Are you sure you want to delete workspace "${workspace.prettyName}"? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        await deleteWorkspace({ variables: { name: workspace.name } });
+        message.success(`Workspace "${workspace.prettyName}" deleted successfully`);
+        refetch();
+      },
+    });
   };
 
   return (
@@ -165,9 +185,14 @@ export default function WorkspaceListPage() {
               dataIndex="autoEnroll"
               key="autoEnroll"
               width={150}
-              render={(autoEnroll: string) => 
-                autoEnroll === '_EMPTY_' ? '-' : autoEnroll
-              }
+              render={(autoEnroll: string) => {
+                const labels: Record<string, string> = {
+                  [AutoEnroll.Empty]: 'No',
+                  [AutoEnroll.Immediate]: 'Yes',
+                  [AutoEnroll.WithApproval]: 'Require approval',
+                };
+                return labels[autoEnroll] ?? autoEnroll;
+              }}
             />
             <Table.Column
               title="Templates"
@@ -181,14 +206,28 @@ export default function WorkspaceListPage() {
             <Table.Column
               title="Actions"
               key="actions"
-              width={60}
+              width={100}
               render={(workspace: WorkspaceData) => (
-                <Tooltip title="Edit workspace">
-                  <EditOutlined
-                    className="mr-2"
-                    onClick={() => handleEditWorkspace(workspace)}
-                  />
-                </Tooltip>
+                <div className="flex gap-2">
+                  <Tooltip title="Edit workspace">
+                    <EditOutlined onClick={() => handleEditWorkspace(workspace)} />
+                  </Tooltip>
+                  <Tooltip title="Manage users">
+                    <UserSwitchOutlined onClick={() => setUsersModalWorkspace(workspace)} />
+                  </Tooltip>
+                  <Tooltip
+                    title={
+                      workspace.templateCount > 0
+                        ? `Cannot delete: workspace has ${workspace.templateCount} template${workspace.templateCount > 1 ? 's' : ''}`
+                        : 'Delete workspace'
+                    }
+                  >
+                    <DeleteOutlined
+                      className={workspace.templateCount > 0 ? 'cursor-not-allowed opacity-30' : 'text-red-500'}
+                      onClick={() => workspace.templateCount === 0 && handleDeleteWorkspace(workspace)}
+                    />
+                  </Tooltip>
+                </div>
               )}
             />
           </Table>
@@ -200,8 +239,26 @@ export default function WorkspaceListPage() {
         onSuccess={() => refetch()}
         editWorkspace={editWorkspace}
         existingWorkspaceNames={workspaces.map(ws => ws.name)}
-        templateCount={editWorkspaceTemplateCount}
       />
+      <Modal
+        destroyOnHidden={true}
+        title={`Users in ${usersModalWorkspace?.prettyName ?? ''}`}
+        width={800}
+        open={usersModalWorkspace !== null}
+        footer={null}
+        onCancel={() => setUsersModalWorkspace(null)}
+      >
+        {usersModalWorkspace && (
+          <UserListLogic
+            workspace={{
+              name: usersModalWorkspace.name,
+              namespace: `workspace-${usersModalWorkspace.name}`,
+              prettyName: usersModalWorkspace.prettyName,
+              role: WorkspaceRole.manager,
+            } satisfies Workspace}
+          />
+        )}
+      </Modal>
     </Col>
   );
 }

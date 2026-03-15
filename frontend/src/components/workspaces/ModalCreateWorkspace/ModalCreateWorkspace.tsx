@@ -1,10 +1,8 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect } from 'react';
-import { App, Modal, Form, Input, InputNumber, Select, Button } from 'antd';
-import { ExclamationCircleOutlined } from '@ant-design/icons';
-import type { CreateWorkspaceMutation } from '../../../generated-types';
-import { useCreateWorkspaceMutation, useApplyWorkspaceMutation, useDeleteWorkspaceMutation, AutoEnroll } from '../../../generated-types';
-import type { ApolloError, FetchResult } from '@apollo/client';
+import { Modal, Form, Input, InputNumber, Select, Button } from 'antd';
+import { useCreateWorkspaceMutation, useApplyWorkspaceMutation, AutoEnroll } from '../../../generated-types';
+import type { ApolloError } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { convertToGB } from '../../../utils';
 
@@ -23,7 +21,6 @@ export interface IModalCreateWorkspaceProps {
   onSuccess?: () => void;
   editWorkspace?: WorkspaceEditData | null;
   existingWorkspaceNames?: string[];
-  templateCount?: number;
 }
 
 interface WorkspaceFormValues {
@@ -41,10 +38,8 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
   onSuccess,
   editWorkspace,
   existingWorkspaceNames = [],
-  templateCount = 0,
 }) => {
   const { apolloErrorCatcher } = useContext(ErrorContext);
-  const { modal, message } = App.useApp();
   const [form] = Form.useForm<WorkspaceFormValues>();
   const [loading, setLoading] = useState(false);
   const isEditMode = !!editWorkspace;
@@ -54,10 +49,6 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
   });
 
   const [applyWorkspace] = useApplyWorkspaceMutation({
-    onError: apolloErrorCatcher,
-  });
-
-  const [deleteWorkspace] = useDeleteWorkspaceMutation({
     onError: apolloErrorCatcher,
   });
 
@@ -130,44 +121,6 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
     setShow(false);
   };
 
-  const handleDelete = () => {
-    if (templateCount > 0) {
-      message.error(
-        `Cannot delete workspace "${editWorkspace?.name}". ` +
-        `It contains ${templateCount} template${templateCount > 1 ? 's' : ''}. ` +
-        `Please delete all templates first.`
-      );
-      return;
-    }
-
-    modal.confirm({
-      title: 'Delete Workspace',
-      icon: <ExclamationCircleOutlined />,
-      content: `Are you sure you want to delete workspace "${editWorkspace?.prettyName}"? This action cannot be undone.`,
-      okText: 'Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: async () => {
-        setLoading(true);
-        try {
-          await deleteWorkspace({
-            variables: {
-              name: editWorkspace!.name,
-            },
-          });
-          message.success(`Workspace "${editWorkspace?.prettyName}" deleted successfully`);
-          form.resetFields();
-          setShow(false);
-          onSuccess?.();
-        } catch (error) {
-          apolloErrorCatcher(error as ApolloError);
-        } finally {
-          setLoading(false);
-        }
-      },
-    });
-  };
-
   return (
     <Modal
       title={isEditMode ? 'Edit Workspace' : 'Create New Workspace'}
@@ -175,17 +128,6 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
       onCancel={handleCancel}
       width={600}
       footer={[
-        isEditMode && (
-          <Button
-            key="delete"
-            danger
-            onClick={handleDelete}
-            loading={loading}
-            style={{ float: 'left' }}
-          >
-            Delete
-          </Button>
-        ),
         <Button key="cancel" onClick={handleCancel}>
           Cancel
         </Button>,
@@ -204,6 +146,7 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
         layout="vertical"
         onFinish={handleSubmit}
         initialValues={{
+          autoEnroll: AutoEnroll.Empty,
           cpu: 4,
           memory: 8,
           instances: 5,
@@ -248,8 +191,6 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
           tooltip="Enabling self-enrollment makes this workspace visible by every CrownLabs user. The option defines if the self-enrollment is immediate or happens after managers' approval"
         >
           <Select
-            placeholder="Select auto-enroll option"
-            allowClear
             options={[
               { label: 'No', value: AutoEnroll.Empty },
               { label: 'Yes', value: AutoEnroll.Immediate },
