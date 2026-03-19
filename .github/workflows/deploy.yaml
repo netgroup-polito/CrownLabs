@@ -1,0 +1,207 @@
+name: Deploy CrownLabs
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - staging
+          - preprod
+          - prod
+      ref:
+        description: "Image tag to deploy (commit SHA or version tag)"
+        required: true
+        type: string
+
+env:
+  GITOPS_REPO: netgroup-polito/ArgoCD-CrownNG
+  IMAGE_TAG_PARAMS: >-
+    frontend-app.image.tag
+    qlkube.image.tag
+    instance-operator.image.tag
+    operator.image.tag
+    bastion-operator.image.tag
+
+jobs:
+  deploy-staging:
+    name: "Deploy → staging (ArgoCD CLI)"
+    runs-on: ubuntu-latest
+    if: inputs.environment == 'staging'
+    environment: staging          # optional: ties to a GitHub Environment for secrets/approvals
+
+    steps:
+      - name: Checkout (needed for the staging Application template)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          persist-credentials: false
+
+      # Pin to a specific ArgoCD version so upgrades are deliberate.
+      # Keep this in sync with the version running on your cluster.
+      - name: Install ArgoCD CLI
+        env:
+          ARGOCD_VERSION: v3.1.0
+        run: |
+          curl -sSL -o /usr/local/bin/argocd \
+            "https://github.com/argoproj/argo-cd/releases/download/${ARGOCD_VERSION}/argocd-linux-amd64"
+          chmod +x /usr/local/bin/argocd
+          argocd version --client
+
+      - name: Login to ArgoCD
+        run: |
+          argocd login "${{ secrets.ARGOCD_SERVER }}" \
+            --username  "${{ secrets.ARGOCD_USERNAME }}" \
+            --password  "${{ secrets.ARGOCD_PASSWORD }}" \
+            --grpc-web  \
+            --insecure
+
+      - name: Create or update staging Application
+        run: |
+          REPO="https://github.com/${{ github.repository }}"
+          REF="${{ inputs.ref }}"
+
+          argocd app create crownlabs-staging \
+            --repo             "$REPO" \
+            --path             "deploy/crownlabs" \
+            --revision         "master" \
+            --dest-server      "https://kubernetes.default.svc" \
+            --dest-namespace   "crownlabs-staging" \
+            --helm-set-string  "instanceOperator.image.tag=${REF}" \
+            --helm-set-string  "laboratoryController.image.tag=${REF}" \
+            --helm-set-string  "frontend.image.tag=${REF}" \
+            --helm-set-string  "authService.image.tag=${REF}" \
+            --helm-set-string  "bastionOperator.image.tag=${REF}" \
+            --sync-policy      automated \
+            --auto-prune \
+            --self-heal \
+            --upsert
+
+      - name: Sync staging Application
+        run: |
+          argocd app sync crownlabs-staging --async //optional async
+
+      - name: Notify Slack — staging deploy
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          author_name: "CrownLabs CI — staging deploy (${{ inputs.ref }})"
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-preprod:
+    name: "Deploy → preprod (GitOps push)"
+    runs-on: ubuntu-latest
+    if: inputs.environment == 'preprod'
+    environment: preprod
+
+    steps:
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.CI_TOKEN }}   # needs repo scope on the GitOps repo
+          path: gitops
+
+      - name: Install yq
+        uses: mikefarah/yq@v4.44.1
+
+      - name: Patch image tags in preprod Application manifest
+        env:
+          APP_FILE: argocd/values/crownlabs/pre-production.yaml
+          REF: ${{ inputs.ref }}
+        run: |
+          for param in ${{ env.IMAGE_TAG_PARAMS }}; do
+            yq e -i \
+              "(.spec.source.helm.parameters[] | select(.name == \"${param}\") | .value) = \"${REF}\"" \
+              "$APP_FILE"
+          done
+          echo "Updated manifest:"
+          cat "$APP_FILE"
+
+      - name: Commit and push
+        run: |
+          cd gitops
+          git config user.name  "kingmakerbot"
+          git config user.email "kingmakerbot@users.noreply.github.com"
+          git add argocd/preprod/crownlabs-application.yaml
+          # Only commit if there is actually a diff (idempotent re-runs)
+          git diff --staged --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore(preprod): pin image tags to ${{ inputs.ref }}"
+          git push
+
+      - name: Notify Slack — preprod deploy
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          author_name: "CrownLabs CI — preprod deploy (${{ inputs.ref }})"
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
+
+  deploy-prod:
+    name: "Deploy → prod (GitOps PR)"
+    runs-on: ubuntu-latest
+    if: inputs.environment == 'prod'
+    environment: prod
+
+    steps:
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.GITOPS_REPO }}
+          token: ${{ secrets.CI_TOKEN }}
+          path: gitops
+
+      - name: Install yq
+        uses: mikefarah/yq@v4.44.1
+
+      - name: Patch image tags in prod Application manifest
+        env:
+          APP_FILE: argocd/values/crownlabs/pre-production.yaml
+          REF: ${{ inputs.ref }}
+        run: |
+          for param in ${{ env.IMAGE_TAG_PARAMS }}; do
+            yq e -i \
+              "(.spec.source.helm.parameters[] | select(.name == \"${param}\") | .value) = \"${REF}\"" \
+              "$APP_FILE"
+          done
+          echo "Updated manifest:"
+          cat "$APP_FILE"
+
+      - name: Open release PR in GitOps repository
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.CI_TOKEN }}
+          path: gitops
+          commit-message: "chore(prod): pin image tags to ${{ inputs.ref }}"
+          branch: "release/${{ inputs.ref }}"
+          delete-branch: true          # clean up the branch after the PR is merged
+          title: "Release ${{ inputs.ref }}"
+          body: |
+            ## :rocket: Production release `${{ inputs.ref }}`
+
+            This PR was opened automatically by the CrownLabs CI pipeline.
+            It updates the image tags for all components to `${{ inputs.ref }}`.
+
+            **After merging**, sync the `crownlabs-prod` Application from the
+            ArgoCD dashboard (or enable automated sync on the Application).
+          labels: |
+            release
+            production
+          assignees: kingmakerbot
+
+      - name: Notify Slack — prod PR opened
+        uses: 8398a7/action-slack@v3
+        if: always()
+        with:
+          status: ${{ job.status }}
+          author_name: "CrownLabs CI — prod release PR (${{ inputs.ref }})"
+        env:
+          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}

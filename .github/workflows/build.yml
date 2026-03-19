@@ -66,6 +66,17 @@ jobs:
             ("${{ github.event_name }}" == "repository_dispatch" && "${{ github.event.client_payload.slash_command.args.all }}" == "build-all") ]] && \
             echo "filter-optional-images=false" >> $GITHUB_OUTPUT || \
             echo "filter-optional-images=true" >> $GITHUB_OUTPUT
+          
+          # Determine the target deploy environment for downstream dispatch
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            echo "deploy-environment=staging" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "deploy-environment=preprod" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.version.outputs.version }}" != "" ]]; then
+            echo "deploy-environment=prod" >> $GITHUB_OUTPUT
+          else
+            echo "deploy-environment=" >> $GITHUB_OUTPUT
+          fi
 
       - name: Checkout
         uses: actions/checkout@v3
@@ -154,66 +165,32 @@ jobs:
           cache-from: type=gha, scope=${{ github.workflow }}
           cache-to: type=gha, scope=${{ github.workflow }}
 
-  trigger-events-master:
-    name: Trigger events upon successful push to master
+  trigger-deploy:
+    name: Trigger deploy workflow (${{ needs.configure.outputs.deploy-environment }})
     runs-on: ubuntu-latest
     needs:
       - configure
       - build
     if: |
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/master' &&
-      needs.configure.outputs.repo-push == 'true'
-
+      needs.configure.outputs.repo-push == 'true' &&
+      needs.configure.outputs.deploy-environment != ''
+ 
     steps:
-      - name: Send the Slack notification
-        uses: 8398a7/action-slack@v3
+      - name: Dispatch deploy.yml
+        uses: actions/github-script@v7
         with:
-          status: ${{ job.status }}
-          author_name: CrownLabs CI
-        env:
-          GITHUB_TOKEN: ${{ secrets.CI_TOKEN }}
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
-        if: always()
-
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
-          event-type: preprod-event
-          client-payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'
-
-  trigger-events-deploy-staging:
-    name: Trigger events upon /deploy-staging comment
-    runs-on: ubuntu-latest
-    needs:
-      - configure
-      - build
-    if: |
-      github.event_name == 'repository_dispatch' &&
-      needs.configure.outputs.repo-push == 'true'
-
-    steps:
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
-          event-type: deploy-staging-event
-          client-payload: |
-            {
-              "repository": "${{ github.repository }}",
-              "pr-number": "${{ github.event.client_payload.github.payload.issue.number }}",
-              "tag": "${{ needs.configure.outputs.ref }}"
-            }
-
-      - name: Report status as reaction
-        uses: peter-evans/create-or-update-comment@v2
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
-          reactions: "hooray"
+          github-token: ${{ secrets.CI_TOKEN }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'deploy.yml',
+              ref: 'master', // for the first tests, maybe needs to be changed to the commit ref
+              inputs: {
+                environment: '${{ needs.configure.outputs.deploy-environment }}',
+                ref:         '${{ needs.configure.outputs.ref }}',
+              },
+            });
 
   release:
     name: Create a new CrownLabs release
@@ -289,11 +266,3 @@ jobs:
               --index-path index.yaml \
               --pages-index-path index.yaml \
               --push
-
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
-          event-type: release-event
-          client-payload: '{"version": "${{ needs.configure.outputs.version }}"}'
