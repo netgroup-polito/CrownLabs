@@ -1,7 +1,7 @@
 import { Badge, Drawer, Empty, Space, Table, Tooltip } from 'antd';
 import { Button } from 'antd';
 import type { SharedVolume } from '../../../utils';
-import { approximate, convertToGB, convertToGiB } from '../../../utils';
+import { approximate, convertToGiB } from '../../../utils';
 import type { FC } from 'react';
 import { useContext, useEffect, useState } from 'react';
 import {
