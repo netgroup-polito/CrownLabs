@@ -1,7 +1,7 @@
 import { Badge, Drawer, Empty, Space, Table, Tooltip } from 'antd';
 import { Button } from 'antd';
 import type { SharedVolume } from '../../../utils';
-import { approximate, convertToGB } from '../../../utils';
+import { approximate, convertToGB, convertToGiB } from '../../../utils';
 import type { FC } from 'react';
 import { useContext, useEffect, useState } from 'react';
 import {
@@ -133,7 +133,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
             onClick={() => {
               setEditShVolWorkspaceName(shvol.name);
               setEditName(shvol.prettyName);
-              setEditSize(approximate(convertToGB(shvol.size), 2) || 0.01);
+              setEditSize(approximate(convertToGiB(shvol.size), 2) || 0.01);
               setEditOpen(true);
             }}
           />
