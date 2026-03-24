@@ -58,6 +58,7 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
           },
           {
             type: 'divider',
+            key: 'divider-welcome',
           },
 
           ...routes.flatMap((r, index) => {
@@ -96,12 +97,16 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
             } as MenuItemType;
             // Add divider after first menu item (Manage account)
             if (index === 0) {
-              return [menuItem, { type: 'divider' } as MenuItemType];
+              return [
+                menuItem,
+                { type: 'divider', key: 'divider-manage-account' } as unknown as MenuItemType,
+              ];
             }
             return [menuItem];
           }),
           {
             type: 'divider',
+            key: 'divider-logout',
           },
           {
             type: 'item',
