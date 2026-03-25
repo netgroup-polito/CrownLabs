@@ -1,5 +1,5 @@
 import { StyleProvider } from '@ant-design/cssinjs';
-import { App, ConfigProvider, theme } from 'antd';
+import { ConfigProvider, theme } from 'antd';
 import { type FC, type PropsWithChildren, useEffect, useState } from 'react';
 import { ThemeContext } from './ThemeContext';
 
@@ -77,9 +77,9 @@ const ThemeContextProvider: FC<PropsWithChildren> = props => {
             hashed: false,
           }}
         >
-          <App>
+          
             {children}
-          </App>
+          
         </ConfigProvider>
       </StyleProvider>
     </ThemeContext.Provider>

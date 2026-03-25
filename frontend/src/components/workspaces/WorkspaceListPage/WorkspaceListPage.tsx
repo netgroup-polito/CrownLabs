@@ -120,7 +120,7 @@ export default function WorkspaceListPage() {
   };
 
   return (
-    <Col span={24} lg={22} xxl={20} className="h-full">
+    <Col span={24} lg={22} xxl={20} className="h-full min-h-0">
       <Box
         header={{
           size: 'large',
@@ -159,6 +159,7 @@ export default function WorkspaceListPage() {
             pagination={{ defaultPageSize: 10 }}
             dataSource={filteredWorkspaces}
             size="small"
+            scroll={{ y: '55vh', x: 'max-content' }}
           >
             <Table.Column
               title="Name"
