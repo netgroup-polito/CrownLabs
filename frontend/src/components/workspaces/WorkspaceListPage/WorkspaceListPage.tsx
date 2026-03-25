@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
-import { App, Modal, Table, Input, Spin, Col, Tooltip, Button, Badge } from 'antd';
+import { Modal, Table, Input, Spin, Col, Tooltip, Button, Badge, message } from 'antd';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useWorkspacesQuery, useAllTemplatesQuery, useDeleteWorkspaceMutation, AutoEnroll } from '../../../generated-types';
 import Box from '../../common/Box';
@@ -22,7 +22,8 @@ interface WorkspaceData {
 
 export default function WorkspaceListPage() {
   const { apolloErrorCatcher } = useContext(ErrorContext);
-  const { modal, message } = App.useApp();
+  const [modal, modalContextHolder] = Modal.useModal();
+  const [messageApi, messageContextHolder] = message.useMessage();
   const [deleteWorkspace] = useDeleteWorkspaceMutation({
     onError: apolloErrorCatcher,
   });
@@ -118,7 +119,7 @@ export default function WorkspaceListPage() {
       cancelText: 'Cancel',
       onOk: async () => {
         await deleteWorkspace({ variables: { name: workspace.name } });
-        message.success(`Workspace "${workspace.prettyName}" deleted successfully`);
+        messageApi.success(`Workspace "${workspace.prettyName}" deleted successfully`);
         refetch();
       },
     });
@@ -126,6 +127,8 @@ export default function WorkspaceListPage() {
 
   return (
     <Col span={24} lg={22} xxl={20} className="h-full min-h-0">
+      {modalContextHolder}
+      {messageContextHolder}
       <Box
         header={{
           size: 'large',
@@ -164,7 +167,7 @@ export default function WorkspaceListPage() {
             pagination={false}
             dataSource={filteredWorkspaces}
             size="small"
-            scroll={{ y: 'calc(100vh - 19rem)', x: 'max-content' }}
+            scroll={{ x: 'max-content' }}
           >
             <Table.Column
               title="Name"
