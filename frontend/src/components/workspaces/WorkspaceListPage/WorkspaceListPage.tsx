@@ -1,5 +1,5 @@
 import { useContext, useMemo, useState } from 'react';
-import { App, Modal, Table, Input, Spin, Col, Tooltip, Button } from 'antd';
+import { App, Modal, Table, Input, Spin, Col, Tooltip, Button, Badge } from 'antd';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useWorkspacesQuery, useAllTemplatesQuery, useDeleteWorkspaceMutation, AutoEnroll } from '../../../generated-types';
 import Box from '../../common/Box';
@@ -11,6 +11,7 @@ import { WorkspaceRole, type Workspace } from '../../../utils';
 interface WorkspaceData {
   name: string;
   prettyName: string;
+  deleting: boolean;
   autoEnroll: string;
   cpu: string;
   memory: string;
@@ -56,11 +57,15 @@ export default function WorkspaceListPage() {
   const workspaces = useMemo<WorkspaceData[]>(() => {
     if (!data?.workspaces?.items) return [];
     return data.workspaces.items.map(ws => {
+      const metadata = ws?.metadata as
+        | { name?: string | null; deletionTimestamp?: string | null }
+        | undefined;
       const workspaceName = ws?.metadata?.name || '';
       const workspaceNamespace = `workspace-${workspaceName}`;
       return {
         name: workspaceName,
         prettyName: ws?.spec?.prettyName || '',
+        deleting: Boolean(metadata?.deletionTimestamp),
         autoEnroll: ws?.spec?.autoEnroll || AutoEnroll.Empty,
         cpu: ws?.spec?.quota?.cpu || '0',
         memory: ws?.spec?.quota?.memory || '0Gi',
@@ -156,10 +161,10 @@ export default function WorkspaceListPage() {
       >
         <Spin spinning={loading || templatesLoading || error != null}>
           <Table
-            pagination={{ defaultPageSize: 10 }}
+            pagination={false}
             dataSource={filteredWorkspaces}
             size="small"
-            scroll={{ y: '55vh', x: 'max-content' }}
+            scroll={{ y: 'calc(100vh - 19rem)', x: 'max-content' }}
           >
             <Table.Column
               title="Name"
@@ -209,26 +214,30 @@ export default function WorkspaceListPage() {
               key="actions"
               width={100}
               render={(workspace: WorkspaceData) => (
-                <div className="flex gap-2">
-                  <Tooltip title="Edit workspace">
-                    <EditOutlined onClick={() => handleEditWorkspace(workspace)} />
-                  </Tooltip>
-                  <Tooltip title="Manage users">
-                    <UserSwitchOutlined onClick={() => setUsersModalWorkspace(workspace)} />
-                  </Tooltip>
-                  <Tooltip
-                    title={
-                      workspace.templateCount > 0
-                        ? `Cannot delete: workspace has ${workspace.templateCount} template${workspace.templateCount > 1 ? 's' : ''}`
-                        : 'Delete workspace'
-                    }
-                  >
-                    <DeleteOutlined
-                      className={workspace.templateCount > 0 ? 'cursor-not-allowed opacity-30' : 'text-red-500'}
-                      onClick={() => workspace.templateCount === 0 && handleDeleteWorkspace(workspace)}
-                    />
-                  </Tooltip>
-                </div>
+                workspace.deleting ? (
+                  <Badge status="processing" text="Deleting..." />
+                ) : (
+                  <div className="flex gap-2">
+                    <Tooltip title="Edit workspace">
+                      <EditOutlined onClick={() => handleEditWorkspace(workspace)} />
+                    </Tooltip>
+                    <Tooltip title="Manage users">
+                      <UserSwitchOutlined onClick={() => setUsersModalWorkspace(workspace)} />
+                    </Tooltip>
+                    <Tooltip
+                      title={
+                        workspace.templateCount > 0
+                          ? `Cannot delete: workspace has ${workspace.templateCount} template${workspace.templateCount > 1 ? 's' : ''}`
+                          : 'Delete workspace'
+                      }
+                    >
+                      <DeleteOutlined
+                        className={workspace.templateCount > 0 ? 'cursor-not-allowed opacity-30' : 'text-red-500'}
+                        onClick={() => workspace.templateCount === 0 && handleDeleteWorkspace(workspace)}
+                      />
+                    </Tooltip>
+                  </div>
+                )
               )}
             />
           </Table>

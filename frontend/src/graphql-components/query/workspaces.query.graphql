@@ -3,6 +3,7 @@ query workspaces($labels: String) {
     items {
       metadata {
         name
+        deletionTimestamp
       }
       spec {
         prettyName
