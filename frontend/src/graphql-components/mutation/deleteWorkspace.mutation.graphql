@@ -1,0 +1,7 @@
+mutation deleteWorkspace($name: String!) {
+  deletedWorkspace: deleteCrownlabsPolitoItV1alpha1Workspace(
+    name: $name
+  ) {
+    kind
+  }
+}
