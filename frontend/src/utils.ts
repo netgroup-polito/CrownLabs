@@ -267,7 +267,7 @@ export const findKeyByValue = <T, K extends keyof unknown>(
  * @returns the number that represents the passed quantity in GiB (e.g. 2)
  */
 export const convertToGiB = (sizeStr: string): number => {
-  const match = sizeStr.trim().match(/^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|K|M|G|T)$/i);
+  const match = sizeStr.trim().match(/^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|K|M|G|T)B?$/i);
   if (!match) {
     throw new Error('Invalid size string');
   }

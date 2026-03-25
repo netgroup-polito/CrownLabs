@@ -53,7 +53,7 @@ const TenantPersonalWorkspaceSettings: FC<
 
       newQuota = {
         cpu: data.cpu?.toString() ?? '0',
-        memory: `${data.memory?.toString() ?? '0'}G`,
+        memory: `${data.memory?.toString() ?? '0'}Gi`,
         instances: data.instances ?? 0,
       };
     }
@@ -138,7 +138,7 @@ const TenantPersonalWorkspaceSettings: FC<
 
       <Form.Item
         name="memory"
-        label="Memory (GB)"
+        label="Memory (Gi)"
         validateTrigger="onBlur"
         rules={[numberValidator]}
       >
@@ -146,7 +146,7 @@ const TenantPersonalWorkspaceSettings: FC<
           min={0}
           disabled={!isEnabled}
           className="w-100"
-          addonAfter="GB"
+          addonAfter="Gi"
         />
       </Form.Item>
 
