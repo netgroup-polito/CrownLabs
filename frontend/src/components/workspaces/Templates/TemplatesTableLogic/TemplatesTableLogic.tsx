@@ -17,7 +17,7 @@ import {
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
-import { type Template, WorkspaceRole } from '../../../../utils';
+import { convertToGiB, type Template, WorkspaceRole } from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
   makeGuiTemplate,
@@ -41,6 +41,7 @@ export interface ITemplateTableLogicProps {
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
+
 const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   const { userId } = useContext(AuthContext);
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
@@ -232,43 +233,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
-      // const patchJson = getTemplatePatchJson({
-      //   spec: {
-      //     prettyName: t.name,
-      //     deleteAfter: t.deleteAfter,
-      //     inactivityTimeout: t.inactivityTimeout,
-      //     description: usedTemplate?.description ?? t.name,
-      //     environmentList: t.environments.map(
-      //       (env): EnvironmentListListItemInput => ({
-      //         name: env.name,
-      //         mountMyDriveVolume: usedTemplate?.environmentList.find(e => e.name === env.name)?.mountMyDriveVolume ?? true,
-      //         guiEnabled: env.gui,
-      //         persistent: env.persistent,
-      //         environmentType: env.environmentType,
-      //         resources: {
-      //           reservedCPUPercentage: usedTemplate?.environmentList.find(e => e.name === env.name)?.resources.reservedCPUPercentage ?? 50,
-      //           cpu: env.cpu,
-      //           memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
-      //           disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
-      //         },
-      //         image: env.registry
-      //           ? `${env.registry}/${env.image}`
-      //           : env.image,
-      //         sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
-      //           (svm): SharedVolumeMountsListItemInput => ({
-      //             mountPath: svm.mountPath,
-      //             readOnly: svm.readOnly,
-      //             sharedVolume: {
-      //               name: svm.sharedVolume,
-      //               namespace: workspaceNamespace,
-      //             }
-      //           }),
-      //         ),
-      //       }),
-      //     ),
-      //   },
-      // });
-      console.log(t.environments[0].disableControls)
       const environmentList = t.environments.map(
         (env): EnvironmentListListItemInput => ({
           name: env.name,
@@ -282,13 +246,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             reservedCPUPercentage:
              env.reservedCpu,
             cpu: env.cpu,
-            memory: `${env.ram * 1000}Mi`, // convert Gi to Mi
-            disk: env.disk ? `${env.disk * 1000}Mi` : undefined, // convert Gi to Mi
+            memory: `${env.ram}Gi`,
+            disk: env.disk ? `${env.disk}Gi` : undefined, 
           },
           image: env.image,
           disableControls: env.disableControls,
           containerStartupOptions: env.containerStartupOptions,
           storageClassName: env.storageClassName,
+          rewriteURL: env.rewriteUrl,
           sharedVolumeMounts: (env.sharedVolumeMounts ?? []).map(
             (svm): SharedVolumeMountsListItemInput => ({
               mountPath: svm.mountPath,
@@ -395,7 +360,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
-                  console.log('Editing template:', template);
                   const templateForm: TemplateForm = {
                     name: template.name,
                     // Include nodeSelector for modal initialization (state setup), but it won't be in the form
@@ -411,10 +375,12 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         env.environmentType ?? EnvironmentType.VirtualMachine,
                       cpu: env.resources.cpu,
                       reservedCpu: env.resources.reservedCPUPercentage ?? 50,
-                      ram: parseInt(env.resources.memory) / 1000, // assuming memory is in 'XMi' format
+                      ram: env.resources.memory
+                        ? convertToGiB(env.resources.memory)
+                        : 0,
                       disk: env.resources.disk
-                        ? parseInt(env.resources.disk) / 1000
-                        : 0, // convert from Mi to Gi
+                        ? convertToGiB(env.resources.disk)
+                        : 0,
                       image:
                         env.environmentType === EnvironmentType.VirtualMachine
                           ? getImageNameNoVer(env.image)
@@ -429,7 +395,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         mountPath: svm.mountPath,
                         readOnly: svm.readOnly,
                       })),
-                      rewriteUrl: false,
+                      rewriteUrl: env.rewriteUrl,
                       gui: env.guiEnabled,
                       disableControls: env.disableControls,
                       containerStartupOptions: env.containerStartupOptions,

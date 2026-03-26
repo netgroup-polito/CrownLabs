@@ -3,6 +3,9 @@ kind: Service
 metadata:
   name: {{ include "bastion-operator.fullname" . }}
   labels:
+    {{- with .Values.serviceLabels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
     {{- include "bastion-operator.labels" . | nindent 4 }}
 {{- with .Values.serviceAnnotations }}
   annotations:

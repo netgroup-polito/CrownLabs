@@ -66,7 +66,7 @@ const QuotaDisplay: FC<IQuotaDisplayProps> = ({ workspaceName }) => {
                 {workspaceTotalQuota.memory.toFixed(1)}
               </Text>
               <Text type="secondary" style={{ fontSize: '12px' }}>
-                RAM GB
+                RAM GiB
               </Text>
             </Space>
           </div>
