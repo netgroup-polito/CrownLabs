@@ -2,9 +2,9 @@ name: Code testing
 on:
   push:
     branches:
-    - master
+      - master
     tags:
-    - "v*"
+      - "v*"
   pull_request:
     types:
       - opened
@@ -54,7 +54,7 @@ jobs:
           libpcap-dev
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: "${{ needs.configure.outputs.ref }}"
           repository: "${{ needs.configure.outputs.repo-name }}"
@@ -112,7 +112,7 @@ jobs:
           libpcap-dev
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: "${{ needs.configure.outputs.ref }}"
           repository: "${{ needs.configure.outputs.repo-name }}"
@@ -186,30 +186,27 @@ jobs:
     needs: configure
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: "${{ needs.configure.outputs.ref }}"
           repository: "${{ needs.configure.outputs.repo-name }}"
           persist-credentials: false
 
       - name: Update the Helm chart dependencies
-        uses: WyriHaximus/github-action-helm3@v2
+        uses: WyriHaximus/github-action-helm3@v4
         with:
-          exec:
-            helm dependency update ./deploy/crownlabs
+          exec: helm dependency update ./deploy/crownlabs
 
       - name: Verify that the helm chart is well-formed
-        uses: WyriHaximus/github-action-helm3@v2
+        uses: WyriHaximus/github-action-helm3@v4
         with:
-          exec:
-            helm lint ./deploy/crownlabs --with-subcharts
+          exec: helm lint ./deploy/crownlabs --with-subcharts
 
       - name: Render the yaml manifests
         id: helm-template
-        uses: WyriHaximus/github-action-helm3@v2
+        uses: WyriHaximus/github-action-helm3@v4
         with:
-          exec:
-            helm template crownlabs ./deploy/crownlabs
+          exec: helm template crownlabs ./deploy/crownlabs
             --namespace crownlabs-production
             --set global.version=v0.0.1
 
