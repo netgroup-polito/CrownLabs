@@ -1,0 +1,28 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /qlkube
+    schedule:
+      interval: weekly
+    groups:
+      qlkube:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+    groups:
+      frontend:
+        patterns:
+          - "*"
+
+  - package-ecosystem: gomod
+    directory: /operators
+    schedule:
+      interval: weekly
+    groups:
+      operators:
+        patterns:
+          - "*"
