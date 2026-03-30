@@ -14,6 +14,10 @@ on:
     types:
       - deploy-staging-command
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   configure:
     name: Preliminary configuration
