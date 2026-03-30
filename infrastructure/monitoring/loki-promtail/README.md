@@ -1,13 +1,3 @@
-# Loki - Promtail for logs
-
-- [Loki](#loki)
-  -  [Prerequisites](#prerequisites)
-  -  [Installation](#installation)
-- [Promtail](#promtail)
-  -  [Prerequisites](#prerequisites-1)
-  -  [Installation](#installation-1)
-- [Bibliography](#bibliography)
-
 # Loki
 
 Grafana Loki is a set of elements that can be composed into a fully featured logging stack.
@@ -93,55 +83,3 @@ You can choose where you want to store the data, either in the local filesystem 
 
 *NOTE: some buckets, for example AWS, want the region before the BUCKET_HOST. So the full S3 path is s3://<ACCESS_KEY>:<SECRET_ACCESS_KEY>@REGION_BUKET.BUCKET_HOST/BUCKET_NAME*.
 
-# Promtail
-
-Promtail is an agent which ships the contents of local logs to a private Grafana Loki instance. It is usually deployed to every machine that has applications needed to be monitored.
-It primarily:
- - Discovers targets
- - Attaches labels to log streams
- - Pushes them to the Loki instance
-
-## Prerequisites
-
-Helm must be installed to use the charts value. Please follow the [Helm installing guide](https://helm.sh/docs/intro/install/) before getting starting.
-
-After Helm is ready, add the Grafana repo as follow:
-
-```bash
-helm repo add grafana https://grafana.github.io/helm-charts
-helm repo update
-```
-To see the Grafana charts, you can run:
-
-```bash
-helm search repo grafana
-```
-
-## Installation
-
-To install the chart with the release name `promtail` and apply the configuration specified by the `promtail-values.yaml` file, it is possible to proceed as follows:
-
-```bash
-helm upgrade --install --namespace monitoring --create-namespace promtail -f promtail-values.yaml grafana/promtail
-```
-
-The [promtail-values.yaml](./promtail-values.yaml) describes the Promtail configuration. Below we list the most relevant modifications compared to the original configuration that can be found [here](https://github.com/grafana/helm-charts/blob/main/charts/promtail/values.yaml).
-
-```yaml
-  snippets:
-    pipelineStages:
-      #- cri: {}
-      - docker: {}
-```
-
-The **pipelineStages** is the way of extracting data by parsing the log line. You can use the [Docker standard](https://grafana.com/docs/loki/latest/clients/promtail/stages/docker/), the [CRI standard](https://grafana.com/docs/loki/latest/clients/promtail/stages/cri/), a [regular expression](https://grafana.com/docs/loki/latest/clients/promtail/stages/regex/) or parse the log line as [JSON](https://grafana.com/docs/loki/latest/clients/promtail/stages/json/). You can only use one of these standard. 
-
-*NOTE: for JSON, you must configure **all** the expressions of your logs manually ([Using extraced data example](https://grafana.com/docs/loki/latest/clients/promtail/stages/json/#using-extracted-data)), because it does not recognize the key-value fields of the JSON, which means non-string elements like numbers, booleans or timestamps will not be assigned to those types.*
-
-### Bibliography
-
-1. [Loki Helm chart](https://github.com/grafana/helm-charts/tree/main/charts/loki)
-2. [Loki documentations](https://grafana.com/docs/loki/latest/configuration/)
-3. [Memberlist](https://github.com/hashicorp/memberlist)
-4. [Promtail stages](https://grafana.com/docs/loki/latest/clients/promtail/stages/)
-5. [Promtail documentations](https://grafana.com/docs/loki/latest/clients/promtail/)
