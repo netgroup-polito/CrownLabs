@@ -267,26 +267,28 @@ export const findKeyByValue = <T, K extends keyof unknown>(
  * @returns the number that represents the passed quantity in GiB (e.g. 2)
  */
 export const convertToGiB = (sizeStr: string): number => {
-  const regexp = /[0-9]+(\.[0-9]+)?/g;
-  const match = sizeStr.match(regexp);
+  const match = sizeStr.trim().match(/^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|K|M|G|T)B?$/i);
   if (!match) {
     throw new Error('Invalid size string');
   }
-  const num = parseFloat(match[0]);
-  if (sizeStr.toLowerCase().includes('gi')) {
-    return num;
-  } else if (sizeStr.toLowerCase().includes('mi')) {
-    return num / 1024;
-  } else if (sizeStr.toLowerCase().includes('ki')) {
-    return num / (1024 * 1024);
-  } else if (sizeStr.toLowerCase().includes('g')) {
-    return num * 0.9313225746154785;
-  } else if (sizeStr.toLowerCase().includes('m')) {
-    return (num / 1024) * 0.9313225746154785;
-  } else if (sizeStr.toLowerCase().includes('k')) {
-    return (num / (1024 * 1024)) * 0.9313225746154785;
-  } else {
-    throw new Error('Unsupported size unit');
+
+  const [, valueStr, unitRaw] = match;
+  const value = Number.parseFloat(valueStr);
+  // Strip trailing 'i' and uppercase to normalise both X and Xi to the same prefix
+  const unit = unitRaw.replace(/i$/i, '').toUpperCase();
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  
+  switch (unit) {
+    case 'G':
+      return round2(value);
+    case 'M':
+      return round2(value / 1024);
+    case 'K':
+      return round2(value / (1024 * 1024));
+    case 'T':
+      return round2(value * 1024);
+    default:
+      throw new Error('Unsupported size unit');
   }
 };
 

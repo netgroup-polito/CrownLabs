@@ -39,7 +39,7 @@ import type {
   PublicExposure,
   Tenant,
 } from './utils';
-import { convertToGB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
+import { convertToGiB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
 import type { JointContent } from 'antd/lib/message/interface';
 import type { Notifier } from './contexts/TenantContext';
@@ -81,24 +81,12 @@ export const makeGuiTemplate = (
     (acc, env) => {
       if (env?.resources) {
         acc.cpu += env.resources.cpu ?? 0;
-        const memoryStr = env.resources.memory || '0';
-        let memoryGB = 0;
-        if (memoryStr.includes('G')) {
-          memoryGB = parseInt(memoryStr.replace(/[^\d]/g, '')) || 0;
-        } else if (memoryStr.includes('M')) {
-          memoryGB = (parseInt(memoryStr.replace(/[^\d]/g, '')) || 0) / 1000;
-        }
-
-        const diskStr = env.resources.disk || '0';
-        let diskGB = 0;
-        if (diskStr.includes('G')) {
-          diskGB = parseInt(diskStr.replace(/[^\d]/g, '')) || 0;
-        } else if (diskStr.includes('M')) {
-          diskGB = (parseInt(diskStr.replace(/[^\d]/g, '')) || 0) / 1000;
-        }
-
-        acc.memorySum += memoryGB;
-        acc.diskSum += diskGB;
+        acc.memorySum += env.resources.memory
+          ? convertToGiB(env.resources.memory)
+          : 0;
+        acc.diskSum += env.resources.disk
+          ? convertToGiB(env.resources.disk)
+          : 0;
       }
       return acc;
     },
@@ -364,10 +352,10 @@ export const makeGuiInstance = (
         quota: {
           cpu: templateEnv?.resources?.cpu || 0,
           memory: templateEnv?.resources?.memory
-            ? convertToGB(templateEnv?.resources?.memory)
+            ? convertToGiB(templateEnv?.resources?.memory)
             : 0,
           disk: templateEnv?.resources?.disk
-            ? convertToGB(templateEnv?.resources?.disk)
+            ? convertToGiB(templateEnv?.resources?.disk)
             : 0,
         },
       } as InstanceEnvironment;

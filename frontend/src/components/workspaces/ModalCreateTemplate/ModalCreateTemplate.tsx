@@ -232,6 +232,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     
     const parsedTemplate = {
       ...template,
+      allowPublicExposure: isPublicExposureEnabled,
       description: template.description || template.name,
       inactivityTimeout: timeouts.inactivityTimeout.value === 0 ? 'never' : `${timeouts.inactivityTimeout.value}${timeouts.inactivityTimeout.unit}`,
       deleteAfter: timeouts.deleteAfter.value === 0 ? 'never' : `${timeouts.deleteAfter.value}${timeouts.deleteAfter.unit}`,
@@ -369,7 +370,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   
 const handleSelectorLabelChange = useCallback((values: string[]) => {
-  console.log('Selected label values:', values);
   
   // Filter out duplicate keys - keep only the last selected value for each key
   const seenKeys = new Map<string, string>();
@@ -389,7 +389,6 @@ const handleSelectorLabelChange = useCallback((values: string[]) => {
       console.error('Error parsing label:', e);
     }
   }
-  console.log('Filtered label values (duplicates removed):', filteredValues);
   setSelectedLabels(filteredValues);
 }, []);
 
@@ -743,6 +742,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
     children: environmentListForm,
     style: panelStyle,
+    forceRender: true,
     extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment' : `${infoNumberTemplate} environments` : 'No environments'}</Text>
   },
   {
@@ -750,12 +750,14 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
     children: automaticInstanceSavingResource,
     style: panelStyle,
+    forceRender: true,
     extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
   },
   {
     key: '3',
     label: <Typography.Text strong>Advanced Features</Typography.Text>,
     children: advancedFeaturesForm,
+    forceRender: true,
     style: panelStyle,
     extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['NodeSelectorDisabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
   },

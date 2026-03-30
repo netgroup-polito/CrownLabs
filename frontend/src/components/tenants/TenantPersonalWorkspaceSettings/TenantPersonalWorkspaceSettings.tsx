@@ -6,7 +6,7 @@ import {
   type TenantQuery,
 } from '../../../generated-types';
 import type { RuleRender, RuleObject } from 'antd/es/form';
-import { convertToGB } from '../../../utils';
+import { convertToGiB } from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { CheckOutlined } from '@ant-design/icons';
 
@@ -53,7 +53,7 @@ const TenantPersonalWorkspaceSettings: FC<
 
       newQuota = {
         cpu: data.cpu?.toString() ?? '0',
-        memory: `${data.memory?.toString() ?? '0'}G`,
+        memory: `${data.memory?.toString() ?? '0'}Gi`,
         instances: data.instances ?? 0,
       };
     }
@@ -112,7 +112,7 @@ const TenantPersonalWorkspaceSettings: FC<
       initialValues={{
         enabled: tenant.tenant?.spec?.personalWorkspace != null,
         cpu: parseFloat(tenant.tenant?.spec?.personalWorkspace?.cpu ?? '0'),
-        memory: convertToGB(
+        memory: convertToGiB(
           tenant.tenant?.spec?.personalWorkspace?.memory ?? '0GiB',
         ),
         instances: tenant.tenant?.spec?.personalWorkspace?.instances ?? 0,
@@ -138,7 +138,7 @@ const TenantPersonalWorkspaceSettings: FC<
 
       <Form.Item
         name="memory"
-        label="Memory (GB)"
+        label="Memory (Gi)"
         validateTrigger="onBlur"
         rules={[numberValidator]}
       >
@@ -146,7 +146,7 @@ const TenantPersonalWorkspaceSettings: FC<
           min={0}
           disabled={!isEnabled}
           className="w-100"
-          addonAfter="GB"
+          addonAfter="Gi"
         />
       </Form.Item>
 
