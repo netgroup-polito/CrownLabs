@@ -4,25 +4,28 @@ updates:
     directory: /qlkube
     schedule:
       interval: weekly
+    open-pull-requests-limit: 0
     groups:
       qlkube:
-        patterns:
-          - "*"
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /frontend
     schedule:
       interval: weekly
+    open-pull-requests-limit: 0
     groups:
       frontend:
-        patterns:
-          - "*"
+        applies-to: security-updates
+        patterns: ["*"]
 
   - package-ecosystem: gomod
     directory: /operators
     schedule:
       interval: weekly
+    open-pull-requests-limit: 0
     groups:
       operators:
-        patterns:
-          - "*"
+        applies-to: security-updates
+        patterns: ["*"]
