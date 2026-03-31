@@ -1,4 +1,4 @@
-const { apiGroups } = require('./apiGroups');
+const { apiGroups } = require('../config');
 
 const k8s = 'io.k8s.apimachinery';
 

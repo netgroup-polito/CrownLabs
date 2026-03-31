@@ -5,7 +5,7 @@ metadata:
   labels:
     {{- include "qlkube.labels" . | nindent 4 }}
 data:
-  {{ .Values.configuration.exposedAPIs.fileName }}: |
+  config.js: |
     const apiGroups = {
       paths: [
         {{- range .Values.configuration.exposedAPIs.apis }}
@@ -14,9 +14,6 @@ data:
       ],
     };
 
-    module.exports = { apiGroups };
-
-  {{ .Values.configuration.subscriptions.fileName }}: |
     const subscriptions = [
       {{- range $api := .Values.configuration.subscriptions.apis }}
       {{- range .resources }}
@@ -34,9 +31,6 @@ data:
       {{- end }}
     ];
 
-    module.exports = { subscriptions };
-
-  {{ .Values.configuration.wrappers.fileName }}: |
     const wrappers = [
       {{- range .Values.configuration.wrappers.resources }}
       {
@@ -49,13 +43,10 @@ data:
       {{- end }}
     ];
 
-    module.exports = { wrappers };
-
-  {{ .Values.configuration.nodesLabels.fileName }}: |
     const regexes = [
       {{- range .Values.configuration.nodesLabels.regexes }}
       {{ . }},
       {{- end }}
     ];
 
-    module.exports = { regexes };
+    module.exports = { apiGroups, subscriptions, wrappers, regexes };

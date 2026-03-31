@@ -11,19 +11,15 @@ image:
   tag: ""
 
 configuration:
-  mountPath: /qlkube/src
-
   # ExposedAPIs represents the list of Kubernetes APIs which are
   # exposed through graphql.
   exposedAPIs:
-    fileName: apiGroups.js
     apis:
       - crownlabs.polito.it
 
   # This subscription configuration maps to the current content
   # of the src/subscriptions.js file. Must be a subset of exposedAPIs.
   subscriptions:
-    fileName: subscriptions.js
     apis:
       - group: crownlabs.polito.it
         resources:
@@ -38,7 +34,6 @@ configuration:
   # This wrappers configuration maps to the current content
   # of the src/wrappers.js file. Must be a subset of exposedAPIs.
   wrappers:
-    fileName: wrappers.js
     resources:
       - type: itPolitoCrownlabsV1alpha2Template
         fieldWrapper: TemplateCrownlabsPolitoItTemplateRef
@@ -52,7 +47,6 @@ configuration:
   # This wrappers configuration maps to the current content
   # of the src/nodesLabelsRegexes.js file. Must be a subset of exposedAPIs.
   nodesLabels:
-    fileName: nodesLabelsRegexes.js
     regexes:
       - /crownlabs\.polito\.it.+/
 

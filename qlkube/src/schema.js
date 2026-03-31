@@ -3,7 +3,7 @@ const { stitchSchemas } = require('@graphql-tools/stitch');
 const { RenameRootFields } = require('@graphql-tools/wrap');
 const { RenameRootTypes } = require('@graphql-tools/wrap');
 const { decorateBaseSchema } = require('./decorateBaseSchema');
-const { wrappers } = require('./wrappers');
+const { wrappers } = require('../config');
 
 const basicHeaders = {
   'Content-Type': 'application/json',

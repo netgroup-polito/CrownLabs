@@ -4,9 +4,9 @@ const { gql } = require('graphql-tag');
 const { addResolversToSchema } = require('@graphql-tools/schema');
 const { extendSchema } = require('graphql/utilities');
 const { pubsubAsyncIterator } = require('./pubsub');
-const { subscriptions } = require('./subscriptions');
+const { subscriptions } = require('../config');
 const { canWatchResource } = require('./informer');
-const { wrappers } = require('./wrappers');
+const { wrappers } = require('../config');
 const {
   capitalizeType,
   uncapitalizeType,
