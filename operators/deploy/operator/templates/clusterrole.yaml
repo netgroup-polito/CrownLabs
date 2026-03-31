@@ -6,11 +6,7 @@ metadata:
     {{- include "operator.labels" . | nindent 4 }}
 rules:
 - apiGroups: ["crownlabs.polito.it"]
-  resources: ["workspaces", "workspaces/status", "tenants", "tenants/status", "instances", "instances/status", "templates", "templates/status"]
-  verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
-
-- apiGroups: ["crownlabs.polito.it"]
-  resources: ["sharedvolumes", "sharedvolumes/status"]
+  resources: ["workspaces", "workspaces/status", "tenants", "tenants/status", "instances", "instances/status", "templates", "templates/status", "sharedvolumes", "sharedvolumes/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
   
 - apiGroups: [""]
@@ -18,7 +14,7 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
 - apiGroups: [""]
-  resources: ["persistentvolumeclaims", "persistentvolumes"]
+  resources: ["persistentvolumeclaims", "persistentvolumes", "events"]
   verbs: ["get", "list", "watch", "create", "patch", "update"]
 
 - apiGroups: ["batch"]
@@ -32,3 +28,11 @@ rules:
 - apiGroups: ["networking.k8s.io"]
   resources: ["networkpolicies"]
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
+
+- apiGroups: ["storage.k8s.io"]
+  resources: ["storageclasses"]
+  verbs: ["get", "list", "watch"]
+
+- apiGroups: ["coordination.k8s.io"]
+  resources: ["leases"]
+  verbs: ["get", "create", "update", "delete"]

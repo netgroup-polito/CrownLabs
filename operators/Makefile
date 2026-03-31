@@ -111,6 +111,7 @@ run-operator: generate
 				--enable-workspace=true\
 				--enable-instance=true\
 				--enable-sharedvolume=true\
+				--enable-pmp=true\
 				--enable-keycloak=true\
 				--enable-webhooks=false
 

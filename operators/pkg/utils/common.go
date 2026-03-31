@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -77,10 +78,24 @@ func CheckNamespaceTargetLabel(ctx context.Context, k8sClient client.Client, nam
 		return false, fmt.Errorf("error when retrieving namespace %q: %w", namespaceName, err)
 	}
 
-	if targetLabel.IsIncluded(ns.GetLabels()) {
-		return true, nil
+	return targetLabel.IsIncluded(ns.GetLabels()), nil
+}
+
+// CheckNamespaceTargetLabel checks if the given namespace has labels that match the given selector (which supports both equality and set-based reqs, i.e. =, !=, in, notin, exists)
+func CheckNamespaceWithSelector(ctx context.Context, k8sClient client.Client, namespaceName string, selectorString string) (bool, error) {
+	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
+	ns := corev1.Namespace{}
+
+	if err := k8sClient.Get(ctx, namespaceLookupKey, &ns); err != nil {
+		return false, fmt.Errorf("error when retrieving namespace %q: %w", namespaceName, err)
 	}
-	return false, nil
+
+	selector, err := labels.Parse(selectorString)
+	if err != nil {
+		return false, err
+	}
+
+	return selector.Matches(labels.Set(ns.Labels)), nil
 }
 
 // MatchOneInStringSlices checks if there's at least one common string between two string slices.

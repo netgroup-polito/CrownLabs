@@ -18,16 +18,9 @@ import (
 	"context"
 	"flag"
 
-	storagev1 "k8s.io/api/storage/v1"
-	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/rest"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-	"sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
-
-	kekrrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/go-logr/logr"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/pmp"
 )
@@ -46,37 +39,18 @@ func setupPmp(
 	ctx context.Context,
 	mgr manager.Manager,
 	log logr.Logger,
-	_ common.KVLabel,
+	targetLabel common.KVLabel,
 ) error {
-	log = log.WithName("setupPmp")
+	log = log.WithName("pmp")
 
-	pmp := pmp.PvcMirrorProvisioner{
-		Client: mgr.GetClient(),
+	pmprov := pmp.PvcMirrorProvisioner{
+		Ctx:                   ctx,
+		Client:                mgr.GetClient(),
+		Config:                mgr.GetConfig(),
+		Logger:                log,
+		TargetLabel:           targetLabel,
+		MirrorStorageClass:    mirrorStorageClass,
+		MirrorProvisionerName: mirrorProvisionerName,
 	}
-
-	config, err := rest.InClusterConfig()
-	if err != nil {
-		log.Error(err, "Failed to create config")
-		return err
-	}
-	clientset, err := kubernetes.NewForConfig(config)
-	if err != nil {
-		log.Error(err, "Failed to create client")
-		return err
-	}
-
-	// Check if StorageClass is available
-	var outputSc storagev1.StorageClass
-	if err := mgr.GetClient().Get(ctx, types.NamespacedName{Name: mirrorStorageClass}, &outputSc); err != nil {
-		if kekrrors.IsNotFound(err) {
-			log.Error(err, "Cannot procede without a storageclass")
-		} else {
-			log.Error(err, "Could not retrieve storage class")
-		}
-		return err
-	}
-
-	controller.NewProvisionController(ctx, clientset, mirrorProvisionerName, &pmp)
-
-	return nil
+	return mgr.Add(&pmprov)
 }
