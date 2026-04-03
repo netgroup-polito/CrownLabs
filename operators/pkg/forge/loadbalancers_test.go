@@ -256,13 +256,20 @@ var _ = Describe("LoadBalancers forging", func() {
 	})
 
 	Describe("The forge.LoadBalancerServiceLabels function", func() {
-		var labels map[string]string
+		var (
+			labels map[string]string
+			opts   forge.PublicExposureOpts
+		)
 
-		JustBeforeEach(func() {
-			labels = forge.LoadBalancerServiceLabels()
+		BeforeEach(func() {
+			opts = forge.PublicExposureOpts{}
 		})
 
-		When("Forging the LoadBalancer service labels", func() {
+		JustBeforeEach(func() {
+			labels = forge.LoadBalancerServiceLabels(&opts)
+		})
+
+		When("Forging the LoadBalancer service labels with no common labels", func() {
 			It("Should set the correct component label", func() {
 				Expect(labels).To(HaveKeyWithValue(
 					"crownlabs.polito.it/component",
@@ -272,6 +279,34 @@ var _ = Describe("LoadBalancers forging", func() {
 
 			It("Should contain exactly 1 label", func() {
 				Expect(labels).To(HaveLen(1))
+			})
+		})
+
+		When("Common labels are provided", func() {
+			BeforeEach(func() {
+				opts = forge.PublicExposureOpts{
+					CommonLabels: map[string]string{
+						"metallb.universe.tf/ip-pool": "public",
+					},
+				}
+			})
+
+			It("Should set the correct component label", func() {
+				Expect(labels).To(HaveKeyWithValue(
+					"crownlabs.polito.it/component",
+					"pe",
+				))
+			})
+
+			It("Should include the common label", func() {
+				Expect(labels).To(HaveKeyWithValue(
+					"metallb.universe.tf/ip-pool",
+					"public",
+				))
+			})
+
+			It("Should contain exactly 2 labels", func() {
+				Expect(labels).To(HaveLen(2))
 			})
 		})
 	})

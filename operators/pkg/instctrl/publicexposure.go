@@ -127,7 +127,7 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 
 		// Set labels
 		if service.Labels == nil {
-			service.Labels = forge.LoadBalancerServiceLabels()
+			service.Labels = forge.LoadBalancerServiceLabels(&r.PublicExposureOpts)
 		}
 
 		// Set annotations using the new options
