@@ -168,9 +168,7 @@ func UpdateUsedPortsByIP(ctx context.Context, c client.Client, excludeSvcName, e
 	svcList := &v1.ServiceList{}
 
 	// Use a label selector to list only the relevant services.
-	// Only match on the fixed component label, not common labels, so that all
-	// public-exposure services are found regardless of any common labels configuration.
-	labels := map[string]string{forge.LabelComponentKey: forge.LabelPublicExposureValue}
+	labels := forge.LoadBalancerServiceLabels(opts)
 	listOptions := []client.ListOption{
 		client.MatchingLabels(labels),
 	}
