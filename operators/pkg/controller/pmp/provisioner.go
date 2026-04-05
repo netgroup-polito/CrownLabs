@@ -47,9 +47,9 @@ const (
 	// MirroredPvcLabel is the key of the label identifying which PVC is mirroring.
 	MirroredPvcLabel = "crownlabs.polito.it/mirrored-pvc"
 
-	// Key1
+	// Key1 is the key of the annotation. //TODO.
 	Key1 = "pmp.crownlabs.polito.it/required-target-ns-labels"
-	// Key2
+	// Key2 is the key of the annotation. //TODO.
 	Key2 = "pmp.crownlabs.polito.it/required-target-tn-labels"
 )
 

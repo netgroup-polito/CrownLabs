@@ -81,8 +81,8 @@ func CheckNamespaceTargetLabel(ctx context.Context, k8sClient client.Client, nam
 	return targetLabel.IsIncluded(ns.GetLabels()), nil
 }
 
-// CheckNamespaceTargetLabel checks if the given namespace has labels that match the given selector (which supports both equality and set-based reqs, i.e. =, !=, in, notin, exists)
-func CheckNamespaceWithSelector(ctx context.Context, k8sClient client.Client, namespaceName string, selectorString string) (bool, error) {
+// CheckNamespaceWithSelector checks if the given namespace has labels that match the given selector (which supports both equality and set-based reqs, i.e. =, !=, in, notin, exists).
+func CheckNamespaceWithSelector(ctx context.Context, k8sClient client.Client, namespaceName, selectorString string) (bool, error) {
 	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
 	ns := corev1.Namespace{}
 
@@ -110,8 +110,8 @@ func MatchOneInStringSlices(a, b []string) bool {
 
 // CheckSingleLabel checks if the instance has the label and value.
 func CheckSingleLabel(obj client.Object, label, value string) bool {
-	labels := obj.GetLabels()
-	return labels != nil && labels[label] == value
+	objLabels := obj.GetLabels()
+	return objLabels != nil && objLabels[label] == value
 }
 
 // AutoEnrollEnabled checks if the specified WorkspaceAutoenroll enables any feature.
