@@ -49,8 +49,6 @@ const (
 
 	// Key1 is the key of the annotation. //TODO.
 	Key1 = "pmp.crownlabs.polito.it/required-target-ns-labels"
-	// Key2 is the key of the annotation. //TODO.
-	Key2 = "pmp.crownlabs.polito.it/required-target-tn-labels"
 )
 
 // PvcMirrorProvisioner provisions PVCs with MirrorStorageClass.
@@ -102,15 +100,13 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 	}
 
 	// Check Authorization
-	requiredLabelsNs, presentNs := originPVC.Annotations[Key1]
-	_, presentTn := originPVC.Annotations[Key2] // requiredLabelsTn
-
-	if !presentNs && !presentTn {
+	requiredLabels, present := originPVC.Annotations[Key1]
+	if !present {
 		// Default: deny-all
 		p.Logger.Error(errStopProvision, "No required labels specified on origin PVC, access denied")
 		return nil, controller.ProvisioningFinished, errStopProvision
 	}
-	if proceed, err := utils.CheckNamespaceWithSelector(ctx, p.Client, mirrorPVC.Namespace, requiredLabelsNs); !presentNs || !proceed {
+	if proceed, err := utils.CheckNamespaceWithSelector(ctx, p.Client, mirrorPVC.Namespace, requiredLabels); !present || !proceed {
 		if err != nil {
 			p.Logger.Error(err, "Failed checking namespace selector")
 			return nil, controller.ProvisioningFinished, err
@@ -119,15 +115,6 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 		p.Logger.Info("Namespace does not match the selector on the origin PVC, access denied")
 		return nil, controller.ProvisioningFinished, errStopProvision
 	}
-	// if proceed, err := utils.CheckTenantWithSelector(ctx, p.Client, mirrorPVC.Namespace, requiredLabelsTn); !presentTn || !proceed {
-	// 	if err != nil {
-	// 		p.Logger.Error(err, "Failed checking tenant selector")
-	// 		return nil, controller.ProvisioningFinished, err
-	// 	}
-
-	// 	p.Logger.Info("Tenant does not match the selector on the origin PVC, access denied")
-	// 	return nil, controller.ProvisioningFinished, errStopProvision
-	// }
 
 	// Check origin PVC's phase
 	switch originPVC.Status.Phase {
