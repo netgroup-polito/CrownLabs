@@ -311,6 +311,93 @@ var _ = Describe("LoadBalancers forging", func() {
 		})
 	})
 
+	Describe("The forge.ParseAnnotations function", func() {
+		var (
+			result map[string]string
+			err    error
+		)
+
+		When("An empty string is provided", func() {
+			JustBeforeEach(func() {
+				result, err = forge.ParseAnnotations("")
+			})
+
+			It("Should return an empty map", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(BeEmpty())
+			})
+		})
+
+		When("A single key=value pair is provided", func() {
+			JustBeforeEach(func() {
+				result, err = forge.ParseAnnotations("metallb.universe.tf/ip-pool=public")
+			})
+
+			It("Should parse it correctly", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(HaveLen(1))
+				Expect(result).To(HaveKeyWithValue("metallb.universe.tf/ip-pool", "public"))
+			})
+		})
+
+		When("Multiple key=value pairs are provided", func() {
+			JustBeforeEach(func() {
+				result, err = forge.ParseAnnotations("metallb.universe.tf/allow-shared-ip=pe,metallb.universe.tf/address-pool=public")
+			})
+
+			It("Should parse all pairs correctly", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(HaveLen(2))
+				Expect(result).To(HaveKeyWithValue("metallb.universe.tf/allow-shared-ip", "pe"))
+				Expect(result).To(HaveKeyWithValue("metallb.universe.tf/address-pool", "public"))
+			})
+		})
+
+		When("A pair without '=' is provided", func() {
+			JustBeforeEach(func() {
+				result, err = forge.ParseAnnotations("invalidformat")
+			})
+
+			It("Should return an error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("A pair with an empty key is provided", func() {
+			JustBeforeEach(func() {
+				result, err = forge.ParseAnnotations("=value")
+			})
+
+			It("Should return an error", func() {
+				Expect(err).To(HaveOccurred())
+			})
+		})
+
+		When("A value contains '='", func() {
+			JustBeforeEach(func() {
+				result, err = forge.ParseAnnotations("key=val=ue")
+			})
+
+			It("Should treat only the first '=' as separator", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(HaveKeyWithValue("key", "val=ue"))
+			})
+		})
+
+		When("Pairs have surrounding whitespace", func() {
+			JustBeforeEach(func() {
+				result, err = forge.ParseAnnotations(" key1 = val1 , key2 = val2 ")
+			})
+
+			It("Should trim whitespace from keys and values", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(result).To(HaveLen(2))
+				Expect(result).To(HaveKeyWithValue("key1", "val1"))
+				Expect(result).To(HaveKeyWithValue("key2", "val2"))
+			})
+		})
+	})
+
 	Describe("The forge.LoadBalancerServiceName function", func() {
 		var serviceName string
 

@@ -655,6 +655,10 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/address-pool"))
 					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/allow-shared-ip"))
 					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/loadBalancerIPs"))
+
+					// Check labels: fixed component label and common labels
+					Expect(lbService.Labels).To(HaveKeyWithValue("crownlabs.polito.it/component", "pe"))
+					Expect(lbService.Labels).To(HaveKeyWithValue("metallb.universe.tf/ip-pool", "public"))
 				})
 
 				By("Asserting the instance status has been updated", func() {
