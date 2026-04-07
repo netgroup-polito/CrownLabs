@@ -369,7 +369,13 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
     try {
       const patchJson = buildPublicExposurePatch(normalized);
-      const variables = { instanceId, tenantNamespace, patchJson, manager };
+      const effectiveManager = manager || 'frontend-public-exposure';
+      const variables = {
+        instanceId,
+        tenantNamespace,
+        patchJson,
+        manager: effectiveManager,
+      };
 
       setIsUpdating(true);
       setLastSentData(JSON.stringify(existingExposure));
