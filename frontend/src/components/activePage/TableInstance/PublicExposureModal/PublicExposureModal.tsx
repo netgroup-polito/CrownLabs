@@ -37,7 +37,6 @@ interface IPublicExposureModalProps {
   instanceId: string;
   instancePrettyName: string;
   tenantNamespace: string;
-  manager: string;
 }
 
 interface PortField {
@@ -60,7 +59,6 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
   instanceId,
   instancePrettyName,
   tenantNamespace,
-  manager,
 }) => {
   const instanceName = instancePrettyName;
   const [form] = Form.useForm<FormValues>();
@@ -369,12 +367,11 @@ export const PublicExposureModal: FC<IPublicExposureModalProps> = ({
 
     try {
       const patchJson = buildPublicExposurePatch(normalized);
-      const effectiveManager = manager || 'frontend-public-exposure';
       const variables = {
         instanceId,
         tenantNamespace,
         patchJson,
-        manager: effectiveManager,
+        manager: 'frontend-public-exposure',
       };
 
       setIsUpdating(true);

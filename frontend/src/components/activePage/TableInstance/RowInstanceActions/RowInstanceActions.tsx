@@ -169,7 +169,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           instanceId={instance.name}
           instancePrettyName={instance.prettyName || instance.name}
           tenantNamespace={instance.tenantNamespace}
-          manager={instance.tenantId}
+
         />
       )}
     </>
