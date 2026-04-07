@@ -108,7 +108,7 @@ var _ = Describe("IPManager", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-service-1",
 				Namespace: "test-ns",
-				Labels:    forge.LoadBalancerServiceLabels(),
+				Labels:    forge.LoadBalancerServiceLabels(&forge.PublicExposureOpts{}),
 				Annotations: map[string]string{
 					"metallb.universe.tf/loadBalancerIPs": "172.18.0.240",
 				},
@@ -125,7 +125,7 @@ var _ = Describe("IPManager", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-service-2",
 				Namespace: "test-ns",
-				Labels:    forge.LoadBalancerServiceLabels(),
+				Labels:    forge.LoadBalancerServiceLabels(&forge.PublicExposureOpts{}),
 				Annotations: map[string]string{
 					"metallb.universe.tf/loadBalancerIPs": "172.18.0.241",
 				},
@@ -161,7 +161,7 @@ var _ = Describe("IPManager", func() {
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "exclude-service",
 				Namespace: "test-ns",
-				Labels:    forge.LoadBalancerServiceLabels(),
+				Labels:    forge.LoadBalancerServiceLabels(&forge.PublicExposureOpts{}),
 				Annotations: map[string]string{
 					"metallb.universe.tf/loadBalancerIPs": uniqueIP,
 				},

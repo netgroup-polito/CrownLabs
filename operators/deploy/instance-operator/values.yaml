@@ -63,6 +63,10 @@ configurations:
     # Common annotations to be added to all LoadBalancer services
     # Format: "key1=val1,key2=val2"
     commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+    # Common labels to be added to all LoadBalancer services (optional)
+    # Format: "key1=val1,key2=val2"
+    # Example: "metallb.universe.tf/ip-pool=public"
+    commonLabels: ""
     # Annotation key for specifying LoadBalancer IPs
     loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
       
