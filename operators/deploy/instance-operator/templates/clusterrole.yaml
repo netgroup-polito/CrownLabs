@@ -14,7 +14,7 @@ rules:
   verbs: ["get","list","watch","create","update","patch"]
 
 - apiGroups: ["crownlabs.polito.it"]
-  resources: ["templates", "tenants"]
+  resources: ["templates", "tenants", "sharedvolumes", "sharedvolumes/status"]
   verbs: ["get","list","watch"]
 
 - apiGroups: [""]
