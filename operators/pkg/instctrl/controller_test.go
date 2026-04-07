@@ -637,11 +637,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			It("Should create LoadBalancer service for public exposure", func() {
 				Expect(RunReconciler()).To(Succeed())
 
-				By("Asserting the LoadBalancer service has been created", func() {
-					serviceName := testName + "-pe"
-					var lbService corev1.Service
-					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
+				serviceName := testName + "-pe"
+				var lbService corev1.Service
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
 
+				By("Asserting the LoadBalancer service has been created", func() {
 					// Check service type
 					Expect(lbService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 
@@ -661,10 +661,28 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(lbService.Labels).To(HaveKeyWithValue("metallb.universe.tf/ip-pool", "public"))
 				})
 
-				By("Asserting the instance status has been updated", func() {
+				By("Asserting the instance status is Provisioning (IP not yet assigned by LB)", func() {
+					Expect(instance.Status.PublicExposure).NotTo(BeNil())
+					Expect(instance.Status.PublicExposure.Phase).To(Equal(clv1alpha2.PublicExposurePhaseProvisioning))
+					Expect(instance.Status.PublicExposure.ExternalIP).To(BeEmpty())
+					Expect(instance.Status.PublicExposure.Ports).To(HaveLen(1))
+				})
+
+				By("Simulating MetalLB assigning an IP to the service", func() {
+					lbService.Status.LoadBalancer = corev1.LoadBalancerStatus{
+						Ingress: []corev1.LoadBalancerIngress{{IP: "172.18.0.240"}},
+					}
+					Expect(k8sClient.Status().Update(ctx, &lbService)).To(Succeed())
+				})
+
+				By("Reconciling again after IP assignment", func() {
+					Expect(RunReconciler()).To(Succeed())
+				})
+
+				By("Asserting the instance status is Ready with the assigned IP", func() {
 					Expect(instance.Status.PublicExposure).NotTo(BeNil())
 					Expect(instance.Status.PublicExposure.Phase).To(Equal(clv1alpha2.PublicExposurePhaseReady))
-					Expect(instance.Status.PublicExposure.ExternalIP).NotTo(BeEmpty())
+					Expect(instance.Status.PublicExposure.ExternalIP).To(Equal("172.18.0.240"))
 					Expect(instance.Status.PublicExposure.Ports).To(HaveLen(1))
 				})
 			})
