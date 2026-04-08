@@ -1,4 +1,4 @@
-import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
+import { BarChartOutlined, UserOutlined, TeamOutlined, AppstoreOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import './App.css';
 import {
@@ -17,6 +17,7 @@ import DriveView from './components/activePage/DriveView';
 import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from './env';
 import TenantPage from './components/tenants/TenantPage';
 import TenantListPage from './components/tenants/TenantListPage';
+import WorkspaceListPage from './components/workspaces/WorkspaceListPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -69,9 +70,22 @@ function App() {
             ]
           : []),
         {
-          route: { name: 'Users', path: '/tenants' },
+          route: {
+            name: 'Manage account',
+            path: '/account',
+            navbarMenuIcon: <UserOutlined />,
+          },
+          content: <UserPanelLogic key="/account" />,
+          linkPosition: LinkPosition.MenuButton,
+        },
+        {
+          route: { 
+            name: 'Manage users', 
+            path: '/tenants',
+            navbarMenuIcon: <TeamOutlined />,
+          },
           content: <TenantListPage />,
-          linkPosition: LinkPosition.NavbarButton,
+          linkPosition: LinkPosition.MenuButton,
           requiredGroups: [
             `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
           ],
@@ -83,19 +97,22 @@ function App() {
         },
         {
           route: {
+            name: 'Manage workspaces',
+            path: '/workspaces',
+            navbarMenuIcon: <AppstoreOutlined />,
+          },
+          content: <WorkspaceListPage />,
+          linkPosition: LinkPosition.MenuButton,
+          requiredGroups: [
+            `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
+          ],
+        },
+        {
+          route: {
             name: 'Support',
             path: 'https://support.crownlabs.polito.it/',
           },
           linkPosition: LinkPosition.NavbarButton,
-        },
-        {
-          route: {
-            name: 'Manage account',
-            path: '/account',
-            navbarMenuIcon: <UserOutlined />,
-          },
-          content: <UserPanelLogic key="/account" />,
-          linkPosition: LinkPosition.MenuButton,
         },
         {
           route: {

@@ -64,6 +64,7 @@ func main() {
 	publicExposureOpts := forge.PublicExposureOpts{}
 	publicExposureIPPoolRaw := ""
 	publicExposureCommonAnnotationRaw := ""
+	publicExposureCommonLabelsRaw := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -94,6 +95,7 @@ func main() {
 
 	flag.StringVar(&publicExposureIPPoolRaw, "public-exposure-ip-pool", "", "Comma-separated list of IPs, ranges or CIDRs for public exposure")
 	flag.StringVar(&publicExposureCommonAnnotationRaw, "public-exposure-common-annotations", "", "Comma-separated list of common annotations in format key1=val1,key2=val2")
+	flag.StringVar(&publicExposureCommonLabelsRaw, "public-exposure-common-labels", "", "Comma-separated list of common labels in format key1=val1,key2=val2")
 	flag.StringVar(&publicExposureOpts.LoadBalancerIPsKey, "public-exposure-loadbalancer-ips-key", "metallb.universe.tf/loadBalancerIPs", "Annotation key for specifying LoadBalancer IPs")
 
 	restcfg.InitFlags(nil)
@@ -137,10 +139,19 @@ func main() {
 		log.Error(err, "Invalid public exposure common annotations")
 		os.Exit(1)
 	}
+
+	// Parse common labels
+	commonLabels, err := forge.ParseAnnotations(publicExposureCommonLabelsRaw)
+	if err != nil {
+		log.Error(err, "Invalid public exposure common labels")
+		os.Exit(1)
+	}
+
 	publicExposureOpts.IPPool = ipPool
 	publicExposureOpts.CommonAnnotations = commonAnnotations
+	publicExposureOpts.CommonLabels = commonLabels
 
-	log.Info("Public exposure configuration", "ipPool", publicExposureOpts.IPPool, "commonAnnotations", publicExposureOpts.CommonAnnotations, "loadBalancerIPsKey", publicExposureOpts.LoadBalancerIPsKey)
+	log.Info("Public exposure configuration", "ipPool", publicExposureOpts.IPPool, "commonAnnotations", publicExposureOpts.CommonAnnotations, "commonLabels", publicExposureOpts.CommonLabels, "loadBalancerIPsKey", publicExposureOpts.LoadBalancerIPsKey)
 
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"

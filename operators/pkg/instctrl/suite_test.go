@@ -98,6 +98,9 @@ var _ = BeforeSuite(func() {
 				"metallb.universe.tf/allow-shared-ip": "public-exposure",
 				"metallb.universe.tf/address-pool":    "public",
 			},
+			CommonLabels: map[string]string{
+				"metallb.universe.tf/ip-pool": "public",
+			},
 			LoadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs",
 		},
 	}

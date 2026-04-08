@@ -334,6 +334,8 @@ export type IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput = {
   dryRun?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately. */
   gracePeriodSeconds?: InputMaybe<Scalars['BigInt']['input']>;
+  /** if set to true, it will trigger an unsafe deletion of the resource in case the normal deletion flow fails with a corrupt object error. A resource is considered corrupt if it can not be retrieved from the underlying storage successfully because of a) its data can not be transformed e.g. decryption failure, or b) it fails to decode into an object. NOTE: unsafe deletion ignores finalizer constraints, skips precondition checks, and removes the object from the storage. WARNING: This may potentially break the cluster if the workload associated with the resource being unsafe-deleted relies on normal deletion flow. Use only if you REALLY know what you are doing. The default value is false, and the user must opt in to enable it */
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
   kind?: InputMaybe<Scalars['String']['input']>;
   /** Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the "orphan" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both. */
@@ -1475,6 +1477,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha1CollectionWorkspaceArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha1ImageListArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1486,6 +1489,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha1ImageListArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha1WorkspaceArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1576,6 +1580,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionTenantArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1588,6 +1593,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1600,6 +1606,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArg
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1612,6 +1619,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = 
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1624,6 +1632,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha2TenantArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
@@ -2089,7 +2098,12 @@ export type MutationReplaceCrownlabsPolitoItV1alpha2TenantStatusArgs = {
   pretty?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Workspace.
+ * This is the namespace that groups multiple related templates, together
+ * with all the accessory resources (e.g. RBACs) created by the tenant
+ * operator.
+ */
 export type Namespace = {
   __typename?: 'Namespace';
   /** Whether the creation succeeded or not. */
@@ -2098,7 +2112,12 @@ export type Namespace = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Workspace.
+ * This is the namespace that groups multiple related templates, together
+ * with all the accessory resources (e.g. RBACs) created by the tenant
+ * operator.
+ */
 export type NamespaceInput = {
   /** Whether the creation succeeded or not. */
   created: Scalars['Boolean']['input'];
@@ -2106,7 +2125,12 @@ export type NamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Tenant.
+ * This is the namespace that groups his/her own Instances, together with
+ * all the accessory resources (e.g. RBACs, resource quota, network policies,
+ * ...) created by the tenant-operator.
+ */
 export type PersonalNamespace = {
   __typename?: 'PersonalNamespace';
   /** Whether the creation succeeded or not. */
@@ -2115,7 +2139,12 @@ export type PersonalNamespace = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Tenant.
+ * This is the namespace that groups his/her own Instances, together with
+ * all the accessory resources (e.g. RBACs, resource quota, network policies,
+ * ...) created by the tenant-operator.
+ */
 export type PersonalNamespaceInput = {
   /** Whether the creation succeeded or not. */
   created: Scalars['Boolean']['input'];
@@ -2123,7 +2152,10 @@ export type PersonalNamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+/**
+ * The amount of resources associated with the Tenant's
+ * personal workspace. If defined, the personal workspace is enabled.
+ */
 export type PersonalWorkspace = {
   __typename?: 'PersonalWorkspace';
   /** The maximum amount of CPU required by this Workspace. */
@@ -2134,7 +2166,10 @@ export type PersonalWorkspace = {
   memory: Scalars['JSON']['output'];
 };
 
-/** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+/**
+ * The amount of resources associated with the Tenant's
+ * personal workspace. If defined, the personal workspace is enabled.
+ */
 export type PersonalWorkspaceInput = {
   /** The maximum amount of CPU required by this Workspace. */
   cpu: Scalars['JSON']['input'];
@@ -2863,7 +2898,10 @@ export enum Role {
   User = 'user'
 }
 
-/** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+/**
+ * The namespace that can be freely used by the Tenant to play with Kubernetes.
+ * This namespace is created only if the .spec.CreateSandbox flag is true.
+ */
 export type SandboxNamespace = {
   __typename?: 'SandboxNamespace';
   /** Whether the creation succeeded or not. */
@@ -2872,7 +2910,10 @@ export type SandboxNamespace = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
-/** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+/**
+ * The namespace that can be freely used by the Tenant to play with Kubernetes.
+ * This namespace is created only if the .spec.CreateSandbox flag is true.
+ */
 export type SandboxNamespaceInput = {
   /** Whether the creation succeeded or not. */
   created: Scalars['Boolean']['input'];
@@ -3165,9 +3206,15 @@ export type Spec7 = {
   __typename?: 'Spec7';
   /** Whether a personal workspace should be created for the tenant */
   createPersonalWorkspace?: Maybe<Scalars['Boolean']['output']>;
-  /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
+  /**
+   * Whether a sandbox namespace should be created to allow the Tenant play
+   * with Kubernetes.
+   */
   createSandbox?: Maybe<Scalars['Boolean']['output']>;
-  /** The email associated with the Tenant, which will be used to log-in into the system. */
+  /**
+   * The email associated with the Tenant, which will be used to log-in
+   * into the system.
+   */
   email: Scalars['String']['output'];
   /** The first name of the Tenant. */
   firstName: Scalars['String']['output'];
@@ -3175,13 +3222,22 @@ export type Spec7 = {
   lastLogin?: Maybe<Scalars['String']['output']>;
   /** The last name of the Tenant. */
   lastName: Scalars['String']['output'];
-  /** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+  /**
+   * The amount of resources associated with the Tenant's
+   * personal workspace. If defined, the personal workspace is enabled.
+   */
   personalWorkspace?: Maybe<PersonalWorkspace>;
-  /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
+  /**
+   * The list of the SSH public keys associated with the Tenant. These will be
+   * used to enable to access the remote environments through the SSH protocol.
+   */
   publicKeys?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
   quota?: Maybe<Quota2>;
-  /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
+  /**
+   * The list of the Workspaces the Tenant is subscribed to, along with his/her
+   * role in each of them.
+   */
   workspaces?: Maybe<Array<Maybe<WorkspacesListItem>>>;
 };
 
@@ -3189,9 +3245,15 @@ export type Spec7 = {
 export type Spec7Input = {
   /** Whether a personal workspace should be created for the tenant */
   createPersonalWorkspace?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
+  /**
+   * Whether a sandbox namespace should be created to allow the Tenant play
+   * with Kubernetes.
+   */
   createSandbox?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The email associated with the Tenant, which will be used to log-in into the system. */
+  /**
+   * The email associated with the Tenant, which will be used to log-in
+   * into the system.
+   */
   email: Scalars['String']['input'];
   /** The first name of the Tenant. */
   firstName: Scalars['String']['input'];
@@ -3199,13 +3261,22 @@ export type Spec7Input = {
   lastLogin?: InputMaybe<Scalars['String']['input']>;
   /** The last name of the Tenant. */
   lastName: Scalars['String']['input'];
-  /** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+  /**
+   * The amount of resources associated with the Tenant's
+   * personal workspace. If defined, the personal workspace is enabled.
+   */
   personalWorkspace?: InputMaybe<PersonalWorkspaceInput>;
-  /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
+  /**
+   * The list of the SSH public keys associated with the Tenant. These will be
+   * used to enable to access the remote environments through the SSH protocol.
+   */
   publicKeys?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
   quota?: InputMaybe<Quota2Input>;
-  /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
+  /**
+   * The list of the Workspaces the Tenant is subscribed to, along with his/her
+   * role in each of them.
+   */
   workspaces?: InputMaybe<Array<InputMaybe<WorkspacesListItemInput>>>;
 };
 
@@ -3220,21 +3291,47 @@ export type SpecInput = {
 /** WorkspaceStatus reflects the most recently observed status of the Workspace. */
 export type Status2 = {
   __typename?: 'Status2';
-  /** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Workspace.
+   * This is the namespace that groups multiple related templates, together
+   * with all the accessory resources (e.g. RBACs) created by the tenant
+   * operator.
+   */
   namespace?: Maybe<Namespace>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   */
   ready?: Maybe<Scalars['Boolean']['output']>;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
   subscription?: Maybe<Scalars['JSON']['output']>;
 };
 
 /** WorkspaceStatus reflects the most recently observed status of the Workspace. */
 export type Status2Input = {
-  /** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Workspace.
+   * This is the namespace that groups multiple related templates, together
+   * with all the accessory resources (e.g. RBACs) created by the tenant
+   * operator.
+   */
   namespace?: InputMaybe<NamespaceInput>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   */
   ready?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
   subscription?: InputMaybe<Scalars['JSON']['input']>;
 };
 
@@ -3346,42 +3443,84 @@ export type Status5Input = {
 /** TenantStatus reflects the most recently observed status of the Tenant. */
 export type Status7 = {
   __typename?: 'Status7';
-  /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
+  /**
+   * The list of Workspaces that are throwing errors during subscription.
+   * This mainly happens if .spec.Workspaces contains references to Workspaces
+   * which do not exist.
+   */
   failingWorkspaces?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** The status of Keycloak authentication flow */
   keycloak?: Maybe<Keycloak>;
-  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Tenant.
+   * This is the namespace that groups his/her own Instances, together with
+   * all the accessory resources (e.g. RBACs, resource quota, network policies,
+   * ...) created by the tenant-operator.
+   */
   personalNamespace: PersonalNamespace;
   /** Whether a personal workspace has been created for the tenant. */
   personalWorkspaceCreated?: Maybe<Scalars['Boolean']['output']>;
   /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
   quota?: Maybe<Quota3>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. Will be set to true even when personal workspace is intentionally deleted. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   * Will be set to true even when personal workspace is intentionally deleted.
+   */
   ready: Scalars['Boolean']['output'];
-  /** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+  /**
+   * The namespace that can be freely used by the Tenant to play with Kubernetes.
+   * This namespace is created only if the .spec.CreateSandbox flag is true.
+   */
   sandboxNamespace: SandboxNamespace;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
-  subscriptions: Scalars['JSON']['output'];
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
+  subscriptions?: Maybe<Scalars['JSON']['output']>;
 };
 
 /** TenantStatus reflects the most recently observed status of the Tenant. */
 export type Status7Input = {
-  /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
+  /**
+   * The list of Workspaces that are throwing errors during subscription.
+   * This mainly happens if .spec.Workspaces contains references to Workspaces
+   * which do not exist.
+   */
   failingWorkspaces?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The status of Keycloak authentication flow */
   keycloak?: InputMaybe<KeycloakInput>;
-  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Tenant.
+   * This is the namespace that groups his/her own Instances, together with
+   * all the accessory resources (e.g. RBACs, resource quota, network policies,
+   * ...) created by the tenant-operator.
+   */
   personalNamespace: PersonalNamespaceInput;
   /** Whether a personal workspace has been created for the tenant. */
   personalWorkspaceCreated?: InputMaybe<Scalars['Boolean']['input']>;
   /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
   quota?: InputMaybe<Quota3Input>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. Will be set to true even when personal workspace is intentionally deleted. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   * Will be set to true even when personal workspace is intentionally deleted.
+   */
   ready: Scalars['Boolean']['input'];
-  /** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+  /**
+   * The namespace that can be freely used by the Tenant to play with Kubernetes.
+   * This namespace is created only if the .spec.CreateSandbox flag is true.
+   */
   sandboxNamespace: SandboxNamespaceInput;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
-  subscriptions: Scalars['JSON']['input'];
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
+  subscriptions?: InputMaybe<Scalars['JSON']['input']>;
 };
 
 export type Subscription = {
@@ -3551,7 +3690,10 @@ export type WorkspaceWrapperTenantV1alpha2 = {
   itPolitoCrownlabsV1alpha1Workspace?: Maybe<ItPolitoCrownlabsV1alpha1Workspace>;
 };
 
-/** TenantWorkspaceEntry contains the information regarding one of the Workspaces the Tenant is subscribed to, including his/her role. */
+/**
+ * TenantWorkspaceEntry contains the information regarding one of the Workspaces
+ * the Tenant is subscribed to, including his/her role.
+ */
 export type WorkspacesListItem = {
   __typename?: 'WorkspacesListItem';
   /** The Workspace the Tenant is subscribed to. */
@@ -3561,7 +3703,10 @@ export type WorkspacesListItem = {
   workspaceWrapperTenantV1alpha2?: Maybe<WorkspaceWrapperTenantV1alpha2>;
 };
 
-/** TenantWorkspaceEntry contains the information regarding one of the Workspaces the Tenant is subscribed to, including his/her role. */
+/**
+ * TenantWorkspaceEntry contains the information regarding one of the Workspaces
+ * the Tenant is subscribed to, including his/her role.
+ */
 export type WorkspacesListItemInput = {
   /** The Workspace the Tenant is subscribed to. */
   name: Scalars['String']['input'];
@@ -3627,6 +3772,15 @@ export type ApplyTenantJsonPatchJsonMutationVariables = Exact<{
 
 export type ApplyTenantJsonPatchJsonMutation = { __typename?: 'Mutation', applyTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null };
 
+export type ApplyWorkspaceMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  patchJson: Scalars['String']['input'];
+  manager: Scalars['String']['input'];
+}>;
+
+
+export type ApplyWorkspaceMutation = { __typename?: 'Mutation', applyWorkspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, spec?: { __typename?: 'Spec2', prettyName: string, autoEnroll?: AutoEnroll | null, quota: { __typename?: 'Quota', cpu: any, memory: any, instances: number } } | null } | null };
+
 export type CreateInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
   templateId: Scalars['String']['input'];
@@ -3665,6 +3819,18 @@ export type CreateTemplateMutationVariables = Exact<{
 
 export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, deleteAfter?: string | null, inactivityTimeout?: string | null, allowPublicExposure?: boolean | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
 
+export type CreateWorkspaceMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  prettyName: Scalars['String']['input'];
+  autoEnroll?: InputMaybe<AutoEnroll>;
+  cpu: Scalars['JSON']['input'];
+  memory: Scalars['JSON']['input'];
+  instances: Scalars['Int']['input'];
+}>;
+
+
+export type CreateWorkspaceMutation = { __typename?: 'Mutation', createdWorkspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, autoEnroll?: AutoEnroll | null, quota: { __typename?: 'Quota', cpu: any, memory: any, instances: number } } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
+
 export type DeleteInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
   instanceId: Scalars['String']['input'];
@@ -3696,6 +3862,18 @@ export type DeleteTemplateMutationVariables = Exact<{
 
 
 export type DeleteTemplateMutation = { __typename?: 'Mutation', deletedTemplate?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
+
+export type DeleteWorkspaceMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type DeleteWorkspaceMutation = { __typename?: 'Mutation', deletedWorkspace?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
+
+export type AllTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type AllTemplatesQuery = { __typename?: 'Query', allTemplates?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type ImagesQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3750,6 +3928,13 @@ export type TenantsQueryVariables = Exact<{
 
 export type TenantsQuery = { __typename?: 'Query', tenants?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null> } | null };
 
+export type WorkspaceQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type WorkspaceQuery = { __typename?: 'Query', workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, labels?: any | null } | null, spec?: { __typename?: 'Spec2', prettyName: string, autoEnroll?: AutoEnroll | null } | null } | null };
+
 export type WorkspaceQuotasQueryVariables = Exact<{
   names?: InputMaybe<Array<Scalars['String']['input']> | Scalars['String']['input']>;
 }>;
@@ -3762,7 +3947,7 @@ export type WorkspacesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspacesQuery = { __typename?: 'Query', workspaces?: { __typename?: 'ItPolitoCrownlabsV1alpha1WorkspaceList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec2', prettyName: string, autoEnroll?: AutoEnroll | null } | null } | null> } | null };
+export type WorkspacesQuery = { __typename?: 'Query', workspaces?: { __typename?: 'ItPolitoCrownlabsV1alpha1WorkspaceList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, deletionTimestamp?: string | null } | null, spec?: { __typename?: 'Spec2', prettyName: string, autoEnroll?: AutoEnroll | null, quota: { __typename?: 'Quota', cpu: any, memory: any, instances: number } } | null } | null> } | null };
 
 export type UpdatedOwnedInstancesSubscriptionVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
@@ -4149,6 +4334,57 @@ export function useApplyTenantJsonPatchJsonMutation(baseOptions?: Apollo.Mutatio
 export type ApplyTenantJsonPatchJsonMutationHookResult = ReturnType<typeof useApplyTenantJsonPatchJsonMutation>;
 export type ApplyTenantJsonPatchJsonMutationResult = Apollo.MutationResult<ApplyTenantJsonPatchJsonMutation>;
 export type ApplyTenantJsonPatchJsonMutationOptions = Apollo.BaseMutationOptions<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>;
+export const ApplyWorkspaceDocument = gql`
+    mutation applyWorkspace($name: String!, $patchJson: String!, $manager: String!) {
+  applyWorkspace: patchCrownlabsPolitoItV1alpha1WorkspaceJsonPatch(
+    name: $name
+    fieldManager: $manager
+    applicationJsonPatchJsonInput: $patchJson
+  ) {
+    metadata {
+      name
+      namespace
+    }
+    spec {
+      prettyName
+      autoEnroll
+      quota {
+        cpu
+        memory
+        instances
+      }
+    }
+  }
+}
+    `;
+export type ApplyWorkspaceMutationFn = Apollo.MutationFunction<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>;
+
+/**
+ * __useApplyWorkspaceMutation__
+ *
+ * To run a mutation, you first call `useApplyWorkspaceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useApplyWorkspaceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [applyWorkspaceMutation, { data, loading, error }] = useApplyWorkspaceMutation({
+ *   variables: {
+ *      name: // value for 'name'
+ *      patchJson: // value for 'patchJson'
+ *      manager: // value for 'manager'
+ *   },
+ * });
+ */
+export function useApplyWorkspaceMutation(baseOptions?: Apollo.MutationHookOptions<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>(ApplyWorkspaceDocument, options);
+      }
+export type ApplyWorkspaceMutationHookResult = ReturnType<typeof useApplyWorkspaceMutation>;
+export type ApplyWorkspaceMutationResult = Apollo.MutationResult<ApplyWorkspaceMutation>;
+export type ApplyWorkspaceMutationOptions = Apollo.BaseMutationOptions<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>;
 export const CreateInstanceDocument = gql`
     mutation createInstance($tenantNamespace: String!, $templateId: String!, $workspaceNamespace: String!, $tenantId: String!, $generateName: String = "instance-", $nodeSelector: JSON) {
   createdInstance: createCrownlabsPolitoItV1alpha2NamespacedInstance(
@@ -4347,6 +4583,58 @@ export function useCreateTemplateMutation(baseOptions?: Apollo.MutationHookOptio
 export type CreateTemplateMutationHookResult = ReturnType<typeof useCreateTemplateMutation>;
 export type CreateTemplateMutationResult = Apollo.MutationResult<CreateTemplateMutation>;
 export type CreateTemplateMutationOptions = Apollo.BaseMutationOptions<CreateTemplateMutation, CreateTemplateMutationVariables>;
+export const CreateWorkspaceDocument = gql`
+    mutation createWorkspace($name: String!, $prettyName: String!, $autoEnroll: AutoEnroll, $cpu: JSON!, $memory: JSON!, $instances: Int!) {
+  createdWorkspace: createCrownlabsPolitoItV1alpha1Workspace(
+    itPolitoCrownlabsV1alpha1WorkspaceInput: {kind: "Workspace", apiVersion: "crownlabs.polito.it/v1alpha1", spec: {prettyName: $prettyName, autoEnroll: $autoEnroll, quota: {cpu: $cpu, memory: $memory, instances: $instances}}, metadata: {name: $name}}
+  ) {
+    spec {
+      prettyName
+      autoEnroll
+      quota {
+        cpu
+        memory
+        instances
+      }
+    }
+    metadata {
+      name
+      namespace
+    }
+  }
+}
+    `;
+export type CreateWorkspaceMutationFn = Apollo.MutationFunction<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>;
+
+/**
+ * __useCreateWorkspaceMutation__
+ *
+ * To run a mutation, you first call `useCreateWorkspaceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateWorkspaceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createWorkspaceMutation, { data, loading, error }] = useCreateWorkspaceMutation({
+ *   variables: {
+ *      name: // value for 'name'
+ *      prettyName: // value for 'prettyName'
+ *      autoEnroll: // value for 'autoEnroll'
+ *      cpu: // value for 'cpu'
+ *      memory: // value for 'memory'
+ *      instances: // value for 'instances'
+ *   },
+ * });
+ */
+export function useCreateWorkspaceMutation(baseOptions?: Apollo.MutationHookOptions<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>(CreateWorkspaceDocument, options);
+      }
+export type CreateWorkspaceMutationHookResult = ReturnType<typeof useCreateWorkspaceMutation>;
+export type CreateWorkspaceMutationResult = Apollo.MutationResult<CreateWorkspaceMutation>;
+export type CreateWorkspaceMutationOptions = Apollo.BaseMutationOptions<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>;
 export const DeleteInstanceDocument = gql`
     mutation deleteInstance($tenantNamespace: String!, $instanceId: String!) {
   deletedInstance: deleteCrownlabsPolitoItV1alpha2NamespacedInstance(
@@ -4495,6 +4783,86 @@ export function useDeleteTemplateMutation(baseOptions?: Apollo.MutationHookOptio
 export type DeleteTemplateMutationHookResult = ReturnType<typeof useDeleteTemplateMutation>;
 export type DeleteTemplateMutationResult = Apollo.MutationResult<DeleteTemplateMutation>;
 export type DeleteTemplateMutationOptions = Apollo.BaseMutationOptions<DeleteTemplateMutation, DeleteTemplateMutationVariables>;
+export const DeleteWorkspaceDocument = gql`
+    mutation deleteWorkspace($name: String!) {
+  deletedWorkspace: deleteCrownlabsPolitoItV1alpha1Workspace(name: $name) {
+    kind
+  }
+}
+    `;
+export type DeleteWorkspaceMutationFn = Apollo.MutationFunction<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>;
+
+/**
+ * __useDeleteWorkspaceMutation__
+ *
+ * To run a mutation, you first call `useDeleteWorkspaceMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteWorkspaceMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteWorkspaceMutation, { data, loading, error }] = useDeleteWorkspaceMutation({
+ *   variables: {
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useDeleteWorkspaceMutation(baseOptions?: Apollo.MutationHookOptions<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>(DeleteWorkspaceDocument, options);
+      }
+export type DeleteWorkspaceMutationHookResult = ReturnType<typeof useDeleteWorkspaceMutation>;
+export type DeleteWorkspaceMutationResult = Apollo.MutationResult<DeleteWorkspaceMutation>;
+export type DeleteWorkspaceMutationOptions = Apollo.BaseMutationOptions<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>;
+export const AllTemplatesDocument = gql`
+    query allTemplates {
+  allTemplates: listCrownlabsPolitoItV1alpha2TemplateForAllNamespaces {
+    items {
+      metadata {
+        name
+        namespace
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useAllTemplatesQuery__
+ *
+ * To run a query within a React component, call `useAllTemplatesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useAllTemplatesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useAllTemplatesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useAllTemplatesQuery(baseOptions?: Apollo.QueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
+      }
+export function useAllTemplatesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
+        }
+// @ts-ignore
+export function useAllTemplatesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<AllTemplatesQuery, AllTemplatesQueryVariables>;
+export function useAllTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<AllTemplatesQuery | undefined, AllTemplatesQueryVariables>;
+export function useAllTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
+        }
+export type AllTemplatesQueryHookResult = ReturnType<typeof useAllTemplatesQuery>;
+export type AllTemplatesLazyQueryHookResult = ReturnType<typeof useAllTemplatesLazyQuery>;
+export type AllTemplatesSuspenseQueryHookResult = ReturnType<typeof useAllTemplatesSuspenseQuery>;
+export type AllTemplatesQueryResult = Apollo.QueryResult<AllTemplatesQuery, AllTemplatesQueryVariables>;
 export const ImagesDocument = gql`
     query images {
   imageList: itPolitoCrownlabsV1alpha1ImageListList {
@@ -4534,6 +4902,9 @@ export function useImagesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Ima
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
         }
+// @ts-ignore
+export function useImagesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>): Apollo.UseSuspenseQueryResult<ImagesQuery, ImagesQueryVariables>;
+export function useImagesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>): Apollo.UseSuspenseQueryResult<ImagesQuery | undefined, ImagesQueryVariables>;
 export function useImagesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
@@ -4653,6 +5024,9 @@ export function useOwnedInstancesLazyQuery(baseOptions?: Apollo.LazyQueryHookOpt
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
         }
+// @ts-ignore
+export function useOwnedInstancesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables>): Apollo.UseSuspenseQueryResult<OwnedInstancesQuery, OwnedInstancesQueryVariables>;
+export function useOwnedInstancesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables>): Apollo.UseSuspenseQueryResult<OwnedInstancesQuery | undefined, OwnedInstancesQueryVariables>;
 export function useOwnedInstancesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
@@ -4763,6 +5137,9 @@ export function useInstancesLabelSelectorLazyQuery(baseOptions?: Apollo.LazyQuer
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
         }
+// @ts-ignore
+export function useInstancesLabelSelectorSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>): Apollo.UseSuspenseQueryResult<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>;
+export function useInstancesLabelSelectorSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>): Apollo.UseSuspenseQueryResult<InstancesLabelSelectorQuery | undefined, InstancesLabelSelectorQueryVariables>;
 export function useInstancesLabelSelectorSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
@@ -4803,6 +5180,9 @@ export function useNodesLabelsLazyQuery(baseOptions?: Apollo.LazyQueryHookOption
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
         }
+// @ts-ignore
+export function useNodesLabelsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>): Apollo.UseSuspenseQueryResult<NodesLabelsQuery, NodesLabelsQueryVariables>;
+export function useNodesLabelsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>): Apollo.UseSuspenseQueryResult<NodesLabelsQuery | undefined, NodesLabelsQueryVariables>;
 export function useNodesLabelsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
@@ -4857,6 +5237,9 @@ export function useWorkspaceSharedVolumesLazyQuery(baseOptions?: Apollo.LazyQuer
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
         }
+// @ts-ignore
+export function useWorkspaceSharedVolumesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>;
+export function useWorkspaceSharedVolumesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceSharedVolumesQuery | undefined, WorkspaceSharedVolumesQueryVariables>;
 export function useWorkspaceSharedVolumesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
@@ -4946,6 +5329,9 @@ export function useWorkspaceTemplatesLazyQuery(baseOptions?: Apollo.LazyQueryHoo
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
         }
+// @ts-ignore
+export function useWorkspaceTemplatesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>;
+export function useWorkspaceTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceTemplatesQuery | undefined, WorkspaceTemplatesQueryVariables>;
 export function useWorkspaceTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
@@ -5027,6 +5413,9 @@ export function useTenantLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Ten
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
         }
+// @ts-ignore
+export function useTenantSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<TenantQuery, TenantQueryVariables>): Apollo.UseSuspenseQueryResult<TenantQuery, TenantQueryVariables>;
+export function useTenantSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantQuery, TenantQueryVariables>): Apollo.UseSuspenseQueryResult<TenantQuery | undefined, TenantQueryVariables>;
 export function useTenantSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantQuery, TenantQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
@@ -5081,6 +5470,9 @@ export function useTenantsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<Te
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
         }
+// @ts-ignore
+export function useTenantsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<TenantsQuery, TenantsQueryVariables>): Apollo.UseSuspenseQueryResult<TenantsQuery, TenantsQueryVariables>;
+export function useTenantsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantsQuery, TenantsQueryVariables>): Apollo.UseSuspenseQueryResult<TenantsQuery | undefined, TenantsQueryVariables>;
 export function useTenantsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantsQuery, TenantsQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
@@ -5089,6 +5481,57 @@ export type TenantsQueryHookResult = ReturnType<typeof useTenantsQuery>;
 export type TenantsLazyQueryHookResult = ReturnType<typeof useTenantsLazyQuery>;
 export type TenantsSuspenseQueryHookResult = ReturnType<typeof useTenantsSuspenseQuery>;
 export type TenantsQueryResult = Apollo.QueryResult<TenantsQuery, TenantsQueryVariables>;
+export const WorkspaceDocument = gql`
+    query workspace($name: String!) {
+  workspace: itPolitoCrownlabsV1alpha1Workspace(name: $name) {
+    metadata {
+      name
+      namespace
+      labels
+    }
+    spec {
+      prettyName
+      autoEnroll
+    }
+  }
+}
+    `;
+
+/**
+ * __useWorkspaceQuery__
+ *
+ * To run a query within a React component, call `useWorkspaceQuery` and pass it any options that fit your needs.
+ * When your component renders, `useWorkspaceQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useWorkspaceQuery({
+ *   variables: {
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useWorkspaceQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables> & ({ variables: WorkspaceQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
+      }
+export function useWorkspaceLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
+        }
+// @ts-ignore
+export function useWorkspaceSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuery, WorkspaceQueryVariables>;
+export function useWorkspaceSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuery | undefined, WorkspaceQueryVariables>;
+export function useWorkspaceSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
+        }
+export type WorkspaceQueryHookResult = ReturnType<typeof useWorkspaceQuery>;
+export type WorkspaceLazyQueryHookResult = ReturnType<typeof useWorkspaceLazyQuery>;
+export type WorkspaceSuspenseQueryHookResult = ReturnType<typeof useWorkspaceSuspenseQuery>;
+export type WorkspaceQueryResult = Apollo.QueryResult<WorkspaceQuery, WorkspaceQueryVariables>;
 export const WorkspaceQuotasDocument = gql`
     query workspaceQuotas($names: [String!]) {
   workspaces: itPolitoCrownlabsV1alpha1WorkspaceList {
@@ -5133,6 +5576,9 @@ export function useWorkspaceQuotasLazyQuery(baseOptions?: Apollo.LazyQueryHookOp
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
         }
+// @ts-ignore
+export function useWorkspaceQuotasSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>;
+export function useWorkspaceQuotasSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuotasQuery | undefined, WorkspaceQuotasQueryVariables>;
 export function useWorkspaceQuotasSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
@@ -5147,10 +5593,16 @@ export const WorkspacesDocument = gql`
     items {
       metadata {
         name
+        deletionTimestamp
       }
       spec {
         prettyName
         autoEnroll
+        quota {
+          cpu
+          memory
+          instances
+        }
       }
     }
   }
@@ -5181,6 +5633,9 @@ export function useWorkspacesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions
           const options = {...defaultOptions, ...baseOptions}
           return Apollo.useLazyQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);
         }
+// @ts-ignore
+export function useWorkspacesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspacesQuery, WorkspacesQueryVariables>;
+export function useWorkspacesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspacesQuery | undefined, WorkspacesQueryVariables>;
 export function useWorkspacesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
           return Apollo.useSuspenseQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);

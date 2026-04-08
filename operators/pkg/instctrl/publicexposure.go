@@ -127,7 +127,7 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 
 		// Set labels
 		if service.Labels == nil {
-			service.Labels = forge.LoadBalancerServiceLabels()
+			service.Labels = forge.LoadBalancerServiceLabels(&r.PublicExposureOpts)
 		}
 
 		// Set annotations using the new options
@@ -148,7 +148,6 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 	log.V(utils.FromResult(op)).Info("LoadBalancer service enforced", "service", service.GetName(), "result", op)
 
 	// Update some pieces of the instance status only after LoadBalancer service is created/updated
-	currentIP := service.Annotations[r.PublicExposureOpts.LoadBalancerIPsKey]
 	assignedPorts := []clv1alpha2.PublicServicePort{}
 	for _, p := range service.Spec.Ports {
 		assignedPorts = append(assignedPorts, clv1alpha2.PublicServicePort{
@@ -159,7 +158,14 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 		})
 	}
 
-	instance.Status.PublicExposure.ExternalIP = currentIP
+	// Use the IP actually assigned by the LoadBalancer (from the service status), not the one
+	// we requested via annotation. They can differ and the service status is the source of truth.
+	var actualIP string
+	if len(service.Status.LoadBalancer.Ingress) > 0 {
+		actualIP = service.Status.LoadBalancer.Ingress[0].IP
+	}
+
+	instance.Status.PublicExposure.ExternalIP = actualIP
 	instance.Status.PublicExposure.Ports = assignedPorts // Use them also for the NetworkPolicy
 
 	// Enforce the network policy before updating the instance status
@@ -170,9 +176,17 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 		return err
 	}
 
-	instance.Status.PublicExposure.Phase = clv1alpha2.PublicExposurePhaseReady
-	instance.Status.PublicExposure.Message = "Public exposure completed successfully."
-	log.Info("Public exposure successfully enforced", "instance", instance.Name, "externalIP", currentIP, "ports", assignedPorts)
+	if actualIP == "" {
+		// The LoadBalancer controller has not yet assigned an IP; keep status as Provisioning
+		// so users know the service exists but is not yet reachable.
+		instance.Status.PublicExposure.Phase = clv1alpha2.PublicExposurePhaseProvisioning
+		instance.Status.PublicExposure.Message = "Waiting for LoadBalancer IP to be assigned."
+		log.Info("Public exposure service created, waiting for IP assignment", "instance", instance.Name, "ports", assignedPorts)
+	} else {
+		instance.Status.PublicExposure.Phase = clv1alpha2.PublicExposurePhaseReady
+		instance.Status.PublicExposure.Message = "Public exposure completed successfully."
+		log.Info("Public exposure successfully enforced", "instance", instance.Name, "externalIP", actualIP, "ports", assignedPorts)
+	}
 
 	return nil
 }

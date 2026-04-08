@@ -58,13 +58,14 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
           },
           {
             type: 'divider',
+            key: 'divider-welcome',
           },
 
-          ...routes.map(r => {
+          ...routes.flatMap((r, index) => {
             const isExtLink = r.path.startsWith('http');
             const hasCustomOnClick = !!r.onClick;
             const isLoading = r.loading || false;
-            return {
+            const menuItem = {
               type: 'item',
               key: r.path,
               title: r.name,
@@ -94,9 +95,18 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
                 </Link>
               ),
             } as MenuItemType;
+            // Add divider after first menu item (Manage account)
+            if (index === 0) {
+              return [
+                menuItem,
+                { type: 'divider', key: 'divider-manage-account' } as unknown as MenuItemType,
+              ];
+            }
+            return [menuItem];
           }),
           {
             type: 'divider',
+            key: 'divider-logout',
           },
           {
             type: 'item',

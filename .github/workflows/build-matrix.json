@@ -53,7 +53,8 @@
         "context": "./operators",
         "dockerfile": "./operators/build/golang-common/Dockerfile",
         "build-args": "COMPONENT=instmetrics",
-        "harbor-project": "crownlabs-core"
+        "harbor-project": "crownlabs-core",
+        "optional": true
     },
     {
         "component": "crownlabs-image-list",
@@ -76,12 +77,14 @@
     {
         "component": "tigervnc",
         "context": "./provisioning/containers/gui-common/tigervnc",
-        "harbor-project": "crownlabs-container-envs-tools"
+        "harbor-project": "crownlabs-container-envs-tools",
+        "optional": true
     },
     {
         "component": "websockify",
         "context": "./provisioning/containers/gui-common/websockify",
-        "harbor-project": "crownlabs-container-envs-tools"
+        "harbor-project": "crownlabs-container-envs-tools",
+        "optional": true
     },
     {
         "component": "content-downloader",

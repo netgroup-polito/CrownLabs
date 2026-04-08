@@ -516,7 +516,7 @@ export const Environment: FC<EnvironmentProps> = ({
           max={resources.ram.max}
           step={0.25}
           onChange={value => handleResourceChange(name, 'ram', value)}
-          addonAfter="GB"
+          addonAfter="GiB"
           
         />
       </Form.Item>
@@ -529,7 +529,7 @@ export const Environment: FC<EnvironmentProps> = ({
             <InputNumber
               step={1}
               style={{ width: "120px", textAlignLast: "center" }}
-              addonAfter="GB"
+              addonAfter="GiB"
               disabled={!isPersistent(name)}
               max={resources.disk.max}
               min={getEnvironmentType(name) === EnvironmentType.VirtualMachine ? isPersistent(name) ? resources.disk.min : 0 : 0}

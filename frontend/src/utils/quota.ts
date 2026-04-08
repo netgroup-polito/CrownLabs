@@ -1,6 +1,6 @@
 import type { IQuota } from '../contexts/OwnedInstancesContext';
 import { Phase2, type TenantQuery } from '../generated-types';
-import { convertToGB, type Instance } from '../utils';
+import { convertToGiB, type Instance } from '../utils';
 
 export function calculateWorkspaceConsumedQuota(
   instances?: Instance[],
@@ -53,7 +53,7 @@ export function calculateWorkspaceTotalQuota(
             instances: workspaceQuota?.instances || 0,
             cpu: workspaceQuota?.cpu ? parseFloat(workspaceQuota.cpu) || 0 : 0,
             memory: workspaceQuota?.memory
-              ? convertToGB(workspaceQuota.memory)
+              ? convertToGiB(workspaceQuota.memory)
               : 0,
             disk: 0, // TODO: add disk quota when available
           },
@@ -70,7 +70,7 @@ export function calculateWorkspaceTotalQuota(
       ? parseFloat(personalWorkspaceQuota?.cpu)
       : 0,
     memory: personalWorkspaceQuota?.memory
-      ? convertToGB(personalWorkspaceQuota?.memory)
+      ? convertToGiB(personalWorkspaceQuota?.memory)
       : 0,
     disk: 0, // TODO: add disk quota when available
   };

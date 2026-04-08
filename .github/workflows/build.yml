@@ -14,6 +14,10 @@ on:
     types:
       - deploy-staging-command
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   configure:
     name: Preliminary configuration
@@ -68,7 +72,7 @@ jobs:
             echo "filter-optional-images=true" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.configure.outputs.ref }}
           persist-credentials: false
@@ -91,7 +95,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.configure.outputs.ref }}
           persist-credentials: false
@@ -229,7 +233,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.configure.outputs.ref }}
           # The changelog generation requires the entire history
