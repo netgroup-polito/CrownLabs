@@ -9,6 +9,11 @@ import type { ErrorContext } from 'react-oidc-context';
 
 const { Text } = Typography;
 
+interface GraphQLLocation {
+  line: number;
+  column: number;
+}
+
 export interface IErrorItemProps {
   item: CustomError;
 }
@@ -41,7 +46,7 @@ const ErrorItem: FC<IErrorItemProps> = ({ ...props }) => {
                 <ul>{ae.protocolErrors?.map(e => <li>{e.message}</li>)}</ul>
               </li>
             ) : null}
-            {ae.graphQLErrors.length ? (
+            {ae.graphQLErrors?.length ? (
               <li>
                 GraphQL Errors:
                 {ae.graphQLErrors.map(e => (
@@ -50,7 +55,10 @@ const ErrorItem: FC<IErrorItemProps> = ({ ...props }) => {
                     <ul>
                       <li>Path: {e.path?.join('/')}</li>
                       <li>
-                        Locs: {e.locations?.map(l => l.line + '@' + l.column)}
+                        Locs:{' '}
+                        {e.locations?.map(
+                          (l: GraphQLLocation) => l.line + '@' + l.column,
+                        )}
                       </li>
                     </ul>
                   </li>

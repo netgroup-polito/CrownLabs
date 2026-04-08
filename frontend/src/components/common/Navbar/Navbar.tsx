@@ -1,7 +1,10 @@
-import { MenuOutlined } from '@ant-design/icons';
-import { Divider, Drawer, Layout, Typography } from 'antd';
-import { Button } from 'antd';
-import { type FC, useContext, useState } from 'react';
+import {
+  MenuOutlined,
+  ExportOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
+import { Divider, Drawer, Layout, Typography, Button } from 'antd';
+import { type FC, useContext, useState, useRef, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { TenantContext } from '../../../contexts/TenantContext';
 import {
@@ -14,6 +17,9 @@ import Logo from '../Logo';
 import { LogoutButton } from '../LogoutButton';
 import './Navbar.less';
 import NavbarMenu from './NavbarMenu';
+import { useMydrive } from '../../activePage/DriveView/useMydrive';
+import { Phase2 } from '../../../generated-types';
+import { AuthContext } from '../../../contexts/AuthContext';
 
 const Header = Layout.Header;
 const { Title } = Typography;
@@ -25,130 +31,271 @@ export interface INavbarProps {
 
 const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const { routes, transparent } = props;
+  const { getDriveUrl, mydriveInstance } = useMydrive();
+
+  const { profile } = useContext(AuthContext);
   const routesData = routes.map(r => r.route);
   const {
     data,
     loading: tenantLoading,
     error: tenantError,
   } = useContext(TenantContext);
+
   const [show, setShow] = useState(false);
 
   const currentPath = useLocation().pathname;
 
-  const currentName = routesData.find(r => r.path === currentPath)?.name || '';
+  const isSSHRoute = /^\/instance\/[^/]+\/[^/]+(?:\/[^/]+)?\/ssh$/.test(
+    currentPath,
+  );
 
-  const buttons = routes.map((b, i) => {
+  const currentName = routesData.find(r => r.path === currentPath)?.name || '';
+  const displayName = currentName || (isSSHRoute ? 'Web SSH' : '');
+
+  const userGroups = (profile?.groups || []) as string[];
+
+  // To be visible, the route must not be hidden and the user must have the required groups (if any)
+  const visibleRoutes = routes.filter(
+    b =>
+      b.linkPosition !== LinkPosition.Hidden &&
+      (!b.requiredGroups ||
+        (profile && b.requiredGroups.some(g => userGroups.includes(g)))),
+  );
+  const buttons = visibleRoutes.map((b, i) => {
     const routeData = b.route;
     const isExtLink = routeData.path.indexOf('http') === 0;
+    const hasCustomOnClick = !!routeData.onClick;
+    const isLoading = routeData.loading || false;
+    const isDrive = routeData.name === 'Drive';
+    const driveUrl = getDriveUrl();
+    const isDriveStarting =
+      mydriveInstance &&
+      (mydriveInstance.status === Phase2.Starting ||
+        mydriveInstance.status === Phase2.Importing);
+
     return {
       linkPosition: b.linkPosition,
       content: (
         <Link
           key={i}
-          to={{ pathname: isExtLink ? '' : routeData.path }}
+          to={{
+            pathname:
+              b.linkPosition === LinkPosition.WebSSH && isSSHRoute
+                ? currentPath
+                : isExtLink || hasCustomOnClick
+                  ? ''
+                  : routeData.path,
+          }}
           rel={isExtLink ? 'noopener noreferrer' : ''}
         >
           <Button
-            onClick={() =>
-              isExtLink ? window.open(routeData.path, '_blank') : setShow(false)
+            onClick={e => {
+              if (hasCustomOnClick) {
+                e.preventDefault();
+                if (!isLoading) {
+                  routeData.onClick!();
+                }
+              } else if (isExtLink) {
+                window.open(routeData.path, '_blank');
+              } else {
+                setShow(false);
+              }
+            }}
+            loading={isLoading}
+            disabled={isLoading}
+            ghost={
+              b.linkPosition === LinkPosition.WebSSH
+                ? false
+                : currentPath !== routeData.path
             }
-            ghost={currentPath !== routeData.path}
             className={
-              'w-full flex justify-center my-3 ' +
-              (routes.length <= 4
+              'my-3 ' +
+              (isSSHRoute
+                ? 'flex-1 min-w-[100px] max-w-[160px] mx-2 '
+                : 'w-full flex justify-center ') +
+              (visibleRoutes.length <= 4
                 ? 'lg:mx-4 md:mx-2 md:w-28 lg:w-36 xl:w-52 2xl:w-72 '
                 : 'lg:mx-2 lg:w-28 xl:w-32 2xl:w-48') +
-              (currentPath !== routeData.path ? ' navbar-button ' : '')
+              (b.linkPosition === LinkPosition.WebSSH
+                ? ''
+                : currentPath !== routeData.path
+                  ? ' navbar-button '
+                  : '')
             }
             size="large"
-            type={currentPath !== routeData.path ? 'default' : 'primary'}
+            type={
+              b.linkPosition === LinkPosition.WebSSH
+                ? 'primary'
+                : currentPath !== routeData.path
+                  ? 'default'
+                  : 'primary'
+            }
             shape="round"
           >
-            {routeData.name}
+            {isDrive ? (
+              <div className="flex items-center gap-2">
+                <span>{routeData.name}</span>
+                {isDriveStarting && <LoadingOutlined className="ml-2" spin />}
+                {driveUrl && (
+                  <div
+                    className="flex items-center justify-center rounded hover:bg-white/20 transition-colors z-50 pointer-events-auto"
+                    style={{
+                      padding: '0 4px',
+                      marginRight: '-8px',
+                      cursor: 'pointer',
+                    }}
+                    onClick={e => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      window.open(driveUrl, '_blank');
+                    }}
+                    title="Open in new tab"
+                  >
+                    <ExportOutlined />
+                  </div>
+                )}
+              </div>
+            ) : (
+              routeData.name
+            )}
           </Button>
         </Link>
       ),
     };
   });
 
+  const [isHeightTooSmall, setIsHeightTooSmall] = useState(false);
+  const headerRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const checkHeight = () => {
+      if (isSSHRoute) {
+        const isTooShort = window.innerHeight < window.screen.height * 0.3;
+        setIsHeightTooSmall(isTooShort);
+
+        if (isTooShort) {
+          document.documentElement.style.setProperty('--navbar-h', '0px');
+        } else {
+          const realHeight = headerRef.current?.offsetHeight || 0;
+          document.documentElement.style.setProperty(
+            '--navbar-h',
+            realHeight + 'px',
+          );
+        }
+
+        // Trigger resize for components that might need (sshterminal)
+        requestAnimationFrame(() => {
+          window.dispatchEvent(new Event('resize'));
+        });
+      }
+    };
+
+    checkHeight();
+    window.addEventListener('resize', checkHeight);
+    return () => window.removeEventListener('resize', checkHeight);
+  }, [isSSHRoute]);
+
   return (
     <>
-      <Header
-        className={
-          'flex h-auto pr-6 pl-8 justify-between ' +
-          (transparent ? 'navbar-bg-transparent' : 'navbar-bg shadow-lg')
-        }
-      >
-        <div className="flex flex-none items-center w-24 ">
-          <div className="flex h-full items-center">
-            <Logo widthPx={55} />
+      {!isHeightTooSmall && (
+        <Header
+          ref={headerRef}
+          className={
+            'flex h-auto pr-6 pl-8 justify-between ' +
+            (transparent ? 'navbar-bg-transparent' : 'navbar-bg shadow-lg')
+          }
+        >
+          <div className="flex flex-none items-center w-24 ">
+            <div className="flex h-full items-center">
+              <Logo widthPx={55} />
+            </div>
+            <h2
+              className={
+                'flex whitespace-nowrap py-0 my-0 ml-4 navbar-title ' +
+                (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
+              }
+            >
+              {displayName}
+            </h2>
           </div>
-          <h2
-            className={
-              'flex whitespace-nowrap py-0 my-0 ml-4 navbar-title ' +
-              (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
-            }
-          >
-            {currentName}
-          </h2>
-        </div>
-        <div
-          className={
-            'hidden justify-around ' +
-            (routes.length > 4 ? 'lg:flex' : 'md:flex')
-          }
-        >
-          {buttons
-            .filter(b => b.linkPosition === LinkPosition.NavbarButton)
-            .map(b => b.content)}
-        </div>
-        <div
-          className={
-            'w-full hidden sm:flex justify-end ' +
-            (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
-          }
-        >
-          {buttons
-            .map(b => b.content)
-            .filter((x, i) => (i < 2 ? x : null))
-            .map((b, i) => (
-              <div key={i} className="w-28  mr-3">
-                {b}
-              </div>
-            ))}
-        </div>
-        <div
-          className={
-            'flex items-center justify-end w-auto ' +
-            (routes.length > 4
-              ? 'lg:flex-none lg:w-24'
-              : 'md:flex:none md:w-24')
-          }
-        >
           <div
             className={
-              'hidden flex items-center justify-end ' +
-              (routes.length > 4 ? 'lg:flex' : 'md:flex')
+              'hidden justify-around ' +
+              (visibleRoutes.length > 4 ? 'lg:flex' : 'md:flex')
             }
           >
-            <ThemeSwitcher />
-
-            {!tenantLoading && !tenantError && (
-              <>
-                <Divider className="ml-4 mr-0" type="vertical" />
-                <NavbarMenu
-                  routes={routes
-                    .filter(r => r.linkPosition === LinkPosition.MenuButton)
-                    .map(r => r.route)}
-                />
-              </>
-            )}
+            {buttons
+              .filter(
+                b =>
+                  b.linkPosition === LinkPosition.NavbarButton ||
+                  (b.linkPosition === LinkPosition.WebSSH && isSSHRoute),
+              )
+              .map(b => b.content)}
           </div>
-          <Button
+          <div
             className={
-              'flex items-center ' +
-              (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+              'w-full hidden sm:flex justify-end ' +
+              (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
             }
+          >
+            {buttons
+              .filter(
+                b =>
+                  b.linkPosition === LinkPosition.NavbarButton ||
+                  (b.linkPosition === LinkPosition.WebSSH && isSSHRoute),
+              )
+              .slice(0, 2)
+              .map((b, i) => (
+                <div key={i} className="w-28  mr-3">
+                  {b.content}
+                </div>
+              ))}
+          </div>
+          <div
+            className={
+              'flex items-center justify-end w-auto ' +
+              (visibleRoutes.length > 4
+                ? 'lg:flex-none lg:w-24'
+                : 'md:flex:none md:w-24')
+            }
+          >
+            <div
+              className={
+                'hidden flex items-center justify-end ' +
+                (visibleRoutes.length > 4 ? 'lg:flex' : 'md:flex')
+              }
+            >
+              <ThemeSwitcher />
+
+              {!tenantLoading && !tenantError && (
+                <>
+                  <Divider className="ml-4 mr-0" type="vertical" />
+                  <NavbarMenu
+                    routes={visibleRoutes
+                      .filter(r => r.linkPosition === LinkPosition.MenuButton)
+                      .map(r => r.route)}
+                  />
+                </>
+              )}
+            </div>
+            <Button
+              className={
+                'flex items-center ' +
+                (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
+              }
+              shape="round"
+              size="large"
+              type="primary"
+              onClick={() => setShow(true)}
+              icon={<MenuOutlined />}
+            />
+          </div>
+        </Header>
+      )}
+      {isHeightTooSmall && (
+        <div className="fixed top-4 right-4 z-50">
+          <Button
+            className="flex items-center"
             shape="round"
             size="large"
             type="primary"
@@ -156,10 +303,11 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
             icon={<MenuOutlined />}
           />
         </div>
-      </Header>
+      )}
       <Drawer
         className={
-          'cl-navbar block ' + (routes.length > 4 ? 'lg:hidden' : 'md:hidden')
+          'cl-navbar block ' +
+          (visibleRoutes.length > 4 ? 'lg:hidden' : 'md:hidden')
         }
         styles={{
           body: {
@@ -170,7 +318,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
         placement="top"
         open={show}
         onClose={() => setShow(false)}
-        height={76 + 52 * routes.length + 25}
+        height={76 + 52 * visibleRoutes.length + 25}
         closeIcon={null}
       >
         <div className="px-4 mt-2">
@@ -188,7 +336,13 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
               className="justify-end"
             />
           </div>
-          {buttons.map(x => x.content)}
+          {buttons
+            .filter(
+              b =>
+                b.linkPosition !== LinkPosition.WebSSH ||
+                (b.linkPosition === LinkPosition.WebSSH && isSSHRoute),
+            )
+            .map(b => b.content)}
         </div>
       </Drawer>
     </>

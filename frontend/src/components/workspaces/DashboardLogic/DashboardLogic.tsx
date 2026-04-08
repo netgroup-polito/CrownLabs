@@ -2,6 +2,7 @@ import { Spin } from 'antd';
 import type { FC } from 'react';
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { TenantContext } from '../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 import { makeWorkspace } from '../../../utilsLogic';
 import Dashboard from '../Dashboard/Dashboard';
 import {
@@ -34,8 +35,37 @@ const DashboardLogic: FC = () => {
     );
   }, [tenantData?.tenant?.spec?.workspaces]);
 
+  const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
+
+  // Check loading state of owned instances
+  const { loading: instancesLoading } = useContext(OwnedInstancesContext);
+
   const [viewWs, setViewWs] = useState<Workspace[]>(ws);
   const client = useApolloClient();
+  // When templates are created/edited/deleted elsewhere, refetch active queries so UI updates.
+  useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent)?.detail ?? {};
+        console.debug(
+          'templatesChanged event received in DashboardLogic',
+          detail,
+        );
+        // Refetch active queries so TemplatesTableLogic / other components update.
+        client
+          .refetchQueries({ include: 'active' })
+          .catch(err =>
+            console.warn('refetchQueries failed in DashboardLogic:', err),
+          );
+      } catch (err) {
+        console.warn('templatesChanged handler error in DashboardLogic', err);
+      }
+    };
+
+    window.addEventListener('templatesChanged', handler as EventListener);
+    return () =>
+      window.removeEventListener('templatesChanged', handler as EventListener);
+  }, [client]);
 
   const { data: workspaceQueryData } = useWorkspacesQuery({
     variables: {
@@ -113,20 +143,23 @@ const DashboardLogic: FC = () => {
     dashboard.set(String(!loadCandidates));
   };
 
-  const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
+  const isLoading = tenantLoading || instancesLoading;
 
-  return !tenantLoading && tenantData && !tenantError && tenantNs ? (
-    <>
-      <Dashboard
-        tenantNamespace={tenantNs}
-        workspaces={viewWs}
-        candidatesButton={{
-          show: ws.some(w => wsIsManagedWithApproval(w)),
-          selected: loadCandidates,
-          select: selectLoadCandidates,
-        }}
-      />
-    </>
+  return !isLoading && tenantData && !tenantError && tenantNs ? (
+    <Dashboard
+      tenantNamespace={tenantNs}
+      tenantPersonalWorkspace={{
+        createPWs: tenantData?.tenant?.spec?.personalWorkspace !== null,
+        isPWsCreated:
+          tenantData?.tenant?.status?.personalNamespace?.created ?? false,
+      }}
+      workspaces={viewWs}
+      candidatesButton={{
+        show: ws.some(w => wsIsManagedWithApproval(w)),
+        selected: loadCandidates,
+        select: selectLoadCandidates,
+      }}
+    />
   ) : (
     <div className="h-full w-full flex justify-center items-center">
       <Spin size="large" />

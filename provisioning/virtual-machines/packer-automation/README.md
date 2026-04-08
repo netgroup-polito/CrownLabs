@@ -1,7 +1,7 @@
 # Guide for creating and uploading Packer VMs in CrownLabs
 
 ## Intro to Packer 
-[Packer](https://www.packer.io/) is a tool by Hashicorp for creating and configuring machine images in a very simple way.
+[Packer](https://developer.hashicorp.com/packer) is a tool by Hashicorp for creating and configuring machine images in a very simple way.
 The `packer build` command takes a template and creates the artifact.
 It is based on three principal blocks:
 - **Builders**: they are blocks resposible for creating machines and generating images from them. Packer makes available different builders, for example for VirtualBox, VMware, etc. In our case we use the QEMU Builder to create the virtual machine images.

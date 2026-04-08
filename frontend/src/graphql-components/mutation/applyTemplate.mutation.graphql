@@ -15,8 +15,12 @@ mutation applyTemplate(
       name: prettyName
       description
       environmentList {
+        name
         guiEnabled
         persistent
+        image
+        environmentType
+        rewriteURL
         resources {
           cpu
           disk

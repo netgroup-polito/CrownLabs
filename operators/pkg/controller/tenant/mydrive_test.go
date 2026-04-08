@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -333,7 +333,7 @@ var _ = Describe("MyDrive management", func() {
 			tnResource.Status.PersonalNamespace = v1alpha2.NameCreated{
 				Created: false,
 			}
-			tnResource.Spec.LastLogin = metav1.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC)
+			tnResource.Spec.LastLogin = timePtr(metav1.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC))
 		})
 
 		It("Should not create the PVC", func() {

@@ -20,9 +20,6 @@ gen: generate fmt vet manifests
 test:
 	go test ./... -coverprofile coverage.out -covermode=count
 
-test-python: python-dependencies
-	python3 ./cmd/delete-stale-instances/test_delete_stale_instances.py
-
 # Install CRDs into a cluster
 install: manifests
 	kubectl apply -f deploy/crds
@@ -35,10 +32,10 @@ uninstall: manifests
 manifests: controller-gen
 	$(CONTROLLER_GEN) crd paths="./api/..." output:crd:artifacts:config=deploy/crds
 
-# Install gci if not available
-gci:
-ifeq (, $(shell which gci))
-	@go install github.com/daixiang0/gci@v0.7.0
+# Install golangci-lint if not available
+golangci-lint:
+ifeq (, $(shell which golangci-lint))
+	@curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v2.7.2
 endif
 
 # Install addlicense if not available
@@ -49,12 +46,12 @@ ifeq (, $(shell which addlicense))
 	}
 endif
 
-# Run go fmt and gci against code
-fmt: gci addlicense
+# Run go fmt and golangci-lint against code
+fmt: golangci-lint addlicense
 	go mod tidy
 	go fmt ./...
-	find . -type f -name '*.go' -a ! -name '*zz_generated*' -exec gci write -s standard -s default -s "prefix(github.com/netgroup-polito/CrownLabs)" {} \;
 	find . -type f -name '*.go' -exec addlicense -l apache -c "Politecnico di Torino" -y "2020-$(shell date +%Y)" {} \;
+	golangci-lint run --fix
 
 # Run go vet against code
 vet:
@@ -66,7 +63,7 @@ generate: controller-gen
 # download controller-gen if necessary
 controller-gen:
 ifeq (, $(shell which controller-gen))
-	@go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.14.0
+	@go install sigs.k8s.io/controller-tools/cmd/controller-gen@v0.19.0
 CONTROLLER_GEN=$(GOBIN)/controller-gen
 else
 CONTROLLER_GEN=$(shell which controller-gen)
@@ -77,35 +74,71 @@ run-instance: generate
 				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
 				--website-base-url=${DOMAIN}\
 				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
-				--container-env-sidecars-tag=v0.14.5
+				--container-env-sidecars-tag=v0.14.5\
+				--public-exposure-ip-pool="172.18.0.240-172.18.0.248,172.18.0.249,172.18.0.250/30"\
+				--public-exposure-common-annotations="metallb.universe.tf/allow-shared-ip=pe"\
+				--public-exposure-loadbalancer-ips-key="metallb.universe.tf/loadBalancerIPs"
+
+run-instance-automation: generate
+	go run cmd/instance-automation/main.go\
+				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
+				--container-env-sidecars-tag=v0.14.5\
+				--enable-instance-submission=false\
+				--enable-instance-termination=false\
+				--enable-instance-inactive-termination=true\
+				--enable-instance-expiration=false\
+				--mail-template-dir=deploy/crownmail/mail-templates\
+				--mail-config-dir=deploy/crownmail/mail-configs\
+				--enable-inactivity-notifications=false\
+				--enable-expiration-notifications=false
 
 #the double target below is used to set DOMAIN for local targets
 #reference: https://www.gnu.org/software/make/manual/html_node/Target_002dspecific.html
 run-instance-local: DOMAIN="crownlabsfake.polito.it"
-run-instance-local: samples-local install-local run-instance
+run-instance-local: install-local samples-res-local run-instance
+
+run-instance-automation-local: install-local samples-res-local run-instance-automation
 
 run-operator: generate
-	go run cmd/operator/main.go\
+	go run cmd/operator/*.go\
 				--target-label=crownlabs.polito.it/operator-selector=local\
 				--keycloak-url=$(KEYCLOAK_URL)\
 				--keycloak-realm=$(KEYCLOAK_REALM)\
 				--keycloak-client-id=$(KEYCLOAK_CLIENT_ID)\
 				--keycloak-client-secret=$(KEYCLOAK_CLIENT_SECRET)\
 				--keycloak-roles-client-id=$(KEYCLOAK_TARGET_CLIENT)\
+				--enable-tenant=true\
+				--enable-workspace=true\
+				--enable-instance=true\
+				--enable-sharedvolume=true\
+				--enable-keycloak=true\
 				--enable-webhooks=false
 
 #kept for compatibility
 run-tenant: run-operator
 
 install-local: manifests
-	kubectl apply -f deploy/crds
-	kubectl apply -f tests/crds
+	kubectl apply -f deploy/crds --wait
+	kubectl apply -f tests/crds --wait
 
-python-dependencies:
-	pip3 install -r ./build/delete-stale-instances/requirements.txt
+uninstall-local: manifests
+	kubectl delete -f deploy/crds
+	kubectl delete -f tests/crds
 
-samples-local:
+samples-res-local:
 	kubectl apply -f ./samples/
 
-clean-local:
+clean-res-local:
 	kubectl delete -f ./samples/
+
+clean-local: clean-res-local uninstall-local
+
+force-clean-local:
+	-for resource in $$(kubectl get tenants.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get workspaces.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get instances.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-for resource in $$(kubectl get templates.crownlabs.polito.it -o name 2>/dev/null); do kubectl patch $$resource --type='merge' -p='{"metadata":{"finalizers":[]}}' 2>/dev/null || true; done
+	-kubectl delete tenants.crownlabs.polito.it,workspaces.crownlabs.polito.it,instances.crownlabs.polito.it,templates.crownlabs.polito.it --all --force --grace-period=0 2>/dev/null || true
+	-kubectl delete configmap crownlabs-mail-config --namespace=default --ignore-not-found
+	-kubectl delete -f deploy/crds --ignore-not-found
+	-kubectl delete -f tests/crds --ignore-not-found

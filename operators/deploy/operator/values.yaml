@@ -33,6 +33,10 @@ configurations:
       memory: 50
       # Maximum number of instances that can be created by a tenant. 0 means unlimited.
       instances: 10
+  
+  maxConcurrentShVolReconciles: 1
+  sharedVolumeOptions:
+    storageClass: rook-nfs
 
 image:
   repository: crownlabs/tenant-operator
@@ -60,10 +64,10 @@ securityContext:
 
 resources:
   limits:
-    memory: 500Mi
+    memory: 1Gi
     cpu: 1000m
   requests:
-    memory: 100Mi
+    memory: 1Gi
     cpu: 100m
 
 webhook:
@@ -74,4 +78,4 @@ webhook:
   enableMutating: false
   clusterIssuer: self-signed
 
-rbacResourcesName: crownlabs-tenant-operator
+rbacResourcesName: crownlabs-operator

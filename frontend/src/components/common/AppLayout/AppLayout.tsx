@@ -48,7 +48,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
                     key={r.route.path}
                     path={r.route.path}
                     element={
-                      <Row className="h-full pt-5 xs:pt-10 pb-20 flex w-full px-4">
+                      <Row className="h-full pt-5 xs:pt-10 pb-5 flex w-full px-4">
                         <Col span={0} lg={1} xxl={2}></Col>
                         {r.content}
                         <Col span={0} lg={1} xxl={2}></Col>
@@ -75,6 +75,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
             />
           )}
         </Content>
+
         <div className="left-TooltipButton">
           <TooltipButton
             TooltipButtonData={{
@@ -100,6 +101,7 @@ const AppLayout: FC<IAppLayoutProps> = ({ ...props }) => {
           </div>
         )}
       </Layout>
+
       <SidebarInfo
         show={sideLeftShow}
         setShow={setSideLeftShow}

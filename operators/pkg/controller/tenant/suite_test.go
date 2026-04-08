@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,6 +46,8 @@ const (
 	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
 	tnName   = "testuser"
+
+	tnPersonalNamespace = "tenant-" + tnName
 )
 
 var (
@@ -96,7 +98,7 @@ var _ = BeforeEach(func() {
 			FirstName: "Test",
 			LastName:  "Tenant",
 			Email:     "test@tenant.example",
-			LastLogin: metav1.Now(),
+			LastLogin: timePtr(metav1.Now()),
 		},
 	}
 	tnReconcileErrExpected = Not(HaveOccurred())
@@ -166,6 +168,10 @@ func removeObjFromObjectsList(obj client.Object) {
 func tenantBeingDeleted() {
 	tnResource.Finalizers = append(tnResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
 	tnResource.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(10 * time.Second)}
+}
+
+func timePtr(t metav1.Time) *metav1.Time {
+	return &t
 }
 
 // GinkgoLogWriter implements logr.LogSink.

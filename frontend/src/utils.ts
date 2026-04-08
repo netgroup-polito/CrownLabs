@@ -1,6 +1,7 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase, Phase3 } from './generated-types';
+import type { EnvironmentType, Phase2, Phase5 } from './generated-types';
 import { Role } from './generated-types';
+import type { ContainerStartupOptionsForm } from './components/workspaces/ModalCreateTemplate/types';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
   user = Role.User,
@@ -22,10 +23,47 @@ export type Resources = {
   cpu: number;
   disk: string;
   memory: string;
+  reservedCPUPercentage?: number;
 };
+export type TemplateEnvironment = {
+  name: string;
+  guiEnabled: boolean;
+  persistent: boolean;
+  environmentType?: EnvironmentType;
+  resources: Resources;
+  image: string;
+  mountMyDriveVolume?: boolean;
+  sharedVolumeMounts: Array<{
+    name: string;
+    mountPath: string;
+    readOnly: boolean;
+  }>;
+  rewriteUrl?: boolean;
+  containerStartupOptions?: ContainerStartupOptionsForm;
+  storageClassName?: string;
+  disableControls?: boolean;
+};
+
+export type InstanceResources = {
+  cpu: number;
+  memory: number;
+  disk: number;
+};
+
+export type InstanceEnvironment = {
+  name: string;
+  phase?: Phase2;
+  ip?: string;
+  guiEnabled?: boolean;
+  persistent?: boolean;
+  environmentType?: EnvironmentType;
+  quota: InstanceResources;
+};
+
 export type Template = {
   id: string;
   name: string;
+  description?: string;
   gui: boolean;
   persistent: boolean;
   nodeSelector?: Record<string, string>;
@@ -33,6 +71,12 @@ export type Template = {
   instances: Array<Instance>;
   workspaceName: string;
   workspaceNamespace: string;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
+  environmentList: Array<TemplateEnvironment>;
+  hasMultipleEnvironments: boolean;
+  deleteAfter: string;
+  inactivityTimeout: string;
 };
 
 export type Instance = {
@@ -49,7 +93,7 @@ export type Instance = {
   name: string;
   prettyName: string;
   ip: string;
-  status: Phase;
+  status: Phase2;
   url: string | null;
   timeStamp: string;
   workspaceName: string;
@@ -57,6 +101,12 @@ export type Instance = {
   nodeSelector?: Record<string, string>;
   nodeName?: string;
   myDriveUrl: string;
+  publicExposure?: PublicExposure;
+  /** whether public exposure is allowed by the template */
+  allowPublicExposure: boolean;
+  environments?: Array<InstanceEnvironment>;
+  hasMultipleEnvironments?: boolean;
+  resources: InstanceResources;
 };
 
 export type SharedVolume = {
@@ -64,14 +114,35 @@ export type SharedVolume = {
   name: string;
   prettyName: string;
   size: string;
-  status: Phase3;
+  status: Phase5;
   timeStamp: string;
   namespace: string;
+};
+
+export type PublicExposure = {
+  externalIP: string;
+  phase: Phase2;
+  ports: Array<PortListItem>;
+};
+
+export type PortListItem = {
+  name?: string;
+  port: string;
+  targetPort: number;
+  protocol?: 'TCP' | 'UDP' | 'SCTP';
+  // Additional fields to track desired vs actual ports
+  _actualPort?: string;
+  _desiredPort?: string;
+  // New fields to preserve spec vs status information
+  isAutoPort?: boolean;
+  specPort?: number;
 };
 
 export enum LinkPosition {
   MenuButton,
   NavbarButton,
+  Hidden,
+  WebSSH,
 }
 
 export enum WorkspacesAvailableAction {
@@ -103,12 +174,15 @@ export type RouteData = {
   name: string;
   path: string;
   navbarMenuIcon?: ReactNode;
+  onClick?: () => void;
+  loading?: boolean;
 };
 
 export type RouteDescriptor = {
   route: RouteData;
   content?: ReactNode;
   linkPosition: LinkPosition;
+  requiredGroups?: string[];
 };
 
 export function multiStringIncludes(needle: string, ...haystack: string[]) {
@@ -151,6 +225,15 @@ export type UserAccountPage = {
   email: string;
   currentRole?: string;
   workspaces?: WorkspaceEntry[];
+};
+
+export type Tenant = {
+  key: string;
+  userid: string;
+  name: string;
+  surname: string;
+  email: string;
+  workspaces: WorkspaceEntry[];
 };
 
 export function makeRandomDigits(value: number) {
@@ -251,4 +334,59 @@ export function enumKeyFromVal<T extends Record<string, string | number>>(
   return (Object.keys(enumObj) as (keyof T)[]).find(
     key => enumObj[key] === value,
   );
+}
+
+/**
+ * Build YAML patch string for updating publicExposure ports on an Instance.
+ * @param portsNormalized entries with name, targetPort, port, and protocol
+ * @returns YAML patch string
+ */
+export function buildPublicExposurePatch(
+  portsNormalized: Array<{
+    name: string;
+    targetPort: number;
+    port: number;
+    protocol: string;
+  }>,
+): string {
+  // Handle empty ports array case - this will disable public exposure completely
+  if (portsNormalized.length === 0) {
+    return `apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+spec:
+  publicExposure:
+    ports: []`;
+  }
+
+  // Ensure all required fields are present according to CRD and sanitize names
+  const portsFormatted = portsNormalized.map(p => ({
+    // Sanitize name: replace spaces with hyphens and remove special characters
+    name: p.name
+      .trim()
+      .replace(/\s+/g, '-') // Replace one or more spaces with single hyphen
+      .replace(/[^a-zA-Z0-9-]/g, '') // Remove any non-alphanumeric characters except hyphens
+      .toLowerCase(), // Convert to lowercase for consistency
+    targetPort: p.targetPort,
+    port: p.port,
+    protocol: p.protocol.toUpperCase(), // Ensure uppercase protocol
+  }));
+
+  // Build YAML string with correct indentation (names are now sanitized, no quotes needed)
+  const yamlPorts = portsFormatted
+    .map(p => {
+      return `    - name: ${p.name}
+      targetPort: ${p.targetPort}
+      port: ${p.port}
+      protocol: ${p.protocol}`;
+    })
+    .join('\n');
+
+  const finalPatch = `apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+spec:
+  publicExposure:
+    ports:
+${yamlPorts}`;
+
+  return finalPatch;
 }

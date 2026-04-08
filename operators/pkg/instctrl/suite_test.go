@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -91,6 +91,14 @@ var _ = BeforeSuite(func() {
 			XVncImg:              "fake-xvnc",
 			WebsockifyImg:        "fake-wskfy",
 			ContentDownloaderImg: "fake-archdl",
+		},
+		PublicExposureOpts: forge.PublicExposureOpts{
+			IPPool: []string{"172.18.0.240", "172.18.0.241", "172.18.0.242", "172.18.0.243"},
+			CommonAnnotations: map[string]string{
+				"metallb.universe.tf/allow-shared-ip": "public-exposure",
+				"metallb.universe.tf/address-pool":    "public",
+			},
+			LoadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs",
 		},
 	}
 })

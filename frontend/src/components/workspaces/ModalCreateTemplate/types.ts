@@ -1,0 +1,75 @@
+import type { EnvironmentType } from '../../../generated-types';
+
+export type Interval = {
+  max: number;
+  min: number;
+};
+
+export type Resources = {
+  cpu: Interval;
+  disk: Interval;
+  ram: Interval;
+};
+
+export type TemplateForm = {
+  name: string;
+  description: string;
+  environments: TemplateFormEnv[];
+  deleteAfter: string;
+  inactivityTimeout: string;
+  allowPublicExposure: boolean;
+  nodeSelector?: Record<string, string> | null;
+};
+
+export type TemplateFormEnv = {
+  name: string;
+  environmentType: EnvironmentType;
+  image: string;
+  registry: string;
+  gui: boolean;
+  cpu: number;
+  ram: number;
+  persistent: boolean;
+  reservedCpu: number;
+  disk: number;
+  sharedVolumeMounts: TemplateFormEnvShVol[];
+  rewriteUrl: boolean;
+  disableControls?: boolean;
+  containerStartupOptions?: ContainerStartupOptionsForm;
+  storageClassName?: string;
+  mountMyDriveVolume?: boolean;
+};
+
+export type ContainerStartupOptionsForm = {
+  sourceArchive: string;
+  contentPath: string;
+  startupArgs: string[];
+  EnforceWorkDir: boolean;
+}
+
+export type ChildFormItem = {
+  parentFormName: number;
+  restField: {
+    fieldKey?: number | undefined;
+  };
+};
+
+export interface TemplateFormEnvShVol {
+  sharedVolume: string; // workspace/shvol
+  mountPath: string;
+  readOnly: boolean;
+}
+export type Image = {
+  name: string;
+  type: Array<EnvironmentType>;
+  registry: string;
+};
+
+export type ImageList = {
+  name: string;
+  registryName: string;
+  images: Array<{
+    name: string;
+    versions: Array<string>;
+  }>;
+};

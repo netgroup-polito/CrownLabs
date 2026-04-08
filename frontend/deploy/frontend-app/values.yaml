@@ -15,10 +15,17 @@ configuration:
   fileName: config.js
   backend:
     graphql: https://graphql.example.com
+    grafana: https://grafana.example.com/d/example
+    bastion: ssh.example.com
   oidc:
     clientId: <client-id>
     realm: <realm>
     providerUrl: https://auth.example.com/auth/
+    claimPrefix: kubernetes
+    adminClaim: admin
+  mydrive:
+    templateName: mydrive
+    workspaceName: utilities
 
 imagePullSecrets: []
 nameOverride: ""

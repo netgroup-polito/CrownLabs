@@ -5,8 +5,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/examagent"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/imageList"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
 )
@@ -71,7 +71,7 @@ func main() {
 	// Create the object saving the retrieved information as a K8s object
 	log.Info("Target ImageList CR name", "name", imageListName)
 	ctx := context.Background()
-	k8sClient, err := examagent.NewK8sClient()
+	k8sClient, err := utils.NewK8sClient()
 	if err != nil {
 		log.Error(err, "Failed to initialize K8s client for ImageList savers")
 		os.Exit(1)

@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -177,13 +177,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reschedule, err
 	}
 
-	// determine the Tenant resource quota based on the Spec and the existing workspaces
-	if err := r.enforceServiceQuota(ctx, log, &tn); err != nil {
-		log.Error(err, "Error forging service quota for tenant", "tenant", tn.Name)
-		tnOpinternalErrors.WithLabelValues("tenant", "quota-forge").Inc()
-		return reschedule, fmt.Errorf("error forging service quota for tenant %s: %w", tn.Name, err)
-	}
-
 	// managing resources related to the personal namespace
 
 	// Test if namespace has been open for too long; check if it is ok to delete
@@ -209,6 +202,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 			tnOpinternalErrors.WithLabelValues("tenant", "delete-personal-namespace").Inc()
 			return reschedule, fmt.Errorf("error deleting resources related to personal namespace for tenant %s: %w", tn.Name, err)
 		}
+	}
+
+	if err := r.handlePersonalWorkspace(ctx, &tn); err != nil {
+		log.Error(err, "Error handling personal workspace for tenant %s: %w", tn.Name, err)
+		tnOpinternalErrors.WithLabelValues("tenant", "handle-personal-workspace").Inc()
+		return reschedule, fmt.Errorf("error handling personal workspace for tenant %s: %w", tn.Name, err)
 	}
 
 	// esporta/disesporta tutto

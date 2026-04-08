@@ -17,12 +17,8 @@ rules:
   resources: ["templates", "tenants"]
   verbs: ["get","list","watch"]
 
-- apiGroups: ["crownlabs.polito.it"]
-  resources: ["sharedvolumes", "sharedvolumes/status"]
-  verbs: ["get","list","watch","create","update","patch","delete","deleteCollection"]
-
 - apiGroups: [""]
-  resources: ["namespaces","persistentvolumes","pods"]
+  resources: ["namespaces","pods"]
   verbs: ["get","list","watch"]
 
 - apiGroups: [""]
@@ -43,6 +39,10 @@ rules:
 
 - apiGroups: ["networking.k8s.io"]
   resources: ["ingresses"]
+  verbs: ["get","list","watch","create","patch","update","delete"]
+
+- apiGroups: ["networking.k8s.io"]
+  resources: ["networkpolicies"]
   verbs: ["get","list","watch","create","patch","update","delete"]
 
 - apiGroups: ["kubevirt.io"]

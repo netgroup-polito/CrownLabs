@@ -2,9 +2,16 @@ html,
 body {
   height: 100%;
   width: 100%;
+  margin: 0;
 }
 
 #root {
   height: 100%;
   width: 100%;
+}
+
+#root > div {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
 }

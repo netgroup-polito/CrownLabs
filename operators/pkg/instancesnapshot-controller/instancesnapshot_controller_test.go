@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ var _ = Describe("InstancesnapshotController", func() {
 			Description:  "Description of my template",
 			EnvironmentList: []crownlabsv1alpha2.Environment{
 				{
-					Name:       "Env-1",
+					Name:       "env-1",
 					GuiEnabled: true,
 					Resources: crownlabsv1alpha2.EnvironmentResources{
 						CPU:                   1,
@@ -76,7 +76,8 @@ var _ = Describe("InstancesnapshotController", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter: "",
+			DeleteAfter:       "",
+			InactivityTimeout: "",
 		}
 		template = crownlabsv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},

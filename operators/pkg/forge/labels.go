@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,24 +15,40 @@
 package forge
 
 import (
+	"maps"
 	"strconv"
+
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
-	labelManagedByKey    = "crownlabs.polito.it/managed-by"
-	labelInstanceKey     = "crownlabs.polito.it/instance"
-	labelWorkspaceKey    = "crownlabs.polito.it/workspace"
-	labelTemplateKey     = "crownlabs.polito.it/template"
-	labelTenantKey       = "crownlabs.polito.it/tenant"
-	labelPersistentKey   = "crownlabs.polito.it/persistent"
-	labelComponentKey    = "crownlabs.polito.it/component"
-	labelMetricsEnabled  = "crownlabs.polito.it/metrics-enabled"
-	labelTypeKey         = "crownlabs.polito.it/type"
-	labelVolumeTypeKey   = "crownlabs.polito.it/volume-type"
-	labelNodeSelectorKey = "crownlabs.polito.it/has-node-selector"
+	// LabelManagedByKey is the key of the label identifying the managing resource.
+	LabelManagedByKey = "crownlabs.polito.it/managed-by"
+	// LabelInstanceKey is the key of the label identifying the instance name.
+	LabelInstanceKey = "crownlabs.polito.it/instance"
+	// LabelWorkspaceKey is the key of the label identifying the workspace name.
+	LabelWorkspaceKey = "crownlabs.polito.it/workspace"
+	// LabelTemplateKey is the key of the label identifying the template name.
+	LabelTemplateKey = "crownlabs.polito.it/template"
+	// LabelTenantKey is the key of the label identifying the tenant name.
+	LabelTenantKey = "crownlabs.polito.it/tenant"
+	// LabelPersistentKey is the key of the label identifying if any environment is persistent.
+	LabelPersistentKey = "crownlabs.polito.it/persistent"
+	// LabelComponentKey is the key of the label identifying the component name.
+	LabelComponentKey = "crownlabs.polito.it/component"
+	// LabelMetricsEnabled is the key of the label identifying if metrics are enabled.
+	LabelMetricsEnabled = "crownlabs.polito.it/metrics-enabled"
+	// LabelTypeKey is the key of the label identifying the resource type.
+	LabelTypeKey = "crownlabs.polito.it/type"
+	// LabelVolumeTypeKey is the key of the label identifying the volume type.
+	LabelVolumeTypeKey = "crownlabs.polito.it/volume-type"
+	// LabelNodeSelectorKey is the key of the label identifying if a node selector is present.
+	LabelNodeSelectorKey = "crownlabs.polito.it/has-node-selector"
+	// LabelEnvironmentKey is the key of the label identifying the environment name.
+	LabelEnvironmentKey = "crownlabs.polito.it/environment"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"
@@ -42,10 +58,18 @@ const (
 	InstanceSubmissionCompletedLabel = "crownlabs.polito.it/instance-submission-completed"
 	// ProvisionJobLabel -> Key of the label added by the Provision Job to flag the PVC after it completed.
 	ProvisionJobLabel = "crownlabs.polito.it/volume-provisioning"
+	// InstanceInactivityIgnoreNamespace -> label added to the Namespace to ignore inactivity termination for Instances in it.
+	InstanceInactivityIgnoreNamespace = "crownlabs.polito.it/instance-inactivity-ignore"
+	// ExpirationIgnoreNamespace -> label added to the Namespace to ignore expiration termination for Instances in it.
+	ExpirationIgnoreNamespace = "crownlabs.polito.it/expiration-ignore"
+
+	// EnvironmentNameLabel -> Key of the label used to store the environment name.
+	EnvironmentNameLabel = "crownlabs.polito.it/environment-name"
 
 	labelManagedByInstanceValue  = "instance"
 	labelManagedByTenantValue    = "tenant"
 	labelManagedByWorkspaceValue = "workspace"
+	labelManagedByShVolValue     = "sharedvolume"
 	labelTypeWorkspaceValue      = "workspace"
 	labelTypeSandboxValue        = "sandbox"
 
@@ -63,10 +87,28 @@ const (
 	labelFirstNameKey = "crownlabs.polito.it/first-name"
 	labelLastNameKey  = "crownlabs.polito.it/last-name"
 
+	// AlertAnnotationNum -> the number of mail sent to the tenant to inform that the instance will be stopped/removed.
+	AlertAnnotationNum = "crownlabs.polito.it/number-alerts-sent"
+
+	// LastActivityAnnotation -> timestamp of the last access detected to the instance.
+	LastActivityAnnotation = "crownlabs.polito.it/last-activity"
+
+	// LastNotificationTimestampAnnotation -> timestamp of the last notification sent to the tenant.
+	LastNotificationTimestampAnnotation = "crownlabs.polito.it/last-notification-timestamp"
+
+	// LastRunningAnnotation ->  previous value of the `Running` field of the Instance.
+	LastRunningAnnotation = "crownlabs.polito.it/last-running"
+
 	// NoWorkspacesLabelKey -> label to be set when no workspaces are associated to the tenant.
 	NoWorkspacesLabelKey = "crownlabs.polito.it/no-workspaces"
 	// NoWorkspacesLabelValue -> value of the label to be set when no workspaces are associated to the tenant.
 	NoWorkspacesLabelValue = "true"
+
+	// CustomNumberOfAlertsAnnotation -> annotation to mark an Instance as having a custom number of alerts.
+	CustomNumberOfAlertsAnnotation = "crownlabs.polito.it/custom-number-alerts"
+
+	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
+	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
@@ -75,16 +117,14 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 	labels = deepCopyLabels(labels)
 	update := false
 
-	update = updateLabel(labels, labelManagedByKey, labelManagedByInstanceValue) || update
-	update = updateLabel(labels, labelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
-	update = updateLabel(labels, labelTemplateKey, template.Name) || update
-	update = updateLabel(labels, labelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
-	update = updateLabel(labels, labelNodeSelectorKey, nodeSelectorLabelValue(template.Spec.EnvironmentList, instance)) || update
+	update = updateLabel(labels, LabelManagedByKey, labelManagedByInstanceValue) || update
+	update = updateLabel(labels, LabelWorkspaceKey, template.Spec.WorkspaceRef.Name) || update
+	update = updateLabel(labels, LabelTemplateKey, template.Name) || update
+	update = updateLabel(labels, LabelPersistentKey, persistentLabelValue(template.Spec.EnvironmentList)) || update
+	update = updateLabel(labels, LabelNodeSelectorKey, nodeSelectorLabelValue(instance, template)) || update
 
 	if instance != nil {
-		instCustomizationUrls := instance.Spec.CustomizationUrls
-
-		if instCustomizationUrls != nil && instCustomizationUrls.StatusCheck != "" && labels[InstanceTerminationSelectorLabel] == "" {
+		if instance.Spec.StatusCheckURL != "" && labels[InstanceTerminationSelectorLabel] == "" {
 			update = updateLabel(labels, InstanceTerminationSelectorLabel, strconv.FormatBool(true))
 		}
 	}
@@ -96,10 +136,23 @@ func InstanceLabels(labels map[string]string, template *clv1alpha2.Template, ins
 func InstanceObjectLabels(labels map[string]string, instance *clv1alpha2.Instance) map[string]string {
 	labels = deepCopyLabels(labels)
 
-	labels[labelManagedByKey] = labelManagedByInstanceValue
-	labels[labelInstanceKey] = instance.Name
-	labels[labelTemplateKey] = instance.Spec.Template.Name
-	labels[labelTenantKey] = instance.Spec.Tenant.Name
+	labels[LabelManagedByKey] = labelManagedByInstanceValue
+	labels[LabelInstanceKey] = instance.Name
+	labels[LabelTemplateKey] = instance.Spec.Template.Name
+	labels[LabelTenantKey] = instance.Spec.Tenant.Name
+
+	return labels
+}
+
+// EnvironmentObjectLabels receives in input a set of labels and returns the updated set depending on the specified environment.
+func EnvironmentObjectLabels(labels map[string]string, instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	labels[LabelManagedByKey] = labelManagedByInstanceValue
+	labels[LabelInstanceKey] = instance.Name
+	labels[LabelEnvironmentKey] = environment.Name
+	labels[LabelTemplateKey] = instance.Spec.Template.Name
+	labels[LabelTenantKey] = instance.Spec.Tenant.Name
 
 	return labels
 }
@@ -108,9 +161,9 @@ func InstanceObjectLabels(labels map[string]string, instance *clv1alpha2.Instanc
 func SandboxObjectLabels(labels map[string]string, name string) map[string]string {
 	labels = deepCopyLabels(labels)
 
-	labels[labelManagedByKey] = labelManagedByTenantValue
-	labels[labelTypeKey] = labelTypeSandboxValue
-	labels[labelTenantKey] = name
+	labels[LabelManagedByKey] = labelManagedByTenantValue
+	labels[LabelTypeKey] = labelTypeSandboxValue
+	labels[LabelTenantKey] = name
 
 	return labels
 }
@@ -118,23 +171,35 @@ func SandboxObjectLabels(labels map[string]string, name string) map[string]strin
 // InstanceSelectorLabels returns a set of selector labels depending on the specified instance.
 func InstanceSelectorLabels(instance *clv1alpha2.Instance) map[string]string {
 	return map[string]string{
-		labelInstanceKey: instance.Name,
-		labelTemplateKey: instance.Spec.Template.Name,
-		labelTenantKey:   instance.Spec.Tenant.Name,
+		LabelInstanceKey: instance.Name,
+		LabelTemplateKey: instance.Spec.Template.Name,
+		LabelTenantKey:   instance.Spec.Tenant.Name,
+	}
+}
+
+// EnvironmentSelectorLabels returns a set of selector labels depending on the specified environment.
+func EnvironmentSelectorLabels(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) map[string]string {
+	return map[string]string{
+		LabelInstanceKey:    instance.Name,
+		LabelEnvironmentKey: environment.Name,
+		LabelTemplateKey:    instance.Spec.Template.Name,
+		LabelTenantKey:      instance.Spec.Tenant.Name,
 	}
 }
 
 // InstanceAutomationLabelsOnTermination returns a set of labels to be set on an instance when it is terminated.
-func InstanceAutomationLabelsOnTermination(labels map[string]string, submissionRequired bool) map[string]string {
+func InstanceAutomationLabelsOnTermination(labels map[string]string, envName string, submissionRequired bool) map[string]string {
 	labels = deepCopyLabels(labels)
+	labels[EnvironmentNameLabel] = envName
 	labels[InstanceTerminationSelectorLabel] = strconv.FormatBool(false)
 	labels[InstanceSubmissionSelectorLabel] = strconv.FormatBool(submissionRequired)
 	return labels
 }
 
 // InstanceAutomationLabelsOnSubmission returns a set of labels to be set on an instance when it is submitted.
-func InstanceAutomationLabelsOnSubmission(labels map[string]string, submissionSucceded bool) map[string]string {
+func InstanceAutomationLabelsOnSubmission(labels map[string]string, envName string, submissionSucceded bool) map[string]string {
 	labels = deepCopyLabels(labels)
+	labels[EnvironmentNameLabel] = envName
 	labels[InstanceSubmissionSelectorLabel] = strconv.FormatBool(false)
 	labels[InstanceSubmissionCompletedLabel] = strconv.FormatBool(submissionSucceded)
 	return labels
@@ -143,14 +208,14 @@ func InstanceAutomationLabelsOnSubmission(labels map[string]string, submissionSu
 // MonitorableServiceLabels returns adds a label for a service so that it is monitored by the Instance ServiceMonitor.
 func MonitorableServiceLabels(labels map[string]string) map[string]string {
 	labels = deepCopyLabels(labels)
-	labels[labelMetricsEnabled] = strconv.FormatBool(true)
+	labels[LabelMetricsEnabled] = strconv.FormatBool(true)
 	return labels
 }
 
 // InstanceComponentLabels returns a set of labels to be set on an instance component when it is created.
 func InstanceComponentLabels(instance *clv1alpha2.Instance, componentName string) map[string]string {
 	return InstanceObjectLabels(map[string]string{
-		labelComponentKey: componentName,
+		LabelComponentKey: componentName,
 	}, instance)
 }
 
@@ -159,7 +224,7 @@ func SharedVolumeLabels(labels map[string]string) (map[string]string, bool) {
 	labels = deepCopyLabels(labels)
 	update := false
 
-	update = updateLabel(labels, labelManagedByKey, labelManagedByInstanceValue) || update
+	update = updateLabel(labels, LabelManagedByKey, labelManagedByShVolValue) || update
 
 	return labels, update
 }
@@ -168,8 +233,8 @@ func SharedVolumeLabels(labels map[string]string) (map[string]string, bool) {
 func SharedVolumeObjectLabels(labels map[string]string) map[string]string {
 	labels = deepCopyLabels(labels)
 
-	labels[labelManagedByKey] = labelManagedByInstanceValue
-	labels[labelVolumeTypeKey] = VolumeTypeValueShVol
+	labels[LabelManagedByKey] = labelManagedByShVolValue
+	labels[LabelVolumeTypeKey] = VolumeTypeValueShVol
 
 	return labels
 }
@@ -188,9 +253,7 @@ func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLab
 // deepCopyLabels creates a copy of the labels map.
 func deepCopyLabels(input map[string]string) map[string]string {
 	output := map[string]string{}
-	for key, value := range input {
-		output[key] = value
-	}
+	maps.Copy(output, input)
 	return output
 }
 
@@ -214,13 +277,11 @@ func persistentLabelValue(environmentList []clv1alpha2.Environment) string {
 }
 
 // nodeSelectorLabelValue returns the value to be assigned to the node selector label, depending on the presence or the absence of the field.
-func nodeSelectorLabelValue(environmentList []clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
-	if instance != nil {
-		for i := range environmentList {
-			nodeSel := NodeSelectorLabels(instance, &environmentList[i])
-			if len(nodeSel) > 0 {
-				return strconv.FormatBool(true)
-			}
+func nodeSelectorLabelValue(instance *clv1alpha2.Instance, template *clv1alpha2.Template) string {
+	if instance != nil && template != nil {
+		nodeSel := NodeSelectorLabels(instance, template)
+		if len(nodeSel) > 0 {
+			return strconv.FormatBool(true)
 		}
 	}
 	return strconv.FormatBool(false)
@@ -228,8 +289,8 @@ func nodeSelectorLabelValue(environmentList []clv1alpha2.Environment, instance *
 
 // InstanceNameFromLabels receives in input a set of labels and returns the instance name, if any.
 func InstanceNameFromLabels(labels map[string]string) (string, bool) {
-	// if labelInstanceKey is present instance will receive the associated value and found will be set to true.
-	instance, found := labels[labelInstanceKey]
+	// if LabelInstanceKey is present instance will receive the associated value and found will be set to true.
+	instance, found := labels[LabelInstanceKey]
 	return instance, found
 }
 
@@ -239,7 +300,14 @@ func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel c
 		labels = make(map[string]string, 1)
 	}
 	labels[targetLabel.GetKey()] = targetLabel.GetValue()
-	labels[labelManagedByKey] = labelManagedByWorkspaceValue
+	labels[LabelManagedByKey] = labelManagedByWorkspaceValue
 
 	return labels
+}
+
+// TemplateLabelSelector returns a label selector for a specific template name.
+func TemplateLabelSelector(templateName string) client.MatchingLabels {
+	return client.MatchingLabels{
+		LabelTemplateKey: templateName,
+	}
 }

@@ -17,8 +17,11 @@ frontend-app:
   configuration:
     backend:
       graphql: https://graphql.example.com
+      grafana: https://grafana.example.com/d/example
+      bastion: ssh.example.com
     oidc:
       clientId: <client-id>
+      realm: <realm>
       providerUrl: https://auth.example.com/auth/
 
 qlkube:
@@ -77,6 +80,93 @@ operator:
       baseWorkspaces: utilities
     enableMutating: true
 
+crownmail:
+  templates:
+    name: crownmail-templates
+    sourceFolder: mail-templates
+    # overrides: # mail templates are available in operators/deploy/crownmail/mail-templates
+    #   defaults_crownlabs_mail.eml: |
+    #     From: { from }
+    #     To: { to }
+    #     Subject: { subject }
+    #     Date: { date }
+    #     Message-ID: { message-id }
+    #     MIME-Version: 1.0
+    #     Content-Type: multipart/alternative; boundary=CrownLabsEmailBoundary
+
+    #     --CrownLabsEmailBoundary
+    #     Content-Type: text/plain; charset=UTF-8
+
+    #     { plaintext_header }
+    #     { plaintext_content }
+    #     { plaintext_footer }
+
+    #     --CrownLabsEmailBoundary
+    #     Content-Type: text/html; charset=UTF-8
+
+    #     { html_header }
+    #     { html_content }
+    #     { html_footer }
+
+    #     --CrownLabsEmailBoundary--
+    #   defaults_crownlabs_headers.yaml: |
+    #     from: noreply@crownlabs.polito.it
+    #     html_header: |-
+    #       <!DOCTYPE html>
+    #       <html>
+    #       <body>
+    #       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+    #           <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+    #               <h2>CrownLabs Notification</h2>
+    #           </div>
+    #           <div style="padding: 20px;">
+    #               <p>Dear user,</p>
+    #     html_footer: |-
+    #       <p>Best regards,<br>
+    #               CrownLabs Team</p>
+    #           </div>
+    #           <div style="background-color: #f8f9fa; padding: 15px; font-size: 12px; text-align: center;">
+    #               <p>This is an automated message from CrownLabs.</p>
+    #               <p>If you need assistance, please contact support.</p>
+    #           </div>
+    #       </div>
+    #       </body>
+    #       </html>
+    #     plaintext_header: |
+    #       === CROWNLABS NOTIFICATION ===
+
+    #       Dear user,
+
+    #     plaintext_footer: |
+
+    #       Best regards,
+    #       CrownLabs Team
+
+    #       ---
+    #       This is an automated message from CrownLabs.
+    #       If you need assistance, please contact support.
+    #   instautoctrl_expiration_warning_notification.yaml: |
+    #     to: |-
+    #       { tenantEmail }
+    #     subject: |-
+    #       CrownLabs: Instance { prettyName } is expiring soon
+    #     plaintext_content: |-
+    #       Your instance { prettyName } will expire in { remainingTime } and will be permanently deleted. Please take any necessary actions to save your data.
+    #     html_content: |-
+    #       <p>Your instance <strong>{ prettyName }</strong> will expire in <strong>{ remainingTime }</strong> and will be permanently deleted. </p>
+    #       <p>Please take any necessary actions to save your data.</p>
+  configs:
+    name: crownmail-configs
+    sourceFolder: mail-configs
+    overrides: # default values to be overridden for mail sending in CrownLabs Production
+      smtp:
+        smtpServer: override.smtp.example.com
+        smtpPort: "123"
+        smtpIdentity: override-debug
+        smtpUsername: override-debug@example.com
+        smtpPassword: override-debugpassword
+        smtpFrom: override-crownlabs@example.com
+
 instance-operator:
   replicaCount: 1
   image:
@@ -89,8 +179,10 @@ instance-operator:
       instancesAuthUrl: https://crownlabs.example.com/auth
     containerEnvironmentOptions:
       tag: ""
-      vncImage: crownlabs/tigervnc
       websockifyImage: crownlabs/websockify
+      vncImage: crownlabs/tigervnc
+      contentDownloaderImage: crownlabs/content-downloader
+      contentUploaderImage: crownlabs/content-uploader
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
     containerVmSnapshots:
       kanikoImage: gcr.io/kaniko-project/executor
@@ -100,6 +192,35 @@ instance-operator:
       url: registry.crownlabs.example.com
       secretName: registry-credentials
     maxConcurrentReconciles: 1
+    maxAutomationConcurrentReconciles: 1
+    monitoring:
+      prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
+      queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
+      queryBastionSSHAvailable: count(up{container="bastion-operator-tracker-sidecar"})
+      queryWebSSHAvailable: count(up{container="webssh"})
+      queryNginxData: nginx_ingress_controller_requests{exported_namespace="%s", exported_service="%s"}
+      queryBastionSSHData: bastion_ssh_connections{destination_ip="%s"}
+      queryWebSSHData: bastion_web_ssh_connections{destination_ip="%s"}
+      queryStep: 5m
+    mailTemplateDir: /etc/crownmail/templates
+    mailConfigDir: /etc/crownmail/configs
+    automation:
+      enableInstanceSubmission: true
+      enableInstanceTermination: true
+      enableInstanceInactiveTermination: true
+      enableInstanceExpiration: true
+      maxConcurrentTerminationReconciles: 1
+      maxConcurrentInactiveTerminationReconciles: 1
+      maxConcurrentExpirationReconciles: 1
+      maxConcurrentSubmissionReconciles: 1
+      terminationStatusCheckTimeout: "3s"
+      terminationStatusCheckInterval: "2m"
+      inactiveTerminationStatusCheckTimeout: "3s"
+      inactiveTerminationMaxNumberOfAlerts: 3
+      enableInactivityNotifications: false
+      enableExpirationNotifications: false
+      inactiveTerminationNotificationInterval: "24h"
+      expirationNotificationInterval: "24h"
 
 bastion-operator:
   replicaCount: 1
@@ -118,6 +239,15 @@ bastion-operator:
     sshTrackerPort: 22
     sshTrackerSnaplen: 1600
     sshTrackerMetricsAddr: ":8082"
+    
+  webssh:
+    ingress:
+      enabled: true
+      annotations:
+        nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+      hostname: crownlabs.example.com
+      path: /webssh
+      pathType: Prefix
 
 image-list:
   replicaCount: 1
@@ -129,14 +259,6 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
-
-delete-stale-instances:
-  image:
-    repository: crownlabs/delete-stale-instances
-  rbacResourcesName: crownlabs-delete-stale-instances
-  configurations:
-    dryRun: true
-    schedule: "*/15 * * * *"
 
 exam-agent:
   replicaCount: 1

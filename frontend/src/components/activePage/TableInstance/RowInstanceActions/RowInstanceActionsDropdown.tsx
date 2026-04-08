@@ -1,8 +1,9 @@
 import { type FC, type SetStateAction, useContext, useState } from 'react';
-import { Dropdown } from 'antd';
+import { Dropdown, Badge, Space } from 'antd';
 import { Button } from 'antd';
+import { Link, useNavigate } from 'react-router-dom';
 import {
-  ExportOutlined,
+  SelectOutlined,
   CodeOutlined,
   DeleteOutlined,
   FolderOpenOutlined,
@@ -10,28 +11,38 @@ import {
   PoweroffOutlined,
   CaretRightOutlined,
   ExclamationCircleOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
-  Phase,
+  Phase2,
   useApplyInstanceMutation,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
 import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
+import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from '../../../../env';
+import { TenantContext } from '../../../../contexts/TenantContext';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
   fileManager?: boolean;
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
+  onEnablePublicExposure?: () => void;
 }
 
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ...props
 }) => {
-  const { instance, fileManager, extended, setSshModal } = props;
+  const {
+    instance,
+    fileManager,
+    extended,
+    setSshModal,
+    onEnablePublicExposure,
+  } = props;
 
   const {
     status,
@@ -53,6 +64,19 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const [applyInstanceMutation] = useApplyInstanceMutation({
     onError: apolloErrorCatcher,
   });
+  const navigate = useNavigate();
+  const { data: tenantData } = useContext(TenantContext);
+
+  // Check if user has access to utilities workspace
+  const hasUtilitiesAccess = Boolean(
+    tenantData?.tenant?.spec?.workspaces?.some(
+      ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME,
+    ),
+  );
+
+  const handleDriveClick = () => {
+    navigate('/drive');
+  };
 
   const mutateInstanceStatus = async (running: boolean) => {
     if (!disabled) {
@@ -71,12 +95,12 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const statusComponents = {
-    [Phase.Ready]: {
+    [Phase2.Ready]: {
       menuIcon: <PoweroffOutlined style={font20px} />,
       menuText: 'Stop',
       menuAction: () => mutateInstanceStatus(false),
     },
-    [Phase.Off]: {
+    [Phase2.Off]: {
       menuIcon: <CaretRightOutlined style={font20px} />,
       menuText: 'Start',
       menuAction: () => mutateInstanceStatus(true),
@@ -86,22 +110,35 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       menuText: '',
       menuAction: () => null,
     },
-  };
+  } as const;
 
   const { menuIcon, menuText, menuAction } =
-    status === Phase.Ready || status === Phase.Off
-      ? statusComponents[status]
-      : statusComponents.Other;
+    status === Phase2.Ready
+      ? statusComponents[Phase2.Ready]
+      : status === Phase2.Off
+        ? statusComponents[Phase2.Off]
+        : statusComponents.Other;
 
   const isContainer =
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
 
-  const sshDisabled = status !== Phase.Ready || isContainer;
+  const sshDisabled = status !== Phase2.Ready || isContainer;
 
-  const fileManagerDisabled = status !== Phase.Ready && isContainer;
+  const fileManagerDisabled = status !== Phase2.Ready && isContainer;
 
-  const connectDisabled = status !== Phase.Ready || (isContainer && !gui);
+  const connectDisabled = status !== Phase2.Ready || (isContainer && !gui);
+
+  const getFirstEnvironmentName = () => {
+    return instance.environments?.[0]?.name || 'env';
+  };
+
+  const buildSSHLink = (envName: string) => {
+    if (envName) {
+      return `/instance/${instance.tenantNamespace}/${instance.name}/${envName}/ssh`;
+    }
+    return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
+  };
 
   return (
     <Dropdown
@@ -112,7 +149,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             key: 'connect',
             label: 'Connect',
             disabled: connectDisabled,
-            icon: <ExportOutlined style={font20px} />,
+            icon: <SelectOutlined style={font20px} />,
             onClick: gui
               ? () => window.open(url!, '_blank')
               : () => setSshModal(true),
@@ -139,28 +176,88 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,
           },
+          ...(onEnablePublicExposure
+            ? [
+                {
+                  key: 'expose',
+                  label: (
+                    <Space align="center">
+                      Port Exposure
+                      {instance.publicExposure &&
+                        (instance.publicExposure?.ports ?? []).length > 0 && (
+                          <Badge
+                            count={
+                              (instance.publicExposure?.ports ?? []).length
+                            }
+                            showZero={false}
+                            size="small"
+                          />
+                        )}
+                    </Space>
+                  ),
+                  icon: <SelectOutlined style={font20px} />,
+                  onClick: () => onEnablePublicExposure?.(),
+                },
+                {
+                  type: 'divider' as const,
+                },
+              ]
+            : []),
           {
             key: 'ssh',
-            label: 'SSH',
             icon: <CodeOutlined style={font20px} />,
-            onClick: () => setSshModal(true),
-            className: `flex items-center ${
-              extended ? 'xl:hidden' : ''
-            } ${sshDisabled ? 'pointer-events-none' : ''}`,
             disabled: sshDisabled,
+            label: (
+              <>
+                SSH
+                {/* Only show direct link button if there's exactly one environment */}
+                {(!instance.environments ||
+                  instance.environments.length === 1) && (
+                  <Button
+                    disabled={sshDisabled}
+                    type="link"
+                    className="ml-3"
+                    color="primary"
+                    variant="solid"
+                    shape="circle"
+                    size="small"
+                    icon={
+                      <Link
+                        to={buildSSHLink(getFirstEnvironmentName())}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          color: 'inherit',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
+                          <ExportOutlined style={{ fontSize: 15 }} />
+                        </span>
+                      </Link>
+                    }
+                  ></Button>
+                )}
+              </>
+            ),
+            onClick: () => setSshModal(true),
+            className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
           },
-          {
-            key: 'upload',
-            label: isContainer
-              ? 'File Manager'
-              : environmentType === EnvironmentType.VirtualMachine
-                ? 'Drive'
-                : '',
-            icon: <FolderOpenOutlined style={font20px} />,
-            disabled: fileManagerDisabled,
-            className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
-            onClick: () => {},
-          },
+          ...(hasUtilitiesAccess &&
+          environmentType === EnvironmentType.VirtualMachine
+            ? [
+                {
+                  key: 'upload',
+                  label: 'Drive',
+                  icon: <FolderOpenOutlined style={font20px} />,
+                  disabled: fileManagerDisabled,
+                  className: `flex items-center ${extended ? 'xl:hidden' : ''} `,
+                  onClick: handleDriveClick,
+                },
+              ]
+            : []),
           {
             type: 'divider',
             className: `${extended ? 'sm:hidden' : 'xs:hidden'}`,

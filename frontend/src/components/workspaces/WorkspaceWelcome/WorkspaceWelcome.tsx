@@ -16,14 +16,12 @@ const WorkspaceWelcome: FC = () => {
         ),
       }}
     >
-      <div className="w-full h-full flex-grow flex flex-wrap content-center justify-center py-5">
+      <div className="w-full h-full flex-grow flex items-center justify-center flex-col py-5">
         <div className="w-full pb-10 flex justify-center">
           <Logo widthPx={150} />
         </div>
         <p className="text-xl xs:text-3xl text-center px-5 xs:px-24 hidden md:flex">
-          Select a Workspace <br />
-          to explore Virtual Machines <br />
-          and Services available
+          No workspace selected
         </p>
       </div>
     </Box>

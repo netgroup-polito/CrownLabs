@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -180,50 +180,6 @@ var _ = Describe("Ingresses", func() {
 		})
 	})
 
-	Describe("The forge.IngressMyDriveAnnotations function", func() {
-		type InstanceMyDriveAnnotationsCase struct {
-			Input          map[string]string
-			ExpectedOutput map[string]string
-		}
-
-		DescribeTable("Correctly populates the annotations set",
-			func(c InstanceMyDriveAnnotationsCase) {
-				Expect(forge.IngressMyDriveAnnotations(c.Input)).To(Equal(c.ExpectedOutput))
-			},
-			Entry("When the input annotations map is nil", InstanceMyDriveAnnotationsCase{
-				Input: nil,
-				ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
-					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-				}, "600"),
-			}),
-			Entry("When the input labels map already contains the expected values", InstanceMyDriveAnnotationsCase{
-				Input: addNginxProxyTimeoutAnnotations(map[string]string{
-					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
-					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"user/key": "user/value",
-				}, "600"),
-				ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
-					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"user/key": "user/value",
-				}, "600"),
-			}),
-			Entry("When the input labels map contains only part of the expected values", InstanceMyDriveAnnotationsCase{
-				Input: addNginxProxyTimeoutAnnotations(map[string]string{
-					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
-					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"user/key": "user/value",
-				}, "600"),
-				ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-					"nginx.ingress.kubernetes.io/proxy-body-size":          "0",
-					"nginx.ingress.kubernetes.io/proxy-max-temp-file-size": "0",
-					"user/key": "user/value",
-				}, "600"),
-			}),
-		)
-	})
-
 	Describe("The forge.IngressAuthenticationAnnotations function", func() {
 		const authURL = "crownlabs.example.com/auth"
 
@@ -274,7 +230,6 @@ var _ = Describe("Ingresses", func() {
 			instance    clv1alpha2.Instance
 			path        string
 			statusPath  string
-			GUIName     string
 			environment clv1alpha2.Environment
 		)
 
@@ -282,6 +237,7 @@ var _ = Describe("Ingresses", func() {
 			instanceName      = "kubernetes-0000"
 			instanceNamespace = "tenant-tester"
 			instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
+			environmentName   = "environment-name"
 			host              = "crownlabs.example.com"
 		)
 
@@ -289,32 +245,33 @@ var _ = Describe("Ingresses", func() {
 			instance = clv1alpha2.Instance{
 				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace, UID: instanceUID},
 			}
+			environment.Name = environmentName
 		})
 
 		Describe("The forge.HostName function", func() {
 			const baseHost = "crownlabs.it"
 			type HostNameCase struct {
-				Mode           clv1alpha2.EnvironmentMode
+				Scope          clv1alpha2.EnvironmentScope
 				ExpectedOutput string
 			}
 			DescribeTable("correctly generates the hostname",
 				func(c HostNameCase) {
-					Expect(forge.HostName(baseHost, c.Mode)).To(Equal(c.ExpectedOutput))
+					Expect(forge.HostName(baseHost, c.Scope)).To(Equal(c.ExpectedOutput))
 				},
 				Entry("when the mode is Default", HostNameCase{
-					Mode:           clv1alpha2.ModeStandard,
+					Scope:          clv1alpha2.ScopeStandard,
 					ExpectedOutput: baseHost,
 				}),
 				Entry("when the mode is Exam", HostNameCase{
-					Mode:           clv1alpha2.ModeExam,
+					Scope:          clv1alpha2.ScopeExam,
 					ExpectedOutput: "exam." + baseHost,
 				}),
 				Entry("when the mode is Exercise", HostNameCase{
-					Mode:           clv1alpha2.ModeExercise,
+					Scope:          clv1alpha2.ScopeExercise,
 					ExpectedOutput: "exercise." + baseHost,
 				}),
 				Entry("when the mode is invalid/unset", HostNameCase{
-					Mode:           "",
+					Scope:          "",
 					ExpectedOutput: baseHost,
 				}),
 			)
@@ -334,7 +291,7 @@ var _ = Describe("Ingresses", func() {
 					})
 					Context("The instance has no special configurations", func() {
 						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app(/|$)(.*)"))
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name + "(/|$)(.*)"))
 						})
 					})
 				})
@@ -344,7 +301,7 @@ var _ = Describe("Ingresses", func() {
 					})
 					Context("The instance has no special configurations", func() {
 						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app"))
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
 						})
 					})
 				})
@@ -356,7 +313,7 @@ var _ = Describe("Ingresses", func() {
 				})
 				Context("The instance has no special configurations", func() {
 					It("Should generate a path based on the instance UID", func() {
-						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/app"))
+						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
 					})
 				})
 			})
@@ -367,43 +324,8 @@ var _ = Describe("Ingresses", func() {
 			JustBeforeEach(func() {
 				statusPath = forge.IngressGuiStatusURL(host, &environment, &instance)
 			})
-			When("EnvironmentType is ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassStandalone
-				})
-				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/app/"))
-				})
-			})
-			When("EnvironmentType is not ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassContainer
-				})
-				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/app/"))
-				})
-			})
-		})
-
-		Describe("The forge.IngressGUIName function", func() {
-			JustBeforeEach(func() {
-				GUIName = forge.IngressGUIName(&environment)
-			})
-			When("EnvironmentType is ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassStandalone
-				})
-				It("Should generate a path based on the instance UID and /app at the end", func() {
-					Expect(GUIName).To(BeIdenticalTo("app"))
-				})
-			})
-			When("EnvironmentType is not ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassContainer
-				})
-				It("Should generate a path based on the instance UID", func() {
-					Expect(GUIName).To(BeIdenticalTo("gui"))
-				})
+			It("Should generate a path based on the instance UID and /app at the end", func() {
+				Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/"))
 			})
 		})
 	})

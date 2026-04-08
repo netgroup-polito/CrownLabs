@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ func (r *Reconciler) enforceResourcesRelatedToPersonalNamespace(
 	log.Info("Personal namespace created")
 
 	// manage resource quota
-	if err := r.enforceResourceQuota(ctx, tn); err != nil {
+	if err := r.enforceResourceQuota(ctx, log, tn); err != nil {
 		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
 	}
 	log.Info("Resource quota created")
@@ -161,12 +161,17 @@ func (r *Reconciler) enforcePersonalNamespaceAbsence(
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
 func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) (keepNsOpen bool, err error) {
 	// We check to see if last login was more than r.TenantNSKeepAlive in the past:
-	// if so, temporarily delete the namespace. We assume that a lastLogin of 0 occurs when a user is first created
+	// if so, temporarily delete the namespace. The lastLogin field is omitted when a user is first created
 
-	// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
-	sPassed := time.Since(tn.Spec.LastLogin.Time)
+	sPassed := r.TenantNSKeepAlive + (1 * time.Second)
 
-	log.Info("Last login checked", "tenant", tn.Name, "elapsed", sPassed)
+	if tn.Spec.LastLogin != nil {
+		// Calculate time elapsed since lastLogin (now minus lastLogin in seconds)
+		sPassed = time.Since(tn.Spec.LastLogin.Time)
+		log.Info("Last login checked", "tenant", tn.Name, "elapsed", sPassed)
+	} else {
+		log.Info("No last login found: assuming tenant inactive", "tenant", tn.Name)
+	}
 
 	// Attempt to get instances in current namespace
 	list := &v1alpha2.InstanceList{}
@@ -177,11 +182,21 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 
 	if sPassed > r.TenantNSKeepAlive { // seconds
 		log.Info("Over elapsed since last login of tenant: tenant namespace shall be absent", "elapsed", r.TenantNSKeepAlive, "tenant", tn.Name)
-		if len(list.Items) == 0 {
-			log.Info("No instances found for tenant: namespace can be deleted", "tenant", tn.Name)
+		resourcesPresent := false
+		if len(list.Items) > 0 {
+			log.Info("Instances found for tenant", "tenant", tn.Name)
+			resourcesPresent = true
+		}
+		if res, err := r.checkPersonalWorkspaceKeepAlive(ctx, tn); err == nil {
+			resourcesPresent = resourcesPresent || res
+		} else {
+			return res, err
+		}
+		if !resourcesPresent {
+			log.Info("No resources found for tenant: namespace can be deleted", "tenant", tn.Name)
 			return false, nil
 		}
-		log.Info("Instances found for tenant: namespace will not be deleted", "tenant", tn.Name)
+		log.Info("Resources found for tenant: namespace will not be deleted", "tenant", tn.Name)
 	} else {
 		log.Info("Under (limit) elapsed since last login of tenant: tenant namespace shall be present", "limit", r.TenantNSKeepAlive, "tenant", tn.Name)
 	}
@@ -191,8 +206,23 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 
 func (r *Reconciler) enforceResourceQuota(
 	ctx context.Context,
+	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
+	// get the enrolled workspaces
+	wss, err := r.getWorkspacesList(
+		ctx,
+		log,
+		r.getEnrolledWorkspaces(tn),
+	)
+	if err != nil {
+		return err
+	}
+
+	// calculate the resource quota
+	quota := forge.TenantResourceList(wss, tn.Spec.PersonalWorkspace)
+
+	// update or create the resource quota
 	nsName := forge.GetTenantNamespaceName(tn)
 	rq := v1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
@@ -203,7 +233,7 @@ func (r *Reconciler) enforceResourceQuota(
 
 	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
 		// Configure the resource quota
-		forge.ConfigureTenantResourceQuota(&rq, &tn.Status.Quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
+		forge.ConfigureTenantResourceQuota(&rq, &quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
 
 		return controllerutil.SetControllerReference(tn, &rq, r.Scheme)
 	}); err != nil {

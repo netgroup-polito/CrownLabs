@@ -59,6 +59,7 @@ metadata:
     namespace: workspace-sid # a workspace where you have the permission to create templates
 spec:
     deleteAfter: never
+    inactivityTimeout: 14d
     description: An http server used for testing
     environmentList:
         - environmentType: Standalone

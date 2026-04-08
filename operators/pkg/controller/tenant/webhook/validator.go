@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,6 @@ import (
 
 	admissionv1 "k8s.io/api/admission/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -112,7 +111,7 @@ func (tv *TenantValidator) ValidatePreflight(
 	}
 
 	if tv.CheckWebhookOverride(&req) {
-		log.Info("admitted: successful override")
+		log.Info("overriding validation")
 		return ValidatePreflightResult{
 			newTenant: newTenant,
 			oldTenant: oldTenant,
@@ -178,6 +177,15 @@ func (tv *TenantValidator) ValidateUpdate(
 		return validate.warnings, fmt.Errorf("preflight validation failed: %w", validate.err)
 	}
 	if validate.stopEarly {
+		// only check personal workspace if the validation is overridden, it is handled by the self-edit handler otherwise
+		oldPersonalWorkspaceEnabled := validate.oldTenant.Spec.PersonalWorkspace != nil
+		newPersonalWorkspaceEnabled := validate.newTenant.Spec.PersonalWorkspace != nil
+		if oldPersonalWorkspaceEnabled != newPersonalWorkspaceEnabled {
+			_, err := tv.HandlePersonalWorkspaceModification(ctx, validate.newTenant, validate.oldTenant)
+			if err != nil {
+				return validate.warnings, err
+			}
+		}
 		log.Info("skipping validation for update operation")
 		return validate.warnings, nil
 	}
@@ -228,12 +236,16 @@ func (tv *TenantValidator) HandleSelfEdit(
 	newTenant.Spec.PublicKeys = nil
 	oldTenant.Spec.PublicKeys = nil
 
-	lastLoginDelta := time.Until(newTenant.Spec.LastLogin.Time).Abs()
-	if newTenant.Spec.LastLogin != oldTenant.Spec.LastLogin && lastLoginDelta > LastLoginToleration {
-		return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change the LastLogin field in the owned tenant, or the change is not valid: %s", lastLoginDelta))
+	// manage last login
+	if newTenant.Spec.LastLogin != nil {
+		lastLoginDelta := time.Until(newTenant.Spec.LastLogin.Time).Abs()
+		if lastLoginDelta > LastLoginToleration {
+			return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change the LastLogin field in the owned tenant, or the change is not valid: %s", lastLoginDelta))
+		}
 	}
-	newTenant.Spec.LastLogin = metav1.Time{}
-	oldTenant.Spec.LastLogin = metav1.Time{}
+
+	newTenant.Spec.LastLogin = nil
+	oldTenant.Spec.LastLogin = nil
 
 	// manage workspaces
 	newWorkspaces := newTenant.Spec.Workspaces
@@ -357,4 +369,28 @@ func mapFromWorkspacesList(tenant *v1alpha2.Tenant) map[string]v1alpha2.Workspac
 	}
 
 	return wss
+}
+
+// HandlePersonalWorkspaceModification checks if the personal workspace is being disabled while it has templates with active instances.
+func (tv *TenantValidator) HandlePersonalWorkspaceModification(ctx context.Context, newTenant, oldTenant *v1alpha2.Tenant) (admission.Warnings, error) {
+	log := ctrl.LoggerFrom(ctx)
+	// if the personal workspace was disabled before then there is nothing to check
+	if oldTenant.Spec.PersonalWorkspace == nil {
+		return nil, nil
+	}
+	// personal workspace was enabled, and is being disabled
+	if newTenant.Spec.PersonalWorkspace == nil {
+		instances := &v1alpha2.InstanceList{}
+		if err := tv.Client.List(ctx, instances, client.InNamespace(oldTenant.Status.PersonalNamespace.Name)); err != nil {
+			log.Error(err, "failed to list instances in personal namespace")
+			return nil, errors.NewInternalError(err)
+		}
+		for i := 0; i < len(instances.Items); i++ {
+			if instances.Items[i].Spec.Template.Namespace == oldTenant.Status.PersonalNamespace.Name {
+				log.Info("denied: cannot disable personal workspace, there are instances of personal workspace templates in the namespace")
+				return nil, errors.NewConflict(schema.GroupResource{}, oldTenant.Name, fmt.Errorf("cannot disable personal workspace, there are instances of personal workspace templates in the namespace"))
+			}
+		}
+	}
+	return nil, nil
 }

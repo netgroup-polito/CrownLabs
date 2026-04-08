@@ -1,0 +1,17 @@
+query workspaceQuotas($names: [String!]) {
+  workspaces: itPolitoCrownlabsV1alpha1WorkspaceList {
+    items {
+      metadata {
+        name
+      }
+      spec {
+        prettyName
+        quota {
+          cpu
+          memory
+          instances
+        }
+      }
+    }
+  }
+}

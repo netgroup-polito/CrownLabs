@@ -1,10 +1,14 @@
 import type { FC, SetStateAction } from 'react';
-import { Popover, Tooltip, Typography } from 'antd';
+import { useState } from 'react';
+import { Badge, Popover, Tooltip, Typography, List } from 'antd';
 import { Button } from 'antd';
 import { InfoOutlined } from '@ant-design/icons';
+import { SelectOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
-import { EnvironmentType, Phase } from '../../../../generated-types';
-
+import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
+import { EnvironmentType, Phase2 } from '../../../../generated-types';
+import { Link } from 'react-router-dom';
+import { ExportOutlined } from '@ant-design/icons';
 const { Text } = Typography;
 
 const getSSHTooltipText = (
@@ -31,8 +35,8 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   ...props
 }) => {
   const { instance, time, viewMode, setSshModal } = props;
+  const [showExposureModal, setShowExposureModal] = useState(false);
   const {
-    ip,
     environmentType,
     status,
     templatePrettyName,
@@ -40,12 +44,34 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     prettyName,
     nodeName,
     running,
+    environments,
   } = instance;
 
   const sshDisabled =
-    status !== Phase.Ready ||
+    status !== Phase2.Ready ||
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
+
+  // Disable Public Exposure if instance is not ready
+  const publicExposureDisabled = status !== Phase2.Ready;
+
+  const getPublicExposureTooltipText = () => {
+    if (publicExposureDisabled) {
+      return 'Instance must be ready in order to request a Public Exposure';
+    }
+    return 'Manage Public Exposure';
+  };
+
+  const getFirstEnvironmentName = () => {
+    return instance.environments?.[0]?.name || 'env';
+  };
+
+  const buildSSHLink = (envName: string) => {
+    if (envName) {
+      return `/instance/${instance.tenantNamespace}/${instance.name}/${envName}/ssh`;
+    }
+    return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
+  };
 
   const infoContent = (
     <>
@@ -53,18 +79,29 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         <strong>Instance ID: </strong>
         <Text italic>{name}</Text>
       </p>
-      {running && (
+      {running && environments && environments.length > 0 && (
         <>
-          <p className="m-0">
-            <strong>IP: </strong>
-            <Text type="warning" copyable={!!ip}>
-              {ip ?? 'unknown'}
-            </Text>
-          </p>
           <p className="m-0">
             <strong>Node: </strong>
             <Text type="warning">{nodeName ?? '[choosing...]'}</Text>
           </p>
+          <List
+            dataSource={environments}
+            renderItem={env => (
+              <List.Item className="py-1 px-0">
+                <div className="w-full text-right">
+                  <Text strong>Environment ID: </Text>
+                  <Text>{env.name}</Text>
+                  <p className="m-0 text-right">
+                    <strong>IP: </strong>
+                    <Text type="warning" copyable={!!env.ip}>
+                      {env.ip ?? 'unknown'}
+                    </Text>
+                  </p>
+                </div>
+              </List.Item>
+            )}
+          />
         </>
       )}
       {viewMode === WorkspaceRole.manager && (
@@ -94,7 +131,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <Tooltip
-          title={getSSHTooltipText(status === Phase.Ready, environmentType!)}
+          title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
         >
           <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
             <Button
@@ -106,10 +143,75 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               onClick={() => setSshModal(true)}
             >
               SSH
+              {/* Only show direct link button if there's exactly one environment */}
+              {(!instance.environments ||
+                instance.environments.length === 1) && (
+                <Button
+                  disabled={sshDisabled}
+                  type="link"
+                  className="ml-3"
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <Link
+                      to={buildSSHLink(getFirstEnvironmentName())}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        color: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
+                        <ExportOutlined style={{ fontSize: 15 }} />
+                      </span>
+                    </Link>
+                  }
+                ></Button>
+              )}
             </Button>
           </span>
         </Tooltip>
+
+        {instance.allowPublicExposure && (
+          <Tooltip title={getPublicExposureTooltipText()}>
+            <Badge
+              count={(instance.publicExposure?.ports ?? []).length}
+              showZero={false}
+              size="small"
+              offset={[-8, 8]}
+            >
+              <Button
+                className="hidden mr-3 xl:inline-block"
+                shape="circle"
+                icon={<SelectOutlined style={{ fontSize: '16px' }} />}
+                onClick={() =>
+                  publicExposureDisabled
+                    ? undefined
+                    : setShowExposureModal(true)
+                }
+                disabled={publicExposureDisabled}
+              />
+            </Badge>
+          </Tooltip>
+        )}
       </div>
+      {instance.allowPublicExposure && showExposureModal && (
+        <PublicExposureModal
+          open={showExposureModal}
+          onCancel={() => setShowExposureModal(false)}
+          allowPublicExposure={instance.allowPublicExposure}
+          existingExposure={instance.publicExposure}
+          instanceId={instance.name}
+          instancePrettyName={instance.prettyName || instance.name}
+          tenantNamespace={instance.tenantNamespace}
+          manager={instance.tenantId}
+        />
+      )}
     </>
   );
 };

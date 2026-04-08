@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 package v1alpha2
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -36,12 +37,10 @@ const (
 	// EnvironmentPhaseRunning -> the environment is running, but not yet ready.
 	EnvironmentPhaseRunning EnvironmentPhase = "Running"
 	// EnvironmentPhaseReady -> the environment is ready to be accessed.
-	// with the current CrownLabs dashboard.
 	EnvironmentPhaseReady EnvironmentPhase = "Ready"
 	// EnvironmentPhaseStopping -> the environment is being stopped.
 	EnvironmentPhaseStopping EnvironmentPhase = "Stopping"
 	// EnvironmentPhaseOff -> the environment is currently shut down.
-	// with the current CrownLabs dashboard.
 	EnvironmentPhaseOff EnvironmentPhase = "Off"
 	// EnvironmentPhaseFailed -> the environment has failed, and cannot be restarted.
 	EnvironmentPhaseFailed EnvironmentPhase = "Failed"
@@ -49,16 +48,13 @@ const (
 	EnvironmentPhaseCreationLoopBackoff EnvironmentPhase = "CreationLoopBackoff"
 )
 
-// InstanceCustomizationUrls specifies optional urls for advanced integration features.
-type InstanceCustomizationUrls struct {
+// InstanceContentUrls specifies optional urls for advanced integration features.
+type InstanceContentUrls struct {
 	// URL from which GET the archive to be extracted into Template.ContainerStartupOptions.ContentPath. This field, if set, OVERRIDES Template.ContainerStartupOptions.SourceArchiveURL.
-	ContentOrigin string `json:"contentOrigin,omitempty"`
+	Origin string `json:"origin,omitempty"`
 
 	// URL to which POST an archive with the contents found (at instance termination) in Template.ContainerStartupOptions.ContentPath.
-	ContentDestination string `json:"contentDestination,omitempty"`
-
-	// URL which is periodically checked (with a GET request) to determine automatic instance shutdown. Should return any 2xx status code if the instance has to keep running, any 4xx otherwise. In case of 2xx response, it should output a JSON with a `deadline` field containing a ISO_8601 compliant date/time string of the expected instance termination time. See instautoctrl.StatusCheckResponse for exact definition.
-	StatusCheck string `json:"statusCheck,omitempty"`
+	Destination string `json:"destination,omitempty"`
 }
 
 // InstanceSpec is the specification of the desired state of the Instance.
@@ -91,8 +87,15 @@ type InstanceSpec struct {
 	// Labels that are used for the selection of the node.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
 
-	// Optional urls for advanced integration features.
-	CustomizationUrls *InstanceCustomizationUrls `json:"customizationUrls,omitempty"`
+	// StatusCheckURL urls for advanced integration features.
+	StatusCheckURL string `json:"statusCheckUrl,omitempty"`
+
+	ContentUrls map[string]InstanceContentUrls `json:"contentUrls,omitempty"`
+
+	// Optional specification of the Instance service exposure.
+	// If set, it will be used to expose the Instance services to the outside world.
+	// LoadBalancer will be created with the specified ports thanks to MetalLB and annotations.
+	PublicExposure *InstancePublicExposure `json:"publicExposure,omitempty"`
 }
 
 // InstanceAutomationStatus reflects the status of the instance's automation (termination and submission).
@@ -107,17 +110,18 @@ type InstanceAutomationStatus struct {
 	SubmissionTime metav1.Time `json:"submissionTime,omitempty"`
 }
 
-// InstanceStatus reflects the most recently observed status of the Instance.
-type InstanceStatus struct {
+// InstanceStatusEnv reflects the status of an instance's environment.
+type InstanceStatusEnv struct {
+	// The name identifying the specific environment.
+	// It is equivalent to the name of a template's environment.
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
+	Name string `json:"name"`
+
 	// The current status Instance, with reference to the associated environment
 	// (e.g. VM). This conveys which resource is being created, as well as
 	// whether the associated VM is being scheduled, is running or ready to
 	// accept incoming connections.
 	Phase EnvironmentPhase `json:"phase,omitempty"`
-
-	// The URL where it is possible to access the remote desktop of the instance
-	// (in case of graphical environments)
-	URL string `json:"url,omitempty"`
 
 	// The internal IP address associated with the remote environment, which can
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
@@ -130,12 +134,86 @@ type InstanceStatus struct {
 
 	// Timestamps of the Instance automation phases (check, termination and submission).
 	Automation InstanceAutomationStatus `json:"automation,omitempty"`
+}
 
+// InstanceStatus reflects the most recently observed status of the Instance.
+type InstanceStatus struct {
 	// The node on which the Instance is running.
 	NodeName string `json:"nodeName,omitempty"`
 
 	// The actual nodeSelector assigned to the Instance.
 	NodeSelector map[string]string `json:"nodeSelector,omitempty"`
+
+	// The current phase of the Instance based on all environments.
+	Phase EnvironmentPhase `json:"phase,omitempty"`
+
+	// The URL that consitutes the root for the urls of each environment within the instance.
+	// It is possible to access the remote desktop of the instance
+	// (in case of graphical environments).
+	URL string `json:"url,omitempty"`
+
+	// Environments contains the status of the instance's environments.
+	// +listType=map
+	// +listMapKey=name
+	Environments []InstanceStatusEnv `json:"environments,omitempty"`
+
+	// The status of the Instance service exposure, if any.
+	PublicExposure *InstancePublicExposureStatus `json:"publicExposure,omitempty"`
+}
+
+// InstancePublicExposure defines the specifications for the public exposure of an instance.
+type InstancePublicExposure struct {
+	// The list of ports to expose.
+	// If 'Port' is set to 0, a random port from the ephemeral range will be assigned.
+	// If no ports are specified, the service will not be exposed with a LoadBalancer
+	Ports []PublicServicePort `json:"ports,omitempty"`
+}
+
+// PublicServicePort defines the mapping of ports for a service.
+type PublicServicePort struct {
+	// A friendly name for the port.
+	// +kubebuilder:validation:Pattern=`^[a-z0-9]([-a-z0-9]{0,13}[a-z0-9])?$`
+	Name string `json:"name"`
+	// The public port to request. If 0 in spec, a random port from the ephemeral range will be assigned.
+	// +kubebuilder:validation:Minimum=0
+	// +kubebuilder:validation:Maximum=65535
+	// +kubebuilder:default=0
+	Port int32 `json:"port"`
+	// The port on the container to target.
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	TargetPort int32 `json:"targetPort"`
+	// The port protocol
+	// +kubebuilder:validation:Enum=TCP;UDP;SCTP
+	// +kubebuilder:default=TCP
+	Protocol v1.Protocol `json:"protocol,omitempty"`
+}
+
+// PublicExposurePhase is an enumeration of the different phases associated with the public exposure of an instance.
+// +kubebuilder:validation:Enum="";"Provisioning";"Ready";"Error"
+type PublicExposurePhase string
+
+const (
+	// PublicExposurePhaseUnset -> the public exposure phase is unknown or unset.
+	PublicExposurePhaseUnset PublicExposurePhase = ""
+	// PublicExposurePhaseProvisioning -> the public exposure is being provisioned.
+	PublicExposurePhaseProvisioning PublicExposurePhase = "Provisioning"
+	// PublicExposurePhaseReady -> the public exposure is ready and accessible.
+	PublicExposurePhaseReady PublicExposurePhase = "Ready"
+	// PublicExposurePhaseError -> an error occurred during public exposure provisioning.
+	PublicExposurePhaseError PublicExposurePhase = "Error"
+)
+
+// InstancePublicExposureStatus defines the observed state of the public exposure.
+type InstancePublicExposureStatus struct {
+	// The external IP address assigned to the LoadBalancer service.
+	ExternalIP string `json:"externalIP,omitempty"`
+	// The list of port mappings with the actually assigned public ports in 'Port' field.
+	Ports []PublicServicePort `json:"ports,omitempty"`
+	// The current phase of the public exposure.
+	Phase PublicExposurePhase `json:"phase,omitempty"`
+	// Message provides more details about the status, especially in case of an error.
+	Message string `json:"message,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -144,9 +222,9 @@ type InstanceStatus struct {
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.url`,priority=10
-// +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.ip`,priority=10
-// +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.initialReadyTime`
+// +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.environments[0].url`,priority=10
+// +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.environments[0].ip`,priority=10
+// +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.environments[0].initialReadyTime`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // Instance describes the instance of a CrownLabs environment Template.

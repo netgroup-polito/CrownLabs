@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package main contains the entrypoint for the Crownlabs unified operator.
 package main
 
 import (
@@ -53,10 +52,10 @@ const (
 	// KeycloakEventsWebhookPath -> path on which the tenant webhook will be bound.
 	KeycloakEventsWebhookPath = "/tenant-webhook"
 
-	// ValidatorWebhookPath -> path on which the validator webhook will be bound.
-	ValidatorWebhookPath = "/validator-v1alpha2-tenant"
-	// DefaulterWebhookPath -> path on which the defaulter webhook will be bound.
-	DefaulterWebhookPath = "/defaulter-v1alpha2-tenant"
+	// TenantValidatorWebhookPath -> path on which the Tenant validator webhook will be bound.
+	TenantValidatorWebhookPath = "/validator-v1alpha2-tenant"
+	// TenantDefaulterWebhookPath -> path on which the Tenant defaulter webhook will be bound.
+	TenantDefaulterWebhookPath = "/defaulter-v1alpha2-tenant"
 )
 
 func init() {
@@ -195,14 +194,14 @@ func setupTenantWebhook(
 		WithValidator(&webhook.TenantValidator{
 			TenantWebhook: tnWh,
 		}).
-		WithValidatorCustomPath(ValidatorWebhookPath).
+		WithValidatorCustomPath(TenantValidatorWebhookPath).
 		WithDefaulter(&webhook.TenantDefaulter{
 			TenantWebhook:   tnWh,
 			Decoder:         admission.NewDecoder(mgr.GetScheme()),
 			OpSelectorLabel: targetLabel,
 			BaseWorkspaces:  baseWorkspaces,
 		}).
-		WithDefaulterCustomPath(DefaulterWebhookPath).
+		WithDefaulterCustomPath(TenantDefaulterWebhookPath).
 		Complete(); err != nil {
 		return err
 	}

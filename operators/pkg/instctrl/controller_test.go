@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@ package instctrl_test
 
 import (
 	"context"
+	"fmt"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -25,6 +26,7 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	virtv1 "kubevirt.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
@@ -40,16 +42,22 @@ import (
 var _ = Describe("The instance-controller Reconcile method", func() {
 	ctx := context.Background()
 	var (
-		testName       string
-		prettyName     string
-		runInstance    bool
-		instance       clv1alpha2.Instance
-		pod            corev1.Pod
-		environment    clv1alpha2.Environment
-		ingress        netv1.Ingress
-		service        corev1.Service
-		createTenant   bool
-		createTemplate bool
+		testName        string
+		prettyName      string
+		runInstance     bool
+		instance        clv1alpha2.Instance
+		pod             corev1.Pod
+		environmentList []clv1alpha2.Environment
+		template        clv1alpha2.Template
+		ingress         netv1.Ingress
+		service         corev1.Service
+		createTenant    bool
+		createTemplate  bool
+	)
+
+	const (
+		host                  = "fakesite.com"
+		IngressInstancePrefix = "/instance"
 	)
 
 	RunReconciler := func() error {
@@ -65,19 +73,33 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 	BeforeEach(func() {
 		createTenant = true
 		createTemplate = true
-		environment = clv1alpha2.Environment{
-			Name:            "app",
-			Image:           "some-image:v0",
-			EnvironmentType: clv1alpha2.ClassVM,
-			Persistent:      false,
-			GuiEnabled:      true,
-			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   1,
-				ReservedCPUPercentage: 20,
-				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+		environmentList = []clv1alpha2.Environment{
+			{
+				Name:            "app-1",
+				Image:           "some-image:v0",
+				EnvironmentType: clv1alpha2.ClassStandalone,
+				Persistent:      false,
+				GuiEnabled:      true,
+				Resources: clv1alpha2.EnvironmentResources{
+					CPU:                   1,
+					ReservedCPUPercentage: 20,
+					Memory:                *resource.NewScaledQuantity(1, resource.Giga),
+					Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+				},
 			},
-			Mode: clv1alpha2.ModeStandard,
+			{
+				Name:            "dev-1",
+				Image:           "some-image-dev:v1",
+				EnvironmentType: clv1alpha2.ClassStandalone,
+				Persistent:      true,
+				GuiEnabled:      true,
+				Resources: clv1alpha2.EnvironmentResources{
+					CPU:                   1,
+					ReservedCPUPercentage: 20,
+					Memory:                *resource.NewScaledQuantity(1, resource.Giga),
+					Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+				},
+			},
 		}
 	})
 
@@ -96,11 +118,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				Email: "test@email.me",
 			},
 		}
-		template := clv1alpha2.Template{
+		template = clv1alpha2.Template{
 			ObjectMeta: metav1.ObjectMeta{Name: testName, Namespace: testName},
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
-				EnvironmentList: []clv1alpha2.Environment{environment},
+				EnvironmentList: environmentList,
+				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -139,28 +162,42 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		Expect(k8sClient.Create(ctx, &instance)).To(Succeed())
 	})
 
-	StandaloneContainerIt := func(namespacedNameSuffix string, persistent bool) {
+	StandaloneContainerIt := func() {
 		It("Should correctly reconcile the instance", func() {
 			Expect(RunReconciler()).To(Succeed())
 
+			expectedURL := fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
+			Expect(instance.Status.URL).To(Equal(expectedURL))
+
+			Expect(instance.Status.Environments).ToNot(BeEmpty())
+
+			for _, env := range instance.Status.Environments {
+				Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
+			}
 			Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
 
 			By("Asserting the deployment has been created with no replicas", func() {
 				var deploy appsv1.Deployment
-				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
-				Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
+				for _, env := range template.Spec.EnvironmentList {
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &deploy)).To(Succeed())
+					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
+				}
 			})
 
-			if persistent {
-				By("Asserting the PVC has been created", func() {
-					var pvc corev1.PersistentVolumeClaim
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &pvc)).To(Succeed())
-				})
-			}
+			By("Asserting the PVC has been created", func() {
+				var pvc corev1.PersistentVolumeClaim
+				for _, env := range template.Spec.EnvironmentList {
+					if env.Persistent {
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &pvc)).To(Succeed())
+					}
+				}
+			})
 
 			By("Asserting the exposition resources aren't present", func() {
-				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
-				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, namespacedNameSuffix), &ingress)).To(FailBecauseNotFound())
+				for _, env := range template.Spec.EnvironmentList {
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(FailBecauseNotFound())
+				}
 			})
 
 			By("Setting the instance to running", func() {
@@ -170,18 +207,31 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			})
 
 			By("Asserting the right exposition resources exist", func() {
-				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
-				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, namespacedNameSuffix), &ingress)).To(Succeed())
+				for _, env := range template.Spec.EnvironmentList {
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(Succeed())
+				}
 			})
 
 			By("Asserting the state is coherent", func() {
+				Expect(instance.Status.Environments).ToNot(BeEmpty())
+				for _, env := range instance.Status.Environments {
+					Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
+				}
 				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseStarting))
 			})
 
 			By("Asserting the deployment has been created", func() {
 				var deploy appsv1.Deployment
-				Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &deploy)).To(Succeed())
-				Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
+				for _, env := range template.Spec.EnvironmentList {
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &deploy)).To(Succeed())
+					Expect(deploy.Spec.Replicas).To(PointTo(BeNumerically("==", 1)))
+				}
+			})
+
+			By("Asserting the root url is empty", func() {
+				expectedURL := fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
+				Expect(instance.Status.URL).To(Equal(expectedURL))
 			})
 		})
 	}
@@ -190,20 +240,25 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is persistent", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-persistent"
-				environment.Persistent = true
-				environment.EnvironmentType = clv1alpha2.ClassStandalone
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
+					environmentList[i].Persistent = true
+				}
 				runInstance = false
 			})
 
-			StandaloneContainerIt(forge.IngressAppSuffix, true)
+			StandaloneContainerIt()
 		})
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-not-persistent"
-				environment.EnvironmentType = clv1alpha2.ClassStandalone
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
+					environmentList[i].Persistent = false
+				}
 				runInstance = false
 			})
-			StandaloneContainerIt(forge.IngressAppSuffix, false)
+			StandaloneContainerIt()
 		})
 	})
 
@@ -211,19 +266,24 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is persistent", func() {
 			BeforeEach(func() {
 				testName = "test-container-persistent"
-				environment.Persistent = true
-				environment.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+					environmentList[i].Persistent = true
+				}
 				runInstance = false
 			})
-			StandaloneContainerIt(forge.IngressGUINameSuffix, true)
+			StandaloneContainerIt()
 		})
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
 				testName = "test-container-not-persistent"
-				environment.EnvironmentType = clv1alpha2.ClassContainer
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+					environmentList[i].Persistent = false
+				}
 				runInstance = false
 			})
-			StandaloneContainerIt(forge.IngressGUINameSuffix, false)
+			StandaloneContainerIt()
 		})
 	})
 
@@ -232,21 +292,32 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			ContextBody := func(envType clv1alpha2.EnvironmentType, name string) {
 				BeforeEach(func() {
 					testName = name
-					environment.Persistent = true
+					for i := range environmentList {
+						environmentList[i].EnvironmentType = envType
+						environmentList[i].Persistent = true
+					}
 					runInstance = false
-					environment.EnvironmentType = envType
 				})
 
 				It("Should correctly reconcile the instance", func() {
 					Expect(RunReconciler()).To(Succeed())
 
 					// Check the status phase is unset since it's retrieved from the VM (and the kubervirt operator is not available in the test env)
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					for _, env := range instance.Status.Environments {
+						Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
+					}
 					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseUnset))
 
 					By("Asserting the VM has been created", func() {
-						var vm virtv1.VirtualMachine
-						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
-						Expect(vm.Spec.Running).To(PointTo(BeFalse()))
+						for _, env := range template.Spec.EnvironmentList {
+							var vm virtv1.VirtualMachine
+							if env.EnvironmentType == clv1alpha2.ClassVM || env.EnvironmentType == clv1alpha2.ClassCloudVM {
+
+								Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &vm)).To(Succeed())
+								Expect(vm.Spec.Running).To(PointTo(BeFalse()))
+							}
+						}
 					})
 
 					By("Asserting the cloudinit secret has been created", func() {
@@ -255,8 +326,10 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					})
 
 					By("Asserting the exposition resources aren't present", func() {
-						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+						for _, env := range template.Spec.EnvironmentList {
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(FailBecauseNotFound())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(FailBecauseNotFound())
+						}
 					})
 
 					By("Setting the instance to running", func() {
@@ -266,24 +339,46 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					})
 
 					By("Asserting the right exposition resources exist", func() {
-						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+						for _, env := range template.Spec.EnvironmentList {
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(Succeed())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(Succeed())
+						}
 					})
 
 					By("Asserting the state is coherent", func() {
 						var vm virtv1.VirtualMachine
-						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
-						vm.Status.PrintableStatus = virtv1.VirtualMachineStatusRunning
-						Expect(k8sClient.Update(ctx, &vm))
+						for _, env := range template.Spec.EnvironmentList {
+							if env.EnvironmentType == clv1alpha2.ClassVM || env.EnvironmentType == clv1alpha2.ClassCloudVM {
+								Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &vm)).To(Succeed())
+								vm.Status.PrintableStatus = virtv1.VirtualMachineStatusRunning
+								Expect(k8sClient.Update(ctx, &vm)).To(Succeed())
+							}
+						}
 						Expect(RunReconciler()).To(Succeed())
+
+						Expect(instance.Status.Environments).ToNot(BeEmpty())
+						for _, env := range instance.Status.Environments {
+							Expect(env.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
+						}
 						Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 					})
 
 					By("Asserting the VM spec has been changed", func() {
 						var vm virtv1.VirtualMachine
-						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vm)).To(Succeed())
-						Expect(vm.Spec.Running).To(PointTo(BeTrue()))
+						for _, env := range template.Spec.EnvironmentList {
+							if env.EnvironmentType == clv1alpha2.ClassVM || env.EnvironmentType == clv1alpha2.ClassCloudVM {
+								Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &vm)).To(Succeed())
+								Expect(vm.Spec.Running).To(PointTo(BeTrue()))
+							}
+						}
+
 					})
+
+					By("Asserting the root url was correctly assigned if the vm has gui enabled", func() {
+						expectedURL := fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
+						Expect(instance.Status.URL).To(Equal(expectedURL))
+					})
+
 				})
 			}
 
@@ -295,17 +390,27 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("the environment is NOT persistent", func() {
 			BeforeEach(func() {
 				testName = "test-vm-not-persistent"
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassVM
+					environmentList[i].Persistent = false
+				}
 				runInstance = false
 			})
 
 			It("Should correctly reconcile the instance", func() {
 				Expect(RunReconciler()).To(Succeed())
-
+				Expect(instance.Status.Environments).ToNot(BeEmpty())
+				for i := range instance.Status.Environments {
+					Expect(instance.Status.Environments[i].Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
+				}
 				Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseOff))
-
 				By("Asserting the VM has NOT been created", func() {
 					var vmi virtv1.VirtualMachineInstance
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vmi)).To(FailBecauseNotFound())
+					for i := range template.Spec.EnvironmentList {
+						if template.Spec.EnvironmentList[i].EnvironmentType == clv1alpha2.ClassVM {
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &vmi)).To(FailBecauseNotFound())
+						}
+					}
 				})
 
 				By("Asserting the cloudinit secret has been created", func() {
@@ -314,8 +419,10 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				})
 
 				By("Asserting the exposition resources aren't present", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(FailBecauseNotFound())
+					for i := range template.Spec.EnvironmentList {
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &service)).To(FailBecauseNotFound())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &ingress)).To(FailBecauseNotFound())
+					}
 				})
 
 				By("Setting the instance to running", func() {
@@ -325,19 +432,30 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				})
 
 				By("Asserting the right exposition resources exist", func() {
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &service)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, forge.IngressGUINameSuffix), &ingress)).To(Succeed())
+					for i := range template.Spec.EnvironmentList {
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &service)).To(Succeed())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &ingress)).To(Succeed())
+					}
 				})
 
 				By("Asserting the VM has been created", func() {
 					var vmi virtv1.VirtualMachineInstance
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &vmi)).To(Succeed())
-					vmi.Status.Phase = virtv1.Running
-					Expect(k8sClient.Update(ctx, &vmi)).To(Succeed())
+					for _, env := range template.Spec.EnvironmentList {
+						if env.EnvironmentType == clv1alpha2.ClassVM {
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &vmi)).To(Succeed())
+							vmi.Status.Phase = virtv1.Running
+							Expect(k8sClient.Update(ctx, &vmi)).To(Succeed())
+						}
+					}
+
 				})
 
 				By("Asserting the state is coherent", func() {
 					Expect(RunReconciler()).To(Succeed())
+					Expect(instance.Status.Environments).ToNot(BeEmpty())
+					for i := range instance.Status.Environments {
+						Expect(instance.Status.Environments[i].Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
+					}
 					Expect(instance.Status.Phase).To(Equal(clv1alpha2.EnvironmentPhaseRunning))
 				})
 			})
@@ -349,8 +467,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			testName = t
 
 			runInstance = false
-			environment.EnvironmentType = envtype
-			environment.Persistent = persistent
+			for i := range environmentList {
+				environmentList[i].EnvironmentType = envtype
+				environmentList[i].Persistent = persistent
+			}
+
 			pod.Spec.NodeName = testName
 		})
 
@@ -394,9 +515,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		When("Pod doesn't have kubevirt.io/schedulable label", func() {
 			BeforeEach(func() {
 				testName = "pod-kubevirt-label"
-				runInstance = true
-				environment.EnvironmentType = clv1alpha2.ClassVM
-				environment.Persistent = true
+				runInstance = false
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassVM
+					environmentList[i].Persistent = true
+				}
 				pod.Spec.NodeName = testName
 
 				pod.Spec.NodeSelector = make(map[string]string)
@@ -404,8 +527,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			})
 
 			It("Should do no operation", func() {
+				Expect(RunReconciler()).To(Succeed())
+
 				Expect(k8sClient.Create(ctx, &pod)).To(Succeed())
 
+				instance.Spec.Running = true
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
 				Expect(RunReconciler()).To(Succeed())
 
 				Expect(instance.Status.NodeSelector).To(Equal(map[string]string{"key": "value"}))
@@ -460,6 +587,225 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 			It("Should fail instance reconcile", func() {
 				Expect(RunReconciler()).To(HaveOccurred())
+			})
+		})
+	})
+
+	Context("Public Exposure functionality", func() {
+		When("the template allows public exposure and instance has public exposure config", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-enabled"
+				runInstance = true
+				// Public exposure only works with single environment templates
+				environmentList = []clv1alpha2.Environment{
+					{
+						Name:            "app-1",
+						Image:           "some-image:v0",
+						EnvironmentType: clv1alpha2.ClassContainer,
+						Persistent:      false,
+						GuiEnabled:      true,
+						Resources: clv1alpha2.EnvironmentResources{
+							CPU:                   1,
+							ReservedCPUPercentage: 20,
+							Memory:                *resource.NewScaledQuantity(1, resource.Giga),
+							Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+						},
+					},
+				}
+			})
+
+			JustBeforeEach(func() {
+				// Enable public exposure in template after creation
+				var template clv1alpha2.Template
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: testName, Namespace: testName}, &template)).To(Succeed())
+				template.Spec.AllowPublicExposure = true
+				Expect(k8sClient.Update(ctx, &template)).To(Succeed())
+
+				// Add public exposure config to instance
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8081,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			})
+
+			It("Should create LoadBalancer service for public exposure", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service has been created", func() {
+					serviceName := testName + "-pe"
+					var lbService corev1.Service
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
+
+					// Check service type
+					Expect(lbService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
+
+					// Check ports
+					Expect(lbService.Spec.Ports).To(HaveLen(1))
+					Expect(lbService.Spec.Ports[0].Name).To(Equal("http"))
+					Expect(lbService.Spec.Ports[0].Port).To(Equal(int32(8081)))
+					Expect(lbService.Spec.Ports[0].TargetPort.IntVal).To(Equal(int32(80)))
+
+					// Check annotations for MetalLB
+					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/address-pool"))
+					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/allow-shared-ip"))
+					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/loadBalancerIPs"))
+				})
+
+				By("Asserting the instance status has been updated", func() {
+					Expect(instance.Status.PublicExposure).NotTo(BeNil())
+					Expect(instance.Status.PublicExposure.Phase).To(Equal(clv1alpha2.PublicExposurePhaseReady))
+					Expect(instance.Status.PublicExposure.ExternalIP).NotTo(BeEmpty())
+					Expect(instance.Status.PublicExposure.Ports).To(HaveLen(1))
+				})
+			})
+		})
+
+		When("the template does not allow public exposure", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-disabled"
+				runInstance = true
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				}
+			})
+
+			JustBeforeEach(func() {
+				// Add public exposure config to instance (should be ignored)
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8082,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			})
+
+			It("Should not create LoadBalancer service", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service was not created", func() {
+					serviceName := testName + "-public-exposure"
+					var lbService corev1.Service
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the instance status has no public exposure", func() {
+					Expect(instance.Status.PublicExposure).To(BeNil())
+				})
+			})
+		})
+
+		When("the instance is not running", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-not-running"
+				runInstance = false
+				for i := range environmentList {
+					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+				}
+			})
+
+			JustBeforeEach(func() {
+				// Enable public exposure in template
+				var template clv1alpha2.Template
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: testName, Namespace: testName}, &template)).To(Succeed())
+				template.Spec.AllowPublicExposure = true
+				Expect(k8sClient.Update(ctx, &template)).To(Succeed())
+
+				// Add public exposure config to instance
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8083,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			})
+
+			It("Should not create LoadBalancer service when not running", func() {
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service was not created", func() {
+					serviceName := testName + "-public-exposure"
+					var lbService corev1.Service
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the instance status has no public exposure", func() {
+					Expect(instance.Status.PublicExposure).To(BeNil())
+				})
+			})
+		})
+
+		When("public exposure is removed from instance", func() {
+			BeforeEach(func() {
+				testName = "test-public-exposure-removal"
+				runInstance = true
+				// Public exposure only works with single environment templates
+				environmentList = []clv1alpha2.Environment{
+					{
+						Name:            "app-1",
+						Image:           "some-image:v0",
+						EnvironmentType: clv1alpha2.ClassContainer,
+						Persistent:      false,
+						GuiEnabled:      true,
+						Resources: clv1alpha2.EnvironmentResources{
+							CPU:                   1,
+							ReservedCPUPercentage: 20,
+							Memory:                *resource.NewScaledQuantity(1, resource.Giga),
+							Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
+						},
+					},
+				}
+			})
+
+			It("Should remove LoadBalancer service when public exposure is disabled", func() {
+				// enable public exposure
+				var template clv1alpha2.Template
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: testName, Namespace: testName}, &template)).To(Succeed())
+				template.Spec.AllowPublicExposure = true
+				Expect(k8sClient.Update(ctx, &template)).To(Succeed())
+
+				instance.Spec.PublicExposure = &clv1alpha2.InstancePublicExposure{
+					Ports: []clv1alpha2.PublicServicePort{
+						{
+							Name:       "http",
+							Port:       8084,
+							TargetPort: 80,
+						},
+					},
+				}
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+				Expect(RunReconciler()).To(Succeed())
+
+				// Verify service was created
+				serviceName := testName + "-pe"
+				var lbService corev1.Service
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
+
+				// remove public exposure
+				instance.Spec.PublicExposure = nil
+				Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+				Expect(RunReconciler()).To(Succeed())
+
+				By("Asserting the LoadBalancer service was removed", func() {
+					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(FailBecauseNotFound())
+				})
+
+				By("Asserting the instance status was cleaned up", func() {
+					Expect(instance.Status.PublicExposure).To(BeNil())
+				})
 			})
 		})
 	})

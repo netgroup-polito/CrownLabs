@@ -14,15 +14,20 @@ import { SessionValue, StorageKeys } from '../../../../utilsStorage';
 import TableInstance from '../../../activePage/TableInstance/TableInstance';
 import { TemplatesTableRow } from '../TemplatesTableRow';
 import './TemplatesTable.less';
+import {
+  OwnedInstancesContext,
+  type IQuota,
+} from '../../../../contexts/OwnedInstancesContext';
 
 const expandedT = new SessionValue(StorageKeys.Dashboard_ID_T, '');
 export interface ITemplatesTableProps {
-  totalInstances: number;
   tenantNamespace: string;
   workspaceNamespace: string;
+  workspaceName: string;
   templates: Array<Template>;
   role: WorkspaceRole;
-  editTemplate: (id: string) => void;
+  isPersonal?: boolean;
+  editTemplate: (t: Template) => void;
   deleteTemplate: (
     id: string,
   ) => Promise<
@@ -35,7 +40,7 @@ export interface ITemplatesTableProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: Record<string, string>,
+    labelSelector?: JSON,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -47,20 +52,31 @@ export interface ITemplatesTableProps {
 
 const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   const {
-    totalInstances,
+    tenantNamespace,
     templates,
     role,
     editTemplate,
     deleteTemplate,
     deleteTemplateLoading,
     createInstance,
+    isPersonal,
+    workspaceName,
   } = props;
 
   const { hasSSHKeys } = useContext(TenantContext);
+
+  // Get the available quota in the workspace from the OwnedInstancesContext
+  const { availableQuota } = useContext(OwnedInstancesContext);
+  const workspaceAvailableQuota: IQuota = availableQuota?.[workspaceName] || {
+    instances: 0,
+    cpu: 0,
+    memory: 0,
+    disk: 0,
+  };
+
   /**
    * Our Table has just one column which render all rows using a component TemplateTableRow
    */
-
   const columns = [
     {
       title: 'Template',
@@ -69,12 +85,14 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
         <TemplatesTableRow
           template={record}
           role={role}
-          totalInstances={totalInstances}
           editTemplate={editTemplate}
           deleteTemplate={deleteTemplate}
           deleteTemplateLoading={deleteTemplateLoading}
           createInstance={createInstance}
           expandRow={listToggler}
+          tenantNamespace={tenantNamespace}
+          isPersonal={isPersonal}
+          workspaceAvailableQuota={workspaceAvailableQuota}
         />
       ),
     },
@@ -89,43 +107,38 @@ const TemplatesTable: FC<ITemplatesTableProps> = ({ ...props }) => {
   }, [expandedId]);
 
   return (
-    <div className="w-full flex-grow flex-wrap content-between py-0 overflow-auto scrollbar cl-templates-table">
-      <Table
-        size="middle"
-        showHeader={false}
-        rowKey={record => record.id}
-        columns={columns}
-        dataSource={templates}
-        pagination={false}
-        expandable={{
-          onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
-          rowExpandable: record => !!record.instances.length,
-          expandedRowKeys: expandedId,
-          expandIcon: ({ expanded, onExpand, record }) =>
-            record.instances.length ? (
-              <CaretRightOutlined
-                className="transition-icon"
-                onClick={e => onExpand(record, e)}
-                rotate={expanded ? 90 : 0}
-              />
-            ) : (
-              false
-            ),
-          /**
-           * Here we render the expandable content, for example with a nested Table
-           */
-          expandedRowRender: template => (
-            <TableInstance
-              showGuiIcon={false}
-              viewMode={WorkspaceRole.user}
-              extended={false}
-              instances={template.instances}
-              hasSSHKeys={hasSSHKeys}
+    <Table
+      size="middle"
+      showHeader={false}
+      rowKey={record => record.id}
+      columns={columns}
+      dataSource={templates}
+      pagination={false}
+      expandable={{
+        onExpand: (_expanded, record) => listToggler(`${record.id}`, false),
+        rowExpandable: record => !!record.instances.length,
+        expandedRowKeys: expandedId,
+        expandIcon: ({ expanded, onExpand, record }) =>
+          record.instances.length ? (
+            <CaretRightOutlined
+              className="transition-icon"
+              onClick={e => onExpand(record, e)}
+              rotate={expanded ? 90 : 0}
             />
+          ) : (
+            false
           ),
-        }}
-      />
-    </div>
+        expandedRowRender: template => (
+          <TableInstance
+            showGuiIcon={false}
+            viewMode={WorkspaceRole.user}
+            extended={false}
+            instances={template.instances}
+            hasSSHKeys={hasSSHKeys}
+          />
+        ),
+      }}
+    />
   );
 };
 

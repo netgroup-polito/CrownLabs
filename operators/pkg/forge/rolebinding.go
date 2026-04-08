@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -107,6 +107,32 @@ func ConfigureWorkspaceManagerManageSharedVolumesBinding(ws *v1alpha1.Workspace,
 		{
 			Kind:     rbacv1.GroupKind,
 			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, v1alpha2.Manager)),
+			APIGroup: rbacv1.GroupName,
+		},
+	}
+}
+
+// ConfigurePersonalWorkspaceManageTemplatesBinding configures a RoleBinding for a tenant to manage templates.
+func ConfigurePersonalWorkspaceManageTemplatesBinding(tn *v1alpha2.Tenant, rb *rbacv1.RoleBinding, labels map[string]string) {
+	// Set the labels
+	if rb.Labels == nil {
+		rb.Labels = make(map[string]string)
+	}
+	maps.Copy(rb.Labels, labels)
+
+	// Ensure that the rolebinding is for the personal workspace
+	rb.Namespace = GetTenantNamespaceName(tn)
+
+	// Configure the role binding spec
+	rb.RoleRef = rbacv1.RoleRef{
+		Kind:     "ClusterRole",
+		Name:     ManageTemplatesRoleName,
+		APIGroup: rbacv1.GroupName,
+	}
+	rb.Subjects = []rbacv1.Subject{
+		{
+			Kind:     rbacv1.UserKind,
+			Name:     tn.Name,
 			APIGroup: rbacv1.GroupName,
 		},
 	}

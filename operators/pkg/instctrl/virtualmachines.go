@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -34,9 +34,10 @@ import (
 func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
 	// Enforce the cloud-init secret when environment is not restricted
-	if environment.Mode == clv1alpha2.ModeStandard {
+	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		if err := r.EnforceCloudInitSecret(ctx); err != nil {
 			log.Error(err, "failed to enforce the cloud-init secret existence")
 			return err
@@ -64,17 +65,32 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
-	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMeta(instance)}
+	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+
+	// It is necessary to retrieve the VMI object associated with the VM (if any), to enforce the MAC of the VMI into the VM, and later to correctly detect the ResourceQuotaExceeded phase.
+	// VM and VMI are characterized by the same resource name.
+	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+	if err := r.Get(ctx, client.ObjectKeyFromObject(&vmi), &vmi); client.IgnoreNotFound(err) != nil {
+		log.Error(err, "failed to retrieve virtualmachineinstance", "virtualmachineinstance", klog.KObj(&vm))
+		return err
+	} else if err != nil {
+		klog.Infof("VMI %s-%s doesn't exist", instance.Name, environment.Name)
+	}
+
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &vm, func() error {
 		// VirtualMachine specifications are forged only at creation time, as changing them later may be
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
 		if vm.CreationTimestamp.IsZero() {
-			vm.Spec = forge.VirtualMachineSpec(instance, environment)
+			vm.Spec = forge.VirtualMachineSpec(instance, template, environment)
 		}
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)
-		vm.SetLabels(forge.InstanceObjectLabels(vm.GetLabels(), instance))
+		vm.SetLabels(forge.EnvironmentObjectLabels(vm.GetLabels(), instance, environment))
+		if vm.Spec.Template != nil && len(vm.Spec.Template.Spec.Domain.Devices.Interfaces) > 0 && len(vmi.Status.Interfaces) > 0 && vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress == "" {
+			vm.Spec.Template.Spec.Domain.Devices.Interfaces[0].MacAddress = vmi.Status.Interfaces[0].MAC
+		}
 		return ctrl.SetControllerReference(instance, &vm, r.Scheme)
 	})
 
@@ -84,21 +100,15 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	}
 	log.V(utils.FromResult(res)).Info("virtualmachine enforced", "virtualmachine", klog.KObj(&vm), "result", res)
 
-	// It is necessary to retrieve the VMI object associated with the VM (if any), to correctly detect the ResourceQuotaExceeded phase.
-	// VM and VMI are characterized by the same resource name.
-	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMeta(instance)}
-	if err = r.Get(ctx, client.ObjectKeyFromObject(&vmi), &vmi); client.IgnoreNotFound(err) != nil {
-		log.Error(err, "failed to retrieve virtualmachineinstance", "virtualmachineinstance", klog.KObj(&vm))
-		return err
-	} else if err != nil {
-		klog.Infof("VMI %s doesn't exist", instance.Name)
-	}
 	phase := r.RetrievePhaseFromVM(&vm, &vmi)
 
-	if phase != instance.Status.Phase {
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
+	instanceStatusEnv := &instance.Status.Environments[envIndex]
+
+	if phase != instanceStatusEnv.Phase {
 		log.Info("phase changed", "virtualmachine", klog.KObj(&vm),
-			"previous", string(instance.Status.Phase), "current", string(phase))
-		instance.Status.Phase = phase
+			"previous", string(instanceStatusEnv.Phase), "current", string(phase))
+		instanceStatusEnv.Phase = phase
 	}
 
 	return nil
@@ -109,8 +119,9 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
-	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMeta(instance)}
+	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	var phase clv1alpha2.EnvironmentPhase
 
 	// If the Instance is not running, we do not enforce the VirtualMachineInstance presence.
@@ -121,9 +132,9 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 			// VirtualMachineInstance specifications are forged only at creation time, as changing them later may be
 			// either rejected by the webhook or cause the restart of the VMI itself, with consequent data loss.
 			if vmi.CreationTimestamp.IsZero() {
-				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, environment)
+				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment)
 			}
-			vmi.SetLabels(forge.InstanceObjectLabels(vmi.GetLabels(), instance))
+			vmi.SetLabels(forge.EnvironmentObjectLabels(vmi.GetLabels(), instance, environment))
 			return ctrl.SetControllerReference(instance, &vmi, r.Scheme)
 		})
 
@@ -137,10 +148,13 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 		phase = clv1alpha2.EnvironmentPhaseOff
 	}
 
-	if phase != instance.Status.Phase {
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
+	instanceStatusEnv := &instance.Status.Environments[envIndex]
+
+	if phase != instanceStatusEnv.Phase {
 		log.Info("phase changed", "virtualmachineinstance", klog.KObj(&vmi),
-			"previous", string(instance.Status.Phase), "current", string(phase))
-		instance.Status.Phase = phase
+			"previous", string(instanceStatusEnv.Phase), "current", string(phase))
+		instanceStatusEnv.Phase = phase
 	}
 
 	return nil

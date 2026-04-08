@@ -14,7 +14,7 @@ async function updateNodesLabels() {
     const nodes = await apiClient.listNode();
     nodesLabels.clear();
     nodesLabelsPairs.length = 0;
-    nodes.body.items.forEach((node) => {
+    nodes.items.forEach((node) => {
       const { labels } = node.metadata;
       if (labels) {
         Object.keys(labels).forEach((label) => {

@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -57,14 +57,14 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMeta(instance)}
+	pvc := v1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// PVC's spec is immutable, it has to be set at creation
 		if pvc.CreationTimestamp.IsZero() {
 			pvc.Spec = forge.InstancePVCSpec(environment)
 		}
-		pvc.SetLabels(forge.InstanceObjectLabels(pvc.GetLabels(), instance))
+		pvc.SetLabels(forge.EnvironmentObjectLabels(pvc.GetLabels(), instance, environment))
 		return ctrl.SetControllerReference(instance, &pvc, r.Scheme)
 	})
 	if err != nil {
@@ -78,46 +78,29 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 // enforceContainer enforces the actual deployment
 // which contains all the container based instance components.
 func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
-	var nfsServerName, nfsPath string
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
-	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMeta(instance)}
+	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
-	mountInfos := []forge.NFSVolumeMountInfo{}
-
-	if environment.MountMyDriveVolume {
-		var err error
-		nfsServerName, nfsPath, err = r.GetNFSSpecs(ctx)
-		if err != nil {
-			log.Error(err, "can't get NFS spec")
-			return err
-		}
-
-		mountInfos = append(mountInfos, forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsPath))
-	}
-
-	for i, mount := range environment.SharedVolumeMounts {
-		var shvol clv1alpha2.SharedVolume
-		if err := r.Get(ctx, forge.NamespacedNameFromMount(mount), &shvol); err != nil {
-			log.Error(err, "unable to retrieve shvol to mount")
-			return err
-		}
-
-		mountInfos = append(mountInfos, forge.ShVolNFSVolumeMountInfo(i, &shvol, mount))
+	mountInfos, msg, err := forge.NFSVolumeMountInfosFromEnvironment(ctx, r.Client, environment)
+	if err != nil {
+		log.Error(err, msg)
+		return err
 	}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
 		// Deployment specifications are forged only at creation time, as changing them later may be
 		// either rejected or cause the restart of the Pod, with consequent possible data loss.
 		if depl.CreationTimestamp.IsZero() {
-			depl.Spec = forge.DeploymentSpec(instance, environment, mountInfos, &r.ContainerEnvOpts)
+			depl.Spec = forge.DeploymentSpec(instance, template, environment, mountInfos, &r.ContainerEnvOpts)
 		}
 
 		depl.Spec.Replicas = forge.ReplicasCount(instance, environment, depl.CreationTimestamp.IsZero())
 
-		depl.SetLabels(forge.InstanceObjectLabels(depl.GetLabels(), instance))
+		depl.SetLabels(forge.EnvironmentObjectLabels(depl.GetLabels(), instance, environment))
 		return ctrl.SetControllerReference(instance, &depl, r.Scheme)
 	})
 
@@ -136,10 +119,12 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 		phase = clv1alpha2.EnvironmentPhaseOff
 	}
 
-	if phase != instance.Status.Phase {
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
+	instanceStatusEnv := instance.Status.Environments[envIndex]
+	if phase != instanceStatusEnv.Phase {
 		log.Info("phase changed", "deployment", klog.KObj(&depl),
-			"previous", string(instance.Status.Phase), "current", string(phase))
-		instance.Status.Phase = phase
+			"previous", string(instanceStatusEnv.Phase), "current", string(phase))
+		instance.Status.Environments[envIndex].Phase = phase
 	}
 
 	return nil

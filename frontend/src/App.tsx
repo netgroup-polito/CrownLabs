@@ -1,20 +1,37 @@
 import { BarChartOutlined, UserOutlined } from '@ant-design/icons';
 import { useContext } from 'react';
 import './App.css';
+import {
+  VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX,
+  VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM,
+  VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL,
+} from './env';
 import { TenantContext } from './contexts/TenantContext';
 import { LinkPosition } from './utils';
 import AppLayout from './components/common/AppLayout';
 import DashboardLogic from './components/workspaces/DashboardLogic/DashboardLogic';
 import ActiveViewLogic from './components/activePage/ActiveViewLogic/ActiveViewLogic';
 import UserPanelLogic from './components/accountPage/UserPanelLogic/UserPanelLogic';
+import SSHTerminal from './components/activePage/SSHTerminal/SSHTerminal';
+import DriveView from './components/activePage/DriveView';
+import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from './env';
+import TenantPage from './components/tenants/TenantPage';
+import TenantListPage from './components/tenants/TenantListPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
 
+  // Check if user has access to utilities workspace
+  const hasUtilitiesAccess = Boolean(
+    tenantData?.tenant?.spec?.workspaces?.some(
+      ws => ws?.name === VITE_APP_MYDRIVE_WORKSPACE_NAME,
+    ),
+  );
+
   return (
     <AppLayout
       TooltipButtonLink={
-        'https://grafana.crownlabs.polito.it/d/BOZGskUGz/personal-overview?&var-namespace=' +
+        `${VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL}?&var-namespace=` +
         tenantData?.tenant?.status?.personalNamespace?.name
       }
       TooltipButtonData={{
@@ -39,12 +56,30 @@ function App() {
           content: <ActiveViewLogic key="/active" />,
           linkPosition: LinkPosition.NavbarButton,
         },
+        ...(hasUtilitiesAccess
+          ? [
+              {
+                route: {
+                  name: 'Drive',
+                  path: '/drive',
+                },
+                content: <DriveView key="/drive" />,
+                linkPosition: LinkPosition.NavbarButton,
+              },
+            ]
+          : []),
         {
-          route: {
-            name: 'Drive',
-            path: 'https://crownlabs.polito.it/cloud',
-          },
+          route: { name: 'Users', path: '/tenants' },
+          content: <TenantListPage />,
           linkPosition: LinkPosition.NavbarButton,
+          requiredGroups: [
+            `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
+          ],
+        },
+        {
+          route: { name: 'Tenant', path: '/tenants/:tenantId' },
+          content: <TenantPage />,
+          linkPosition: LinkPosition.Hidden,
         },
         {
           route: {
@@ -61,6 +96,16 @@ function App() {
           },
           content: <UserPanelLogic key="/account" />,
           linkPosition: LinkPosition.MenuButton,
+        },
+        {
+          route: {
+            name: 'Web SSH',
+            path: '/instance/:namespace/:VMname/:environment/ssh',
+          },
+          content: (
+            <SSHTerminal key="/instance/:namespace/:VMname/:environment/ssh" />
+          ),
+          linkPosition: LinkPosition.WebSSH,
         },
       ]}
     />

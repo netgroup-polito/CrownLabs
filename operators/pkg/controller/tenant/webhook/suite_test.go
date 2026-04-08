@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -40,6 +40,8 @@ var (
 	bypassGroups   = []string{"admins"}
 	testTenantName = "test-tenant"
 	testWorkspace  = "test-workspace"
+
+	testTenantPersonalNamespace = "tenant-" + testTenantName
 )
 
 func TestTenantWebhook(t *testing.T) {

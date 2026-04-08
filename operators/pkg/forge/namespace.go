@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ func ConfigureWorkspaceNamespace(ns *corev1.Namespace, labels map[string]string)
 	maps.Copy(ns.Labels, labels)
 
 	// Set the workspace type
-	ns.Labels[labelTypeKey] = labelTypeWorkspaceValue
+	ns.Labels[LabelTypeKey] = labelTypeWorkspaceValue
 }
 
 // GetTenantNamespaceName returns the name of the namespace for a tenant.

@@ -1,19 +1,99 @@
-// WE HAVE TO FIX THIS HARD CODED HEIGHT
-// document.documentElement.style.setProperty('--box-ext-height', `${value}px`);
+.cl-templates-table {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
 
 .cl-templates-table {
-  min-height: 171px;
-  height: calc(
-    100vh - var(--box-ext-height, 320px)
-  ); //465px if we want to add a Box footer
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+.cl-templates-table {
+  display: block;
+  width: 100%;
+  min-height: 0;
+  overflow: hidden; /* don't let this element itself create an extra scrollbar */
+}
+
+.cl-templates-scroll {
+  display: block;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.cl-templates-table .ant-table table,
+.cl-templates-scroll .ant-table table {
+  width: 100% !important;
+  table-layout: fixed;
+}
+
+.cl-templates-scroll .ant-table-body {
+  max-height: none; /* avoid antd internal max-height fights */
+  overflow: visible; /* outer wrapper handles scrolling */
 }
 
 tr.ant-table-expanded-row > td {
   background-color: #141414 !important;
 }
+body.light tr.ant-table-expanded-row > td {
+  background-color: #ffffff !important;
+}
 
-body.light {
-  tr.ant-table-expanded-row > td {
-    background-color: #ffffff !important;
+.w-full.flex-grow.min-h-0,
+.w-full.flex-grow.min-h-0 > div,
+.cl-table-instance,
+.cl-table-instance > div,
+.cl-templates-table {
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cl-templates-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  overflow-y: auto;
+}
+
+
+
+.cl-templates-scroll .ant-table-body,
+.cl-templates-scroll .ant-table-scroll,
+.cl-templates-scroll .ant-table-scroll .ant-table-body {
+  max-height: none !important;
+  height: auto !important;
+}
+
+.cl-templates-scroll .ant-spin-nested-loading,
+.cl-templates-scroll .ant-spin-container {
+  display: block;
+  height: auto;
+  min-height: 0;
+}
+
+.cl-templates-scroll .ant-table table {
+  width: 100% !important;
+  table-layout: fixed;
+}
+
+.ant-table-expanded-row {
+  .ant-table-cell {
+    overflow: visible !important;
+    
+    > div {
+      overflow: visible !important;
+    }
   }
 }

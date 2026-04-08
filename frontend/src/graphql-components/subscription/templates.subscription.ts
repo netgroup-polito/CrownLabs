@@ -14,10 +14,11 @@ export default gql`
         spec {
           prettyName
           description
+          allowPublicExposure
           environmentList {
+            name
             guiEnabled
             persistent
-            nodeSelector
             resources {
               cpu
               disk

@@ -6,14 +6,39 @@ query workspaceTemplates($workspaceNamespace: String!) {
       spec {
         prettyName
         description
+        allowPublicExposure
+        deleteAfter
+        inactivityTimeout
+        nodeSelector
         environmentList {
+          name
+          environmentType
+          mountMyDriveVolume
+          image
           guiEnabled
+          disableControls
+          rewriteURL
           persistent
-          nodeSelector
+          containerStartupOptions{
+            sourceArchiveURL
+            contentPath
+            startupArgs
+            enforceWorkdir
+          }
+          mountMyDriveVolume
           resources {
             cpu
             disk
             memory
+            reservedCPUPercentage
+          }
+          sharedVolumeMounts {
+            sharedVolume {
+              name
+              namespace
+            }
+            mountPath
+            readOnly
           }
         }
         workspaceCrownlabsPolitoItWorkspaceRef {

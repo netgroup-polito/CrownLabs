@@ -23,13 +23,14 @@ import { getShVolPatchJson } from '../../../graphql-components/utils';
 
 export interface ISharedVolumesDrawerProps {
   workspaceNamespace: string;
+  isPersonal?: boolean;
 }
 
 const fetchPolicy_networkOnly: FetchPolicy = 'network-only';
 const hoverColor = 'rgb(129, 181, 255)';
 
 const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
-  const { workspaceNamespace } = props;
+  const { workspaceNamespace, isPersonal } = props;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
@@ -43,6 +44,8 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
   const [dataShVols, setDataShVols] = useState<SharedVolume[]>([]);
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
   const [selectedShVol, setSelectedShVol] = useState<SharedVolume>();
+
+  const shouldFetch = !!workspaceNamespace && isPersonal === false;
 
   const {
     loading: loadingSharedVolumes,
@@ -60,6 +63,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
           ) ?? [],
       ),
     fetchPolicy: fetchPolicy_networkOnly,
+    skip: !shouldFetch,
   });
 
   const [createShVolMutation, { loading: loadingCreateShVolMutation }] =
@@ -89,9 +93,14 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
   };
 
   useEffect(() => {
-    const reloadHandler = setInterval(reloadSharedVolumes, 5000);
-    return () => clearInterval(reloadHandler);
-  });
+    if (!shouldFetch || !refetchSharedVolumes) return;
+    const id = setInterval(() => {
+      if (open) {
+        void refetchSharedVolumes().catch(apolloErrorCatcher);
+      }
+    }, 5000);
+    return () => clearInterval(id);
+  }, [shouldFetch, open, refetchSharedVolumes, apolloErrorCatcher]);
 
   const columns = [
     {
@@ -128,7 +137,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
               setEditOpen(true);
             }}
           />
-          <Tooltip title="Be mindful you can't delete a Shared Volume that is mounted on a Template. Unmount it before deletion.">
+          <Tooltip title="Remember that you cannot delete a Shared Volume that is mounted on a Template. Unmount it before deletion.">
             <DeleteOutlined
               style={{ cursor: 'pointer' }}
               onMouseEnter={e => (e.currentTarget.style.color = hoverColor)}
@@ -169,22 +178,17 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
 
           {/*
             FIXME: Someone makes a scroll bar appear when the Drawer is opening.
-            FIXME: There is no animation when the Drawer closes.
           */}
           <Drawer
             title="Shared Volumes"
             placement="bottom"
-            height={open ? 300 : 0}
+            height={300}
             getContainer={false}
-            destroyOnHidden={true}
             open={open}
-            closable={true}
             onClose={() => setOpen(false)}
             rootStyle={{
               position: 'absolute',
-              opacity: open ? 1 : 0,
-              transition: 'all 0.3',
-              overflow: open ? 'auto' : 'hidden',
+              zIndex: 1000,
             }}
             extra={
               <Space>
@@ -255,7 +259,7 @@ const SharedVolumeDrawer: FC<ISharedVolumesDrawerProps> = ({ ...props }) => {
                       All data will be lost.
                     </>
                   }
-                  description={`Be mindful you can't delete a Shared Volume that is mounted on a Template. Unmount it before deletion.`}
+                  description={`Remember that you cannot delete a Shared Volume that is mounted on a Template. Unmount it before deletion.`}
                   type="warning"
                   buttons={[
                     <Button

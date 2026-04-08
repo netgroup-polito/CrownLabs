@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,10 @@
 package v1alpha2
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -31,7 +32,7 @@ type WorkspaceUserRole string
 
 const (
 	// Manager -> a Tenant with Manager role can interact with all the environments
-	// (i.e. VMs) in a Workspace, as well as add new Tenants to the Workspace.
+	// (e.g. VMs) in a Workspace, as well as add new Tenants to the Workspace.
 	Manager WorkspaceUserRole = "manager"
 	// User -> a Tenant with User role can only interact with his/her own
 	// environments (e.g. VMs) within that Workspace.
@@ -62,8 +63,10 @@ type TenantSpec struct {
 	// The last name of the Tenant.
 	LastName string `json:"lastName"`
 
+	// +kubebuilder:validation:Optional
+
 	// The last login timestamp.
-	LastLogin metav1.Time `json:"lastLogin,omitempty"`
+	LastLogin *metav1.Time `json:"lastLogin,omitempty"`
 
 	// +kubebuilder:validation:Pattern="^[a-zA-Z0-9.!#$%&'*+\\/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
 
@@ -87,8 +90,8 @@ type TenantSpec struct {
 	// with Kubernetes.
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 
-	// The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in.
-	Quota *TenantResourceQuota `json:"quota,omitempty"`
+	// The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled.
+	PersonalWorkspace *common.WorkspaceResourceQuota `json:"personalWorkspace,omitempty"`
 }
 
 // KeycloakStatus defines the status of the authentication flow with Keycloak.
@@ -106,19 +109,6 @@ type KeycloakStatus struct {
 	// This is set to true only if the Tenant has been successfully synchronized with Keycloak
 	// the last time the operator has run.
 	UserSynchronized bool `json:"userSynchronized"`
-}
-
-// TenantResourceQuota defines resource quota for each Tenant.
-type TenantResourceQuota struct {
-	// The maximum amount of CPU which can be used by this Tenant.
-	CPU resource.Quantity `json:"cpu"`
-
-	// The maximum amount of RAM memory which can be used by this Tenant.
-	Memory resource.Quantity `json:"memory"`
-
-	// +kubebuilder:validation:Minimum:=0
-	// The maximum number of concurrent instances which can be created by this Tenant.
-	Instances int64 `json:"instances"`
 }
 
 // TenantStatus reflects the most recently observed status of the Tenant.
@@ -152,8 +142,8 @@ type TenantStatus struct {
 	// Will be set to true even when personal workspace is intentionally deleted.
 	Ready bool `json:"ready"`
 
-	// The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden.
-	Quota TenantResourceQuota `json:"quota,omitempty"`
+	// Whether a personal workspace has been created for the tenant.
+	PersonalWorkspaceCreated bool `json:"personalWorkspaceCreated"`
 }
 
 // +kubebuilder:object:root=true

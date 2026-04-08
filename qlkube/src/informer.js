@@ -17,22 +17,24 @@ async function canWatchResource(
   namespace,
 ) {
   try {
-    authApi.setApiKey(k8s.AuthorizationV1ApiApiKeys.BearerToken, token);
-    const res = await authApi.createSelfSubjectAccessReview({
-      spec: {
-        resourceAttributes: {
-          namespace,
-          verb: 'watch',
-          group,
-          resource,
+    const res = await authApi.createSelfSubjectAccessReviewWithHttpInfo({
+      body: {
+        spec: {
+          resourceAttributes: {
+            namespace,
+            verb: 'watch',
+            group,
+            resource,
+          },
         },
       },
+      authMethods: { BearerToken: token },
     });
-    if (res.response.errored) {
+    if (res.response && res.response.errored) {
       logger.error(res.response, 'Permission assertion error received');
       return false;
     }
-    return res.body.status.allowed;
+    return res.data.status.allowed;
   } catch (e) {
     logger.error(e.message, 'Permission assertion request error');
     // eslint-disable-next-line no-console
@@ -55,7 +57,7 @@ function kinformer(sub) {
   const resourceApi = `/${api}${group ? `/${group}` : ''
   }/${version}/${resource}`;
 
-  const listFn = () => k8sApi.listClusterCustomObject(group, version, resource);
+  const listFn = () => k8sApi.listClusterCustomObject({ group, version, plural: resource });
 
   logger.info({ resourceApi }, 'Instantiating informer');
   const informer = k8s.makeInformer(kc, resourceApi, listFn);

@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -34,6 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -130,7 +132,7 @@ var _ = Describe("Namespace management", func() {
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = cl.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -207,7 +209,7 @@ var _ = Describe("Namespace management", func() {
 			err = cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = cl.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -259,13 +261,13 @@ var _ = Describe("Namespace management", func() {
 	})
 
 	Context("When testing edge cases and error scenarios", func() {
-		It("Should handle tenant with zero LastLogin time correctly", func() {
+		It("Should handle tenant with LastLogin field unset correctly", func() {
 
 			updatedTenant := &v1alpha2.Tenant{}
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.Time{}
+			updatedTenant.Spec.LastLogin = nil
 			err = cl.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -292,7 +294,7 @@ var _ = Describe("Namespace management", func() {
 					FirstName: "Test",
 					LastName:  "TenantDots",
 					Email:     "test.dots@tenant.example",
-					LastLogin: metav1.Now(),
+					LastLogin: timePtr(metav1.Now()),
 				},
 			}
 
@@ -330,7 +332,7 @@ var _ = Describe("Namespace management", func() {
 			err := interceptorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = interceptorClient.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -361,7 +363,7 @@ var _ = Describe("Namespace management", func() {
 			err := errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = errorClient.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -394,7 +396,7 @@ var _ = Describe("Namespace management", func() {
 				Expect(err).ToNot(HaveOccurred())
 			}
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = cl.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -413,7 +415,7 @@ var _ = Describe("Namespace management", func() {
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-1 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-1 * time.Hour)))
 			err = cl.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -458,7 +460,7 @@ var _ = Describe("Namespace management", func() {
 					FirstName: "Error",
 					LastName:  "Tenant",
 					Email:     "error@tenant.example",
-					LastLogin: metav1.Now(),
+					LastLogin: timePtr(metav1.Now()),
 				},
 			}
 
@@ -497,7 +499,7 @@ var _ = Describe("Namespace management", func() {
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = errorClient.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -541,7 +543,7 @@ var _ = Describe("Namespace management", func() {
 					FirstName: "NetPol",
 					LastName:  "Error",
 					Email:     "netpol@error.example",
-					LastLogin: metav1.Now(),
+					LastLogin: timePtr(metav1.Now()),
 				},
 			}
 
@@ -588,7 +590,7 @@ var _ = Describe("Namespace management", func() {
 					FirstName: "Namespace",
 					LastName:  "Error",
 					Email:     "ns@error.example",
-					LastLogin: metav1.Now(),
+					LastLogin: timePtr(metav1.Now()),
 				},
 			}
 
@@ -635,7 +637,7 @@ var _ = Describe("Namespace management", func() {
 					FirstName: "RoleBinding",
 					LastName:  "Error",
 					Email:     "rb@error.example",
-					LastLogin: metav1.Now(),
+					LastLogin: timePtr(metav1.Now()),
 				},
 			}
 
@@ -682,7 +684,7 @@ var _ = Describe("Namespace management", func() {
 					FirstName: "Deny",
 					LastName:  "Error",
 					Email:     "deny@error.example",
-					LastLogin: metav1.Now(),
+					LastLogin: timePtr(metav1.Now()),
 				},
 			}
 
@@ -729,7 +731,7 @@ var _ = Describe("Namespace management", func() {
 					FirstName: "Allow",
 					LastName:  "Error",
 					Email:     "allow@error.example",
-					LastLogin: metav1.Now(),
+					LastLogin: timePtr(metav1.Now()),
 				},
 			}
 
@@ -769,7 +771,7 @@ var _ = Describe("Namespace management", func() {
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = errorClient.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -806,7 +808,7 @@ var _ = Describe("Namespace management", func() {
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = errorClient.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -843,7 +845,7 @@ var _ = Describe("Namespace management", func() {
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant.Spec.LastLogin = metav1.NewTime(time.Now().Add(-48 * time.Hour))
+			updatedTenant.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-48 * time.Hour)))
 			err = errorClient.Update(ctx, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -854,6 +856,104 @@ var _ = Describe("Namespace management", func() {
 				NamespacedName: types.NamespacedName{Name: updatedTenant.Name},
 			})
 			Expect(err).To(HaveOccurred())
+		})
+
+	})
+	When("Namespace is absent", func() {
+		var testNamespace *v1.Namespace
+		BeforeEach(func() {
+			tnResource.Status.PersonalNamespace.Created = true
+			tnResource.Status.PersonalNamespace.Name = tnPersonalNamespace
+			testNamespace = &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tnPersonalNamespace}}
+			addObjToObjectsList(testNamespace)
+			tnResource.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second))))
+		})
+		AfterEach(func() {
+			removeObjFromObjectsList(testNamespace)
+		})
+		When("Personal workspace is enabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+					Instances: 2,
+					CPU:       resource.MustParse("4"),
+					Memory:    resource.MustParse("8Gi"),
+				}
+			})
+			When("Personal workspace has templates", func() {
+				var testTemplate *v1alpha2.Template
+				BeforeEach(func() {
+					testTemplate = &v1alpha2.Template{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-template",
+							Namespace: tnPersonalNamespace,
+						},
+					}
+					addObjToObjectsList(testTemplate)
+				})
+				AfterEach(func() {
+					removeObjFromObjectsList(testTemplate)
+				})
+				It("Should keep the namespace", func() {
+					ns := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+				})
+			})
+			When("Personal workspace does not have templates", func() {
+				It("Should delete the namespace", func() {
+					ns := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeFalse(), timeout, interval)
+				})
+			})
+			When("Listing templates errors", func() {
+				BeforeEach(func() {
+					builder = *builder.WithInterceptorFuncs(interceptor.Funcs{
+						List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+							if _, ok := list.(*v1alpha2.TemplateList); ok {
+								return fmt.Errorf("simulated error on template list")
+							}
+							return client.List(ctx, list, opts...)
+						},
+					})
+					tnReconcileErrExpected = HaveOccurred()
+				})
+				It("Should keep the namespace", func() {
+					ns := &v1.Namespace{}
+					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+				})
+			})
+		})
+		When("Personal workspace is disabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.PersonalWorkspace = nil
+			})
+			It("Should delete the namespace", func() {
+				ns := &v1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeFalse(), timeout, interval)
+			})
+		})
+	})
+	When("Namespace is present", func() {
+		When("Personal workspace is enabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+					Instances: 2,
+					CPU:       resource.MustParse("4"),
+					Memory:    resource.MustParse("8Gi"),
+				}
+			})
+			It("Should keep the namespace", func() {
+				ns := &v1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+			})
+		})
+		When("Personal workspace is disabled", func() {
+			BeforeEach(func() {
+				tnResource.Spec.PersonalWorkspace = nil
+			})
+			It("Should keep the namespace", func() {
+				ns := &v1.Namespace{}
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
+			})
 		})
 	})
 })

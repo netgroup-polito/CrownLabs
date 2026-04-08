@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,8 @@ type Server struct {
 
 // Start metricsScraper and RPC server.
 func (instmetrics *Server) Start(ctx context.Context) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s%d", "0.0.0.0:", instmetrics.Port))
+	lc := net.ListenConfig{}
+	lis, err := lc.Listen(context.Background(), "tcp", fmt.Sprintf("%s%d", "0.0.0.0:", instmetrics.Port))
 	if err != nil {
 		return err
 	}

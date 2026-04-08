@@ -4,6 +4,7 @@ import { Spin } from 'antd';
 import ActiveView from '../ActiveView/ActiveView';
 import { WorkspaceRole } from '../../../utils';
 import { TenantContext } from '../../../contexts/TenantContext';
+import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 import { makeWorkspace } from '../../../utilsLogic';
 
 const ActiveViewLogic: FC = () => {
@@ -12,6 +13,9 @@ const ActiveViewLogic: FC = () => {
     loading: tenantLoading,
     error: tenantError,
   } = useContext(TenantContext);
+  const { loading: instancesLoading } = useContext(OwnedInstancesContext);
+
+  const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
 
   const workspaces =
     tenantData?.tenant?.spec?.workspaces?.map(makeWorkspace) || [];
@@ -21,9 +25,10 @@ const ActiveViewLogic: FC = () => {
   );
 
   const tenantId = tenantData?.tenant?.metadata?.name;
-  const tenantNamespace = tenantData?.tenant?.status?.personalNamespace?.name;
 
-  return !tenantLoading &&
+  const isLoading = tenantLoading || instancesLoading;
+
+  return !isLoading &&
     tenantData &&
     !tenantError &&
     tenantId &&

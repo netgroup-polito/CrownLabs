@@ -30,21 +30,19 @@ export interface ITableInstanceProps {
   selectToDestroy?: (instanceId: string) => void;
 }
 
-const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
-  const {
-    instances,
-    viewMode,
-    extended,
-    hasSSHKeys,
-    showGuiIcon,
-    showAdvanced,
-    showCheckbox,
-    handleSorting,
-    handleManagerSorting,
-    selectiveDestroy,
-    selectToDestroy,
-  } = props;
-
+const TableInstance: FC<ITableInstanceProps> = ({
+  instances,
+  viewMode,
+  extended,
+  hasSSHKeys,
+  showGuiIcon,
+  showAdvanced,
+  showCheckbox,
+  handleSorting,
+  handleManagerSorting,
+  selectiveDestroy,
+  selectToDestroy,
+}) => {
   const { now } = useContext(TenantContext);
   const [showAlert, setShowAlert] = useState(false);
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -53,16 +51,19 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
   });
 
   const destroyAll = () => {
-    instances
+    const deletePromises = instances
       .filter(i => i.persistent === false)
-      .forEach(instance => {
+      .map(instance =>
         deleteInstanceMutation({
           variables: {
             instanceId: instance.name,
             tenantNamespace: instance.tenantNamespace!,
           },
-        });
-      });
+        }),
+      );
+
+    // Wait for all deletions to complete
+    Promise.allSettled(deletePromises);
   };
 
   const disabled = !instances.find(i => i.persistent === false);
@@ -93,9 +94,14 @@ const TableInstance: FC<ITableInstanceProps> = ({ ...props }) => {
       <div
         className={`rowInstance-bg-color ${
           viewMode === WorkspaceRole.user && extended
-            ? 'cl-table-instance flex-grow flex-wrap content-between py-0 overflow-auto scrollbar'
+            ? 'cl-table-instance flex-grow flex-col py-0 content-between overflow-auto scrollbar'
             : ''
         }`}
+        style={
+          viewMode === WorkspaceRole.user && extended
+            ? { maxHeight: '50vh' }
+            : undefined
+        }
       >
         {extended && showAdvanced && (
           <Table

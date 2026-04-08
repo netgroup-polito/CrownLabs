@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,4 +29,9 @@ const (
 	EvEnvironmentErr = "EnvironmentEnforcementFailed"
 	// EvEnvironmentErrMsg -> the event message corresponding to a failed environment enforcement.
 	EvEnvironmentErrMsg = "Failed to enforce environment %v"
+
+	// EvPublicExposureMultiEnv -> the event key corresponding to public exposure blocked due to multiple environments.
+	EvPublicExposureMultiEnv = "PublicExposureMultipleEnvironments"
+	// EvPublicExposureMultiEnvMsg -> the event message corresponding to public exposure blocked due to multiple environments.
+	EvPublicExposureMultiEnvMsg = "Public exposure is not allowed for templates with multiple environments"
 )

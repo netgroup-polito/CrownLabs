@@ -2,15 +2,13 @@ mutation createTemplate(
   $workspaceId: String!
   $workspaceNamespace: String!
   $templateName: String!
-  $descriptionTemplate: String!
-  $image: String!
-  $guiEnabled: Boolean!
-  $persistent: Boolean!
-  $mountMyDriveVolume: Boolean!
-  $resources: ResourcesInput!
+  $environmentList: [EnvironmentListListItemInput!]!
   $templateId: String = "template-"
-  $environmentType: EnvironmentType!
-  $sharedVolumeMounts: [SharedVolumeMountsListItemInput]
+  $deleteAfter: String
+  $descriptionTemplate: String!
+  $inactivityTimeout: String
+  $allowPublicExposure: Boolean
+  $nodeSelector: JSON
 ) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
@@ -20,18 +18,11 @@ mutation createTemplate(
       spec: {
         prettyName: $templateName
         description: $descriptionTemplate
-        environmentList: [
-          {
-            name: "default"
-            environmentType: $environmentType
-            image: $image
-            guiEnabled: $guiEnabled
-            persistent: $persistent
-            resources: $resources
-            mountMyDriveVolume: $mountMyDriveVolume
-            sharedVolumeMounts: $sharedVolumeMounts
-          }
-        ]
+        deleteAfter: $deleteAfter
+        inactivityTimeout: $inactivityTimeout
+        environmentList: $environmentList
+        allowPublicExposure: $allowPublicExposure
+        nodeSelector: $nodeSelector
         workspaceCrownlabsPolitoItWorkspaceRef: { name: $workspaceId }
       }
       metadata: { generateName: $templateId, namespace: $workspaceNamespace }
@@ -40,13 +31,19 @@ mutation createTemplate(
     spec {
       prettyName
       description
+      deleteAfter
+      inactivityTimeout
+      allowPublicExposure
+      nodeSelector
       environmentList {
+        name
         guiEnabled
         persistent
         resources {
           cpu
           disk
           memory
+          reservedCPUPercentage
         }
       }
     }

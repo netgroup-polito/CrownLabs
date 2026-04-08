@@ -1,4 +1,4 @@
-// Copyright 2020-2025 Politecnico di Torino
+// Copyright 2020-2026 Politecnico di Torino
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,16 +15,22 @@
 package webhook_test
 
 import (
+	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
+	"github.com/netgroup-polito/CrownLabs/operators/api/common"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
@@ -82,7 +88,7 @@ var _ = Describe("Validator webhook", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: workspaceWAName},
 			Spec: v1alpha1.WorkspaceSpec{
 				PrettyName: "test-workspace",
-				Quota: v1alpha1.WorkspaceResourceQuota{
+				Quota: common.WorkspaceResourceQuota{
 					Instances: 1,
 				},
 				AutoEnroll: v1alpha1.AutoenrollWithApproval,
@@ -93,7 +99,7 @@ var _ = Describe("Validator webhook", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: workspaceNAName},
 			Spec: v1alpha1.WorkspaceSpec{
 				PrettyName: "test-workspace",
-				Quota: v1alpha1.WorkspaceResourceQuota{
+				Quota: common.WorkspaceResourceQuota{
 					Instances: 1,
 				},
 			},
@@ -103,7 +109,7 @@ var _ = Describe("Validator webhook", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: workspaceIMName},
 			Spec: v1alpha1.WorkspaceSpec{
 				PrettyName: "test-workspace",
-				Quota: v1alpha1.WorkspaceResourceQuota{
+				Quota: common.WorkspaceResourceQuota{
 					Instances: 1,
 				},
 				AutoEnroll: v1alpha1.AutoenrollImmediate,
@@ -220,7 +226,7 @@ var _ = Describe("Validator webhook", func() {
 		When("lastLogin is changed within the LastLoginToleration", func() {
 			BeforeEach(func() {
 				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{
-					LastLogin: metav1.Time{
+					LastLogin: &metav1.Time{
 						Time: time.Now().Add(webhook.LastLoginToleration / 2),
 					},
 				}}
@@ -233,7 +239,7 @@ var _ = Describe("Validator webhook", func() {
 		When("lastLogin too far from now (abs(lastLogin-now)) > LastLoginToleration)", func() {
 			BeforeEach(func() {
 				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{
-					LastLogin: metav1.Time{
+					LastLogin: &metav1.Time{
 						Time: time.Now().Add(webhook.LastLoginToleration + time.Millisecond),
 					},
 				}}
@@ -450,5 +456,171 @@ var _ = Describe("Validator webhook", func() {
 			expectedChanges: []string{"test-a"},
 		}))
 
+	})
+	When("Modifying the createPersonalWorkspace spec", func() {
+		var oldTenant, newTenant *v1alpha2.Tenant
+		BeforeEach(func() {
+			oldTenant = &v1alpha2.Tenant{}
+			newTenant = oldTenant.DeepCopy()
+		})
+		When("The user is in bypass group", func() {
+			JustBeforeEach(func() {
+				request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
+				request.UserInfo.Groups = bypassGroups
+				response = tnWebhook.Handle(ctx, request)
+			})
+			When("The personal workspace is being enabled", func() {
+				BeforeEach(func() {
+					newTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+						Instances: 2,
+						CPU:       resource.MustParse("4"),
+						Memory:    resource.MustParse("8Gi"),
+					}
+				})
+				When("It was disabled before", func() {
+					BeforeEach(func() {
+						oldTenant.Spec.PersonalWorkspace = nil
+					})
+					It("should allow the change", func() {
+						Expect(response.Allowed).To(BeTrue())
+					})
+				})
+				When("It was enabled before", func() {
+					BeforeEach(func() {
+						oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+							Instances: 2,
+							CPU:       resource.MustParse("4"),
+							Memory:    resource.MustParse("8Gi"),
+						}
+					})
+					It("should allow the change", func() {
+						Expect(response.Allowed).To(BeTrue())
+					})
+				})
+			})
+			When("The personal workspace is being disabled", func() {
+				BeforeEach(func() {
+					newTenant.Spec.PersonalWorkspace = nil
+				})
+				When("It was disabled before", func() {
+					BeforeEach(func() {
+						oldTenant.Spec.PersonalWorkspace = nil
+					})
+					It("should allow the change", func() {
+						Expect(response.Allowed).To(BeTrue())
+					})
+				})
+				When("It was enabled before", func() {
+					BeforeEach(func() {
+						oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+							Instances: 2,
+							CPU:       resource.MustParse("4"),
+							Memory:    resource.MustParse("8Gi"),
+						}
+						oldTenant.Status.PersonalNamespace.Created = true
+						oldTenant.Status.PersonalNamespace.Name = testTenantPersonalNamespace
+					})
+					When("The personal workspace has active instances", func() {
+						BeforeEach(func() {
+							instance := &v1alpha2.Instance{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-instance",
+									Namespace: testTenantPersonalNamespace,
+								},
+								Spec: v1alpha2.InstanceSpec{
+									Template: v1alpha2.GenericRef{
+										Name:      "test-template",
+										Namespace: testTenantPersonalNamespace,
+									},
+								},
+							}
+							err := tnValidator.Client.Create(ctx, instance)
+							Expect(err).NotTo(HaveOccurred())
+						})
+						It("should deny the change", func() {
+							Expect(response.Allowed).To(BeFalse())
+							Expect(response.Result.Code).To(BeNumerically("==", http.StatusConflict))
+							Expect(response.Result.Reason).NotTo(BeEmpty())
+						})
+						When("The personal workspace is failing", func() {
+							BeforeEach(func() {
+								oldTenant.Status.FailingWorkspaces = []string{"personal-workspace"}
+								oldTenant.Status.PersonalWorkspaceCreated = false
+							})
+							It("should deny the change", func() {
+								Expect(response.Allowed).To(BeFalse())
+								Expect(response.Result.Code).To(BeNumerically("==", http.StatusConflict))
+								Expect(response.Result.Reason).NotTo(BeEmpty())
+							})
+						})
+					})
+					When("The personal workspace has no active instances", func() {
+						It("should allow the change", func() {
+							Expect(response.Allowed).To(BeTrue())
+						})
+					})
+					When("The Instances listing errors", func() {
+						BeforeEach(func() {
+							interceptorClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+								manager,
+								fakeManager,
+								workspaceWA,
+								workspaceNA,
+								workspaceIM,
+							).WithInterceptorFuncs(interceptor.Funcs{
+								List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
+									if _, ok := list.(*v1alpha2.InstanceList); ok {
+										return fmt.Errorf("error listing templates")
+									}
+									return client.List(ctx, list, opts...)
+								},
+							}).Build()
+							tnValidator.Client = interceptorClient
+						})
+						It("Should deny the change", func() {
+							Expect(response.Allowed).To(BeFalse())
+							Expect(response.Result.Code).To(BeNumerically("==", http.StatusInternalServerError))
+							Expect(response.Result.Reason).NotTo(BeEmpty())
+						})
+					})
+				})
+			})
+		})
+		When("The user is in not bypass group", func() {
+			JustBeforeEach(func() {
+				request = forgeRequest(admissionv1.Update, newTenant, oldTenant)
+				response = tnWebhook.Handle(ctx, request)
+			})
+			When("The personal workspace is being enabled", func() {
+				BeforeEach(func() {
+					oldTenant.Spec.PersonalWorkspace = nil
+					newTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+						Instances: 2,
+						CPU:       resource.MustParse("4"),
+						Memory:    resource.MustParse("8Gi"),
+					}
+				})
+				It("should deny the change", func() {
+					Expect(response.Allowed).To(BeFalse())
+					Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+					Expect(response.Result.Reason).NotTo(BeEmpty())
+				})
+			})
+			When("The personal workspace is being disabled", func() {
+				BeforeEach(func() {
+					oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+						Instances: 2,
+						CPU:       resource.MustParse("4"),
+						Memory:    resource.MustParse("8Gi"),
+					}
+					newTenant.Spec.PersonalWorkspace = nil
+				})
+				It("should deny the change", func() {
+					Expect(response.Allowed).To(BeFalse())
+					Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+					Expect(response.Result.Reason).NotTo(BeEmpty())
+				})
+			})
+		})
 	})
 })

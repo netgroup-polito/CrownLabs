@@ -11,6 +11,8 @@ const force = {
   in: 'query',
 };
 
+const additionalAccepts = { 'application/json-patch+json': 'jsonPatch' };
+
 /**
  * Recursively add x-graphql-enum-mapping property
  * to the enum ones which values contain empty string
@@ -81,13 +83,48 @@ function decorateOpenapi(oas) {
     delete oas.definitions[rk];
   });
 
+  // Process PATCH operations with multiple consumes
+  const pathsToAdd = {};
+
   for (const path of Object.keys(oas.paths)) {
-    const { patch } = oas.paths[path];
-    if (patch) {
+    const { patch, parameters } = oas.paths[path];
+    if (patch && Array.isArray(patch.consumes) && patch.consumes.length > 1) {
+      const originalConsumes = [...patch.consumes];
+      const baseOperationId = patch.operationId;
+
+      // Keep the standard PATCH operation with the old consume type
       patch.consumes = ['application/apply-patch+yaml'];
+
+      // Create clones for additional consume types
+      originalConsumes.forEach((consumeType) => {
+        if (additionalAccepts[consumeType]) {
+          const clone = JSON.parse(JSON.stringify(patch));
+
+          clone.operationId = `${baseOperationId}_${additionalAccepts[consumeType]}`;
+          clone.consumes = [consumeType];
+          clone.summary = `${patch.summary || 'Patch'} (${consumeType})`;
+
+          // Remove force parameter for non-apply patches (merge-patch, etc.)
+          clone.parameters = clone.parameters.filter((p) => !p.$ref || p.$ref.search('force') === -1);
+
+          // Store clone to add later (avoid modifying paths while iterating)
+          const clonePath = `${path}#${consumeType}`;
+          pathsToAdd[clonePath] = { patch: clone };
+          // Deep-clone path-level parameters to avoid shared references
+          if (parameters) {
+            pathsToAdd[clonePath].parameters = JSON.parse(JSON.stringify(parameters));
+          }
+        }
+      });
+    } else if (patch) {
+      // Handle single consume or existing logic
+      patch.consumes = patch.consumes || ['application/apply-patch+yaml'];
       if (!patch.parameters.find((p) => p.name === 'force')) patch.parameters.push({ ...force });
     }
   }
+
+  // Add cloned operations to the paths
+  Object.assign(oas.paths, pathsToAdd);
 
   Object.keys(oas.definitions).forEach((k) => setGQLEnumNodes(oas.definitions[k]));
 
