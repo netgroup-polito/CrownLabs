@@ -57,7 +57,7 @@ func ObjectMetaWithSuffix(instance *clv1alpha2.Instance, suffix string) metav1.O
 // NamespacedName returns the namespace/name pair given an instance object.
 func NamespacedNameImageList(instance *clv1alpha1.ImageList) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      canonicalName(instance.GetName()),
+		Name:      CanonicalName(instance.GetName()),
 		Namespace: instance.GetNamespace(),
 	}
 }
