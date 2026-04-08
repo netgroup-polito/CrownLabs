@@ -1,72 +1,69 @@
 package imageList
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 type ImageListUpdater struct {
-	Requestors        []ImageListRequestor
+	Requestor         []ImageListRequestor
 	RegistryAdvName   string
 	ImageListBaseName string
+	ImageListSaver    ImageListSaver
 	Log               logr.Logger
 }
 
-func NewImageListUpdater(reqs []ImageListRequestor, imageListBase, registryAdv string, log logr.Logger) *ImageListUpdater {
+func NewImageListUpdater(requestor []ImageListRequestor, imageListBase string, imageListSaver ImageListSaver, registryAdv string, log logr.Logger) *ImageListUpdater {
 	return &ImageListUpdater{
-		Requestors:        reqs,
+		Requestor:         requestor,
 		ImageListBaseName: imageListBase,
 		RegistryAdvName:   registryAdv,
+		ImageListSaver:    imageListSaver,
 		Log:               log,
 	}
 }
 
-func (u *ImageListUpdater) RunUpdateProcess() {
-	u.Update()
-}
-
-func (u *ImageListUpdater) Update() {
+func (u *ImageListUpdater) Update() error {
 	start := time.Now()
 	u.Log.Info("Starting the update process")
-	var images []map[string]interface{}
-	var err error
-	for _, req := range u.Requestors {
-		list, reqErr := req.GetImageList()
-		if reqErr != nil {
-			err = reqErr
-			break
+	images := []map[string]interface{}{}
+	for _, r := range u.Requestor {
+		list, err := r.GetImageList()
+		if err != nil {
+			u.Log.Error(err, "failed to retrieve data from upstream")
+			return err
 		}
 		images = append(images, list...)
 	}
-	if err != nil {
-		u.Log.Error(err, "Failed to retrieve data from upstream")
-		return
-	}
-	for _, imgSaver := range RegisteredSavers {
-		if imgSaver != nil {
-			Saver := imgSaver
-			var filteredImages []map[string]interface{}
-			for _, image := range images {
-				if Saver.IsThisImageYours(image) {
-					filteredImages = append(filteredImages, image)
-				}
-			}
-			if err := Saver.UpdateImageList(processImageList(filteredImages)); err != nil {
-				u.Log.Error(err, "Failed to save data as ImageList")
-				return
-			}
+
+	// Process and convert images to CRD format
+	imageListItems := processImageList(images)
+	u.Log.V(1).Info("processed images", "imageCount", len(imageListItems))
+
+	// Save images using the configured saver
+	if u.ImageListSaver != nil {
+		if err := u.ImageListSaver.UpdateImageList(u.RegistryAdvName, imageListItems); err != nil {
+			u.Log.Error(err, "failed to save data as ImageList", "registry", u.RegistryAdvName)
+			return err
 		}
 	}
-	u.Log.Info(fmt.Sprintf("Update process correctly completed in %.2f seconds", time.Since(start).Seconds()))
+
+	u.Log.Info("update process completed successfully", "duration_seconds", time.Since(start).Seconds())
+	return nil
 }
-func processImageList(images []map[string]interface{}) []map[string]interface{} {
-	var out []map[string]interface{}
+
+// processImageList converts raw image data from the registry into CRD ImageListItem objects.
+// It removes "latest" tags and ensures all images have at least one version tag.
+func processImageList(images []map[string]interface{}) []clv1alpha1.ImageListItem {
+	var out []clv1alpha1.ImageListItem
+
 	for _, image := range images {
 		name, _ := image["name"].(string)
 		var versions []string
 
+		// Extract versions/tags from the image data
 		if tagsIface, ok := image["tags"]; ok {
 			switch tags := tagsIface.(type) {
 			case []interface{}:
@@ -84,17 +81,15 @@ func processImageList(images []map[string]interface{}) []map[string]interface{} 
 			}
 		}
 
-		if len(versions) > 0 {
-			out = append(out, map[string]interface{}{
-				"name":     name,
-				"versions": versions,
-			})
-		} else {
-			out = append(out, map[string]interface{}{
-				"name":     name,
-				"versions": []string{"latest"},
-			})
+		// Ensure at least one version exists
+		if len(versions) == 0 {
+			versions = []string{"latest"}
 		}
+
+		out = append(out, clv1alpha1.ImageListItem{
+			Name:     name,
+			Versions: versions,
+		})
 	}
 
 	return out
