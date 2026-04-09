@@ -39,6 +39,7 @@ var (
 	defaultMirrorCapacity = resource.MustParse("1")
 	errPendingPVC         = errors.New("cannot mirror a pending PVC")
 	errStopProvision      = errors.New("stop provisioning")
+	errInvalidConfig      = errors.New("invalid configuration for pmp")
 )
 
 const (
@@ -47,8 +48,8 @@ const (
 	// MirroredPvcLabel is the key of the label identifying which PVC is mirroring.
 	MirroredPvcLabel = "crownlabs.polito.it/mirrored-pvc"
 
-	// Key1 is the key of the annotation. //TODO.
-	Key1 = "pmp.crownlabs.polito.it/required-target-ns-labels"
+	// AuthorizationAnnotationKey is the key of the annotation that shows which labels are requested on the target ns to mirror the pvc.
+	AuthorizationAnnotationKey = "pmp.crownlabs.polito.it/required-target-ns-labels"
 )
 
 // PvcMirrorProvisioner provisions PVCs with MirrorStorageClass.
@@ -100,7 +101,7 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 	}
 
 	// Check Authorization
-	requiredLabels, present := originPVC.Annotations[Key1]
+	requiredLabels, present := originPVC.Annotations[AuthorizationAnnotationKey]
 	if !present {
 		// Default: deny-all
 		p.Logger.Error(errStopProvision, "No required labels specified on origin PVC, access denied")
@@ -161,12 +162,17 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 		},
 	}
 
-	//TODO: Add annotation on the mirror PVC (cannot be done here!)
+	//TODO: Add annotation on the mirror PVC (cannot be done here!) Da mettere nell'istance op?
 
 	return pv, controller.ProvisioningFinished, nil
 }
 
-//TODO: Potremmo restituire errori più bloccanti di errStopProvision come ignore o infeasible
+//TODO: Potremmo restituire errori più bloccanti di errStopProvision come
+// - ignore: &controller.IgnoredError{"motivazione"}, non riprova mai più
+// - infeasible: status.Error(codes.InvalidArgument, "motivazione"), riprova più lentamente
+//     importando "google.golang.org/grpc/codes" e "google.golang.org/grpc/status"
+// Per decidere magari si può controllare se quel campo può essere cambiato o no
+//   (ad es. dataSourceRef è invalido ora, ok, ma può cambiare? no => è inutile ricontrollare => ignore.)
 
 // Delete is the Provisioner interface function called when a PVC has to be deleted.
 func (p *PvcMirrorProvisioner) Delete(_ context.Context, _ *v1.PersistentVolume) error {
@@ -187,7 +193,9 @@ func (p *PvcMirrorProvisioner) Start(ctx context.Context) error {
 		return err
 	}
 
-	// TODO: Check outputSc.Provisioner == p.MirrorProvisionerName and outputSc.AllowVolumeExpansion == false
+	if !(outputSc.Provisioner == p.MirrorProvisionerName && *outputSc.AllowVolumeExpansion == false) {
+		p.Logger.Error(errInvalidConfig, "Mismatching parameters: Provisioner or AllowVolumeExpansion ")
+	}
 
 	// Create k8s client and run Provision controller
 	clientset, err := kubernetes.NewForConfig(p.Config)
