@@ -109,6 +109,13 @@ const (
 
 	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
 	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
+
+	// AuthorizationAnnotationKey is the key of the annotation that shows which labels are requested on the target ns to mirror the pvc.
+	AuthorizationAnnotationKey = "pmp.crownlabs.polito.it/required-target-ns-labels"
+	// MyDriveAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a MyDrive pvc.
+	MyDriveAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant,crownlabs.polito.it/name={tenant-id}"
+	// ShVolAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a SharedVolume pvc.
+	ShVolAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
