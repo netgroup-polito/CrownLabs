@@ -15,6 +15,8 @@
 package forge_test
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
@@ -239,5 +241,26 @@ var _ = Describe("Tenant forging", func() {
 		})
 	})
 
-	// TODO: Add test suite for UpdateMyDrivePVCAnnotations
+	Describe("The forge.UpdateMyDrivePVCAnnotations function", func() {
+		const tenantName string = "tester"
+
+		It("Should add Authz annotation to existing annotations", func() {
+			inputAnnotations := map[string]string{
+				"existing-label": "existing-value",
+			}
+
+			resultAnnotations := forge.UpdateMyDrivePVCAnnotations(inputAnnotations, tenantName)
+
+			Expect(resultAnnotations).To(HaveLen(2))
+			Expect(resultAnnotations).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(resultAnnotations).To(HaveKeyWithValue(forge.AuthorizationAnnotationKey, strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName)))
+		})
+
+		It("Should initialize annotations map when nil", func() {
+			resultAnnotations := forge.UpdateMyDrivePVCAnnotations(nil, tenantName)
+
+			Expect(resultAnnotations).To(HaveLen(1))
+			Expect(resultAnnotations).To(HaveKeyWithValue(forge.AuthorizationAnnotationKey, strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName)))
+		})
+	})
 })
