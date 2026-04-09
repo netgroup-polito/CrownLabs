@@ -1,7 +1,8 @@
-// Package imageList contains the image list requestor logic.
-package imageList
+// Package imagelist contains the image list requestor logic.
+package imagelist
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,18 +13,18 @@ import (
 	"k8s.io/klog/v2/textlogger"
 )
 
-// ImageListRequestor defines the interface for objects responsible to retrieve the list of images from upstream sources.
+// Requestor defines the interface for objects responsible to retrieve the list of images from upstream sources.
 // Each registry implementation must satisfy this interface, and the updater will use it to retrieve the data to be saved in the ImageList objects.
-type ImageListRequestor interface {
+type Requestor interface {
 	// GetImageList retrieves the list of images from the upstream registry.
-	GetImageList() ([]map[string]interface{}, error)
+	GetImageList(ctx context.Context) ([]map[string]interface{}, error)
 	// Initialize initializes the requestor with configuration data.
 	Initialize(username, password, registryURL string) (bool, error)
 }
 
 // RegisteredRequestors holds the list of all registered image list requestors.
 // RegisteredRequestors holds the list of all registered image list requestors.
-var RegisteredRequestors = []ImageListRequestor{}
+var RegisteredRequestors = []Requestor{}
 
 // RequestersSharedData stores configuration data shared across requestors.
 var RequestersSharedData = map[string]string{}
@@ -62,9 +63,9 @@ func (r *DefaultImageListRequestor) Initialize(username, password, registryURL s
 
 // GetImageList retrieves the list of images from the upstream registry.
 // It fetches the catalog first, then retrieves the tags for each repository in parallel.
-func (r *DefaultImageListRequestor) GetImageList() ([]map[string]interface{}, error) {
+func (r *DefaultImageListRequestor) GetImageList(ctx context.Context) ([]map[string]interface{}, error) {
 	r.log.V(1).Info("requesting registry catalog upstream")
-	repositories, err := r.doSingleGet(r.getCatalogPath())
+	repositories, err := r.doSingleGet(ctx, r.getCatalogPath())
 	if err != nil {
 		r.log.Error(err, "failed to retrieve catalog")
 		return nil, err
@@ -80,13 +81,13 @@ func (r *DefaultImageListRequestor) GetImageList() ([]map[string]interface{}, er
 
 	r.log.V(1).Info("requesting image details upstream", "repository_count", len(reposInterface))
 	paths := r.mapRepositoriesToPaths(reposInterface)
-	return r.doParallelGets(paths)
+	return r.doParallelGets(ctx, paths)
 }
 
 // doSingleGet performs a single GET request to the target path and returns the parsed JSON result.
-func (r *DefaultImageListRequestor) doSingleGet(path string) (map[string]interface{}, error) {
+func (r *DefaultImageListRequestor) doSingleGet(ctx context.Context, path string) (map[string]interface{}, error) {
 	r.log.V(1).Info("performing GET request to registry", "url", r.url+path)
-	req, err := http.NewRequest("GET", r.url+path, http.NoBody)
+	req, err := http.NewRequestWithContext(ctx, "GET", r.url+path, http.NoBody)
 	if err != nil {
 		r.log.Error(err, "failed to create HTTP request", "path", path)
 		return nil, err
@@ -117,7 +118,7 @@ func (r *DefaultImageListRequestor) doSingleGet(path string) (map[string]interfa
 }
 
 // doParallelGets performs concurrent GET requests to multiple paths and returns all results.
-func (r *DefaultImageListRequestor) doParallelGets(paths []string) ([]map[string]interface{}, error) {
+func (r *DefaultImageListRequestor) doParallelGets(ctx context.Context, paths []string) ([]map[string]interface{}, error) {
 	var wg sync.WaitGroup
 	results := make([]map[string]interface{}, len(paths))
 	errors := make([]error, len(paths))
@@ -126,7 +127,7 @@ func (r *DefaultImageListRequestor) doParallelGets(paths []string) ([]map[string
 		wg.Add(1)
 		go func(i int, path string) {
 			defer wg.Done()
-			resp, err := r.doSingleGet(path)
+			resp, err := r.doSingleGet(ctx, path)
 			if err != nil {
 				errors[i] = err
 				return

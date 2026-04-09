@@ -1,7 +1,8 @@
-// Package imageList contains the image list update logic.
-package imageList
+// Package imagelist contains the image list update logic.
+package imagelist
 
 import (
+	"context"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -10,15 +11,15 @@ import (
 
 // ImageListUpdater manages the process of updating ImageList resources with image data from requestors.
 type ImageListUpdater struct {
-	Requestor         []ImageListRequestor
+	Requestor         []Requestor
 	RegistryAdvName   string
 	ImageListBaseName string
-	ImageListSaver    ImageListSaver
+	ImageListSaver    Saver
 	Log               logr.Logger
 }
 
 // NewImageListUpdater creates a new ImageListUpdater instance.
-func NewImageListUpdater(requestor []ImageListRequestor, imageListBase string, imageListSaver ImageListSaver, registryAdv string, log logr.Logger) *ImageListUpdater {
+func NewImageListUpdater(requestor []Requestor, imageListBase string, imageListSaver Saver, registryAdv string, log logr.Logger) *ImageListUpdater {
 	return &ImageListUpdater{
 		Requestor:         requestor,
 		ImageListBaseName: imageListBase,
@@ -29,12 +30,12 @@ func NewImageListUpdater(requestor []ImageListRequestor, imageListBase string, i
 }
 
 // Update performs the update process for the ImageList resource.
-func (u *ImageListUpdater) Update() error {
+func (u *ImageListUpdater) Update(ctx context.Context) error {
 	start := time.Now()
 	u.Log.Info("Starting the update process")
 	images := []map[string]interface{}{}
 	for _, r := range u.Requestor {
-		list, err := r.GetImageList()
+		list, err := r.GetImageList(ctx)
 		if err != nil {
 			u.Log.Error(err, "failed to retrieve data from upstream")
 			return err

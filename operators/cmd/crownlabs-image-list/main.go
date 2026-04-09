@@ -1,4 +1,3 @@
-// Package main contains the entry point for the crownlabs-image-list updater.
 package main
 
 import (
@@ -6,7 +5,7 @@ import (
 	"flag"
 	"os"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/imageList"
+	imagelist "github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
@@ -30,9 +29,10 @@ func main() {
 	flag.Parse()
 
 	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("imageList")
+	ctx := context.Background()
 
 	// Create the object reading the list of the images from the registry
-	imageListRequestor := imageList.NewDefaultImageListRequestor(log.WithName("crownlabs-imagelists-updater").WithName("defaultRequestor"))
+	imageListRequestor := imagelist.NewDefaultImageListRequestor(log.WithName("crownlabs-imagelists-updater").WithName("defaultRequestor"))
 	if initResult, err := imageListRequestor.Initialize(registryUsername, registryPassword, registryURL); !initResult || err != nil {
 		log.Error(err, "Failed to initialize the default image list requestor")
 		os.Exit(1)
@@ -40,21 +40,21 @@ func main() {
 
 	// Create the object saving the retrieved information as a K8s object
 	log.Info("Target ImageList CR name", "name", imageListName)
-	ctx := context.Background()
+
 	k8sClient, err := utils.NewK8sClient()
 	if err != nil {
 		log.Error(err, "Failed to initialize K8s client for ImageList savers")
 		os.Exit(1)
 	}
 	// create the object saving the retrieved information as a K8s object
-	imageListSaver, err := imageList.NewDefaultImageListSaver(ctx, imageListName, k8sClient, log.WithName("crownlabs-imagelists-updater").WithName("defaultSaver"))
+	imageListSaver, err := imagelist.NewDefaultImageListSaver(ctx, imageListName, k8sClient, log.WithName("crownlabs-imagelists-updater").WithName("defaultSaver"))
 	if err != nil {
 		log.Error(err, "Failed to initialize the default image list saver")
 		os.Exit(1)
 	}
 	// Perform the update process
-	imageListUpdater := imageList.NewImageListUpdater([]imageList.ImageListRequestor{imageListRequestor}, imageListName, imageListSaver, advertisedRegistryName, log.WithName("crownlabs-imagelists-updater"))
-	if err := imageListUpdater.Update(); err != nil {
+	imageListUpdater := imagelist.NewImageListUpdater([]imagelist.Requestor{imageListRequestor}, imageListName, imageListSaver, advertisedRegistryName, log.WithName("crownlabs-imagelists-updater"))
+	if err := imageListUpdater.Update(ctx); err != nil {
 		log.Error(err, "Failed to update the ImageList resource")
 		os.Exit(1)
 	}

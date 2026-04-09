@@ -1,5 +1,5 @@
-// Package imageList contains the image list saver logic.
-package imageList
+// Package imagelist contains the image list saver logic.
+package imagelist
 
 import (
 	"context"
@@ -13,14 +13,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-// ImageListSaver defines the interface for objects responsible for saving image lists to Kubernetes resources.
-type ImageListSaver interface {
+// Saver defines the interface for objects responsible for saving image lists to Kubernetes resources.
+type Saver interface {
 	// UpdateImageList updates the ImageList resource with the provided images from a specific registry.
 	UpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
 }
 
 // RegisteredSavers holds the list of all registered image list savers.
-var RegisteredSavers = []ImageListSaver{}
+var RegisteredSavers = []Saver{}
 
 // DefaultImageListSaver saves the list of images retrieved from a Docker registry as a Kubernetes ImageList resource.
 type DefaultImageListSaver struct {
