@@ -25,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -49,6 +50,14 @@ func ObjectMeta(instance *clv1alpha2.Instance) metav1.ObjectMeta {
 func ObjectMetaWithSuffix(instance *clv1alpha2.Instance, suffix string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
 		Name:      CanonicalName(instance.GetName()) + StringSeparator + suffix,
+		Namespace: instance.GetNamespace(),
+	}
+}
+
+// NamespacedNameImageList returns the namespace/name pair given an ImageList instance.
+func NamespacedNameImageList(instance *clv1alpha1.ImageList) types.NamespacedName {
+	return types.NamespacedName{
+		Name:      CanonicalName(instance.GetName()),
 		Namespace: instance.GetNamespace(),
 	}
 }
