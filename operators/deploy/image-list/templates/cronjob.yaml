@@ -29,7 +29,6 @@ spec:
                 - --advertised-registry-name={{ .Values.configurations.advRegistryName }}
                 - --image-list-name={{ .Values.configurations.imageListName }}
                 - --registry-url={{ .Values.configurations.registryUrl }}
-                - --update-interval={{ .Values.configurations.updateInterval }}
                 - --registry-username={{ .Values.configurations.username }}
                 - --registry-password={{ .Values.configurations.password }}
               resources:
