@@ -1,3 +1,4 @@
+// Package imageList contains the image list requestor logic.
 package imageList
 
 import (
@@ -21,10 +22,11 @@ type ImageListRequestor interface {
 }
 
 // RegisteredRequestors holds the list of all registered image list requestors.
-var RegisteredRequestors []ImageListRequestor = []ImageListRequestor{}
+// RegisteredRequestors holds the list of all registered image list requestors.
+var RegisteredRequestors = []ImageListRequestor{}
 
 // RequestersSharedData stores configuration data shared across requestors.
-var RequestersSharedData map[string]string = map[string]string{}
+var RequestersSharedData = map[string]string{}
 
 // DefaultImageListRequestor interacts with a Docker registry to retrieve the list of images currently available.
 type DefaultImageListRequestor struct {
@@ -84,7 +86,7 @@ func (r *DefaultImageListRequestor) GetImageList() ([]map[string]interface{}, er
 // doSingleGet performs a single GET request to the target path and returns the parsed JSON result.
 func (r *DefaultImageListRequestor) doSingleGet(path string) (map[string]interface{}, error) {
 	r.log.V(1).Info("performing GET request to registry", "url", r.url+path)
-	req, err := http.NewRequest("GET", r.url+path, nil)
+	req, err := http.NewRequest("GET", r.url+path, http.NoBody)
 	if err != nil {
 		r.log.Error(err, "failed to create HTTP request", "path", path)
 		return nil, err

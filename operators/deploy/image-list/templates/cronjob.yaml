@@ -5,6 +5,11 @@ metadata:
   labels:
     {{- include "image-list.labels" . | nindent 4 }}
 spec:
+  schedule: {{ .Values.configurations.schedule | quote }}
+  startingDeadlineSeconds: {{ .Values.configurations.startingDeadlineSeconds }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
   jobTemplate:
     spec:
       template:
@@ -20,7 +25,6 @@ spec:
                 {{- toYaml .Values.securityContext | nindent 16 }}
               image: "{{ .Values.image.repository }}:{{ include "image-list.version" . }}"
               imagePullPolicy: {{ .Values.image.pullPolicy }}
-              {{- if .Values.configurations.dryRun }}
               args:
                 - --advertised-registry-name={{ .Values.configurations.advRegistryName }}
                 - --image-list-name={{ .Values.configurations.imageListName }}
@@ -28,9 +32,6 @@ spec:
                 - --update-interval={{ .Values.configurations.updateInterval }}
                 - --registry-username={{ .Values.configurations.username }}
                 - --registry-password={{ .Values.configurations.password }}
-              {{- end }}
               resources:
                 {{- toYaml .Values.resources | nindent 16 }}
           restartPolicy: OnFailure
-  schedule: {{ .Values.configurations.schedule | quote }}
-  startingDeadlineSeconds: {{ .Values.configurations.startingDeadlineSeconds }}

@@ -1,3 +1,4 @@
+// Package main contains the entry point for the crownlabs-image-list updater.
 package main
 
 import (
@@ -29,37 +30,6 @@ func main() {
 	flag.Parse()
 
 	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("imageList")
-	// if advertisedRegistryName == "" || imageListName == "" || registryURL == "" || registryUsername == "" || registryPassword == "" {
-	// 	log.Error(nil, `Usage:
-	// 		--advertised-registry-name <registry-name>
-	// 		--image-list-name <list-name>
-	// 		--registry-url <url>
-	// 		`)
-	// 	os.Exit(1)
-	// }
-	//Temporal solution until we refactor the imgretriever package
-	// imageList.RequestersSharedData["default-requestor-registryurl"] = registryURL
-	// imageList.RequestersSharedData["default-requestor-REGISTRY_USERNAME"] = registryUsername
-	// imageList.RequestersSharedData["default-requestor-REGISTRY_PASSWORD"] = registryPassword
-
-	// var imageListRequestors []imageList.ImageListRequestor
-
-	// for _, r := range imageList.RegisteredRequestors {
-	// 	if r != nil {
-	// 		if initResult, err := r.Initialize(); initResult && err == nil {
-	// 			imageListRequestors = append(imageListRequestors, r)
-	// 		}
-	// 	}
-	// }
-	// if len(imageListRequestors) == 0 {
-	// 	log.Error(nil, `No valid Image source is defined`)
-	// 	os.Exit(1)
-	// }
-
-	// up := imageList.NewImageListUpdater(imageListRequestors, imageListName, advertisedRegistryName, log.WithName("crownlabs-imagelists-updater"))
-
-	// // with the cronjob
-	// up.RunUpdateProcess()
 
 	// Create the object reading the list of the images from the registry
 	imageListRequestor := imageList.NewDefaultImageListRequestor(log.WithName("crownlabs-imagelists-updater").WithName("defaultRequestor"))
@@ -89,5 +59,4 @@ func main() {
 		os.Exit(1)
 	}
 	log.Info("ImageList resource updated successfully", "name", imageListName)
-
 }

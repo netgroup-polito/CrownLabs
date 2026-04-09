@@ -12,6 +12,7 @@ configurations:
   password: test
   updateInterval: 60
   schedule: "*/1 * * * *"
+  startingDeadlineSeconds: 60
 
 
 image:

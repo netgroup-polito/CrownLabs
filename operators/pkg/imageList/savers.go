@@ -1,3 +1,4 @@
+// Package imageList contains the image list saver logic.
 package imageList
 
 import (
@@ -18,7 +19,8 @@ type ImageListSaver interface {
 	UpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
 }
 
-var RegisteredSavers []ImageListSaver = []ImageListSaver{}
+// RegisteredSavers holds the list of all registered image list savers.
+var RegisteredSavers = []ImageListSaver{}
 
 // DefaultImageListSaver saves the list of images retrieved from a Docker registry as a Kubernetes ImageList resource.
 type DefaultImageListSaver struct {
@@ -29,10 +31,10 @@ type DefaultImageListSaver struct {
 }
 
 // NewDefaultImageListSaver creates a new DefaultImageListSaver instance.
-func NewDefaultImageListSaver(ctx context.Context, name string, client client.Client, log logr.Logger) (*DefaultImageListSaver, error) {
+func NewDefaultImageListSaver(ctx context.Context, name string, k8sClient client.Client, log logr.Logger) (*DefaultImageListSaver, error) {
 	return &DefaultImageListSaver{
 		name:   name,
-		client: client,
+		client: k8sClient,
 		log:    log,
 		ctx:    ctx,
 	}, nil

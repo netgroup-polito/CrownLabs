@@ -1,3 +1,4 @@
+// Package imageList contains the image list update logic.
 package imageList
 
 import (
@@ -7,6 +8,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
+// ImageListUpdater manages the process of updating ImageList resources with image data from requestors.
 type ImageListUpdater struct {
 	Requestor         []ImageListRequestor
 	RegistryAdvName   string
@@ -15,6 +17,7 @@ type ImageListUpdater struct {
 	Log               logr.Logger
 }
 
+// NewImageListUpdater creates a new ImageListUpdater instance.
 func NewImageListUpdater(requestor []ImageListRequestor, imageListBase string, imageListSaver ImageListSaver, registryAdv string, log logr.Logger) *ImageListUpdater {
 	return &ImageListUpdater{
 		Requestor:         requestor,
@@ -25,6 +28,7 @@ func NewImageListUpdater(requestor []ImageListRequestor, imageListBase string, i
 	}
 }
 
+// Update performs the update process for the ImageList resource.
 func (u *ImageListUpdater) Update() error {
 	start := time.Now()
 	u.Log.Info("Starting the update process")
