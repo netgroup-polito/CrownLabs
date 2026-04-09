@@ -1,3 +1,17 @@
+// Copyright 2020-2026 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // Package imagelist contains the image list update logic.
 package imagelist
 
@@ -6,11 +20,12 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-// ImageListUpdater manages the process of updating ImageList resources with image data from requestors.
-type ImageListUpdater struct {
+// Updater manages the process of updating ImageList resources with image data from requestors.
+type Updater struct {
 	Requestor         []Requestor
 	RegistryAdvName   string
 	ImageListBaseName string
@@ -18,9 +33,9 @@ type ImageListUpdater struct {
 	Log               logr.Logger
 }
 
-// NewImageListUpdater creates a new ImageListUpdater instance.
-func NewImageListUpdater(requestor []Requestor, imageListBase string, imageListSaver Saver, registryAdv string, log logr.Logger) *ImageListUpdater {
-	return &ImageListUpdater{
+// NewUpdater creates a new Updater instance.
+func NewUpdater(requestor []Requestor, imageListBase string, imageListSaver Saver, registryAdv string, log logr.Logger) *Updater {
+	return &Updater{
 		Requestor:         requestor,
 		ImageListBaseName: imageListBase,
 		RegistryAdvName:   registryAdv,
@@ -30,7 +45,7 @@ func NewImageListUpdater(requestor []Requestor, imageListBase string, imageListS
 }
 
 // Update performs the update process for the ImageList resource.
-func (u *ImageListUpdater) Update(ctx context.Context) error {
+func (u *Updater) Update(ctx context.Context) error {
 	start := time.Now()
 	u.Log.Info("Starting the update process")
 	images := []map[string]interface{}{}
