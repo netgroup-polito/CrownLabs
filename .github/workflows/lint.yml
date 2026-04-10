@@ -41,7 +41,7 @@ jobs:
       - name: Check linting
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v${{ steps.golangci-lint-version.outputs.GOLANGCI_LINT_VERSION }}
+          version: ${{ steps.golangci-lint-version.outputs.GOLANGCI_LINT_VERSION }}
           working-directory: operators
 
   gomodtidy:
