@@ -114,11 +114,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			mountInfoShVol,
 		}
 		opts = forge.ContainerEnvOpts{
-			ImagesTag:            "tag",
-			XVncImg:              "x-vnc-img",
-			WebsockifyImg:        "wsfy-img",
-			ContentDownloaderImg: "cont-dler-img",
-			ContentUploaderImg:   "cont-uplr-img",
+			ImagesTag:       "tag",
+			XVncImg:         "x-vnc-img",
+			WebsockifyImg:   "wsfy-img",
+			ContentToolsImg: "cont-tools:tag",
 		}
 		container = corev1.Container{}
 	})
@@ -742,10 +741,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			actual = forge.ContentDownloaderInitContainer(httpPath, &opts)
 		})
 
-		It("Should set the correct container name and image", func() {
+		It("Should set the correct container name, args and image", func() {
 			// PodSecurityContext setting is checked by GenericContainer specific tests
 			Expect(actual.Name).To(Equal(containerName))
-			Expect(actual.Image).To(Equal("cont-dler-img:tag"))
+			Expect(actual.Image).To(Equal("cont-tools:tag"))
+			Expect(actual.Args).To(Equal([]string{"download"}))
 		})
 		It("Should set the correct resources", func() {
 			forge.SetContainerResources(&expected, 0.5, 1, 256, 1024)
@@ -812,10 +812,11 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			actual = forge.ContentUploaderJobContainer(httpPath, instanceName+"-"+environment.Name, &opts)
 		})
 
-		It("Should set the correct container name and image", func() {
+		It("Should set the correct container name, args and image", func() {
 			// PodSecurityContext setting is checked by GenericContainer specific tests
 			Expect(actual.Name).To(Equal(containerName))
-			Expect(actual.Image).To(Equal("cont-uplr-img:tag"))
+			Expect(actual.Image).To(Equal("cont-tools:tag"))
+			Expect(actual.Args).To(Equal([]string{"upload"}))
 		})
 		It("Should set the correct resources", func() {
 			forge.SetContainerResources(&expected, 0.5, 1, 256, 1024)
