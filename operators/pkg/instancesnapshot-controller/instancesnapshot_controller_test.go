@@ -177,6 +177,7 @@ var _ = Describe("InstancesnapshotController", func() {
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
 			snapjob.Status.Conditions = []batch.JobCondition{
 				{Type: batch.JobComplete, Status: v1.ConditionTrue},
+				{Type: batch.JobSuccessCriteriaMet, Status: v1.ConditionTrue},
 			}
 			snapjob.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 			snapjob.Status.StartTime = &metav1.Time{Time: time.Now().Add(-4 * time.Minute)}
@@ -198,7 +199,10 @@ var _ = Describe("InstancesnapshotController", func() {
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
 			snapjob.Status.Conditions = []batch.JobCondition{
 				{Type: batch.JobComplete, Status: v1.ConditionTrue},
+				{Type: batch.JobSuccessCriteriaMet, Status: v1.ConditionTrue},
 			}
+			snapjob.Status.StartTime = &metav1.Time{Time: time.Now()}
+			snapjob.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Status().Update(ctx, snapjob)).Should(Succeed())
 
 			By("Checking if the InstanceSnapshot status is Completed")
@@ -288,7 +292,9 @@ var _ = Describe("InstancesnapshotController", func() {
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
 			snapjob.Status.Conditions = []batch.JobCondition{
 				{Type: batch.JobFailed, Status: v1.ConditionTrue},
+				{Type: batch.JobFailureTarget, Status: v1.ConditionTrue},
 			}
+			snapjob.Status.StartTime = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Status().Update(ctx, snapjob)).Should(Succeed())
 
 			By("Checking if the InstanceSnapshot status is Failed")
