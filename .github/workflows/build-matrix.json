@@ -86,13 +86,8 @@
         "optional": true
     },
     {
-        "component": "content-downloader",
-        "context": "./provisioning/containers/utils/content-downloader",
-        "harbor-project": "crownlabs-container-envs-tools"
-    },
-    {
-        "component": "content-uploader",
-        "context": "./provisioning/containers/utils/content-uploader",
+        "component": "content-tools",
+        "context": "./provisioning/containers/utils/content-tools",
         "harbor-project": "crownlabs-container-envs-tools"
     },
     {

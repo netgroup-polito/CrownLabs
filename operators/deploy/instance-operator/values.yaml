@@ -14,8 +14,7 @@ configurations:
     tag: ""
     websockifyImage: crownlabs/websockify
     xVncImage: crownlabs/tigervnc
-    contentDownloaderImage: crownlabs/content-downloader
-    contentUploaderImage: crownlabs/content-uploader
+    contentToolsImg: crownlabs/content-tools
     instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
   containerVmSnapshots:
     kanikoImage: gcr.io/kaniko-project/executor:latest
@@ -69,7 +68,6 @@ configurations:
     commonLabels: ""
     # Annotation key for specifying LoadBalancer IPs
     loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
-      
 
 image:
   repository: crownlabs/instance-operator
@@ -89,7 +87,7 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 20000
