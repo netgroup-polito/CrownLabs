@@ -36,7 +36,7 @@ jobs:
 
       - name: Retrieve golangci-lint version
         id: golangci-lint-version
-        run: make -s getvars | grep GOLANGCI_LINT_VERSION >> $GITHUB_OUTPUT
+        run: cd operators && make -s getvars | grep GOLANGCI_LINT_VERSION >> $GITHUB_OUTPUT
 
       - name: Check linting
         uses: golangci/golangci-lint-action@v8
@@ -62,14 +62,14 @@ jobs:
           go-version-file: ./operators/go.mod
           cache-dependency-path: ./operators/go.sum
 
-      - name: Execute make fmt and ensure diffs absence
+      - name: Execute go mod tidy and check the outcome
         working-directory: ./operators
         run: |
-          make fmt
+          go mod tidy
           git diff --exit-code || {
-            echo "Some files changed because of formatting or go mod tidiness."
-            echo "Please, rerun 'make fmt' to fix the issues."
-            exit 1;
+            echo "Unexpected changes in go.mod or go.sum after running 'go mod tidy':"
+            git --no-pager diff
+            exit 1
           }
 
       - name: Issue a comment in case the of failure
@@ -78,9 +78,9 @@ jobs:
           token: ${{ secrets.CI_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            Some files changed because of formatting or go mod tidiness.
+            The `go.mod` and/or `go.sum` files appear not to be correctly tidied.
 
-            Please, rerun `make fmt` to fix the issues.
+            Please, rerun `go mod tidy` to fix the issues.
           reactions: confused
         if: |
           failure() && github.event.pull_request.head.repo.full_name == github.repository

@@ -214,6 +214,14 @@ ENVTEST_K8S_VERSION ?= $(shell v='$(call gomodver,k8s.io/api)'; \
 
 GOLANGCI_LINT_VERSION ?= v2.8.0
 
+.PHONY: getvars
+getvars: ## Print the versions of tools used in the Makefile (for GH actions or debugging)
+	@echo "CONTROLLER_TOOLS_VERSION=$(CONTROLLER_TOOLS_VERSION)"
+	@echo "ENVTEST_VERSION=$(ENVTEST_VERSION)"
+	@echo "ENVTEST_K8S_VERSION=$(ENVTEST_K8S_VERSION)"
+	@echo "GOLANGCI_LINT_VERSION=$(GOLANGCI_LINT_VERSION)"
+	@echo "ADDLICENSE_VERSION=$(ADDLICENSE_VERSION)"
+
 .PHONY: controller-gen
 controller-gen: $(CONTROLLER_GEN) ## Download controller-gen locally if necessary.
 $(CONTROLLER_GEN): $(LOCALBIN)
