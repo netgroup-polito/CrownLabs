@@ -20,6 +20,9 @@ all: gen
 .PHONY: gen
 gen: generate fmt vet manifests
 
+.PHONY: prepare
+prepare:
+	go mod download
 
 ##@ General
 
@@ -37,6 +40,10 @@ gen: generate fmt vet manifests
 .PHONY: help
 help: ## Display this help.
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_0-9-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
+
+.PHONY: welcome
+welcome: prepare golangci-lint help ## Startup target (for vscode task)
+	@printf "\n\nWelcome to the \033[36mCrownLabs Operators development workbench\033[0m!\nIf you're using Visual Studio Code, you should now be able to have linting and testing correctly set."
 
 ##@ Development
 
