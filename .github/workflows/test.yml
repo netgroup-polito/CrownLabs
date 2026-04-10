@@ -73,9 +73,10 @@ jobs:
               - 'operators/**'
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
 
       - uses: actions/setup-python@v4
         with:
@@ -118,9 +119,10 @@ jobs:
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
 
       - name: Run the automatic generation
         working-directory: operators/
@@ -217,6 +219,6 @@ jobs:
 
       - name: KubeScore Check
         run: |
-          docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score:v1.20.0 score \
+          docker run -v ${{ github.workspace }}:/CrownLabs zegl/kube-score:v1.11.0 score \
               --ignore-test=pod-networkpolicy,container-security-context,container-image-pull-policy \
             /CrownLabs/deploy/crownlabs/rendered.yaml
