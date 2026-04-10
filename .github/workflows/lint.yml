@@ -19,7 +19,7 @@ jobs:
       - name: Install prerequisites
         run: |
           sudo apt-get update && sudo apt-get install --no-install-recommends -y \
-          libpcap-dev
+          libpcap-dev make
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -34,14 +34,18 @@ jobs:
           go-version-file: ./operators/go.mod
           cache-dependency-path: ./operators/go.sum
 
+      - name: Retrieve golangci-lint version
+        id: golangci-lint-version
+        run: make -s getvars | grep GOLANGCI_LINT_VERSION >> $GITHUB_OUTPUT
+
       - name: Check linting
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.1.0
+          version: v${{ steps.golangci-lint-version.outputs.GOLANGCI_LINT_VERSION }}
           working-directory: operators
 
   gomodtidy:
-    name: Enforce go.mod tidiness
+    name: Enforce tidiness
     runs-on: ubuntu-latest
 
     steps:
@@ -58,12 +62,15 @@ jobs:
           go-version-file: ./operators/go.mod
           cache-dependency-path: ./operators/go.sum
 
-      - name: Execute go mod tidy and check the outcome
+      - name: Execute make fmt and ensure diffs absence
         working-directory: ./operators
         run: |
-          go mod tidy
-          exit_code=$(git diff --exit-code)
-          exit ${exit_code}
+          make fmt
+          git diff --exit-code || {
+            echo "Some files changed because of formatting or go mod tidiness."
+            echo "Please, rerun 'make fmt' to fix the issues."
+            exit 1;
+          }
 
       - name: Issue a comment in case the of failure
         uses: peter-evans/create-or-update-comment@v4
@@ -71,9 +78,9 @@ jobs:
           token: ${{ secrets.CI_TOKEN }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            The `go.mod` and/or `go.sum` files appear not to be correctly tidied.
+            Some files changed because of formatting or go mod tidiness.
 
-            Please, rerun `go mod tidy` to fix the issues.
+            Please, rerun `make fmt` to fix the issues.
           reactions: confused
         if: |
           failure() && github.event.pull_request.head.repo.full_name == github.repository
