@@ -33,7 +33,7 @@ configurations:
       memory: 50
       # Maximum number of instances that can be created by a tenant. 0 means unlimited.
       instances: 10
-  
+
   maxConcurrentShVolReconciles: 1
   sharedVolumeOptions:
     storageClass: rook-nfs
@@ -55,7 +55,7 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 20000
@@ -66,9 +66,24 @@ resources:
   limits:
     memory: 1Gi
     cpu: 1000m
+    ephemeral-storage: 100Mi
   requests:
     memory: 1Gi
     cpu: 100m
+    ephemeral-storage: 50Mi
+
+hookImage: alpine:3.22.0
+
+hookSecurityContext:
+  capabilities:
+    drop:
+      - ALL
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsNonRoot: true
+  runAsUser: 20000
+  runAsGroup: 20000
+  privileged: false
 
 webhook:
   deployment:

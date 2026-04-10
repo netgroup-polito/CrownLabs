@@ -62,10 +62,14 @@ spec:
           - name: configuration
             mountPath: "{{ .Values.configuration.mountPath }}/{{ .Values.configuration.nodesLabels.fileName }}"
             subPath: "{{ .Values.configuration.nodesLabels.fileName }}"
+          - name: tmp
+            mountPath: /tmp
       volumes:
       - name: configuration
         configMap:
           name: "{{ include "qlkube.fullname" . }}"
+      - name: tmp
+        emptyDir: {}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:

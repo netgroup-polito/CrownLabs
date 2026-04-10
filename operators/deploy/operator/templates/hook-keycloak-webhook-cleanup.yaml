@@ -14,11 +14,11 @@ spec:
     spec:
       containers:
       - name: webhook-cleanup
-        image: alpine:3.22.0
-        command: 
+        image: {{ .Values.hookImage }}
+        command:
         - /bin/sh
-        - -c
-        - |
+          - -c
+          - |
           # Install curl and jq
           apk update && apk add --no-cache curl jq
 
@@ -96,6 +96,8 @@ spec:
               key: clientSecret
         - name: WEBHOOK_URL
           value: {{ include "operator.keycloakWebhookServiceURL" . | quote }}
+        securityContext:
+          {{- toYaml .Values.hookSecurityContext | nindent 10 }}
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
       restartPolicy: OnFailure

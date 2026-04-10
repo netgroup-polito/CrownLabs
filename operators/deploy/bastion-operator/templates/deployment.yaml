@@ -44,6 +44,10 @@ spec:
               name: authorized-keys
             - mountPath: /host-keys
               name : host-keys
+            - mountPath: /var/run
+              name: sshd-run
+            - mountPath: /tmp
+              name: shared-tmp
           resources:
             {{- toYaml .Values.resources.bastion | nindent 12 }}
         - name: {{ .Chart.Name }}-operator-sidecar
@@ -113,6 +117,10 @@ spec:
           secret:
             secretName: {{ .Values.sshKeysSecret.name }}
             defaultMode: 0444
+        - name: sshd-run
+          emptyDir: {}
+        - name: shared-tmp
+          emptyDir: {}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
@@ -145,6 +153,8 @@ spec:
         - name: webssh
           image: "{{ .Values.image.repositoryWebSSH  }}:{{ include "bastion-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContexts.webssh | nindent 12 }}
           ports:
             - name: {{ .Values.webssh.service.targetPort }}
               containerPort: {{ .Values.webssh.config.webSocketPort }}
@@ -164,6 +174,8 @@ spec:
           volumeMounts:
             - mountPath: /web-keys
               name: web-keys
+            - mountPath: /tmp
+              name: shared-tmp
           resources:
             {{- toYaml .Values.resources.webssh | nindent 12 }}
           args:
@@ -177,4 +189,6 @@ spec:
           secret:
             secretName: {{ .Values.webssh.masterKey.secretName }}
             defaultMode: 0444
+        - name: shared-tmp
+          emptyDir: {}
 

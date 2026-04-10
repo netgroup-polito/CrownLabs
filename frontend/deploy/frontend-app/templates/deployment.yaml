@@ -44,10 +44,18 @@ spec:
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
           volumeMounts:
+          - name: nginx-cache
+            mountPath: /var/cache/nginx
+          - name: nginx-run
+            mountPath: /var/run
           - name: configuration
             mountPath: "{{ .Values.configuration.mountPath }}{{ .Values.ingress.path }}/{{ .Values.configuration.fileName }}"
             subPath: "{{ .Values.configuration.fileName }}"
       volumes:
+      - name: nginx-cache
+        emptyDir: {}
+      - name: nginx-run
+        emptyDir: {}
       - name: configuration
         configMap:
           name: "{{ include "frontend-app.fullname" . }}"

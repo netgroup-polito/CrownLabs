@@ -69,7 +69,6 @@ configurations:
     commonLabels: ""
     # Annotation key for specifying LoadBalancer IPs
     loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
-      
 
 image:
   repository: crownlabs/instance-operator
@@ -89,7 +88,7 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 20000
@@ -100,9 +99,11 @@ resources:
   limits:
     memory: 750Mi
     cpu: 1000m
+    ephemeral-storage: 100Mi
   requests:
     memory: 250Mi
     cpu: 100m
+    ephemeral-storage: 50Mi
 
 webssh:
   masterKey:

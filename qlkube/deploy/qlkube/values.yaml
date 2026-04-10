@@ -68,10 +68,10 @@ securityContext:
   capabilities:
     drop:
       - ALL
-  readOnlyRootFilesystem: false
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
-  runAsUser: 1000
-  runAsGroup: 1000
+  runAsUser: 20000
+  runAsGroup: 20000
   privileged: false
 
 service:
@@ -93,8 +93,10 @@ resources:
   limits:
     cpu: 1000m
     memory: 500Mi
+    ephemeral-storage: 100Mi
   requests:
     cpu: 100m
     memory: 250Mi
+    ephemeral-storage: 50Mi
 
 rbacResourcesName: crownlabs-qlkube

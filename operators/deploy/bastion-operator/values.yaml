@@ -33,15 +33,16 @@ securityContexts:
   bastion:
     capabilities:
       drop:
-      - ALL
+        - ALL
     allowPrivilegeEscalation: false
-    runAsUser: 1000
-    runAsGroup: 1000
+    readOnlyRootFilesystem: true
+    runAsUser: 10001
+    runAsGroup: 10001
     privileged: false
   operatorSidecar:
     capabilities:
       drop:
-      - ALL
+        - ALL
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 100000
@@ -50,62 +51,81 @@ securityContexts:
   trackerSidecar:
     capabilities:
       drop:
-      - ALL
+        - ALL
       add:
-      - NET_RAW
-      - NET_ADMIN
+        - NET_RAW
+        - NET_ADMIN
     readOnlyRootFilesystem: true
     runAsNonRoot: false
-    runAsUser: 0
-    runAsGroup: 0
+    runAsUser: 10001
+    runAsGroup: 10001
     privileged: false
   hookCreateSecret:
     capabilities:
       drop:
-      - ALL
+        - ALL
     readOnlyRootFilesystem: true
     runAsNonRoot: true
     runAsUser: 65534
     runAsGroup: 65534
     privileged: false
-
+  webssh:
+    capabilities:
+      drop:
+        - ALL
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 20000
+    runAsGroup: 20000
+    privileged: false
 
 resources:
   bastion:
     limits:
       memory: 250Mi
       cpu: 1000m
+      ephemeral-storage: 100Mi
     requests:
       memory: 100Mi
       cpu: 100m
+      ephemeral-storage: 50Mi
   operatorSidecar:
     limits:
       memory: 250Mi
       cpu: 1000m
+      ephemeral-storage: 100Mi
     requests:
       memory: 100Mi
       cpu: 100m
+      ephemeral-storage: 50Mi
   trackerSidecar:
     limits:
       memory: 250Mi
       cpu: 1000m
+      ephemeral-storage: 100Mi
     requests:
       memory: 100Mi
       cpu: 100m
+      ephemeral-storage: 50Mi
   hookCreateSecret:
     limits:
       memory: 100Mi
       cpu: 1000m
+      ephemeral-storage: 100Mi
     requests:
       memory: 100Mi
       cpu: 10m
+      ephemeral-storage: 50Mi
   webssh:
     limits:
       memory: 250Mi
       cpu: 1000m
+      ephemeral-storage: 100Mi
     requests:
       memory: 100Mi
       cpu: 100m
+      ephemeral-storage: 50Mi
 
 service:
   type: LoadBalancer
@@ -127,7 +147,7 @@ webssh:
       nginx.ingress.kubernetes.io/custom-http-errors: "418"
       nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
       nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
-      nginx.ingress.kubernetes.io/websocket-services: "{{ include \"bastion-operator.fullname\" . }}-webssh"
+      nginx.ingress.kubernetes.io/websocket-services: '{{ include "bastion-operator.fullname" . }}-webssh'
       nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
     hostname: crownlabs.example.com
     path: /webssh

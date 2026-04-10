@@ -24,10 +24,10 @@ fullnameOverride: ""
 daemonsetAnnotations: {}
 podAnnotations: {}
 
-podSecurityContext: 
-  runAsNonRoot: false
-  runAsUser: 0
-  runAsGroup: 0
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 10001
+  runAsGroup: 10001
 
 containerSecurityContext:
   allowPrivilegeEscalation: false
@@ -35,6 +35,7 @@ containerSecurityContext:
     drop:
     - ALL
   privileged: false
+  readOnlyRootFilesystem: true
 
 service:
   type: ClusterIP
@@ -45,9 +46,11 @@ resources:
   limits:
     cpu: 1000m
     memory: 500Mi
+    ephemeral-storage: 100Mi
   requests:
     cpu: 200m
     memory: 150Mi
+    ephemeral-storage: 50Mi
 
 tolerations: []
   # these tolerations are to have the daemonset runnable on control plane nodes

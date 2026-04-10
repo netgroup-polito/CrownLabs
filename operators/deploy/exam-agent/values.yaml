@@ -34,7 +34,7 @@ podSecurityContext: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 20000
@@ -45,8 +45,10 @@ resources:
   limits:
     memory: 500Mi
     cpu: 1000m
+    ephemeral-storage: 100Mi
   requests:
     memory: 100Mi
     cpu: 100m
+    ephemeral-storage: 50Mi
 
 rbacResourcesName: crownlabs-exam-agent

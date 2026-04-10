@@ -32,12 +32,16 @@ COPY --chown=nginx:nginx nginx.conf.tmpl /etc/nginx/conf.d/default.conf.tmpl
 RUN envsubst '$SUBROUTE $SUBROUTE_REDIR' < /etc/nginx/conf.d/default.conf.tmpl > /etc/nginx/conf.d/default.conf && \
     rm /etc/nginx/conf.d/default.conf.tmpl
 
-## Add permissions for the nginx user
-RUN chown -R nginx:nginx /usr/share/nginx/html && \
-    chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
+## Add permissions for the crownlabs user (uid/gid 20000)
+RUN groupadd --gid 20000 crownlabs && \
+    useradd --uid 20000 --gid 20000 --no-create-home --shell /usr/sbin/nologin crownlabs && \
+    chown -R crownlabs:crownlabs /usr/share/nginx/html && \
+    chown -R crownlabs:crownlabs /var/cache/nginx && \
+    chown -R crownlabs:crownlabs /var/log/nginx && \
+    chown -R crownlabs:crownlabs /etc/nginx/conf.d && \
     touch /var/run/nginx.pid && \
-    chown -R nginx:nginx /var/run/nginx.pid
+    chown crownlabs:crownlabs /var/run/nginx.pid
+
+USER crownlabs
 
 ENTRYPOINT ["nginx", "-g", "daemon off;"]

@@ -38,11 +38,11 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
-  readOnlyRootFilesystem: false
+      - ALL
+  readOnlyRootFilesystem: true
   runAsNonRoot: true
-  runAsUser: 101
-  runAsGroup: 101
+  runAsUser: 20000
+  runAsGroup: 20000
   privileged: false
 
 service:
@@ -60,6 +60,8 @@ resources:
   limits:
     cpu: 1000m
     memory: 250Mi
+    ephemeral-storage: 100Mi
   requests:
     cpu: 100m
     memory: 100Mi
+    ephemeral-storage: 50Mi
