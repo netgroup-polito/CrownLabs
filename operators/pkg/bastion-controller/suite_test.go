@@ -17,7 +17,6 @@ package bastion_controller
 import (
 	"context"
 	"os"
-	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -53,9 +52,7 @@ var _ = BeforeSuite(func() {
 	tests.LogsToGinkgoWriter()
 
 	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds")},
-	}
+	testEnv = tests.ForgeEnvtestEnv(false)
 
 	var err error
 	cfg, err = testEnv.Start()
