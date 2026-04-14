@@ -18,6 +18,7 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,6 +35,7 @@ const (
 	environmentKey      ctxValueKey = "environment"
 	tenantKey           ctxValueKey = "tenant"
 	environmentIndexKey ctxValueKey = "environment-index"
+	volumeMountInfoKey  ctxValueKey = "volume-mount-info"
 )
 
 // InstanceInto returns a copy of the context and the respective logger with the given instance embedded.
@@ -79,7 +81,7 @@ func EnvironmentFrom(ctx context.Context) *clv1alpha2.Environment {
 }
 
 // LoggerIntoContext takes a context and sets the logger as one of its values.
-// Use LoggerFromContext function to retrieve the logger.
+// Use [LoggerFromContext] function to retrieve the logger.
 func LoggerIntoContext(ctx context.Context, log logr.Logger) context.Context {
 	return logr.NewContext(ctx, log)
 }
@@ -108,4 +110,15 @@ func EnvironmentIndexInto(ctx context.Context, index int) context.Context {
 // EnvironmentIndexFrom retrieves the environment index from the given context.
 func EnvironmentIndexFrom(ctx context.Context) int {
 	return ctx.Value(environmentIndexKey).(int)
+}
+
+// VolumeMountInfosInto takes a context and sets the volume mount infos as one of its values.
+// Use [VolumeMountInfosFrom] function to retrieve the volume mount infos.
+func VolumeMountInfosInto(ctx context.Context, mounts []corev1.VolumeMount) context.Context {
+	return context.WithValue(ctx, volumeMountInfoKey, mounts)
+}
+
+// VolumeMountInfosFrom retrieves the volume mount infos from the given context.
+func VolumeMountInfosFrom(ctx context.Context) []corev1.VolumeMount {
+	return ctx.Value(volumeMountInfoKey).([]corev1.VolumeMount)
 }

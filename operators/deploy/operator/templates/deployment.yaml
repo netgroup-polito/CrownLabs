@@ -53,8 +53,9 @@ spec:
             - "--cap-cpu={{ .Values.configurations.tenant.resourcecaps.cpu }}"
             - "--cap-memory-giga={{ .Values.configurations.tenant.resourcecaps.memory }}"
             - "--shared-volume-storage-class={{.Values.configurations.sharedVolumeOptions.storageClass }}"
-            - "--mirror-storage-class={{.Values.configurations.pvcMirrorProvisioner.storageClassName}}"
+            - "--mirror-storage-class={{.Values.configurations.pvcMirrorProvisioner.storageClass.name}}"
             - "--mirror-provisioner-name={{.Values.configurations.pvcMirrorProvisioner.provisionerName}}"
+            - "--enable-pmp={{.Values.configurations.features.pmp}}"
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
           ports:
