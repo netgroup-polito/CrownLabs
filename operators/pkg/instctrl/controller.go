@@ -23,7 +23,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,13 +46,14 @@ import (
 // InstanceReconciler reconciles an Instance object.
 type InstanceReconciler struct {
 	client.Client
-	Scheme                *runtime.Scheme
-	EventsRecorder        record.EventRecorder
-	NamespaceWhitelist    metav1.LabelSelector
-	ServiceUrls           ServiceUrls
-	ContainerEnvOpts      forge.ContainerEnvOpts
-	WebSSHMasterPublicKey []byte
-	PublicExposureOpts    forge.PublicExposureOpts
+	Scheme                    *runtime.Scheme
+	EventsRecorder            record.EventRecorder
+	NamespaceWhitelist        metav1.LabelSelector
+	ServiceUrls               ServiceUrls
+	ContainerEnvOpts          forge.ContainerEnvOpts
+	WebSSHMasterPublicKey     []byte
+	PublicExposureOpts        forge.PublicExposureOpts
+	MirrorPVCStorageClassName string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -210,7 +211,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, templateName, &template); err != nil {
 		log.Error(err, "failed retrieving the instance template", "template", templateName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, templateName.Namespace, templateName.Name)
+		r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, templateName.Namespace, templateName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TemplateInto(ctx, &template)
@@ -222,7 +223,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	var tenant clv1alpha2.Tenant
 	if err := r.Get(ctx, tenantName, &tenant); err != nil {
 		log.Error(err, "failed retrieving the instance tenant", "tenant", tenantName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, tenantName.Name)
+		r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, tenantName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TenantInto(ctx, &tenant)
@@ -275,24 +276,39 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	if len(instance.Status.Environments) != tmplEnvCount {
 		instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, tmplEnvCount)
 	}
+	// Set the name of the environment for the instance status
+	// to the current template environment name.
+	// This has to be done before it can crash for whatever reason,
+	// since there is a validation on the name field.
+	for i := range template.Spec.EnvironmentList {
+		instance.Status.Environments[i].Name = template.Spec.EnvironmentList[i].Name
+	}
 
 	urlNeeded := false
 
 	for i := range template.Spec.EnvironmentList {
 		tmplEnv := &template.Spec.EnvironmentList[i]
 
-		// Set the name of the environment for the instance status
-		// to the current template environment name.
-		instance.Status.Environments[i].Name = tmplEnv.Name
-
 		// Set an inner context for each environment
 		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
+		if err := r.EnforceShVolMirrorPVCs(innCtx); err != nil {
+			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
+			return err
+		}
+
+		mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(innCtx, r.Client)
+		if err != nil {
+			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
+			return err
+		}
+		innCtx = clctx.VolumeMountInfosInto(innCtx, mountInfos)
+
 		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 			if err := r.EnforceVMEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
 			if tmplEnv.GuiEnabled {
@@ -301,7 +317,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
 			urlNeeded = true
@@ -360,6 +376,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).

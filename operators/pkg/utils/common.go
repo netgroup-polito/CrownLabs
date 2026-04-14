@@ -93,7 +93,7 @@ func CheckNamespaceWithSelector(ctx context.Context, k8sClient client.Client, na
 
 	selector, err := labels.Parse(selectorString)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("error when parsing the label selector of %q, that is %s: %w", namespaceName, selectorString, err)
 	}
 
 	return selector.Matches(labels.Set(ns.Labels)), nil

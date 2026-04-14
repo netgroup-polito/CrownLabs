@@ -20,11 +20,6 @@ const (
 	// EvPVCSmallerMsg -> the event message corresponding to an invalid resizing.
 	EvPVCSmallerMsg = "Size cannot be less than previous value"
 
-	// EvPVNoCSI -> the event key corresponding to missing CSI params.
-	EvPVNoCSI = "MissingCSI"
-	// EvPVNoCSIMsg -> the event message corresponding to missing CSI params.
-	EvPVNoCSIMsg = "PV misses CSI params"
-
 	// EvPVCResQuotaExceeded -> the event key corresponding to exceeded PVC quota.
 	EvPVCResQuotaExceeded = "ResourceQuotaExceeded"
 	// EvPVCResQuotaExceededMsg -> the event message corresponding to exceeded PVC quota.

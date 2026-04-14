@@ -5,6 +5,9 @@
 replicaCount: 1
 
 configurations:
+  features:
+    pmp: false
+
   targetLabel: crownlabs.polito.it/operator-selector=production
   keycloak:
     url: "https://auth.crownlabs.example.com/"
@@ -40,7 +43,9 @@ configurations:
 
   pvcMirrorProvisioner:  
     provisionerName: pmp.crownlabs.polito.it
-    storageClassName: nfs-mirror
+    storageClass:
+      name: pvc-mirror
+      deploy: false
 
 image:
   repository: crownlabs/tenant-operator
