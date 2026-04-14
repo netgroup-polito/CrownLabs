@@ -335,6 +335,7 @@ var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
 		})
 
 		Describe("The forge.GetNFSSpecs function", func() {
+			//XXX: Remove this
 			var serverName, serverExpPath string
 
 			JustBeforeEach(func() {

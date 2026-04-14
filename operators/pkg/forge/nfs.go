@@ -16,6 +16,8 @@
 // required by the different controllers.
 package forge
 
+//TODO: Rinominare nfs.go in storage.go o simili
+
 import (
 	"context"
 	"fmt"
@@ -23,7 +25,7 @@ import (
 	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -42,6 +44,7 @@ const (
 	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success).
 	ProvisionJobTTLSeconds = 3600 * 24 * 7
 
+	//XXX: Remove this
 	// NFSSecretName -> NFS secret name for MyDrive.
 	NFSSecretName = "mydrive-info"
 	// NFSSecretServerNameKey -> NFS Server key in NFS secret.
@@ -50,8 +53,12 @@ const (
 	NFSSecretPathKey = "path"
 )
 
+var (
+	DefaultMirrorCapacity = resource.MustParse("1")
+)
+
 // NFSVolumeMountInfo contains information about a volume that has to be mounted through NFS.
-type NFSVolumeMountInfo struct {
+type NFSVolumeMountInfo struct { //XXX: Remove this
 	VolumeName    string
 	ServerAddress string
 	ExportPath    string
@@ -59,7 +66,19 @@ type NFSVolumeMountInfo struct {
 	ReadOnly      bool
 }
 
-// NFSVolumeMount forges the mount string array for a generic NFS volume.
+// PVCMountInfo contains information about a PVC that has to be mounted.
+type PVCMountInfo struct {
+	//TODO: We could use PVCName as VolumeName inside the PodSpec
+	// In this way, we could delete this struct and use v1.VolumeMount
+	VolumeName string
+	PVCName    string
+	MountPath  string
+	ReadOnly   bool
+}
+
+//TODO: Usiamo volumemount direttamente
+
+// NFSVolumeMount forges the mount string array for a generic NFS volume. //XXX: Remove this
 func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []string {
 	rwPermission := "rw"
 
@@ -77,12 +96,12 @@ func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []st
 	}
 }
 
-// MyDriveVolumeMount forges the mount string array for the MyDrive volume.
+// MyDriveVolumeMount forges the mount string array for the MyDrive volume. //XXX: Remove this
 func MyDriveVolumeMount(nfsServer, exportPath string) []string {
 	return NFSVolumeMount(nfsServer, exportPath, MyDriveVolumeMountPath, false)
 }
 
-// SharedVolumeMount forges the mount string array for a SharedVolume.
+// SharedVolumeMount forges the mount string array for a SharedVolume. //XXX: Remove this
 func SharedVolumeMount(shvol *clv1alpha2.SharedVolume, mountInfo clv1alpha2.SharedVolumeMountInfo) []string {
 	if shvol.Status.ServerAddress == "" || shvol.Status.ExportPath == "" {
 		return CommentMount("Here lies an invalid SharedVolume mount")
@@ -91,7 +110,7 @@ func SharedVolumeMount(shvol *clv1alpha2.SharedVolume, mountInfo clv1alpha2.Shar
 	return NFSVolumeMount(shvol.Status.ServerAddress, shvol.Status.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly)
 }
 
-// CommentMount forges the mount string array for a comment.
+// CommentMount forges the mount string array for a comment. //XXX: Remove this
 func CommentMount(comment string) []string {
 	return []string{
 		"# " + comment,
@@ -103,7 +122,7 @@ func CommentMount(comment string) []string {
 	}
 }
 
-// MyDriveNFSVolumeMountInfo forges the NFSVolumeMountInfo for the MyDrive volume.
+// MyDriveNFSVolumeMountInfo forges the NFSVolumeMountInfo for the MyDrive volume. //XXX: Remove this
 func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountInfo {
 	return NFSVolumeMountInfo{
 		VolumeName:    MyDriveVolumeName,
@@ -114,7 +133,7 @@ func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountI
 	}
 }
 
-// ShVolNFSVolumeMountInfo forges the NFSVolumeMountInfo given a SharedVolume and SharedVolumeMountInfo, its name will be nfs{i}.
+// ShVolNFSVolumeMountInfo forges the NFSVolumeMountInfo given a SharedVolume and SharedVolumeMountInfo, its name will be nfs{i}. //XXX: Remove this
 func ShVolNFSVolumeMountInfo(i int, shvol *clv1alpha2.SharedVolume, mount clv1alpha2.SharedVolumeMountInfo) NFSVolumeMountInfo {
 	return NFSVolumeMountInfo{
 		VolumeName:    fmt.Sprintf("nfs%d", i),
@@ -125,8 +144,8 @@ func ShVolNFSVolumeMountInfo(i int, shvol *clv1alpha2.SharedVolume, mount clv1al
 	}
 }
 
-// NFSShVolSpec obtains the NFS server address and the export path from the passed Persistent Volume.
-func NFSShVolSpec(pv *v1.PersistentVolume) (serverAddress, exportPath string) {
+// NFSShVolSpec obtains the NFS server address and the export path from the passed Persistent Volume. //XXX: Remove this
+func NFSShVolSpec(pv *corev1.PersistentVolume) (serverAddress, exportPath string) {
 	serverAddress = ""
 	exportPath = ""
 
@@ -139,13 +158,13 @@ func NFSShVolSpec(pv *v1.PersistentVolume) (serverAddress, exportPath string) {
 }
 
 // GetNFSSpecs extracts the NFS server name and path for the tenant's personal NFS volume,
-// required to mount the MyDrive disk of a given tenant from the associated secret.
+// required to mount the MyDrive disk of a given tenant from the associated secret. //XXX: Remove this
 func GetNFSSpecs(ctx context.Context, c client.Client) (nfsServerName, nfsPath string, err error) {
 	var serverNameBytes, serverPathBytes []byte
 	instance := clctx.InstanceFrom(ctx)
 	secretName := types.NamespacedName{Namespace: instance.Namespace, Name: NFSSecretName}
 
-	secret := v1.Secret{}
+	secret := corev1.Secret{}
 	if err = c.Get(ctx, secretName, &secret); err != nil {
 		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve secret", "secret", secretName)
 		return
@@ -170,7 +189,7 @@ func GetNFSSpecs(ctx context.Context, c client.Client) (nfsServerName, nfsPath s
 
 // NFSVolumeMountInfosFromEnvironment extracts the array of NFSVolumeMountInfo from the passed environment
 // adding the MyDrive volume if needed, and setting RW permissions in case the Tenant is manager of the Workspace.
-// In case of error, the first value returned is nil, followed by error reason (string) and error.
+// In case of error, the first value returned is nil, followed by error reason (string) and error. //XXX: Remove this
 func NFSVolumeMountInfosFromEnvironment(ctx context.Context, c client.Client, env *clv1alpha2.Environment) ([]NFSVolumeMountInfo, string, error) {
 	mountInfos := []NFSVolumeMountInfo{}
 
@@ -220,37 +239,98 @@ func NFSVolumeMountInfosFromEnvironment(ctx context.Context, c client.Client, en
 	return mountInfos, "", nil
 }
 
+// MyDrivePVCMountInfo forges the PVCMountInfo for the MyDrive volume.
+func MyDrivePVCMountInfo(tnName string) PVCMountInfo {
+	return PVCMountInfo{
+		VolumeName: MyDriveVolumeName,
+		PVCName:    GetMyDrivePVCMirrorName(tnName),
+		MountPath:  MyDriveVolumeMountPath,
+		ReadOnly:   false,
+	}
+}
+
+// ShVolNFSVolumeMountInfo forges the PVCMountInfo given the SharedVolumeMountInfo, its name will be shvol{i}.
+func ShVolPVCMountInfo(i int, mount clv1alpha2.SharedVolumeMountInfo, instanceName string) PVCMountInfo {
+	return PVCMountInfo{
+		VolumeName: fmt.Sprintf("shvol%d", i),
+		PVCName:    GetShVolPVCMirrorName(mount.SharedVolumeRef.Name, instanceName),
+		MountPath:  mount.MountPath,
+		ReadOnly:   mount.ReadOnly,
+	}
+}
+
+// PVCMountInfosFromEnvironment extracts the array of PVCMountInfo from the environment in the ctx
+// adding the MyDrive volume if needed, and setting RW permissions in case the Tenant is manager of the Workspace.
+// In case of error, the first value returned is nil, followed by error reason (string) and error.
+func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]PVCMountInfo, string, error) {
+	tenant := clctx.TenantFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
+	env := clctx.EnvironmentFrom(ctx)
+
+	mountInfos := []PVCMountInfo{}
+
+	// Check and mount MyDrive if needed
+	if env.MountMyDriveVolume {
+		mountInfos = append(mountInfos, MyDrivePVCMountInfo(tenant.Name))
+	}
+
+	// Check if tenant is manager of workspace
+	isManager := false
+	workspaceLabelKey := fmt.Sprintf("%s%s", clv1alpha2.WorkspaceLabelPrefix, template.Spec.WorkspaceRef.Name)
+	if val, found := tenant.Labels[workspaceLabelKey]; found && val == string(clv1alpha2.Manager) {
+		isManager = true
+	}
+
+	// Check and mount SharedVolumes
+	for i, mount := range env.SharedVolumeMounts {
+		var shvol clv1alpha2.SharedVolume
+		if err := c.Get(ctx, NamespacedNameFromMount(mount), &shvol); err != nil {
+			return nil, "unable to retrieve shvol to mount", err
+		}
+		//TODO: Serve davvero lo shvol?
+
+		if isManager {
+			mount.ReadOnly = false
+		}
+
+		mountInfos = append(mountInfos, ShVolPVCMountInfo(i, mount, instance.Name))
+	}
+
+	return mountInfos, "", nil
+}
+
 // PVCProvisioningJobSpec forges the spec for the PVC Provisioning job.
-func PVCProvisioningJobSpec(pvc *v1.PersistentVolumeClaim) batchv1.JobSpec {
+func PVCProvisioningJobSpec(pvc *corev1.PersistentVolumeClaim) batchv1.JobSpec {
 	return batchv1.JobSpec{
 		BackoffLimit:            ptr.To[int32](ProvisionJobMaxRetries),
 		TTLSecondsAfterFinished: ptr.To[int32](ProvisionJobTTLSeconds),
-		Template: v1.PodTemplateSpec{
-			Spec: v1.PodSpec{
-				RestartPolicy: v1.RestartPolicyOnFailure,
-				Containers: []v1.Container{{
+		Template: corev1.PodTemplateSpec{
+			Spec: corev1.PodSpec{
+				RestartPolicy: corev1.RestartPolicyOnFailure,
+				Containers: []corev1.Container{{
 					Name:    "chown-container",
 					Image:   ProvisionJobBaseImage,
 					Command: []string{"chown", "-R", fmt.Sprintf("%d:%d", CrownLabsUserID, CrownLabsUserID), MyDriveVolumeMountPath},
-					VolumeMounts: []v1.VolumeMount{{
+					VolumeMounts: []corev1.VolumeMount{{
 						Name:      "drive",
 						MountPath: MyDriveVolumeMountPath,
 					}},
-					Resources: v1.ResourceRequirements{
-						Requests: v1.ResourceList{
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
 							"cpu":    resource.MustParse("100m"),
 							"memory": resource.MustParse("128Mi"),
 						},
-						Limits: v1.ResourceList{
+						Limits: corev1.ResourceList{
 							"cpu":    resource.MustParse("100m"),
 							"memory": resource.MustParse("128Mi"),
 						},
 					},
 				}},
-				Volumes: []v1.Volume{{
+				Volumes: []corev1.Volume{{
 					Name: "drive",
-					VolumeSource: v1.VolumeSource{
-						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{
+					VolumeSource: corev1.VolumeSource{
+						PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
 							ClaimName: pvc.Name,
 						},
 					},
@@ -265,8 +345,21 @@ func GetMyDrivePVCName(tenantName string) string {
 	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tenantName, ".", "-"))
 }
 
+// GetMyDrivePVCMirrorName returns the name for the mirror of the tenant's MyDrive PVC.
+func GetMyDrivePVCMirrorName(tenantName string) string {
+	return fmt.Sprintf("%s-mirror", GetMyDrivePVCName(tenantName))
+}
+
+// GetShVolPVCMirrorName returns the name for the mirror of the SharedVolume PVC for the specified Instance.
+func GetShVolPVCMirrorName(shvolName, instanceName string) string {
+	//TODO: Ask about naming convention: {shvol}-{instance}-mirror or {shvol}-mirror-{instance}
+	return fmt.Sprintf("%s-%s-mirror", shvolName, instanceName)
+}
+
+//TODO: Capire qual è la dimensione max dei nomi delle risorse e fare trim in caso
+
 // ConfigureMyDrivePVC configures a PVC for tenant's MyDrive storage.
-func ConfigureMyDrivePVC(pvc *v1.PersistentVolumeClaim, storageClassName string, storageSize resource.Quantity, labels, annotations map[string]string) {
+func ConfigureMyDrivePVC(pvc *corev1.PersistentVolumeClaim, storageClassName string, storageSize resource.Quantity, labels, annotations map[string]string) {
 	// Set the labels and annotations
 	if pvc.Labels == nil {
 		pvc.Labels = make(map[string]string)
@@ -280,19 +373,19 @@ func ConfigureMyDrivePVC(pvc *v1.PersistentVolumeClaim, storageClassName string,
 	maps.Copy(pvc.Annotations, annotations)
 
 	// Configure the PVC spec
-	pvc.Spec.AccessModes = []v1.PersistentVolumeAccessMode{v1.ReadWriteMany}
+	pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany}
 	pvc.Spec.StorageClassName = &storageClassName
 
 	// Set resources if the current ones are missing or smaller than the requested ones
 	if pvc.Spec.Resources.Requests == nil {
-		pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: storageSize}
+		pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: storageSize}
 	} else if oldSize := *pvc.Spec.Resources.Requests.Storage(); storageSize.Cmp(oldSize) > 0 || oldSize.IsZero() {
-		pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: storageSize}
+		pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: storageSize}
 	}
 }
 
-// ConfigureMyDriveSecret configures a Secret for tenant's MyDrive access.
-func ConfigureMyDriveSecret(secret *v1.Secret, serverName, path string, labels map[string]string) {
+// ConfigureMyDriveSecret configures a Secret for tenant's MyDrive access. //XXX: Remove this
+func ConfigureMyDriveSecret(secret *corev1.Secret, serverName, path string, labels map[string]string) {
 	// Set the labels
 	if secret.Labels == nil {
 		secret.Labels = make(map[string]string)
@@ -302,14 +395,14 @@ func ConfigureMyDriveSecret(secret *v1.Secret, serverName, path string, labels m
 	maps.Copy(secret.Labels, labels)
 
 	// Configure the Secret data
-	secret.Type = v1.SecretTypeOpaque
+	secret.Type = corev1.SecretTypeOpaque
 	secret.Data = make(map[string][]byte, 2)
 	secret.Data[NFSSecretServerNameKey] = []byte(serverName)
 	secret.Data[NFSSecretPathKey] = []byte(path)
 }
 
 // UpdatePVCProvisioningJobLabel updates the provisioning job label for a PVC.
-func UpdatePVCProvisioningJobLabel(pvc *v1.PersistentVolumeClaim, value string) {
+func UpdatePVCProvisioningJobLabel(pvc *corev1.PersistentVolumeClaim, value string) {
 	if pvc.Labels == nil {
 		pvc.Labels = make(map[string]string)
 	}
@@ -317,8 +410,32 @@ func UpdatePVCProvisioningJobLabel(pvc *v1.PersistentVolumeClaim, value string) 
 }
 
 // ConfigureMyDriveProvisioningJob configures a Job for provisioning a PVC.
-func ConfigureMyDriveProvisioningJob(job *batchv1.Job, pvc *v1.PersistentVolumeClaim) {
+func ConfigureMyDriveProvisioningJob(job *batchv1.Job, pvc *corev1.PersistentVolumeClaim) {
 	// Set job spec using PVCProvisioningJobSpec
 	jobSpec := PVCProvisioningJobSpec(pvc)
 	job.Spec = jobSpec
+}
+
+func ConfigureMirrorPVC(mirror, origin *corev1.PersistentVolumeClaim, mirrorStorageClassName string, labels map[string]string) {
+	// Set the labels
+	if mirror.Labels == nil {
+		mirror.Labels = make(map[string]string)
+	}
+	maps.Copy(mirror.Labels, labels)
+	mirror.Labels[LabelVolumeTypeKey] = VolumeTypeValueMirror
+
+	// Configure the spec
+	mirror.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany}
+	mirror.Spec.Resources = corev1.VolumeResourceRequirements{
+		Requests: corev1.ResourceList{
+			corev1.ResourceStorage: DefaultMirrorCapacity,
+		},
+	}
+	mirror.Spec.StorageClassName = &mirrorStorageClassName
+	mirror.Spec.DataSourceRef = &corev1.TypedObjectReference{
+		APIGroup:  nil, // Kind PVC is in the core API group, which is nil
+		Kind:      origin.Kind,
+		Namespace: &origin.Namespace,
+		Name:      origin.Name,
+	}
 }

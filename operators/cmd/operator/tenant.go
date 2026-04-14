@@ -99,6 +99,7 @@ func setupTenant(
 		MyDrivePVCsSize:             mydrivePVCsSize.Quantity,
 		MyDrivePVCsStorageClassName: mydrivePVCsStorageClassName,
 		MyDrivePVCsNamespace:        myDrivePVCsNamespace,
+		MirrorPVCStorageClassName:   mirrorStorageClass,
 		KeycloakActor:               common.GetKeycloakActor(),
 		WaitUserVerification:        waitUserVerification,
 		SandboxClusterRole:          sandboxClusterRole,

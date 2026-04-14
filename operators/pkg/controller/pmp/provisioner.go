@@ -26,7 +26,6 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
@@ -36,15 +35,15 @@ import (
 	"sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 var (
-	defaultMirrorCapacity = resource.MustParse("1")
-	errInvalidConfig      = errors.New("invalid configuration for pmp")
-	errPendingPVC         = errors.New("cannot mirror a pending PVC")
-	errStopProvision      = errors.New("stop provisioning")
-	errSlowRetry          = errors.New("provisioning error, will be slowly retried")
+	errInvalidConfig = errors.New("invalid configuration for pmp")
+	errPendingPVC    = errors.New("cannot mirror a pending PVC")
+	errStopProvision = errors.New("stop provisioning")
+	errSlowRetry     = errors.New("provisioning error, will be slowly retried")
 )
 
 const (
@@ -172,7 +171,7 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 			PersistentVolumeReclaimPolicy: ptr.Deref(options.StorageClass.ReclaimPolicy, corev1.PersistentVolumeReclaimDelete),
 			AccessModes:                   options.PVC.Spec.AccessModes,
 			Capacity: corev1.ResourceList{
-				corev1.ResourceStorage: defaultMirrorCapacity,
+				corev1.ResourceStorage: forge.DefaultMirrorCapacity,
 			},
 			PersistentVolumeSource: corev1.PersistentVolumeSource{
 				CSI: originPV.Spec.CSI,

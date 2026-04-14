@@ -46,13 +46,14 @@ import (
 // InstanceReconciler reconciles an Instance object.
 type InstanceReconciler struct {
 	client.Client
-	Scheme                *runtime.Scheme
-	EventsRecorder        record.EventRecorder
-	NamespaceWhitelist    metav1.LabelSelector
-	ServiceUrls           ServiceUrls
-	ContainerEnvOpts      forge.ContainerEnvOpts
-	WebSSHMasterPublicKey []byte
-	PublicExposureOpts    forge.PublicExposureOpts
+	Scheme                    *runtime.Scheme
+	EventsRecorder            record.EventRecorder
+	NamespaceWhitelist        metav1.LabelSelector
+	ServiceUrls               ServiceUrls
+	ContainerEnvOpts          forge.ContainerEnvOpts
+	WebSSHMasterPublicKey     []byte
+	PublicExposureOpts        forge.PublicExposureOpts
+	MirrorPVCStorageClassName string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -288,6 +289,16 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		// Set an inner context for each environment
 		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
+
+		if err := r.EnforceShVolMirrorPVCs(innCtx); err != nil {
+			//TODO: Che si fa qui? Facciamo morire tutto?
+			r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
+			return err
+		}
+
+		forge.PVCMountInfosFromEnvironment(innCtx, r.Client)
+		//TODO: Complete this, capire se si può far uscire il risutlato stesso da EnforceShVolMirrorPVC senza
+		// ciclare due volte.
 
 		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:

@@ -28,6 +28,9 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
+//TODO: Remove forge import to avoid cycles. Move all Provision job defs here or define a new package "storage".
+//TODO: Define a new function to get the provision job name.
+
 // NFSDriveProvisioning enforces a job to provision the passed PVC, changing its owner and adding it a label when done.
 func NFSDriveProvisioning(ctx context.Context, log logr.Logger, c client.Client, pvc *v1.PersistentVolumeClaim, owner metav1.Object) (bool, error) {
 	log = log.WithName("provisioning-job")

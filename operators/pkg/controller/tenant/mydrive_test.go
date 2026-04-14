@@ -131,16 +131,18 @@ var _ = Describe("MyDrive management", func() {
 				removeObjFromObjectsList(pv)
 			})
 
-			It("Should create the PVC Secret in the tenant namespace", func() {
-				secret := &v1.Secret{}
+			It("Should create the PVC Mirror in the tenant namespace", func() {
+				mirror := &v1.PersistentVolumeClaim{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{
-					Name:      forge.NFSSecretName,
+					Name:      forge.GetMyDrivePVCMirrorName(tnName),
 					Namespace: "tenant-" + tnName,
-				}, secret, BeTrue(), timeout, interval)
+				}, mirror, BeTrue(), timeout, interval)
 
-				Expect(secret.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
-				Expect(secret.Data).To(HaveKeyWithValue("server-name", []byte("nfs.example.com.test-cluster")))
-				Expect(secret.Data).To(HaveKeyWithValue("path", []byte("/exports/user/"+tnName)))
+				Expect(mirror.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
+				Expect(mirror.Labels).To(HaveKeyWithValue(forge.LabelVolumeTypeKey, forge.VolumeTypeValueMirror))
+				Expect(mirror.Spec.DataSourceRef.Name).To(Equal(tnName + "-drive"))
+				Expect(mirror.Spec.DataSourceRef.Namespace).To(Equal("mydrive-pvcs"))
+				Expect(mirror.Spec.DataSourceRef.Kind).To(Equal("PersistentVolumeClaim"))
 			})
 
 			It("Should create the provisioning job if not already run", func() {
@@ -307,13 +309,13 @@ var _ = Describe("MyDrive management", func() {
 				removeObjFromObjectsList(pvc)
 			})
 
-			It("Should not create any PVC Secret or provisioning job", func() {
-				secret := &v1.Secret{}
+			It("Should not create any PVC Mirror or provisioning job", func() {
+				mirror := &v1.PersistentVolumeClaim{}
 				Consistently(func() bool {
 					err := cl.Get(ctx, client.ObjectKey{
-						Name:      forge.NFSSecretName,
+						Name:      forge.GetMyDrivePVCMirrorName(tnName),
 						Namespace: "tenant-" + tnName,
-					}, secret)
+					}, mirror)
 					return err == nil
 				}, 2*time.Second, 250*time.Millisecond).Should(BeFalse())
 
@@ -383,50 +385,6 @@ var _ = Describe("MyDrive management", func() {
 				}, pvc)
 				return err == nil
 			}, timeout, interval).Should(BeFalse())
-		})
-	})
-
-	Context("Error handling scenarios", func() {
-		Context("When PV retrieval fails", func() {
-			// Create a PVC and set it to bound status with invalid PV name
-			pvc := &v1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      forge.GetMyDrivePVCName(tnName),
-					Namespace: "mydrive-pvcs",
-					Labels: map[string]string{
-						"crownlabs.polito.it/operator-selector": "test",
-					},
-				},
-				Status: v1.PersistentVolumeClaimStatus{
-					Phase: v1.ClaimBound,
-				},
-				Spec: v1.PersistentVolumeClaimSpec{
-					VolumeName: "nonexistent-pv",
-				},
-			}
-
-			BeforeEach(func() {
-				addObjToObjectsList(pvc)
-
-				// The reconciliation will fail because the PV does not exist
-				tnReconcileErrExpected = HaveOccurred()
-			})
-
-			AfterEach(func() {
-				// Clean up the PVC after test
-				removeObjFromObjectsList(pvc)
-			})
-
-			It("Should return an error and not create the PVC Secret", func() {
-				secret := &v1.Secret{}
-				Consistently(func() bool {
-					err := cl.Get(ctx, client.ObjectKey{
-						Name:      forge.NFSSecretName,
-						Namespace: "tenant-" + tnName,
-					}, secret)
-					return err == nil
-				}, 2*time.Second, 250*time.Millisecond).Should(BeFalse())
-			})
 		})
 	})
 })
