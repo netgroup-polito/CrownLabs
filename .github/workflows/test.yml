@@ -84,7 +84,7 @@ jobs:
 
       - name: Install Kubebuilder
         run: |
-          version=4.6.0 # latest stable version
+          version=4.6.0
           curl -L -o kubebuilder "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
           chmod +x kubebuilder
           sudo mv kubebuilder /usr/local/bin/

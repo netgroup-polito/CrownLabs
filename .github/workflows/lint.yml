@@ -45,7 +45,7 @@ jobs:
           working-directory: operators
 
   gomodtidy:
-    name: Enforce tidiness
+    name: Enforce go.mod tidiness
     runs-on: ubuntu-latest
 
     steps:
