@@ -247,7 +247,9 @@ func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1
 		Spec: cdiv1beta1.DataVolumeSpec{
 			Source: DataVolumeSourceForge(environment),
 			PVC: &corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				VolumeMode:       ptr.To(corev1.PersistentVolumeBlock),
+				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				StorageClassName: VMDataVolumeStorageClassName(environment),
 				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: environment.Resources.Disk,
@@ -256,4 +258,12 @@ func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1
 			},
 		},
 	}
+}
+
+// VMDataVolumeStorageClassName forges the storage class name to be used for the DataVolume associated with a given environment.
+func VMDataVolumeStorageClassName(environment *clv1alpha2.Environment) *string {
+	if environment.StorageClassName != "" {
+		return ptr.To(environment.StorageClassName)
+	}
+	return nil
 }
