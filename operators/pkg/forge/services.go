@@ -42,7 +42,7 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 	ports := make([]corev1.ServicePort, 0)
 
 	// Do not add the ssh port on container-based instances, since no deamon is present.
-	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM {
+	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
 		ports = append(ports, serviceSpecTCPPort(SSHPortName, SSHPortNumber))
 	}
 

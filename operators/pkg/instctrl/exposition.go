@@ -80,7 +80,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	instance.Status.Environments[envIndex].IP = service.Spec.ClusterIP
 
 	// No need to create ingress resources in case of gui-less VMs.
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
+	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && !environment.GuiEnabled {
 		return nil
 	}
 
