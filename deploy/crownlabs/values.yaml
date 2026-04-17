@@ -11,9 +11,29 @@ frontend-app:
   replicaCount: 1
   image:
     repository: crownlabs/frontend-app
+  gatewayApiMode: false
   ingress:
     hostname: crownlabs.example.com
     path: /
+  httproute:
+    gateway:
+      name: crownlabs-gw
+      namespace: envoy-gateway-system
+      sectionName: https
+    hostname: crownlabs.example.com
+    path: /
+  # SecurityPolicy legacy reference (documentation only).
+  # Not rendered by frontend-app chart templates.
+  # securityPolicy:
+  #   enabled: true
+  #   name: crownlabs-auth
+  #   oidc:
+  #     provider:
+  #       issuer: https://auth.ng.crownlabs.polito.it/realms/crownlabs
+  #     clientID: k8s
+  #     clientSecretName: oidc-client-secret
+  #     callbackPath: /oauth2/callback
+  #     logoutPath: /logout
   configuration:
     backend:
       graphql: https://graphql.example.com
@@ -258,7 +278,24 @@ image-list:
     registryUrl: http://docker-registry.docker-registry:5000
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
-    updateInterval: 60
+
+# Gateway API core resources are rendered when gatewayAPI.enabled=true.
+# Application migration (Ingress vs HTTPRoute) remains controlled per app.
+gatewayAPI:
+  enabled: true
+  gatewayClass:
+    name: envoy-gateway
+    controllerName: gateway.envoyproxy.io/gatewayclass-controller
+  gateway:
+    name: crownlabs-gw
+    namespace: envoy-gateway-system
+    listenerName: https
+    hostname: crownlabs.example.com
+    tls:
+      certificateRefName: crownlabs-certificate
+    allowedRoutes:
+      namespaceSelectorLabel: crownlabs.polito.it/gateway-route
+      namespaceSelectorValue: "true"
 
 exam-agent:
   replicaCount: 1

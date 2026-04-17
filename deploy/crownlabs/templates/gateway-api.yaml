@@ -1,0 +1,31 @@
+{{- if .Values.gatewayAPI.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: {{ .Values.gatewayAPI.gatewayClass.name }}
+spec:
+  controllerName: {{ .Values.gatewayAPI.gatewayClass.controllerName }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gatewayAPI.gateway.name }}
+  namespace: {{ .Values.gatewayAPI.gateway.namespace }}
+spec:
+  gatewayClassName: {{ .Values.gatewayAPI.gatewayClass.name }}
+  listeners:
+    - name: {{ .Values.gatewayAPI.gateway.listenerName }}
+      protocol: HTTPS
+      port: 443
+      hostname: {{ .Values.gatewayAPI.gateway.hostname }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - name: {{ .Values.gatewayAPI.gateway.tls.certificateRefName }}
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              {{ .Values.gatewayAPI.gateway.allowedRoutes.namespaceSelectorLabel }}: {{ .Values.gatewayAPI.gateway.allowedRoutes.namespaceSelectorValue | quote }}
+{{- end }}
