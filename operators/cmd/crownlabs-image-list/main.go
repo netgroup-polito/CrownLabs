@@ -74,48 +74,6 @@ func main() {
 }
 
 // processSingleRegistry handles the legacy single registry mode
-func processSingleRegistry(ctx context.Context, registryType, registryURL, username, password,
-	advertisedRegistryName, imageListName, harborProject string,
-	k8sClient client.Client, logger logr.Logger) error {
-
-	if registryURL == "" || imageListName == "" || username == "" || password == "" {
-		return fmt.Errorf("missing required parameters: registry-url, image-list-name, registry-username, registry-password")
-	}
-
-	var requestor imagelist.Requestor
-
-	switch registryType {
-	case "docker":
-		requestor = imagelist.NewDockerImageListRequestor(logger.WithName("crownlabs-imagelists-updater").WithName("dockerRequestor"))
-	case "harbor":
-		if harborProject == "" {
-			return fmt.Errorf("harbor-project is required for Harbor registries")
-		}
-		imagelist.RequestersSharedData["harbor_project_name"] = harborProject
-		requestor = imagelist.NewHarborImageListRequestor(logger.WithName("crownlabs-imagelists-updater").WithName("harborRequestor"))
-	default:
-		return fmt.Errorf("unsupported registry type: %s", registryType)
-	}
-
-	if initResult, err := requestor.Initialize(username, password, registryURL); !initResult || err != nil {
-		return fmt.Errorf("failed to initialize %s image list requestor: %w", registryType, err)
-	}
-
-	logger.Info("Target ImageList CR name", "name", imageListName, "registry_type", registryType)
-
-	imageListSaver, err := imagelist.NewDefaultImageListSaver(ctx, imageListName, k8sClient, logger.WithName("crownlabs-imagelists-updater").WithName("defaultSaver"))
-	if err != nil {
-		return fmt.Errorf("failed to initialize the default image list saver: %w", err)
-	}
-
-	imageListUpdater := imagelist.NewUpdater([]imagelist.Requestor{requestor}, imageListName, imageListSaver, advertisedRegistryName, logger.WithName("crownlabs-imagelists-updater"))
-	if err := imageListUpdater.Update(ctx); err != nil {
-		return fmt.Errorf("failed to update the ImageList resource: %w", err)
-	}
-
-	return nil
-}
-
 // processRegistriesConfigFromConfigMap reads the configuration from a Kubernetes ConfigMap
 func processRegistriesConfigFromConfigMap(ctx context.Context, cmName, cmNamespace string, k8sClient client.Client, logger logr.Logger) error {
 	// Read configuration from ConfigMap
@@ -144,25 +102,25 @@ func processRegistriesConfigFromConfigMap(ctx context.Context, cmName, cmNamespa
 	}
 
 	logger.Info("Processing registries from ConfigMap", "configmap", fmt.Sprintf("%s/%s", cmNamespace, cmName), "registry_count", len(config))
-	for i, reg := range config {
-		logger.Info("Parsed registry", "index", i, "name", reg.Name, "type", reg.Type, "imageListName", reg.ImageListName)
+	for i := range config {
+		logger.Info("Parsed registry", "index", i, "name", config[i].Name, "type", config[i].Type, "imageListName", config[i].ImageListName)
 	}
 
 	// Process each registry
-	for _, regConfig := range config {
-		if err := processSingleRegistryConfig(ctx, regConfig, k8sClient, logger); err != nil {
-			logger.Error(err, "Failed to process registry", "registry_name", regConfig.Name)
+	for i := range config {
+		if err := processSingleRegistryConfig(ctx, &config[i], k8sClient, logger); err != nil {
+			logger.Error(err, "Failed to process registry", "registry_name", config[i].Name)
 			// Continue processing other registries even if one fails
 			continue
 		}
-		logger.Info("Successfully processed registry", "registry_name", regConfig.Name, "imageListName", regConfig.ImageListName)
+		logger.Info("Successfully processed registry", "registry_name", config[i].Name, "imageListName", config[i].ImageListName)
 	}
 
 	return nil
 }
 
 // processSingleRegistryConfig handles a single registry from the configuration file
-func processSingleRegistryConfig(ctx context.Context, regConfig RegistryConfig, k8sClient client.Client, log logr.Logger) error {
+func processSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) error {
 	var requestor imagelist.Requestor
 
 	switch regConfig.Type {

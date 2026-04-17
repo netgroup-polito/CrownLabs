@@ -141,9 +141,9 @@ func (r *DockerImageListRequestor) doParallelGets(ctx context.Context, paths []s
 	errors := make([]error, 0)
 	var errorsMutex sync.Mutex
 
-	for i, path := range paths {
+	for _, path := range paths {
 		wg.Add(1)
-		go func(i int, path string) {
+		go func(path string) {
 			defer wg.Done()
 			resp, err := r.doSingleGet(ctx, path)
 			if err != nil {
@@ -161,7 +161,7 @@ func (r *DockerImageListRequestor) doParallelGets(ctx context.Context, paths []s
 			resultsMutex.Lock()
 			results = append(results, resp)
 			resultsMutex.Unlock()
-		}(i, path)
+		}(path)
 	}
 
 	wg.Wait()
@@ -297,9 +297,9 @@ func (r *HarborImageListRequestor) extractRepositoryName(repo map[string]interfa
 	if fullName, ok := repo["name"].(string); ok {
 		parts := strings.Split(fullName, "/")
 		if len(parts) >= 2 {
-			repo_only := parts[len(parts)-1]
-			r.log.V(1).Info("extractRepositoryName: split full name", "full_name", fullName, "parts_count", len(parts), "extracted", repo_only)
-			return repo_only
+			repoOnly := parts[len(parts)-1]
+			r.log.V(1).Info("extractRepositoryName: split full name", "full_name", fullName, "parts_count", len(parts), "extracted", repoOnly)
+			return repoOnly
 		}
 		r.log.V(1).Info("extractRepositoryName: no slash found", "full_name", fullName)
 		return fullName
