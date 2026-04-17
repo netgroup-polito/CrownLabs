@@ -3825,7 +3825,7 @@ export type CreateWorkspaceMutationVariables = Exact<{
   autoEnroll?: InputMaybe<AutoEnroll>;
   cpu: Scalars['JSON']['input'];
   memory: Scalars['JSON']['input'];
-  instances: Scalars['Int']['input'];
+  instances: Scalars['BigInt']['input'];
 }>;
 
 
@@ -4584,7 +4584,7 @@ export type CreateTemplateMutationHookResult = ReturnType<typeof useCreateTempla
 export type CreateTemplateMutationResult = Apollo.MutationResult<CreateTemplateMutation>;
 export type CreateTemplateMutationOptions = Apollo.BaseMutationOptions<CreateTemplateMutation, CreateTemplateMutationVariables>;
 export const CreateWorkspaceDocument = gql`
-    mutation createWorkspace($name: String!, $prettyName: String!, $autoEnroll: AutoEnroll, $cpu: JSON!, $memory: JSON!, $instances: Int!) {
+    mutation createWorkspace($name: String!, $prettyName: String!, $autoEnroll: AutoEnroll, $cpu: JSON!, $memory: JSON!, $instances: BigInt!) {
   createdWorkspace: createCrownlabsPolitoItV1alpha1Workspace(
     itPolitoCrownlabsV1alpha1WorkspaceInput: {kind: "Workspace", apiVersion: "crownlabs.polito.it/v1alpha1", spec: {prettyName: $prettyName, autoEnroll: $autoEnroll, quota: {cpu: $cpu, memory: $memory, instances: $instances}}, metadata: {name: $name}}
   ) {

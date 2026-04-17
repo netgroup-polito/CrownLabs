@@ -4,7 +4,7 @@ mutation createWorkspace(
   $autoEnroll: AutoEnroll
   $cpu: JSON!
   $memory: JSON!
-  $instances: Int!
+  $instances: BigInt!
 ) {
   createdWorkspace: createCrownlabsPolitoItV1alpha1Workspace(
     itPolitoCrownlabsV1alpha1WorkspaceInput: {

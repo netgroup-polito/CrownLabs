@@ -1,10 +1,11 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Button } from 'antd';
+import { Modal, Form, Input, Select, Button } from 'antd';
 import { useCreateWorkspaceMutation, useApplyWorkspaceMutation, AutoEnroll } from '../../../generated-types';
 import type { ApolloError } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { convertToGB } from '../../../utils';
+import { convertToGiB } from '../../../utils';
+import QuotaFields from '../../shared/QuotaFields';
 
 export interface WorkspaceEditData {
   name: string;
@@ -59,7 +60,7 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
         prettyName: editWorkspace.prettyName,
         autoEnroll: editWorkspace.autoEnroll || undefined,
         cpu: parseFloat(editWorkspace.cpu),
-        memory: convertToGB(editWorkspace.memory),
+        memory: convertToGiB(editWorkspace.memory),
         instances: editWorkspace.instances,
       });
     } else if (show && !editWorkspace) {
@@ -199,34 +200,23 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
           />
         </Form.Item>
 
-        <Form.Item
-          label="CPU"
-          name="cpu"
-          rules={[{ required: true, message: 'Please input CPU quota!' }]}
-          tooltip="Maximum number of CPU cores"
-        >
-          <InputNumber min={1} max={128} className="w-100" />
-        </Form.Item>
-
-        <Form.Item
-          label="Memory (GB)"
-          name="memory"
-          rules={[{ required: true, message: 'Please input memory quota!' }]}
-          tooltip="Maximum memory in gigabytes"
-        >
-          <InputNumber min={1} max={512} className="w-100" addonAfter="GB" />
-        </Form.Item>
-
-        <Form.Item
-          label="Instances"
-          name="instances"
-          rules={[
-            { required: true, message: 'Please input max instances!' },
-          ]}
-          tooltip="Maximum number of concurrent instances"
-        >
-          <InputNumber min={1} max={100} className="w-100" />
-        </Form.Item>
+        <QuotaFields
+          rules={{
+            cpu: [{ required: true, message: 'Please input CPU quota!' }],
+            memory: [{ required: true, message: 'Please input memory quota!' }],
+            instances: [{ required: true, message: 'Please input max instances!' }],
+          }}
+          limits={{
+            cpu: { min: 1, max: 128 },
+            memory: { min: 1, max: 512 },
+            instances: { min: 1, max: 100 },
+          }}
+          tooltips={{
+            cpu: 'Maximum number of CPU cores',
+            memory: 'Maximum memory in gibibytes',
+            instances: 'Maximum number of concurrent instances',
+          }}
+        />
       </Form>
     </Modal>
   );
