@@ -12,7 +12,7 @@ configurations:
   runtimeEndpoint: unix:///run/dockershim.sock
   containerRuntime: /run/dockershim.sock
   dockerSocket: /var/run/docker.sock
-  connectionTimeout:  10s
+  connectionTimeout: 10s
   updatePeriod: 4s
   grpcPort: 9090
 
@@ -33,13 +33,12 @@ containerSecurityContext:
   allowPrivilegeEscalation: false
   capabilities:
     drop:
-    - ALL
+      - ALL
   privileged: false
 
 service:
   type: ClusterIP
   port: 9090
-
 
 resources:
   limits:
@@ -58,4 +57,3 @@ tolerations: []
   # - key: node-role.kubernetes.io/master
   #   operator: Exists
   #   effect: NoSchedule
-

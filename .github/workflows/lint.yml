@@ -19,7 +19,7 @@ jobs:
       - name: Install prerequisites
         run: |
           sudo apt-get update && sudo apt-get install --no-install-recommends -y \
-          libpcap-dev
+          libpcap-dev make
 
       - name: Checkout
         uses: actions/checkout@v6
@@ -29,14 +29,19 @@ jobs:
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
+
+      - name: Retrieve golangci-lint version
+        id: golangci-lint-version
+        run: cd operators && make -s getvars | grep GOLANGCI_LINT_VERSION >> $GITHUB_OUTPUT
 
       - name: Check linting
         uses: golangci/golangci-lint-action@v8
         with:
-          version: v2.1.0
+          version: ${{ steps.golangci-lint-version.outputs.GOLANGCI_LINT_VERSION }}
           working-directory: operators
 
   gomodtidy:
@@ -52,16 +57,20 @@ jobs:
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
 
       - name: Execute go mod tidy and check the outcome
         working-directory: ./operators
         run: |
           go mod tidy
-          exit_code=$(git diff --exit-code)
-          exit ${exit_code}
+          git diff --exit-code || {
+            echo "Unexpected changes in go.mod or go.sum after running 'go mod tidy':"
+            git --no-pager diff
+            exit 1
+          }
 
       - name: Issue a comment in case the of failure
         uses: peter-evans/create-or-update-comment@v4
