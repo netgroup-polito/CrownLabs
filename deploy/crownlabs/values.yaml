@@ -22,18 +22,6 @@ frontend-app:
       sectionName: https
     hostname: crownlabs.example.com
     path: /
-  # SecurityPolicy legacy reference (documentation only).
-  # Not rendered by frontend-app chart templates.
-  # securityPolicy:
-  #   enabled: true
-  #   name: crownlabs-auth
-  #   oidc:
-  #     provider:
-  #       issuer: https://auth.ng.crownlabs.polito.it/realms/crownlabs
-  #     clientID: k8s
-  #     clientSecretName: oidc-client-secret
-  #     callbackPath: /oauth2/callback
-  #     logoutPath: /logout
   configuration:
     backend:
       graphql: https://graphql.example.com
