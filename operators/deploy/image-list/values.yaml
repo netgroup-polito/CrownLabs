@@ -4,15 +4,40 @@
 
 replicaCount: 1
 
-configurations:
-  registryUrl: http://docker-registry.docker-registry:5000
-  advRegistryName: registry.crownlabs.example.com
-  imageListName: crownlabs-virtual-machine-images
-  username: test
-  password: test
-  updateInterval: 60
-  schedule: "*/1 * * * *"
-  startingDeadlineSeconds: 60
+# CronJob scheduling configuration
+schedule: "*/1 * * * *"
+startingDeadlineSeconds: 60
+
+# ConfigMap configuration
+configMap:
+  name: registry-configuration-image-list-update
+  namespace: crownlabs-test
+
+# Registry configurations
+registries:
+  - name: docker-registry
+    type: docker
+    url: http://docker-registry.docker-registry:5000
+    advertised: registry.internal.crownlabs.polito.it
+    username: ""
+    password: ""
+    imageListName: crownlabs-virtual-machine-images-test
+  - name: harbor-registry
+    type: harbor
+    url: http://harbor-registry.harbor-registry:8080
+    advertised: harbor.crownlabs.polito.it
+    username: ""
+    password: ""
+    imageListName: harbor-containerdisks-imagelist-test
+    project: crownlabs-containerdisks-test
+  - name: harbor-registry-2
+    type: harbor
+    url: http://harbor-registry.harbor-registry:8080
+    advertised: harbor.crownlabs.polito.it
+    username: ""
+    password: ""
+    imageListName: harbor-standalone-imagelist-test
+    project: crownlabs-standalone-test
 
 
 image:

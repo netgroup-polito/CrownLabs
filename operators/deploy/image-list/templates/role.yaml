@@ -1,21 +1,16 @@
 apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
-  name: {{ .Values.rbacResourcesName }}
+  name: {{ include "image-list.fullname" . }}-configmap
+  namespace: {{ .Values.configMap.namespace }}
   labels:
     {{- include "image-list.labels" . | nindent 4 }}
 rules:
 - apiGroups:
-  - crownlabs.polito.it
-  resources:
-  - imagelists
-  verbs:
-  - get
-  - create
-  - update
-- apiGroups:
   - ""
   resources:
   - configmaps
+  resourceNames:
+  - {{ .Values.configMap.name }}
   verbs:
   - get

@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
@@ -65,6 +66,7 @@ func PatchObject[T interface {
 func NewK8sClient() (client.Client, error) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(clv1alpha2.AddToScheme(scheme))
 
 	kubeconfig, err := ctrl.GetConfig()
@@ -79,6 +81,7 @@ func NewK8sClient() (client.Client, error) {
 func NewK8sClientWithConfig(kubeconfig *rest.Config) (client.Client, error) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha1.AddToScheme(scheme))
 	utilruntime.Must(clv1alpha2.AddToScheme(scheme))
 
 	return client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: scheme})

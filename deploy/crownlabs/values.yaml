@@ -250,15 +250,40 @@ bastion-operator:
       pathType: Prefix
 
 image-list:
+  enabled: true
   replicaCount: 1
   image:
     repository: crownlabs/crownlabs-image-list
   rbacResourcesName: crownlabs-image-list
-  configurations:
-    registryUrl: http://docker-registry.docker-registry:5000
-    advRegistryName: registry.crownlabs.example.com
-    imageListName: crownlabs-virtual-machine-images
-    updateInterval: 60
+  schedule: "*/1 * * * *"
+  startingDeadlineSeconds: 60
+  configMap:
+    name: registry-configuration-image-list-update
+    namespace: crownlabs-staging-988
+  registries:
+    - name: docker-registry
+      type: docker
+      url: http://docker-registry.docker-registry:5000
+      advertised: registry.internal.crownlabs.polito.it
+      username: ""
+      password: ""
+      imageListName: crownlabs-virtual-machine-images-test
+    - name: harbor-registry
+      type: harbor
+      url: http://harbor-registry.harbor-registry:8080
+      advertised: harbor.crownlabs.polito.it
+      username: ""
+      password: ""
+      imageListName: harbor-containerdisks-imagelist-test
+      project: crownlabs-containerdisks-test
+    - name: harbor-registry-2
+      type: harbor
+      url: http://harbor-registry.harbor-registry:8080
+      advertised: harbor.crownlabs.polito.it
+      username: ""
+      password: ""
+      imageListName: harbor-standalone-imagelist-test
+      project: crownlabs-standalone-test
 
 exam-agent:
   replicaCount: 1
