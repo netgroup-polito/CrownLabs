@@ -4,6 +4,7 @@ mutation createWorkspace(
   $autoEnroll: AutoEnroll
   $cpu: JSON!
   $memory: JSON!
+  $labels: JSON!
   $instances: BigInt!
 ) {
   createdWorkspace: createCrownlabsPolitoItV1alpha1Workspace(
@@ -15,7 +16,10 @@ mutation createWorkspace(
         autoEnroll: $autoEnroll
         quota: { cpu: $cpu, memory: $memory, instances: $instances }
       }
-      metadata: { name: $name }
+      metadata: {
+        name: $name
+        labels: $labels
+      }
     }
   ) {
     spec {
