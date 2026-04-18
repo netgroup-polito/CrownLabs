@@ -291,17 +291,20 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
 		if err := r.EnforceShVolMirrorPVCs(innCtx); err != nil {
-			//TODO: Che si fa qui? Facciamo morire tutto?
 			r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
 			return err
 		}
 
-		forge.PVCMountInfosFromEnvironment(innCtx, r.Client)
-		//TODO: Complete this, capire se si può far uscire il risutlato stesso da EnforceShVolMirrorPVC senza
-		// ciclare due volte.
+		mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(innCtx, r.Client)
+		if err != nil {
+			r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
+			return err
+		}
+		innCtx = clctx.VolumeMountInfosInto(innCtx, mountInfos)
 
 		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
+			//TODO: Complete enforcement in VMs
 			if err := r.EnforceVMEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err

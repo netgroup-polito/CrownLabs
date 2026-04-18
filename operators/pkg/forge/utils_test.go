@@ -198,4 +198,6 @@ var _ = Describe("Utils forging", func() {
 		})
 
 	})
+
+	//TODO: Test forge.LastCharsOf
 })

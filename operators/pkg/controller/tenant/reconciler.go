@@ -219,7 +219,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// MyDrive & co are created only if the personal namespace has been created
-	if err := r.enforceMyDrivePVC(ctx, log, &tn); err != nil {
+	if err := r.enforcePersonalStorage(ctx, log, &tn); err != nil {
 		log.Error(err, "Error creating MyDrive PVC for tenant", "tenant", tn.Name)
 		return reschedule, err
 	}

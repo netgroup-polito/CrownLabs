@@ -34,6 +34,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
@@ -66,18 +67,6 @@ type NFSVolumeMountInfo struct { //XXX: Remove this
 	ReadOnly      bool
 }
 
-// PVCMountInfo contains information about a PVC that has to be mounted.
-type PVCMountInfo struct {
-	//TODO: We could use PVCName as VolumeName inside the PodSpec
-	// In this way, we could delete this struct and use v1.VolumeMount
-	VolumeName string
-	PVCName    string
-	MountPath  string
-	ReadOnly   bool
-}
-
-//TODO: Usiamo volumemount direttamente
-
 // NFSVolumeMount forges the mount string array for a generic NFS volume. //XXX: Remove this
 func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []string {
 	rwPermission := "rw"
@@ -103,11 +92,12 @@ func MyDriveVolumeMount(nfsServer, exportPath string) []string {
 
 // SharedVolumeMount forges the mount string array for a SharedVolume. //XXX: Remove this
 func SharedVolumeMount(shvol *clv1alpha2.SharedVolume, mountInfo clv1alpha2.SharedVolumeMountInfo) []string {
-	if shvol.Status.ServerAddress == "" || shvol.Status.ExportPath == "" {
-		return CommentMount("Here lies an invalid SharedVolume mount")
-	}
+	// if shvol.Status.ServerAddress == "" || shvol.Status.ExportPath == "" {
+	// 	return CommentMount("Here lies an invalid SharedVolume mount")
+	// }
 
-	return NFSVolumeMount(shvol.Status.ServerAddress, shvol.Status.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly)
+	// return NFSVolumeMount(shvol.Status.ServerAddress, shvol.Status.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly)
+	return CommentMount("deprecated")
 }
 
 // CommentMount forges the mount string array for a comment. //XXX: Remove this
@@ -137,8 +127,8 @@ func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountI
 func ShVolNFSVolumeMountInfo(i int, shvol *clv1alpha2.SharedVolume, mount clv1alpha2.SharedVolumeMountInfo) NFSVolumeMountInfo {
 	return NFSVolumeMountInfo{
 		VolumeName:    fmt.Sprintf("nfs%d", i),
-		ServerAddress: shvol.Status.ServerAddress,
-		ExportPath:    shvol.Status.ExportPath,
+		ServerAddress: "", // shvol.Status.ServerAddress,
+		ExportPath:    "", // shvol.Status.ExportPath,
 		MountPath:     mount.MountPath,
 		ReadOnly:      mount.ReadOnly,
 	}
@@ -239,40 +229,38 @@ func NFSVolumeMountInfosFromEnvironment(ctx context.Context, c client.Client, en
 	return mountInfos, "", nil
 }
 
-// MyDrivePVCMountInfo forges the PVCMountInfo for the MyDrive volume.
-func MyDrivePVCMountInfo(tnName string) PVCMountInfo {
-	return PVCMountInfo{
-		VolumeName: MyDriveVolumeName,
-		PVCName:    GetMyDrivePVCMirrorName(tnName),
-		MountPath:  MyDriveVolumeMountPath,
-		ReadOnly:   false,
+// MyDriveMountInfo forges the VolumeMount for the MyDrive volume.
+func MyDriveMountInfo(tnName string) corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      GetMyDrivePVCMirrorName(tnName),
+		MountPath: MyDriveVolumeMountPath,
+		ReadOnly:  false,
 	}
 }
 
-// ShVolNFSVolumeMountInfo forges the PVCMountInfo given the SharedVolumeMountInfo, its name will be shvol{i}.
-func ShVolPVCMountInfo(i int, mount clv1alpha2.SharedVolumeMountInfo, instanceName string) PVCMountInfo {
-	return PVCMountInfo{
-		VolumeName: fmt.Sprintf("shvol%d", i),
-		PVCName:    GetShVolPVCMirrorName(mount.SharedVolumeRef.Name, instanceName),
-		MountPath:  mount.MountPath,
-		ReadOnly:   mount.ReadOnly,
+// ShVolMountInfo forges the VolumeMount given the SharedVolumeMountInfo, its name will be shvol{i}.
+func ShVolMountInfo(mount clv1alpha2.SharedVolumeMountInfo, instanceName string) corev1.VolumeMount {
+	return corev1.VolumeMount{
+		Name:      GetShVolPVCMirrorName(mount.SharedVolumeRef.Name, instanceName),
+		MountPath: mount.MountPath,
+		ReadOnly:  mount.ReadOnly,
 	}
 }
 
-// PVCMountInfosFromEnvironment extracts the array of PVCMountInfo from the environment in the ctx
+// PVCMountInfosFromEnvironment extracts the array of VolumeMount from the environment in the ctx
 // adding the MyDrive volume if needed, and setting RW permissions in case the Tenant is manager of the Workspace.
 // In case of error, the first value returned is nil, followed by error reason (string) and error.
-func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]PVCMountInfo, string, error) {
+func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]corev1.VolumeMount, string, error) {
 	tenant := clctx.TenantFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
 	env := clctx.EnvironmentFrom(ctx)
 
-	mountInfos := []PVCMountInfo{}
+	mountInfos := []corev1.VolumeMount{}
 
 	// Check and mount MyDrive if needed
 	if env.MountMyDriveVolume {
-		mountInfos = append(mountInfos, MyDrivePVCMountInfo(tenant.Name))
+		mountInfos = append(mountInfos, MyDriveMountInfo(tenant.Name))
 	}
 
 	// Check if tenant is manager of workspace
@@ -283,18 +271,17 @@ func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]PVCMo
 	}
 
 	// Check and mount SharedVolumes
-	for i, mount := range env.SharedVolumeMounts {
+	for _, mount := range env.SharedVolumeMounts {
+		// Check existance before mounting
 		var shvol clv1alpha2.SharedVolume
 		if err := c.Get(ctx, NamespacedNameFromMount(mount), &shvol); err != nil {
 			return nil, "unable to retrieve shvol to mount", err
 		}
-		//TODO: Serve davvero lo shvol?
 
 		if isManager {
 			mount.ReadOnly = false
 		}
-
-		mountInfos = append(mountInfos, ShVolPVCMountInfo(i, mount, instance.Name))
+		mountInfos = append(mountInfos, ShVolMountInfo(mount, instance.Name))
 	}
 
 	return mountInfos, "", nil
@@ -352,11 +339,9 @@ func GetMyDrivePVCMirrorName(tenantName string) string {
 
 // GetShVolPVCMirrorName returns the name for the mirror of the SharedVolume PVC for the specified Instance.
 func GetShVolPVCMirrorName(shvolName, instanceName string) string {
-	//TODO: Ask about naming convention: {shvol}-{instance}-mirror or {shvol}-mirror-{instance}
-	return fmt.Sprintf("%s-%s-mirror", shvolName, instanceName)
+	// The maximum name length for a Kubernetes resource is 253 characters, (253 - len("--mirror") - 1) = 122.
+	return fmt.Sprintf("%s-%s-mirror", LastCharsOf(shvolName, 122), LastCharsOf(instanceName, 122))
 }
-
-//TODO: Capire qual è la dimensione max dei nomi delle risorse e fare trim in caso
 
 // ConfigureMyDrivePVC configures a PVC for tenant's MyDrive storage.
 func ConfigureMyDrivePVC(pvc *corev1.PersistentVolumeClaim, storageClassName string, storageSize resource.Quantity, labels, annotations map[string]string) {
@@ -416,26 +401,40 @@ func ConfigureMyDriveProvisioningJob(job *batchv1.Job, pvc *corev1.PersistentVol
 	job.Spec = jobSpec
 }
 
-func ConfigureMirrorPVC(mirror, origin *corev1.PersistentVolumeClaim, mirrorStorageClassName string, labels map[string]string) {
-	// Set the labels
-	if mirror.Labels == nil {
-		mirror.Labels = make(map[string]string)
-	}
-	maps.Copy(mirror.Labels, labels)
-	mirror.Labels[LabelVolumeTypeKey] = VolumeTypeValueMirror
-
-	// Configure the spec
-	mirror.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany}
-	mirror.Spec.Resources = corev1.VolumeResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceStorage: DefaultMirrorCapacity,
+// MirrorPVCSpec forges the spec for the PVC that will mirror the "origin" one.
+func MirrorPVCSpec(origin *corev1.PersistentVolumeClaim, mirrorStorageClassName string) corev1.PersistentVolumeClaimSpec {
+	return corev1.PersistentVolumeClaimSpec{
+		AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+		Resources: corev1.VolumeResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: DefaultMirrorCapacity,
+			},
+		},
+		StorageClassName: &mirrorStorageClassName,
+		DataSourceRef: &corev1.TypedObjectReference{
+			APIGroup:  nil, // Kind PVC is in the core API group, which is nil
+			Kind:      origin.Kind,
+			Namespace: &origin.Namespace,
+			Name:      origin.Name,
 		},
 	}
-	mirror.Spec.StorageClassName = &mirrorStorageClassName
-	mirror.Spec.DataSourceRef = &corev1.TypedObjectReference{
-		APIGroup:  nil, // Kind PVC is in the core API group, which is nil
-		Kind:      origin.Kind,
-		Namespace: &origin.Namespace,
-		Name:      origin.Name,
+}
+
+// UpdateMyDriveMirrorPVCLabels updates the labels for a Mirror PVC of a MyDrive.
+func UpdateMyDriveMirrorPVCLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
+	labels[LabelVolumeTypeKey] = VolumeTypeValueMirror
+
+	return labels
+}
+
+// UpdateShVolMirrorPVCLabels updates the labels for a Mirror PVC of a SharedVolume.
+func UpdateShVolMirrorPVCLabels(labels map[string]string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
 	}
+	labels[LabelManagedByKey] = labelManagedByInstanceValue
+	labels[LabelVolumeTypeKey] = VolumeTypeValueMirror
+
+	return labels
 }

@@ -17,7 +17,7 @@ package instctrl
 import (
 	"context"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -32,14 +32,14 @@ func (r *InstanceReconciler) EnforceShVolMirrorPVCs(ctx context.Context) error {
 	environment := clctx.EnvironmentFrom(ctx)
 
 	for _, mountInfo := range environment.SharedVolumeMounts {
-		shvol := v1.PersistentVolumeClaim{
+		shvol := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      mountInfo.SharedVolumeRef.Name,
 				Namespace: mountInfo.SharedVolumeRef.Namespace,
 			},
 		}
 
-		mirrPvc := v1.PersistentVolumeClaim{
+		mirrPvc := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      forge.GetShVolPVCMirrorName(shvol.Name, instance.Name),
 				Namespace: instance.Namespace,
@@ -48,10 +48,9 @@ func (r *InstanceReconciler) EnforceShVolMirrorPVCs(ctx context.Context) error {
 		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mirrPvc, func() error {
 			// Configure the mirror PVC
 			if mirrPvc.CreationTimestamp.IsZero() {
-				forge.ConfigureMirrorPVC(&mirrPvc, &shvol, r.MirrorPVCStorageClassName,
-					forge.InstanceObjectLabels(mirrPvc.Labels, instance))
+				mirrPvc.Spec = forge.MirrorPVCSpec(&shvol, r.MirrorPVCStorageClassName)
 			}
-			//TODO: Stesso di là
+			mirrPvc.SetLabels(forge.UpdateShVolMirrorPVCLabels(mirrPvc.Labels))
 
 			return controllerutil.SetControllerReference(instance, &mirrPvc, r.Scheme)
 		})

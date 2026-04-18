@@ -124,3 +124,11 @@ func CapIntegerQuantity(quantity, capQuantity int64) int64 {
 	}
 	return capQuantity
 }
+
+// LastCharsOf returns a string composed by the last 'many' chars from 's'.
+func LastCharsOf(s string, many int) string {
+	if len(s) > many {
+		return s[len(s)-many:]
+	}
+	return s
+}

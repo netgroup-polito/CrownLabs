@@ -147,7 +147,7 @@ func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Enviro
 
 // DeploymentSpec forges the complete DeploymentSpec (without replicas)
 // containing the needed sidecars for X-VNC based container instances.
-func DeploymentSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) appsv1.DeploymentSpec {
+func DeploymentSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, opts *ContainerEnvOpts) appsv1.DeploymentSpec {
 	return appsv1.DeploymentSpec{
 		Selector: &metav1.LabelSelector{MatchLabels: EnvironmentSelectorLabels(instance, environment)},
 		Strategy: appsv1.DeploymentStrategy{
@@ -161,7 +161,7 @@ func DeploymentSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template
 }
 
 // PodSpec forges the pod specification for X-VNC based container instance.
-func PodSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) corev1.PodSpec {
+func PodSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, opts *ContainerEnvOpts) corev1.PodSpec {
 	return corev1.PodSpec{
 		Containers:                    ContainersSpec(instance, environment, mountInfos, opts),
 		Volumes:                       ContainerVolumes(instance, environment, mountInfos),
@@ -195,11 +195,11 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 }
 
 // ContainersSpec returns the Containers obj based on Environment Type.
-func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) []corev1.Container {
+func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, opts *ContainerEnvOpts) []corev1.Container {
 	var containers []corev1.Container
 	volumeMountPath := PersistentMountPath(environment)
 	switch environment.EnvironmentType {
-	case clv1alpha2.ClassContainer:
+	case clv1alpha2.ClassContainer: //TODO: Non erano deprecati?
 		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(environment, volumeMountPath, mountInfos))
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath, mountInfos))
@@ -240,7 +240,7 @@ func XVncContainer(opts *ContainerEnvOpts) corev1.Container {
 }
 
 // StandaloneContainer forges the Standalone application container of the environment.
-func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string, mountInfos []NFSVolumeMountInfo) corev1.Container {
+func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string, mountInfos []corev1.VolumeMount) corev1.Container {
 	standaloneContainer := AppContainer(environment, volumeMountPath, mountInfos)
 	AddTCPPortToContainer(&standaloneContainer, GUIPortName, GUIPortNumber)
 
@@ -257,14 +257,14 @@ func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.
 }
 
 // AppContainer forges the main application container of the environment.
-func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string, mountInfos []NFSVolumeMountInfo) corev1.Container {
+func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string, mountInfos []corev1.VolumeMount) corev1.Container {
 	appContainer := GenericContainer(environment.Name, environment.Image)
 	SetContainerResourcesFromEnvironment(&appContainer, environment)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_REQUESTS", appContainer.Name, corev1.ResourceRequestsCPU, DefaultDivisor)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_LIMITS", appContainer.Name, corev1.ResourceLimitsCPU, DefaultDivisor)
 	AddContainerVolumeMount(&appContainer, PersistentVolumeName, volumeMountPath)
 	for _, mountInfo := range mountInfos {
-		AddContainerVolumeMount(&appContainer, mountInfo.VolumeName, mountInfo.MountPath)
+		AddContainerVolumeMount(&appContainer, mountInfo.Name, mountInfo.MountPath)
 	}
 	if environment.ContainerStartupOptions != nil {
 		appContainer.Args = environment.ContainerStartupOptions.StartupArgs
@@ -443,11 +443,11 @@ func SetContainerResourcesFromEnvironment(c *corev1.Container, env *clv1alpha2.E
 
 // ContainerVolumes forges the list of volumes for the deployment spec, possibly returning an empty
 // list in case the environment is not standard and not persistent.
-func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo) []corev1.Volume {
+func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) []corev1.Volume {
 	vols := []corev1.Volume{ContainerVolume(PersistentVolumeName, NamespacedNameWithSuffix(instance, environment.Name).Name, environment)}
 
 	for _, mountInfo := range mountInfos {
-		vols = append(vols, NFSVolume(mountInfo))
+		vols = append(vols, PVCVolumeFromVolumeMount(mountInfo))
 	}
 
 	return vols
@@ -475,7 +475,7 @@ func ContainerVolume(volumeName, claimName string, environment *clv1alpha2.Envir
 	}
 }
 
-// NFSVolume receives a specification of a volume and returns the NFS volume.
+// NFSVolume receives a specification of a volume and returns the NFS volume. //XXX: Remove this.
 func NFSVolume(mountInfo NFSVolumeMountInfo) corev1.Volume {
 	return corev1.Volume{
 		Name: mountInfo.VolumeName,
@@ -484,6 +484,19 @@ func NFSVolume(mountInfo NFSVolumeMountInfo) corev1.Volume {
 				Server:   mountInfo.ServerAddress,
 				Path:     mountInfo.ExportPath,
 				ReadOnly: mountInfo.ReadOnly,
+			},
+		},
+	}
+}
+
+// PVCVolumeFromVolumeMount forges a Volume from the given VolumeMount.
+func PVCVolumeFromVolumeMount(mount corev1.VolumeMount) corev1.Volume {
+	return corev1.Volume{
+		Name: mount.Name,
+		VolumeSource: corev1.VolumeSource{
+			PersistentVolumeClaim: &corev1.PersistentVolumeClaimVolumeSource{
+				ClaimName: mount.Name,
+				ReadOnly:  mount.ReadOnly,
 			},
 		},
 	}
