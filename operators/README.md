@@ -485,33 +485,39 @@ For a deeper definition go to
 
 ## CrownLabs Image List
 
-The CrownLabs Image List script allows to to gather the list of available images from a Docker Registry and expose it as an ImageList custom resource, to be consumed from the CrownLabs dashboard.
+The CrownLabs Image List script allows to to gather the list of available images from a Registry and expose it as an ImageList custom resource, to be consumed from the CrownLabs dashboard.
+The script is implemented as a Kubernetes CronJob, which can be scheduled to run periodically and keep the ImageList resource updated with the latest images available in the registries.
 
-### Usage
+The script performs the following steps:
+1. Read the list of registries to query from a ConfigMap (defined in `operators/deploy/image-list/values.yaml`), which contains the registry URLs and the credentials to access them.
+2. For each registry, for each registry, a Requestor object is created to handle the authentication and the API requests to the registry using the appropriate APIs (e.g., Docker Registry HTTP API V2).
+3. A Saver object is created to handle the creation and update of the ImageList custom resource in the cluster.
+4. An Updater object is created to orchestrate the Requestor and Saver, ensuring that the ImageList resource is updated with the latest images from the registries.
 
-```
-usage: update-crownlabs-image-list.py [-h]
-    --advertised-registry-name ADVERTISED_REGISTRY_NAME
-    --image-list-name IMAGE_LIST_NAME
-    --registry-url REGISTRY_URL
-    [--registry-username REGISTRY_USERNAME]
-    [--registry-password REGISTRY_PASSWORD]
-    --update-interval UPDATE_INTERVAL
+Both the Requestor and Saver are designed with an interface-based approach, allowing for easy extension to support new types of registries or different storage backends for the ImageList resource in the future.
+The following Requestor implementations are currently available:
+- `DockerImageListRequestor`: to query the Docker Hub registry
+- `HarborImageListRequestor`: to query a Harbor registry
 
-Periodically requests the list of images from a Docker registry and stores it as a Kubernetes CR
-
-Arguments:
-  -h, --help            show this help message and exit
-  --advertised-registry-name ADVERTISED_REGISTRY_NAME
-                        the host name of the Docker registry where the images can be retrieved
-  --image-list-name IMAGE_LIST_NAME
-                        the name assigned to the resulting ImageList object
-  --registry-url REGISTRY_URL
-                        the URL used to contact the Docker registry
-  --registry-username REGISTRY_USERNAME
-                        the username used to access the Docker registry
-  --registry-password REGISTRY_PASSWORD
-                        the password used to access the Docker registry
-  --update-interval UPDATE_INTERVAL
-                        the interval (in seconds) between one update and the following
+The ConfigMap contains a list of registries to query, with all the required information to access them with the appropriate APIs and update the corresponding ImageList resource. Below is an example of the ConfigMap structure:
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: registry-configuration-image-list-update
+  namespace: test
+data:
+  registries: |
+    - name: dockerhub
+      url: https://registry.hub.docker.com
+      type: docker
+      credentials:
+        username: <username>
+        password: <password>
+    - name: harbor
+      url: https://harbor.example.com
+      type: harbor
+      credentials:
+        username: <username> 
+        password: <password>
 ```

@@ -344,7 +344,7 @@ func (r *HarborImageListRequestor) extractTagsFromArtifacts(repoName string, art
 	return filtered
 }
 
-// extractTagsFromSingleArtifact extracts all tag names from a single Harbor artifact object
+// extractTagsFromSingleArtifact extracts all tag names from a single Harbor artifact object.
 func (r *HarborImageListRequestor) extractTagsFromSingleArtifact(repoName string, artifactIdx int, artifact map[string]interface{}) []string {
 	var tags []string
 	r.log.V(1).Info("extractTagsFromSingleArtifact: processing artifact", "repo_name", repoName, "artifact_index", artifactIdx, "artifact_keys", getMapKeys(artifact))
@@ -377,7 +377,7 @@ func (r *HarborImageListRequestor) extractTagsFromSingleArtifact(repoName string
 	return tags
 }
 
-// deduplicateAndFilterTags removes duplicates and "latest" tag
+// deduplicateAndFilterTags removes duplicates and "latest" tag.
 func (r *HarborImageListRequestor) deduplicateAndFilterTags(tags []string) []string {
 	r.log.V(1).Info("deduplicateAndFilterTags: processing tags", "input_count", len(tags), "tags", tags)
 
@@ -403,7 +403,7 @@ func (r *HarborImageListRequestor) deduplicateAndFilterTags(tags []string) []str
 	return result
 }
 
-// doSingleGetAsList performs a GET request and expects an array response
+// doSingleGetAsList performs a GET request and expects an array response.
 func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path string) ([]map[string]interface{}, error) {
 	url := r.url + path
 	r.log.V(1).Info("performing GET request to Harbor (expecting array)", "url", url)
@@ -437,7 +437,7 @@ func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path s
 	return result, nil
 }
 
-// doSingleGet performs a single GET request to the target path and returns the parsed JSON result as an object
+// doSingleGet performs a single GET request to the target path and returns the parsed JSON result as an object.
 func (r *HarborImageListRequestor) doSingleGet(ctx context.Context, path string) (map[string]interface{}, error) {
 	url := r.url + path
 	r.log.V(1).Info("performing GET request to Harbor", "url", url)
@@ -539,7 +539,7 @@ func (r *HarborImageListRequestor) mapRepositoriesToPaths(repositories []map[str
 	return paths
 }
 
-// Helper function to get keys from a map for logging
+// Helper function to get keys from a map for logging.
 func getMapKeys(m map[string]interface{}) []string {
 	var keys []string
 	for k := range m {

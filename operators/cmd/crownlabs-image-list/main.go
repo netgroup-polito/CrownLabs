@@ -73,10 +73,8 @@ func main() {
 	log.Info("ImageList resources updated successfully")
 }
 
-// processSingleRegistry handles the legacy single registry mode
-// processRegistriesConfigFromConfigMap reads the configuration from a Kubernetes ConfigMap
 func processRegistriesConfigFromConfigMap(ctx context.Context, cmName, cmNamespace string, k8sClient client.Client, logger logr.Logger) error {
-	// Read configuration from ConfigMap
+
 	configMap := &corev1.ConfigMap{}
 	key := types.NamespacedName{Name: cmName, Namespace: cmNamespace}
 
@@ -84,7 +82,6 @@ func processRegistriesConfigFromConfigMap(ctx context.Context, cmName, cmNamespa
 		return fmt.Errorf("failed to read ConfigMap %s/%s: %w", cmNamespace, cmName, err)
 	}
 
-	// Get the configuration data from the ConfigMap
 	configData, ok := configMap.Data["registries"]
 	if !ok {
 		return fmt.Errorf("ConfigMap %s/%s does not contain 'registries' key", cmNamespace, cmName)
@@ -106,11 +103,9 @@ func processRegistriesConfigFromConfigMap(ctx context.Context, cmName, cmNamespa
 		logger.Info("Parsed registry", "index", i, "name", config[i].Name, "type", config[i].Type, "imageListName", config[i].ImageListName)
 	}
 
-	// Process each registry
 	for i := range config {
 		if err := processSingleRegistryConfig(ctx, &config[i], k8sClient, logger); err != nil {
 			logger.Error(err, "Failed to process registry", "registry_name", config[i].Name)
-			// Continue processing other registries even if one fails
 			continue
 		}
 		logger.Info("Successfully processed registry", "registry_name", config[i].Name, "imageListName", config[i].ImageListName)
@@ -119,7 +114,7 @@ func processRegistriesConfigFromConfigMap(ctx context.Context, cmName, cmNamespa
 	return nil
 }
 
-// processSingleRegistryConfig handles a single registry from the configuration file
+// process a single registry based on the provided type and configuration, updating the corresponding ImageList resource.
 func processSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) error {
 	var requestor imagelist.Requestor
 
