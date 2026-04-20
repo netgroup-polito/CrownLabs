@@ -236,7 +236,7 @@ func (r *HarborImageListRequestor) Initialize(username, password, registryURL st
 
 // GetImageList retrieves the list of images from the Harbor registry.
 // It fetches the repositories first, then retrieves the artifacts for each repository in parallel.
-// Returns data in the format expected by processImageList: {"name": "repo", "tags": ["tag1", "tag2"]}
+// Returns data in the format expected by processImageList: {"name": "repo", "tags": ["tag1", "tag2"]}.
 func (r *HarborImageListRequestor) GetImageList(ctx context.Context) ([]map[string]interface{}, error) {
 	r.log.V(1).Info("requesting Harbor repositories", "project", r.projectName)
 	repositories, err := r.doSingleGetAsList(ctx, r.getCatalogPath())
@@ -292,7 +292,7 @@ func (r *HarborImageListRequestor) GetImageList(ctx context.Context) ([]map[stri
 }
 
 // extractRepositoryName extracts the repository name from a Harbor repository object (format: "project/repo")
-// and returns only the repo part
+// and returns only the repo part.
 func (r *HarborImageListRequestor) extractRepositoryName(repo map[string]interface{}) string {
 	if fullName, ok := repo["name"].(string); ok {
 		parts := strings.Split(fullName, "/")
@@ -309,7 +309,7 @@ func (r *HarborImageListRequestor) extractRepositoryName(repo map[string]interfa
 }
 
 // extractTagsFromArtifacts extracts tag names from Harbor artifacts response
-// Harbor artifacts endpoint returns array with objects containing "tags" field
+// Harbor artifacts endpoint returns array with objects containing "tags" field.
 func (r *HarborImageListRequestor) extractTagsFromArtifacts(repoName string, artifactData map[string]interface{}) []string {
 	var tags []string
 	r.log.V(1).Info("extractTagsFromArtifacts: starting", "repo_name", repoName, "artifact_data_keys", getMapKeys(artifactData))

@@ -11,7 +11,7 @@ startingDeadlineSeconds: 60
 # ConfigMap configuration
 configMap:
   name: registry-configuration-image-list-update
-  namespace: crownlabs-test
+  namespace: crownlabs-staging-988
 
 # Registry configurations
 registries:
