@@ -50,7 +50,7 @@ service:
   port: 80
 
 
-# Modalità Gateway API: se true abilita HTTPRoute, se false abilita Ingress
+
 gatewayApiMode: false
 
 ingress:
@@ -63,8 +63,6 @@ ingress:
 httproute:
   gateway:
     name: crownlabs-gw
-    namespace: envoy-gateway-system
-    sectionName: https
   hostname: crownlabs.example.com
   path: /
 

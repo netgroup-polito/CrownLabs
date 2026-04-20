@@ -9,11 +9,6 @@ spec:
   parentRefs:
     - name: {{ .Values.httproute.gateway.name }}
       namespace: {{ .Values.httproute.gateway.namespace }}
-      {{- if .Values.httproute.gateway.sectionName }}
-      sectionName: {{ .Values.httproute.gateway.sectionName }}
-      {{- end }}
-  hostnames:
-    - {{ .Values.httproute.hostname }}
   rules:
     - matches:
         - path:

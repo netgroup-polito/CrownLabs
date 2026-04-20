@@ -271,19 +271,17 @@ image-list:
 # Application migration (Ingress vs HTTPRoute) remains controlled per app.
 gatewayAPI:
   enabled: true
-  gatewayClass:
-    name: envoy-gateway
-    controllerName: gateway.envoyproxy.io/gatewayclass-controller
-  gateway:
-    name: crownlabs-gw
-    namespace: envoy-gateway-system
-    listenerName: https
-    hostname: crownlabs.example.com
-    tls:
-      certificateRefName: crownlabs-certificate
-    allowedRoutes:
-      namespaceSelectorLabel: crownlabs.polito.it/gateway-route
-      namespaceSelectorValue: "true"
+  name: crownlabs-gw
+  class: cilium
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  listenerName: https
+  hostname: crownlabs.example.com
+  tls:
+    certificateRefName: crownlabs-certificate
+  allowedRoutes:
+    namespaceSelectorLabel: crownlabs.polito.it/gateway-route
+    namespaceSelectorValue: "true"
 
 exam-agent:
   replicaCount: 1
