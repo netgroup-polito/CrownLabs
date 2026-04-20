@@ -266,6 +266,7 @@ image-list:
     registryUrl: http://docker-registry.docker-registry:5000
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
+    updateInterval: 60
 
 # Gateway API core resources are rendered when gatewayAPI.enabled=true.
 # Application migration (Ingress vs HTTPRoute) remains controlled per app.
