@@ -85,6 +85,9 @@ linters:
           - revive
         text: should not use dot imports
       - linters:
+          - revive
+        text: avoid meaningless package names
+      - linters:
           - staticcheck
         text: 'ST1003: should not use underscores in package names'
       - linters:
