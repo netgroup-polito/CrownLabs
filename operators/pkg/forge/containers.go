@@ -199,7 +199,7 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	var containers []corev1.Container
 	volumeMountPath := PersistentMountPath(environment)
 	switch environment.EnvironmentType {
-	case clv1alpha2.ClassContainer: //TODO: Non erano deprecati?
+	case clv1alpha2.ClassContainer:
 		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(environment, volumeMountPath, mountInfos))
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath, mountInfos))

@@ -85,7 +85,6 @@ func CloudInitUserData(publicKeys []string, mountInfos []corev1.VolumeMount) ([]
 	for _, mount := range mountInfos {
 		config.Mounts = append(config.Mounts, virtiofsVolumeMount(mount))
 	}
-	config.Mounts = append(config.Mounts, CommentMount("If you change mount options from here, not even Santa will give you 18."))
 
 	output, err := yaml.Marshal(config)
 	if err != nil {

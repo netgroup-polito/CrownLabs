@@ -304,7 +304,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 
 		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
-			//TODO: Complete enforcement in VMs
 			if err := r.EnforceVMEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err

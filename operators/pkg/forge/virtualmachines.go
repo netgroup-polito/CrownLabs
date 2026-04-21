@@ -108,7 +108,6 @@ func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 						ClaimName: mount.Name,
 						ReadOnly:  mount.ReadOnly,
 					},
-					Hotpluggable: true, //TODO: ??
 				},
 			},
 		})
