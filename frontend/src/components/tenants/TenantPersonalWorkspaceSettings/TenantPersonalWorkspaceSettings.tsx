@@ -1,4 +1,4 @@
-import { Button, Checkbox, Form, InputNumber, Row } from 'antd';
+import { Button, Checkbox, Form, Row } from 'antd';
 import { useContext, useState, type FC } from 'react';
 import {
   TenantDocument,
@@ -9,6 +9,7 @@ import type { RuleRender, RuleObject } from 'antd/es/form';
 import { convertToGiB } from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { CheckOutlined } from '@ant-design/icons';
+import QuotaFields from '../../shared/QuotaFields';
 
 export interface ITenantPersonalWorkspaceSettingsProps {
   tenant: TenantQuery;
@@ -127,37 +128,20 @@ const TenantPersonalWorkspaceSettings: FC<
         <Checkbox />
       </Form.Item>
 
-      <Form.Item
-        name="cpu"
-        label="CPU"
+      <QuotaFields
+        disabled={!isEnabled}
         validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
-      </Form.Item>
-
-      <Form.Item
-        name="memory"
-        label="Memory (Gi)"
-        validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber
-          min={0}
-          disabled={!isEnabled}
-          className="w-100"
-          addonAfter="Gi"
-        />
-      </Form.Item>
-
-      <Form.Item
-        name="instances"
-        label="Instances"
-        validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
-      </Form.Item>
+        rules={{
+          cpu: [numberValidator],
+          memory: [numberValidator],
+          instances: [numberValidator],
+        }}
+        limits={{
+          cpu: { min: 0 },
+          memory: { min: 0 },
+          instances: { min: 0 },
+        }}
+      />
 
       <Row justify="center">
         <Form.Item>
