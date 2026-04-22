@@ -5,7 +5,7 @@ mutation createWorkspace(
   $cpu: JSON!
   $memory: JSON!
   $labels: JSON!
-  $instances: BigInt!
+  $instances: Int!
 ) {
   createdWorkspace: createCrownlabsPolitoItV1alpha1Workspace(
     itPolitoCrownlabsV1alpha1WorkspaceInput: {
