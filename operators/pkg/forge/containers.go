@@ -475,20 +475,6 @@ func ContainerVolume(volumeName, claimName string, environment *clv1alpha2.Envir
 	}
 }
 
-// NFSVolume receives a specification of a volume and returns the NFS volume. //XXX: Remove this.
-func NFSVolume(mountInfo NFSVolumeMountInfo) corev1.Volume {
-	return corev1.Volume{
-		Name: mountInfo.VolumeName,
-		VolumeSource: corev1.VolumeSource{
-			NFS: &corev1.NFSVolumeSource{
-				Server:   mountInfo.ServerAddress,
-				Path:     mountInfo.ExportPath,
-				ReadOnly: mountInfo.ReadOnly,
-			},
-		},
-	}
-}
-
 // PVCVolumeFromVolumeMount forges a Volume from the given VolumeMount.
 func PVCVolumeFromVolumeMount(mount *corev1.VolumeMount) corev1.Volume {
 	return corev1.Volume{

@@ -27,9 +27,7 @@ import (
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -60,77 +58,6 @@ var (
 	DefaultMirrorCapacity = resource.MustParse("1")
 )
 
-// NFSVolumeMountInfo contains information about a volume that has to be mounted through NFS.
-type NFSVolumeMountInfo struct { //XXX: Remove this
-	VolumeName    string
-	ServerAddress string
-	ExportPath    string
-	MountPath     string
-	ReadOnly      bool
-}
-
-// NFSVolumeMount forges the mount string array for a generic NFS volume. //XXX: Remove this.
-func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []string {
-	rwPermission := "rw"
-
-	if readOnly {
-		rwPermission = "ro"
-	}
-
-	return []string{
-		fmt.Sprintf("%s:%s", nfsServer, exportPath),
-		mountPath,
-		"nfs",
-		fmt.Sprintf("%s,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user", rwPermission),
-		"0",
-		"0",
-	}
-}
-
-// MyDriveVolumeMount forges the mount string array for the MyDrive volume. //XXX: Remove this.
-func MyDriveVolumeMount(nfsServer, exportPath string) []string {
-	return NFSVolumeMount(nfsServer, exportPath, MyDriveVolumeMountPath, false)
-}
-
-// SharedVolumeMount forges the mount string array for a SharedVolume. //XXX: Remove this.
-func SharedVolumeMount(_ *clv1alpha2.SharedVolume, _ clv1alpha2.SharedVolumeMountInfo) []string {
-	return CommentMount("deprecated")
-}
-
-// CommentMount forges the mount string array for a comment. //XXX: Remove this.
-func CommentMount(comment string) []string {
-	return []string{
-		"# " + comment,
-		"",
-		"",
-		"",
-		"",
-		"",
-	}
-}
-
-// MyDriveNFSVolumeMountInfo forges the NFSVolumeMountInfo for the MyDrive volume. //XXX: Remove this.
-func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountInfo {
-	return NFSVolumeMountInfo{
-		VolumeName:    MyDriveVolumeName,
-		ServerAddress: serverAddress,
-		ExportPath:    exportPath,
-		MountPath:     MyDriveVolumeMountPath,
-		ReadOnly:      false,
-	}
-}
-
-// ShVolNFSVolumeMountInfo forges the NFSVolumeMountInfo given a SharedVolume and SharedVolumeMountInfo, its name will be nfs{i}. //XXX: Remove this.
-func ShVolNFSVolumeMountInfo(i int, _ *clv1alpha2.SharedVolume, mount clv1alpha2.SharedVolumeMountInfo) NFSVolumeMountInfo {
-	return NFSVolumeMountInfo{
-		VolumeName:    fmt.Sprintf("nfs%d", i),
-		ServerAddress: "", // shvol.Status.ServerAddress,
-		ExportPath:    "", // shvol.Status.ExportPath,
-		MountPath:     mount.MountPath,
-		ReadOnly:      mount.ReadOnly,
-	}
-}
-
 // NFSShVolSpec obtains the NFS server address and the export path from the passed Persistent Volume. //XXX: Remove this.
 func NFSShVolSpec(pv *corev1.PersistentVolume) (serverAddress, exportPath string) {
 	serverAddress = ""
@@ -142,88 +69,6 @@ func NFSShVolSpec(pv *corev1.PersistentVolume) (serverAddress, exportPath string
 	}
 
 	return
-}
-
-// GetNFSSpecs extracts the NFS server name and path for the tenant's personal NFS volume,
-// required to mount the MyDrive disk of a given tenant from the associated secret. //XXX: Remove this.
-func GetNFSSpecs(ctx context.Context, c client.Client) (nfsServerName, nfsPath string, err error) {
-	var serverNameBytes, serverPathBytes []byte
-	instance := clctx.InstanceFrom(ctx)
-	secretName := types.NamespacedName{Namespace: instance.Namespace, Name: NFSSecretName}
-
-	secret := corev1.Secret{}
-	if err = c.Get(ctx, secretName, &secret); err != nil {
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve secret", "secret", secretName)
-		return
-	}
-
-	serverNameBytes, ok := secret.Data[NFSSecretServerNameKey]
-	if !ok {
-		err = fmt.Errorf("cannot find %v key in secret", NFSSecretServerNameKey)
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
-		return
-	}
-
-	serverPathBytes, ok = secret.Data[NFSSecretPathKey]
-	if !ok {
-		err = fmt.Errorf("cannot find %v key in secret", NFSSecretPathKey)
-		ctrl.LoggerFrom(ctx).Error(err, "failed to retrieve NFS spec from secret", "secret", secretName)
-		return
-	}
-
-	return string(serverNameBytes), string(serverPathBytes), nil
-}
-
-// NFSVolumeMountInfosFromEnvironment extracts the array of NFSVolumeMountInfo from the passed environment
-// adding the MyDrive volume if needed, and setting RW permissions in case the Tenant is manager of the Workspace.
-// In case of error, the first value returned is nil, followed by error reason (string) and error. //XXX: Remove this.
-func NFSVolumeMountInfosFromEnvironment(ctx context.Context, c client.Client, env *clv1alpha2.Environment) ([]NFSVolumeMountInfo, string, error) {
-	mountInfos := []NFSVolumeMountInfo{}
-
-	// Check and mount MyDrive
-	if env.MountMyDriveVolume {
-		nfsServerName, nfsPath, err := GetNFSSpecs(ctx, c)
-		if err != nil {
-			return nil, "unable to retrieve NFS specs", err
-		}
-
-		mountInfos = append(mountInfos, MyDriveNFSVolumeMountInfo(nfsServerName, nfsPath))
-	}
-
-	// Check if tenant is manager of workspace
-	tenant := clctx.TenantFrom(ctx)
-	template := clctx.TemplateFrom(ctx)
-	workspaceName := template.Spec.WorkspaceRef.Name
-	labelSelector := map[string]string{clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager)}
-
-	var managers clv1alpha2.TenantList
-	if err := c.List(ctx, &managers, client.MatchingLabels(labelSelector)); err != nil {
-		return nil, "failed to retrieve managers for workspace " + workspaceName, err
-	}
-
-	isManager := false
-	for i := range managers.Items {
-		if managers.Items[i].Name == tenant.Name {
-			isManager = true
-			break
-		}
-	}
-
-	// Check and mount SharedVolumes
-	for i, mount := range env.SharedVolumeMounts {
-		var shvol clv1alpha2.SharedVolume
-		if err := c.Get(ctx, NamespacedNameFromMount(mount), &shvol); err != nil {
-			return nil, "unable to retrieve shvol to mount", err
-		}
-
-		if isManager {
-			mount.ReadOnly = false
-		}
-
-		mountInfos = append(mountInfos, ShVolNFSVolumeMountInfo(i, &shvol, mount))
-	}
-
-	return mountInfos, "", nil
 }
 
 // MyDriveMountInfo forges the VolumeMount for the MyDrive volume.
@@ -246,6 +91,7 @@ func ShVolMountInfo(mount clv1alpha2.SharedVolumeMountInfo, instanceName string)
 
 // PVCMountInfosFromEnvironment extracts the array of VolumeMount from the environment in the ctx
 // adding the MyDrive volume if needed, and setting RW permissions in case the Tenant is manager of the Workspace.
+// While calculating the array, it checks if the wanted SharedVolume exists.
 // In case of error, the first value returned is nil, followed by error reason (string) and error.
 func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]corev1.VolumeMount, string, error) {
 	tenant := clctx.TenantFrom(ctx)
@@ -364,23 +210,6 @@ func ConfigureMyDrivePVC(pvc *corev1.PersistentVolumeClaim, storageClassName str
 	} else if oldSize := *pvc.Spec.Resources.Requests.Storage(); storageSize.Cmp(oldSize) > 0 || oldSize.IsZero() {
 		pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: storageSize}
 	}
-}
-
-// ConfigureMyDriveSecret configures a Secret for tenant's MyDrive access. //XXX: Remove this.
-func ConfigureMyDriveSecret(secret *corev1.Secret, serverName, path string, labels map[string]string) {
-	// Set the labels
-	if secret.Labels == nil {
-		secret.Labels = make(map[string]string)
-	}
-
-	// Copy the provided labels
-	maps.Copy(secret.Labels, labels)
-
-	// Configure the Secret data
-	secret.Type = corev1.SecretTypeOpaque
-	secret.Data = make(map[string][]byte, 2)
-	secret.Data[NFSSecretServerNameKey] = []byte(serverName)
-	secret.Data[NFSSecretPathKey] = []byte(path)
 }
 
 // UpdatePVCProvisioningJobLabel updates the provisioning job label for a PVC.
