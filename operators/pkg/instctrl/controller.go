@@ -276,6 +276,13 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	if len(instance.Status.Environments) != tmplEnvCount {
 		instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, tmplEnvCount)
 	}
+	// Set the name of the environment for the instance status
+	// to the current template environment name.
+	// This has to be done before it can crash for whatever reason,
+	// since there is a validation on the name field.
+	for i := range template.Spec.EnvironmentList {
+		instance.Status.Environments[i].Name = template.Spec.EnvironmentList[i].Name
+	}
 
 	if err := r.CheckMyDriveMirrorPVC(ctx); err != nil {
 		r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, "MyDrive mirror has not been created yet")
@@ -286,10 +293,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 
 	for i := range template.Spec.EnvironmentList {
 		tmplEnv := &template.Spec.EnvironmentList[i]
-
-		// Set the name of the environment for the instance status
-		// to the current template environment name.
-		instance.Status.Environments[i].Name = tmplEnv.Name
 
 		// Set an inner context for each environment
 		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
