@@ -19,6 +19,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -26,6 +27,8 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
+// EnforceShVolMirrorPVCs implements the logic behind the creation of the mirror PVCs
+// for a SharedVolume mounted on an Environment.
 func (r *InstanceReconciler) EnforceShVolMirrorPVCs(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
@@ -61,4 +64,17 @@ func (r *InstanceReconciler) EnforceShVolMirrorPVCs(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+// CheckMyDriveMirrorPVC checks if the mirror PVC of the MyDrive has been created.
+// It returns an error if it hasn't been created yet, or nil if it exists.
+func (r *InstanceReconciler) CheckMyDriveMirrorPVC(ctx context.Context) error {
+	tenant := clctx.TenantFrom(ctx)
+	key := types.NamespacedName{
+		Namespace: tenant.Status.PersonalNamespace.Name,
+		Name:      forge.GetMyDrivePVCMirrorName(tenant.Name),
+	}
+
+	var mirror corev1.PersistentVolumeClaim
+	return r.Get(ctx, key, &mirror)
 }

@@ -83,7 +83,7 @@ func CloudInitUserData(publicKeys []string, mountInfos []corev1.VolumeMount) ([]
 
 	config.Mounts = [][]string{}
 	for _, mount := range mountInfos {
-		config.Mounts = append(config.Mounts, virtiofsVolumeMount(mount))
+		config.Mounts = append(config.Mounts, virtiofsVolumeMount(&mount))
 	}
 
 	output, err := yaml.Marshal(config)
@@ -96,7 +96,7 @@ func CloudInitUserData(publicKeys []string, mountInfos []corev1.VolumeMount) ([]
 }
 
 // VirtiofsVolumeMount forges the mount string array for a generic Virtiofs volume.
-func virtiofsVolumeMount(mount corev1.VolumeMount) []string {
+func virtiofsVolumeMount(mount *corev1.VolumeMount) []string {
 	rwPermission := "rw"
 
 	if mount.ReadOnly {

@@ -74,7 +74,7 @@ spec:
               of the Shared Volume.
             properties:
               exportPath:
-                description: The NFS path.
+                description: 'The NFS path. //XXX: Remove this.'
                 type: string
               phase:
                 description: The current phase of the lifecycle of the Shared Volume.
@@ -88,7 +88,7 @@ spec:
                 - Error
                 type: string
               serverAddress:
-                description: The NFS server address.
+                description: 'The NFS server address. //XXX: Remove this.'
                 type: string
             type: object
         type: object

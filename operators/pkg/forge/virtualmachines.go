@@ -98,21 +98,32 @@ func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
 	}
+	volumes = append(volumes, ExternalVolumes(mountInfos)...)
+	return volumes
+}
 
+// ExternalVolumes forges the array of external volumes (MyDrive, SharedVolumes) to be mounted onto the VMI specification.
+func ExternalVolumes(mountInfos []corev1.VolumeMount) []virtv1.Volume {
+	volumes := []virtv1.Volume{}
 	for _, mount := range mountInfos {
-		volumes = append(volumes, virtv1.Volume{
-			Name: mount.Name,
-			VolumeSource: virtv1.VolumeSource{
-				PersistentVolumeClaim: &virtv1.PersistentVolumeClaimVolumeSource{
-					PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
-						ClaimName: mount.Name,
-						ReadOnly:  mount.ReadOnly,
-					},
-				},
-			},
-		})
+		volumes = append(volumes, VolumePVC(&mount))
 	}
 	return volumes
+}
+
+// VolumePVC forges the specification of an external volume (MyDrive, SharedVolume) to be mounted through PVC.
+func VolumePVC(mount *corev1.VolumeMount) virtv1.Volume {
+	return virtv1.Volume{
+		Name: mount.Name,
+		VolumeSource: virtv1.VolumeSource{
+			PersistentVolumeClaim: &virtv1.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mount.Name,
+					ReadOnly:  mount.ReadOnly,
+				},
+			},
+		},
+	}
 }
 
 // VolumeRootDisk forges the specification of the root volume, either ephemeral or persistent based on

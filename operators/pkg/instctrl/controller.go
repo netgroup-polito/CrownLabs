@@ -277,6 +277,11 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, tmplEnvCount)
 	}
 
+	if err := r.CheckMyDriveMirrorPVC(ctx); err != nil {
+		r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, "MyDrive mirror has not been created yet")
+		return err
+	}
+
 	urlNeeded := false
 
 	for i := range template.Spec.EnvironmentList {

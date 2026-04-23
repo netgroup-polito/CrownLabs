@@ -12,5 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package context groups the methods used to enrich a context with CrownLabs-related objects.
-package context
+// Package clcontext groups the methods used to enrich a context with CrownLabs-related objects.
+package clcontext

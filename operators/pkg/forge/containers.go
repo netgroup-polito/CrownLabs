@@ -447,7 +447,7 @@ func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Env
 	vols := []corev1.Volume{ContainerVolume(PersistentVolumeName, NamespacedNameWithSuffix(instance, environment.Name).Name, environment)}
 
 	for _, mountInfo := range mountInfos {
-		vols = append(vols, PVCVolumeFromVolumeMount(mountInfo))
+		vols = append(vols, PVCVolumeFromVolumeMount(&mountInfo))
 	}
 
 	return vols
@@ -490,7 +490,7 @@ func NFSVolume(mountInfo NFSVolumeMountInfo) corev1.Volume {
 }
 
 // PVCVolumeFromVolumeMount forges a Volume from the given VolumeMount.
-func PVCVolumeFromVolumeMount(mount corev1.VolumeMount) corev1.Volume {
+func PVCVolumeFromVolumeMount(mount *corev1.VolumeMount) corev1.Volume {
 	return corev1.Volume{
 		Name: mount.Name,
 		VolumeSource: corev1.VolumeSource{

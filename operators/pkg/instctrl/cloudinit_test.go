@@ -45,6 +45,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		template    clv1alpha2.Template
 		tenant      clv1alpha2.Tenant
 		environment clv1alpha2.Environment
+		mountInfos  []corev1.VolumeMount
 
 		pvcSecretName types.NamespacedName
 		objectName    types.NamespacedName
@@ -66,6 +67,10 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 
 		NFSServiceName = "rook-nfs-server-name"
 		NFSServicePath = "/path"
+
+		shVolName      = "shvol-abc123-instance-def456-mirror"
+		shVolMountPath = "/mnt/path"
+		shVolReadOnly  = true
 	)
 
 	NewTenant := func(suffix string, workspace string, role clv1alpha2.WorkspaceUserRole, keys []string) clv1alpha2.Tenant {
@@ -98,6 +103,14 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		}
 		environment = clv1alpha2.Environment{Name: environmentName, MountMyDriveVolume: true}
 		tenant = NewTenant("user", workspaceName, clv1alpha2.User, []string{"tenant-key-1", "tenant-key-2"})
+		mountInfos = []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
+		}
 
 		pvcSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: forge.NFSSecretName}
 		objectName = forge.NamespacedName(&instance)
@@ -133,6 +146,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+		ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
 	})
 
 	Describe("The EnforceCloudInitSecret function", func() {
@@ -145,9 +159,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		BeforeEach(func() {
 			clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey))
 
-			expected, err = forge.CloudInitUserData(tenant.Spec.PublicKeys, []forge.NFSVolumeMountInfo{
-				forge.MyDriveNFSVolumeMountInfo(NFSServiceName, NFSServicePath),
-			})
+			expected, err = forge.CloudInitUserData(tenant.Spec.PublicKeys, mountInfos)
 			Expect(err).ToNot(HaveOccurred())
 		})
 

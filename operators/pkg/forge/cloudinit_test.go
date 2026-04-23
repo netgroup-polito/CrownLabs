@@ -19,6 +19,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -26,11 +27,10 @@ import (
 var _ = Describe("CloudInit files generation", func() {
 	Context("The CloudInitUserData function", func() {
 		const (
-			serviceName       = "rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local"
-			servicePath       = "/nfs/path"
-			nfsShVolExpPath   = "/nfs/shvol"
-			nfsShVolMountPath = "/mnt/path"
-			nfsShVolReadOnly  = true
+			tnName         = "s123456"
+			shVolName      = "shvol-abc123-instance-def456-mirror"
+			shVolMountPath = "/mnt/path"
+			shVolReadOnly  = true
 
 			expected = `
 #cloud-config
@@ -48,24 +48,18 @@ network:
     id0:
         dhcp4: true
 mounts:
-    - - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/nfs/path
+    - - s123456-drive-mirror
       - /media/mydrive
-      - nfs
+      - virtiofs
       - rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
       - "0"
       - "0"
-	- - rook-ceph-nfs-my-nfs-a.rook-ceph.svc.cluster.local:/nfs/shvol
-	  - /mnt/path
-      - nfs
+    - - shvol-abc123-instance-def456-mirror
+      - /mnt/path
+      - virtiofs
       - ro,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
       - "0"
       - "0"
-	- - '# If you change mount options from here, not even Santa will give you 18.'
-	  - ""
-	  - ""
-	  - ""
-	  - ""
-	  - ""
 ssh_authorized_keys:
     - tenant-key-1
     - tenant-key-2
@@ -85,13 +79,12 @@ ssh_authorized_keys:
 
 		BeforeEach(func() { publicKeys = []string{"tenant-key-1", "tenant-key-2"} })
 		JustBeforeEach(func() {
-			output, err = forge.CloudInitUserData(publicKeys, []forge.NFSVolumeMountInfo{
-				forge.MyDriveNFSVolumeMountInfo(serviceName, servicePath),
+			output, err = forge.CloudInitUserData(publicKeys, []corev1.VolumeMount{
+				forge.MyDriveMountInfo(tnName),
 				{
-					ServerAddress: serviceName,
-					ExportPath:    nfsShVolExpPath,
-					MountPath:     nfsShVolMountPath,
-					ReadOnly:      nfsShVolReadOnly,
+					Name:      shVolName,
+					MountPath: shVolMountPath,
+					ReadOnly:  shVolReadOnly,
 				},
 			})
 		})

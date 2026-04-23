@@ -141,7 +141,7 @@ var _ = Describe("MyDrive management", func() {
 				Expect(mirror.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
 				Expect(mirror.Labels).To(HaveKeyWithValue(forge.LabelVolumeTypeKey, forge.VolumeTypeValueMirror))
 				Expect(mirror.Spec.DataSourceRef.Name).To(Equal(tnName + "-drive"))
-				Expect(mirror.Spec.DataSourceRef.Namespace).To(Equal("mydrive-pvcs"))
+				Expect(*mirror.Spec.DataSourceRef.Namespace).To(Equal("mydrive-pvcs"))
 				Expect(mirror.Spec.DataSourceRef.Kind).To(Equal("PersistentVolumeClaim"))
 			})
 

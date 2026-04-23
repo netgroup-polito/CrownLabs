@@ -49,6 +49,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
 		index       int
+		mountInfos  []corev1.VolumeMount
 
 		objectName    types.NamespacedName
 		objectNameEnv types.NamespacedName
@@ -77,6 +78,10 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		cpuReserved = 25
 		memory      = "1250M"
 		disk        = "20Gi"
+
+		shVolName      = "shvol-abc123-instance-def456-mirror"
+		shVolMountPath = "/mnt/path"
+		shVolReadOnly  = true
 	)
 
 	BeforeEach(func() {
@@ -130,6 +135,15 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		index = 0
 		tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
 
+		mountInfos = []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
+		}
+
 		objectName = forge.NamespacedName(&instance)
 		objectNameEnv = forge.NamespacedNameWithSuffix(&instance, environmentName)
 
@@ -151,11 +165,13 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	JustBeforeEach(func() {
 		reconciler = instctrl.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme}
 
+		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx = clctx.EnvironmentIndexInto(ctx, index)
+		ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
+
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
@@ -218,7 +234,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					// appropriate test case.
 					vmi.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vmi.Spec.NodeSelector = map[string]string{}
-					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
+					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
 				})
 
 				It("Should leave the instance phase unset", func() {
@@ -326,7 +342,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vm.Spec.Running = nil
 					vm.Spec.Template.Spec.NodeSelector = map[string]string{}
-					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment)))
+					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)))
 				})
 
 				It("The VM should be present and with the running flag set", func() {

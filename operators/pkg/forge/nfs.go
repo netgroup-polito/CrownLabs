@@ -45,7 +45,8 @@ const (
 	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success).
 	ProvisionJobTTLSeconds = 3600 * 24 * 7
 
-	//XXX: Remove this
+	//XXX: Remove these below.
+
 	// NFSSecretName -> NFS secret name for MyDrive.
 	NFSSecretName = "mydrive-info"
 	// NFSSecretServerNameKey -> NFS Server key in NFS secret.
@@ -55,6 +56,7 @@ const (
 )
 
 var (
+	// DefaultMirrorCapacity is the default size for mirror PVs and PVCs (which does not match the real size).
 	DefaultMirrorCapacity = resource.MustParse("1")
 )
 
@@ -67,7 +69,7 @@ type NFSVolumeMountInfo struct { //XXX: Remove this
 	ReadOnly      bool
 }
 
-// NFSVolumeMount forges the mount string array for a generic NFS volume. //XXX: Remove this
+// NFSVolumeMount forges the mount string array for a generic NFS volume. //XXX: Remove this.
 func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []string {
 	rwPermission := "rw"
 
@@ -85,22 +87,17 @@ func NFSVolumeMount(nfsServer, exportPath, mountPath string, readOnly bool) []st
 	}
 }
 
-// MyDriveVolumeMount forges the mount string array for the MyDrive volume. //XXX: Remove this
+// MyDriveVolumeMount forges the mount string array for the MyDrive volume. //XXX: Remove this.
 func MyDriveVolumeMount(nfsServer, exportPath string) []string {
 	return NFSVolumeMount(nfsServer, exportPath, MyDriveVolumeMountPath, false)
 }
 
-// SharedVolumeMount forges the mount string array for a SharedVolume. //XXX: Remove this
-func SharedVolumeMount(shvol *clv1alpha2.SharedVolume, mountInfo clv1alpha2.SharedVolumeMountInfo) []string {
-	// if shvol.Status.ServerAddress == "" || shvol.Status.ExportPath == "" {
-	// 	return CommentMount("Here lies an invalid SharedVolume mount")
-	// }
-
-	// return NFSVolumeMount(shvol.Status.ServerAddress, shvol.Status.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly)
+// SharedVolumeMount forges the mount string array for a SharedVolume. //XXX: Remove this.
+func SharedVolumeMount(_ *clv1alpha2.SharedVolume, _ clv1alpha2.SharedVolumeMountInfo) []string {
 	return CommentMount("deprecated")
 }
 
-// CommentMount forges the mount string array for a comment. //XXX: Remove this
+// CommentMount forges the mount string array for a comment. //XXX: Remove this.
 func CommentMount(comment string) []string {
 	return []string{
 		"# " + comment,
@@ -112,7 +109,7 @@ func CommentMount(comment string) []string {
 	}
 }
 
-// MyDriveNFSVolumeMountInfo forges the NFSVolumeMountInfo for the MyDrive volume. //XXX: Remove this
+// MyDriveNFSVolumeMountInfo forges the NFSVolumeMountInfo for the MyDrive volume. //XXX: Remove this.
 func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountInfo {
 	return NFSVolumeMountInfo{
 		VolumeName:    MyDriveVolumeName,
@@ -123,8 +120,8 @@ func MyDriveNFSVolumeMountInfo(serverAddress, exportPath string) NFSVolumeMountI
 	}
 }
 
-// ShVolNFSVolumeMountInfo forges the NFSVolumeMountInfo given a SharedVolume and SharedVolumeMountInfo, its name will be nfs{i}. //XXX: Remove this
-func ShVolNFSVolumeMountInfo(i int, shvol *clv1alpha2.SharedVolume, mount clv1alpha2.SharedVolumeMountInfo) NFSVolumeMountInfo {
+// ShVolNFSVolumeMountInfo forges the NFSVolumeMountInfo given a SharedVolume and SharedVolumeMountInfo, its name will be nfs{i}. //XXX: Remove this.
+func ShVolNFSVolumeMountInfo(i int, _ *clv1alpha2.SharedVolume, mount clv1alpha2.SharedVolumeMountInfo) NFSVolumeMountInfo {
 	return NFSVolumeMountInfo{
 		VolumeName:    fmt.Sprintf("nfs%d", i),
 		ServerAddress: "", // shvol.Status.ServerAddress,
@@ -134,7 +131,7 @@ func ShVolNFSVolumeMountInfo(i int, shvol *clv1alpha2.SharedVolume, mount clv1al
 	}
 }
 
-// NFSShVolSpec obtains the NFS server address and the export path from the passed Persistent Volume. //XXX: Remove this
+// NFSShVolSpec obtains the NFS server address and the export path from the passed Persistent Volume. //XXX: Remove this.
 func NFSShVolSpec(pv *corev1.PersistentVolume) (serverAddress, exportPath string) {
 	serverAddress = ""
 	exportPath = ""
@@ -148,7 +145,7 @@ func NFSShVolSpec(pv *corev1.PersistentVolume) (serverAddress, exportPath string
 }
 
 // GetNFSSpecs extracts the NFS server name and path for the tenant's personal NFS volume,
-// required to mount the MyDrive disk of a given tenant from the associated secret. //XXX: Remove this
+// required to mount the MyDrive disk of a given tenant from the associated secret. //XXX: Remove this.
 func GetNFSSpecs(ctx context.Context, c client.Client) (nfsServerName, nfsPath string, err error) {
 	var serverNameBytes, serverPathBytes []byte
 	instance := clctx.InstanceFrom(ctx)
@@ -179,7 +176,7 @@ func GetNFSSpecs(ctx context.Context, c client.Client) (nfsServerName, nfsPath s
 
 // NFSVolumeMountInfosFromEnvironment extracts the array of NFSVolumeMountInfo from the passed environment
 // adding the MyDrive volume if needed, and setting RW permissions in case the Tenant is manager of the Workspace.
-// In case of error, the first value returned is nil, followed by error reason (string) and error. //XXX: Remove this
+// In case of error, the first value returned is nil, followed by error reason (string) and error. //XXX: Remove this.
 func NFSVolumeMountInfosFromEnvironment(ctx context.Context, c client.Client, env *clv1alpha2.Environment) ([]NFSVolumeMountInfo, string, error) {
 	mountInfos := []NFSVolumeMountInfo{}
 
@@ -272,7 +269,7 @@ func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]corev
 
 	// Check and mount SharedVolumes
 	for _, mount := range env.SharedVolumeMounts {
-		// Check existance before mounting
+		// Check existence before mounting
 		var shvol clv1alpha2.SharedVolume
 		if err := c.Get(ctx, NamespacedNameFromMount(mount), &shvol); err != nil {
 			return nil, "unable to retrieve shvol to mount", err
@@ -339,7 +336,7 @@ func GetMyDrivePVCMirrorName(tenantName string) string {
 
 // GetShVolPVCMirrorName returns the name for the mirror of the SharedVolume PVC for the specified Instance.
 func GetShVolPVCMirrorName(shvolName, instanceName string) string {
-	// The maximum name length for a Kubernetes resource is 253 characters, (253 - len("--mirror") - 1) = 122.
+	// The maximum name length for a Kubernetes resource is 253 characters, (253 - len("--mirror") - 1)/2 = 122.
 	return fmt.Sprintf("%s-%s-mirror", LastCharsOf(shvolName, 122), LastCharsOf(instanceName, 122))
 }
 
@@ -369,7 +366,7 @@ func ConfigureMyDrivePVC(pvc *corev1.PersistentVolumeClaim, storageClassName str
 	}
 }
 
-// ConfigureMyDriveSecret configures a Secret for tenant's MyDrive access. //XXX: Remove this
+// ConfigureMyDriveSecret configures a Secret for tenant's MyDrive access. //XXX: Remove this.
 func ConfigureMyDriveSecret(secret *corev1.Secret, serverName, path string, labels map[string]string) {
 	// Set the labels
 	if secret.Labels == nil {
@@ -413,7 +410,7 @@ func MirrorPVCSpec(origin *corev1.PersistentVolumeClaim, mirrorStorageClassName 
 		StorageClassName: &mirrorStorageClassName,
 		DataSourceRef: &corev1.TypedObjectReference{
 			APIGroup:  nil, // Kind PVC is in the core API group, which is nil
-			Kind:      origin.Kind,
+			Kind:      "PersistentVolumeClaim",
 			Namespace: &origin.Namespace,
 			Name:      origin.Name,
 		},
