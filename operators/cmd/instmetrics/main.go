@@ -36,9 +36,12 @@ func main() {
 	updatePeriod := flag.Duration("update-period", 1*time.Second, "Metrics update period and timeout in seconds for requests to CRI-API")
 
 	klog.InitFlags(nil)
+	// Opt into the new klog behavior so that -stderrthreshold is honored even
+	// when -logtostderr=true (the default).
+	// Ref: kubernetes/klog#212, kubernetes/klog#432
+	flag.Set("legacy_stderr_threshold_behavior", "false") //nolint:errcheck
+	flag.Set("stderrthreshold", "INFO")                   //nolint:errcheck
 	flag.Parse()
-
-	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("instmetrics")
 	ctx := clctx.LoggerIntoContext(context.Background(), log)
 
 	remoteRuntimeClient, err := instmetrics.GetRuntimeService(ctx, *connectionTimeout, *runtimeEndpoint)
