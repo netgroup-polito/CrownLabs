@@ -48,7 +48,7 @@ func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger
 	switch pvc.Status.Phase {
 	case v1.ClaimBound:
 		// Authorize the user to access the PVC by creating a Mirror inside their namespace
-		if created, err := r.enforceMyDrivePVCMirror(ctx, log, tn, pvc); err != nil {
+		if created, err := r.enforceMyDrivePVCMirror(ctx, tn, pvc); err != nil {
 			log.Error(err, "Unable to create or update PVC Mirror for tenant")
 			return err
 		} else if created {
@@ -121,7 +121,6 @@ func (r *Reconciler) enforceMyDrivePVC(
 
 func (r *Reconciler) enforceMyDrivePVCMirror(
 	ctx context.Context,
-	_ logr.Logger,
 	tn *v1alpha2.Tenant,
 	pvc *v1.PersistentVolumeClaim,
 ) (bool, error) {

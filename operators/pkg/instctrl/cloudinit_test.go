@@ -47,9 +47,8 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		environment clv1alpha2.Environment
 		mountInfos  []corev1.VolumeMount
 
-		pvcSecretName types.NamespacedName
-		objectName    types.NamespacedName
-		secret        corev1.Secret
+		objectName types.NamespacedName
+		secret     corev1.Secret
 
 		ownerRef metav1.OwnerReference
 
@@ -64,9 +63,6 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		workspaceName     = "netgroup"
 		environmentName   = "control-plane"
 		tenantName        = "tester"
-
-		NFSServiceName = "rook-nfs-server-name"
-		NFSServicePath = "/path"
 
 		shVolName      = "shvol-abc123-instance-def456-mirror"
 		shVolMountPath = "/mnt/path"
@@ -112,7 +108,6 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			},
 		}
 
-		pvcSecretName = types.NamespacedName{Namespace: instanceNamespace, Name: forge.NFSSecretName}
 		objectName = forge.NamespacedName(&instance)
 		secret = corev1.Secret{}
 
@@ -125,16 +120,6 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			Controller:         ptr.To(true),
 		}
 	})
-
-	ForgePvcSecret := func(serviceNameKey, servicePathKey string) *corev1.Secret {
-		return &corev1.Secret{
-			ObjectMeta: forge.NamespacedNameToObjectMeta(pvcSecretName),
-			Data: map[string][]byte{
-				serviceNameKey: []byte(NFSServiceName),
-				servicePathKey: []byte(NFSServicePath),
-			},
-		}
-	}
 
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build()}
@@ -157,8 +142,6 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 		}
 
 		BeforeEach(func() {
-			clientBuilder = *clientBuilder.WithObjects(ForgePvcSecret(forge.NFSSecretServerNameKey, forge.NFSSecretPathKey))
-
 			expected, err = forge.CloudInitUserData(tenant.Spec.PublicKeys, mountInfos)
 			Expect(err).ToNot(HaveOccurred())
 		})

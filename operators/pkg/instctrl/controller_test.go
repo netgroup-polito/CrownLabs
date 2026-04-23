@@ -111,13 +111,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Name:    testName,
 			Created: true,
 		}
-		tenantPvcSecret := corev1.Secret{ //XXX: Remove this
-			ObjectMeta: metav1.ObjectMeta{Name: forge.NFSSecretName, Namespace: testName},
-			Data: map[string][]byte{
-				forge.NFSSecretServerNameKey: []byte(testName),
-				forge.NFSSecretPathKey:       []byte(testName),
-			},
-		}
 		tenant := clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: testName},
 			Spec: clv1alpha2.TenantSpec{
@@ -174,8 +167,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		Expect(k8sClient.Create(ctx, &ns)).To(Succeed())
 		if createTenant {
 			Expect(k8sClient.Create(ctx, &tenant)).To(Succeed())
-			Expect(k8sClient.Create(ctx, &tenantPvcSecret)).To(Succeed())
-
 			tenant.Status.PersonalNamespace = pns
 			Expect(k8sClient.Status().Update(ctx, &tenant)).To(Succeed())
 			ctx, _ = clctx.TenantInto(ctx, &tenant)

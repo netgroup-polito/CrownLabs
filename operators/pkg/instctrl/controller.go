@@ -23,7 +23,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -211,7 +211,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, templateName, &template); err != nil {
 		log.Error(err, "failed retrieving the instance template", "template", templateName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, templateName.Namespace, templateName.Name)
+		r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, templateName.Namespace, templateName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TemplateInto(ctx, &template)
@@ -223,7 +223,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	var tenant clv1alpha2.Tenant
 	if err := r.Get(ctx, tenantName, &tenant); err != nil {
 		log.Error(err, "failed retrieving the instance tenant", "tenant", tenantName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, tenantName.Name)
+		r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, tenantName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TenantInto(ctx, &tenant)
@@ -284,11 +284,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		instance.Status.Environments[i].Name = template.Spec.EnvironmentList[i].Name
 	}
 
-	if err := r.CheckMyDriveMirrorPVC(ctx); err != nil {
-		r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, "MyDrive mirror has not been created yet")
-		return err
-	}
-
 	urlNeeded := false
 
 	for i := range template.Spec.EnvironmentList {
@@ -299,13 +294,13 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
 		if err := r.EnforceShVolMirrorPVCs(innCtx); err != nil {
-			r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
+			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
 			return err
 		}
 
 		mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(innCtx, r.Client)
 		if err != nil {
-			r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
+			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
 			return err
 		}
 		innCtx = clctx.VolumeMountInfosInto(innCtx, mountInfos)
@@ -313,7 +308,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
 			if err := r.EnforceVMEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
 			if tmplEnv.GuiEnabled {
@@ -322,7 +317,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
 			}
 			urlNeeded = true
@@ -381,6 +376,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).

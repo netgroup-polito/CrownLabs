@@ -42,15 +42,6 @@ const (
 	ProvisionJobMaxRetries = 3
 	// ProvisionJobTTLSeconds -> Seconds for Provision jobs before deletion (either failure or success).
 	ProvisionJobTTLSeconds = 3600 * 24 * 7
-
-	//XXX: Remove these below.
-
-	// NFSSecretName -> NFS secret name for MyDrive.
-	NFSSecretName = "mydrive-info"
-	// NFSSecretServerNameKey -> NFS Server key in NFS secret.
-	NFSSecretServerNameKey = "server-name"
-	// NFSSecretPathKey -> NFS path key in NFS secret.
-	NFSSecretPathKey = "path"
 )
 
 var (

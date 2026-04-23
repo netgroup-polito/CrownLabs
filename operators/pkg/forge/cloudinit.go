@@ -95,7 +95,7 @@ func CloudInitUserData(publicKeys []string, mountInfos []corev1.VolumeMount) ([]
 	return output, nil
 }
 
-// VirtiofsVolumeMount forges the mount string array for a generic Virtiofs volume.
+// virtiofsVolumeMount forges the mount string array for a generic Virtiofs volume.
 func virtiofsVolumeMount(mount *corev1.VolumeMount) []string {
 	rwPermission := "rw"
 
