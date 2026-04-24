@@ -34,30 +34,30 @@ func (r *InstanceReconciler) EnforceShVolMirrorPVCs(ctx context.Context) error {
 	environment := clctx.EnvironmentFrom(ctx)
 
 	for _, mountInfo := range environment.SharedVolumeMounts {
-		shvol := corev1.PersistentVolumeClaim{
+		shvolPvc := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      mountInfo.SharedVolumeRef.Name,
+				Name:      forge.GetShVolPVCName(mountInfo.SharedVolumeRef.Name),
 				Namespace: mountInfo.SharedVolumeRef.Namespace,
 			},
 		}
 
 		mirrPvc := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      forge.GetShVolPVCMirrorName(shvol.Name, instance.Name),
+				Name:      forge.GetShVolPVCMirrorName(mountInfo.SharedVolumeRef.Name, instance.Name),
 				Namespace: instance.Namespace,
 			},
 		}
 		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mirrPvc, func() error {
 			// Configure the mirror PVC
 			if mirrPvc.CreationTimestamp.IsZero() {
-				mirrPvc.Spec = forge.MirrorPVCSpec(&shvol, r.MirrorPVCStorageClassName)
+				mirrPvc.Spec = forge.MirrorPVCSpec(&shvolPvc, r.MirrorPVCStorageClassName)
 			}
 			mirrPvc.SetLabels(forge.UpdateShVolMirrorPVCLabels(mirrPvc.Labels))
 
 			return controllerutil.SetControllerReference(instance, &mirrPvc, r.Scheme)
 		})
 		if err != nil {
-			log.Error(err, "failed to enforce mirror sharedvolume", "SharedVolume", shvol, "Environment", environment)
+			log.Error(err, "failed to enforce mirror sharedvolume", "SharedVolume", shvolPvc, "Environment", environment)
 			return err
 		}
 	}

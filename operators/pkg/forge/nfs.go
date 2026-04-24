@@ -171,6 +171,11 @@ func GetMyDrivePVCMirrorName(tenantName string) string {
 	return fmt.Sprintf("%s-mirror", GetMyDrivePVCName(tenantName))
 }
 
+// GetShVolPVCName returns the name of the SharedVolume's PVC.
+func GetShVolPVCName(shvolName string) string {
+	return fmt.Sprintf("shvol-%s", shvolName)
+}
+
 // GetShVolPVCMirrorName returns the name for the mirror of the SharedVolume PVC for the specified Instance.
 func GetShVolPVCMirrorName(shvolName, instanceName string) string {
 	// The maximum name length for a Kubernetes resource is 253 characters, (253 - len("--mirror") - 1)/2 = 122.

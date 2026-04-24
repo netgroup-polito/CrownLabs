@@ -147,7 +147,10 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
 
 	// Create or Update the PVC, reconciling it with the SharedVolume spec.
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: "shvol-" + shvolume.GetName(), Namespace: shvolume.GetNamespace()}}
+	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
+		Name:      forge.GetShVolPVCName(shvolume.GetName()),
+		Namespace: shvolume.GetNamespace(),
+	}}
 
 	pvcOpRes, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		oldSize := *pvc.Spec.Resources.Requests.Storage()
