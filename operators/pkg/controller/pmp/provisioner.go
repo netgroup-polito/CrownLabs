@@ -105,7 +105,7 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 	var originPVC corev1.PersistentVolumeClaim
 	if err := p.Client.Get(ctx, originKey, &originPVC); err != nil {
 		if kerrors.IsNotFound(err) {
-			p.Logger.Error(err, "origin PVC does not exist")
+			p.Logger.Error(err, "origin PVC does not exist", "key", originKey)
 			return nil, controller.ProvisioningFinished, status.Error(codes.InvalidArgument, "Origin PVC does not exist")
 		}
 
