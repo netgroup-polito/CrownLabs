@@ -39,9 +39,11 @@ func main() {
 	// Opt into the new klog behavior so that -stderrthreshold is honored even
 	// when -logtostderr=true (the default).
 	// Ref: kubernetes/klog#212, kubernetes/klog#432
-	flag.Set("legacy_stderr_threshold_behavior", "false") //nolint:errcheck
-	flag.Set("stderrthreshold", "INFO")                   //nolint:errcheck
+	flag.Set("legacy_stderr_threshold_behavior", "false") //nolint:errcheck // flag is registered by klog.InitFlags above
+	flag.Set("stderrthreshold", "INFO")                   //nolint:errcheck // flag is registered by klog.InitFlags above
 	flag.Parse()
+
+	log := textlogger.NewLogger(textlogger.NewConfig()).WithName("instmetrics")
 	ctx := clctx.LoggerIntoContext(context.Background(), log)
 
 	remoteRuntimeClient, err := instmetrics.GetRuntimeService(ctx, *connectionTimeout, *runtimeEndpoint)
