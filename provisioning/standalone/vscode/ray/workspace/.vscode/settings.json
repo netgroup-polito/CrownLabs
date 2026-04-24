@@ -1,0 +1,28 @@
+{
+  "security.workspace.trust.enabled": false,
+  "workbench.colorTheme": "Default Dark Modern",
+  "workbench.startupEditor": "none",
+
+  "python.defaultInterpreterPath": "/opt/venv/bin/python",
+
+  "terminal.integrated.defaultProfile.linux": "venv-bash",
+  "terminal.integrated.profiles.linux": {
+    "venv-bash": {
+      "path": "/bin/bash",
+      "args": ["-l", "-c", "source /opt/venv/bin/activate && exec bash -l"]
+    }
+  },
+
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Python: Current File",
+        "type": "python",
+        "request": "launch",
+        "program": "${file}",
+        "console": "integratedTerminal"
+      }
+    ]
+  }
+}
