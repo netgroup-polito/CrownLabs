@@ -98,6 +98,7 @@ func main() {
 	marginTime := flag.Duration("margin-time", 1*time.Minute, "The margin time to add to operations involving time comparisons to avoid edge cases due to delays")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
+	// TODO CLEANUP: KEEP (container utils/content-tools).
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
 
 	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", false, "Enable the sending of inactivity notifications to users on instance inactivity")

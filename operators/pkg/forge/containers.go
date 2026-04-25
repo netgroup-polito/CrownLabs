@@ -198,8 +198,10 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	var containers []corev1.Container
 	volumeMountPath := PersistentMountPath(environment)
 	switch environment.EnvironmentType {
+	//TODO CLEANUP: ClassContainer
 	case clv1alpha2.ClassContainer:
 		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(environment, volumeMountPath, mountInfos))
+	//TODO CLEANUP: ClassStandalone
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath, mountInfos))
 	default:
@@ -522,6 +524,7 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 // InstanceHostname forges the hostname of the instance:
 // empty for standard mode (will use pod name) or the lowercase mode otherwise.
 func InstanceHostname(template *clv1alpha2.Template) string {
+	//TODO CLEANUP: ScopeStandard
 	if template.Spec.Scope != clv1alpha2.ScopeStandard {
 		return strings.ToLower(string(template.Spec.Scope))
 	}

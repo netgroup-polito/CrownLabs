@@ -63,6 +63,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
+				//TODO CLEANUP: ScopeStandard
 				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
@@ -174,6 +175,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		}
 
 		When("scope is Standard", WhenBody(VolumesCase{
+			//TODO CLEANUP: ScopeStandard
 			Scope: clv1alpha2.ScopeStandard,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{
@@ -184,6 +186,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		}))
 
 		When("scope is Exercise", WhenBody(VolumesCase{
+			//TODO CLEANUP: ScopeExercise
 			Scope: clv1alpha2.ScopeExercise,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
@@ -191,6 +194,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		}))
 
 		When("scope is Exam", WhenBody(VolumesCase{
+			//TODO CLEANUP: ScopeExam
 			Scope: clv1alpha2.ScopeExam,
 			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
 				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
@@ -288,6 +292,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		}
 
 		When("scope is Standard", WhenBody(VolumesDiskTargetsCase{
+			//TODO CLEANUP: ScopeStandard
 			Scope: clv1alpha2.ScopeStandard,
 			Expected: []virtv1.Disk{
 				forge.VolumeDiskTarget("root"),
@@ -296,11 +301,13 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		}))
 
 		When("scope is Exercise", WhenBody(VolumesDiskTargetsCase{
+			//TODO CLEANUP: ScopeExercise
 			Scope:    clv1alpha2.ScopeExercise,
 			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
 		}))
 
 		When("scope is Exam", WhenBody(VolumesDiskTargetsCase{
+			//TODO CLEANUP: ScopeExam
 			Scope:    clv1alpha2.ScopeExam,
 			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
 		}))

@@ -77,6 +77,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			{
 				Name:            "app-1",
 				Image:           "some-image:v0",
+				//TODO CLEANUP: ClassStandalone
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				Persistent:      false,
 				GuiEnabled:      true,
@@ -90,6 +91,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			{
 				Name:            "dev-1",
 				Image:           "some-image-dev:v1",
+				//TODO CLEANUP: ClassStandalone
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				Persistent:      true,
 				GuiEnabled:      true,
@@ -123,6 +125,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
+				//TODO CLEANUP: ScopeStandard
 				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
@@ -241,6 +244,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-persistent"
 				for i := range environmentList {
+					//TODO CLEANUP: ClassStandalone
 					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 					environmentList[i].Persistent = true
 				}
@@ -253,6 +257,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-not-persistent"
 				for i := range environmentList {
+					//TODO CLEANUP: ClassStandalone
 					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 					environmentList[i].Persistent = false
 				}
@@ -267,6 +272,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-container-persistent"
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 					environmentList[i].Persistent = true
 				}
@@ -278,6 +284,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-container-not-persistent"
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 					environmentList[i].Persistent = false
 				}
@@ -507,6 +514,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			PodStatusIt("pod-stat-vm-p", clv1alpha2.ClassVM, true)
 		})
 		When("The instance is a container", func() {
+			//TODO CLEANUP: ClassContainer
 			PodStatusIt("pod-stat-cont", clv1alpha2.ClassContainer, true)
 		})
 	})
@@ -601,6 +609,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					{
 						Name:            "app-1",
 						Image:           "some-image:v0",
+						//TODO CLEANUP: ClassContainer
 						EnvironmentType: clv1alpha2.ClassContainer,
 						Persistent:      false,
 						GuiEnabled:      true,
@@ -693,6 +702,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				testName = "test-public-exposure-disabled"
 				runInstance = true
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 				}
 			})
@@ -731,6 +741,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				testName = "test-public-exposure-not-running"
 				runInstance = false
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 				}
 			})
@@ -779,6 +790,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					{
 						Name:            "app-1",
 						Image:           "some-image:v0",
+						//TODO CLEANUP: ClassContainer
 						EnvironmentType: clv1alpha2.ClassContainer,
 						Persistent:      false,
 						GuiEnabled:      true,

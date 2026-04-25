@@ -248,6 +248,7 @@ var _ = Describe("InstancesnapshotController", func() {
 			Expect(k8sClient.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
 
 			By("Setting environment as Container")
+			//TODO CLEANUP: ClassContainer
 			currentTemplate.Spec.EnvironmentList[0].EnvironmentType = crownlabsv1alpha2.ClassContainer
 			Expect(k8sClient.Update(ctx, currentTemplate)).Should(Succeed())
 

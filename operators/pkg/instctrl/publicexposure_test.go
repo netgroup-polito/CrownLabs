@@ -66,6 +66,7 @@ var _ = Describe("PublicExposure", func() {
 					{
 						Name:            "main",
 						Image:           "test-image:latest",
+						//TODO CLEANUP: ClassContainer
 						EnvironmentType: clv1alpha2.ClassContainer,
 						GuiEnabled:      true,
 					},

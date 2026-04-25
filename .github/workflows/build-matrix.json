@@ -54,7 +54,8 @@
         "dockerfile": "./operators/build/golang-common/Dockerfile",
         "build-args": "COMPONENT=instmetrics",
         "harbor-project": "crownlabs-core",
-        "optional": true
+        "optional": true,
+        {"todoCleanup": "REMOVE from build matrix during containers cleanup"}
     },
     {
         "component": "crownlabs-image-list",
@@ -77,18 +78,21 @@
         "component": "tigervnc",
         "context": "./provisioning/containers/gui-common/tigervnc",
         "harbor-project": "crownlabs-container-envs-tools",
-        "optional": true
+        "optional": true,
+        "todoCleanup": "REMOVE (provisioning/containers cleanup)"
     },
     {
         "component": "websockify",
         "context": "./provisioning/containers/gui-common/websockify",
         "harbor-project": "crownlabs-container-envs-tools",
-        "optional": true
+        "optional": true,
+        "todoCleanup": "REMOVE (provisioning/containers cleanup)"
     },
     {
         "component": "content-tools",
         "context": "./provisioning/containers/utils/content-tools",
-        "harbor-project": "crownlabs-container-envs-tools"
+        "harbor-project": "crownlabs-container-envs-tools",
+        "todoCleanup": "KEEP (container utils/content-tools)"
     },
     {
         "component": "ssh-bastion",
@@ -104,19 +108,22 @@
         "component": "pycharm",
         "context": "./provisioning/containers/pycharm",
         "harbor-project": "crownlabs-container-envs",
-        "optional": true
+        "optional": true,
+        "todoCleanup": "REMOVE (provisioning/containers cleanup)"
     },
     {
         "component": "blender",
         "context": "./provisioning/containers/blender",
         "harbor-project": "crownlabs-container-envs",
-        "optional": true
+        "optional": true,
+        "todoCleanup": "REMOVE (provisioning/containers cleanup)"
     },
     {
         "component": "eclipse-java",
         "context": "./provisioning/containers/eclipse-java",
         "harbor-project": "crownlabs-container-envs",
-        "optional": true
+        "optional": true,
+        "todoCleanup": "REMOVE (provisioning/containers cleanup)"
     },
     {
         "component": "jupyterlab",

@@ -33,7 +33,7 @@ type EnvironmentScope string
 
 const (
 	// ClassContainer -> the environment is constituted by a Docker container exposing a service through a VNC server.
-	ClassContainer EnvironmentType = "Container"
+	ClassContainer EnvironmentType = "Container" //TODO (Definitions): remove ClassContainer
 	// ClassVM -> the environment is constituted by a Virtual Machine.
 	ClassVM EnvironmentType = "VirtualMachine"
 	// ClassCloudVM -> the environment is constituited by a Virtual Machine started from cloud images downloaded from HTTP URL.
@@ -47,7 +47,7 @@ const (
 	ScopeExam EnvironmentScope = "Exam"
 	// ScopeExercise -> Restricted access (no authentication, no mydrive access).
 	ScopeExercise EnvironmentScope = "Exercise"
-)
+) //TODO CLEANUP (Definitions): Remove ScopeStandard, ScopeExam, ScopeExercise
 
 // TemplateSpec is the specification of the desired state of the Template.
 type TemplateSpec struct {

@@ -174,6 +174,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		environment = clv1alpha2.Environment{
 			Name:               environmentName,
+			//TODO CLEANUP: ClassContainer
 			EnvironmentType:    clv1alpha2.ClassContainer,
 			Image:              image,
 			MountMyDriveVolume: false,

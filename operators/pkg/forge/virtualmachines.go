@@ -94,6 +94,7 @@ func VirtualMachineDomain(environment *clv1alpha2.Environment, template *clv1alp
 func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, template *clv1alpha2.Template) []virtv1.Volume {
 	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
 	// Attach cloudinit volume on non-restricted environments
+	//TODO CLEANUP: ScopeStandard
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
 	}
@@ -151,6 +152,7 @@ func VolumeCloudInit(secretName string) virtv1.Volume {
 func VolumeDiskTargets(_ *clv1alpha2.Environment, template *clv1alpha2.Template) []virtv1.Disk {
 	disks := []virtv1.Disk{VolumeDiskTarget(volumeRootName)}
 	// Attach cloudinit disk on non-restricted environments
+	//TODO CLEANUP: ScopeStandard
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		disks = append(disks, VolumeDiskTarget(volumeCloudInitName))
 	}
