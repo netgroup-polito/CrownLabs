@@ -59,8 +59,6 @@ const (
 	AppMEMLimitsEnvName = "APP_MEM_LIMITS"
 	// PodNameEnvName -> name of the env variable containing the Pod Name.
 	PodNameEnvName = "POD_NAME"
-	// MyDriveVolumeName -> Name of the NFS volume.
-	MyDriveVolumeName = "mydrive"
 	// MyDriveVolumeMountPath -> Mount path for the NFS personal volume.
 	MyDriveVolumeMountPath = "/media/mydrive"
 

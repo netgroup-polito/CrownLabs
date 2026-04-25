@@ -16,8 +16,6 @@ package instctrl_test
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -62,11 +60,11 @@ var _ = Describe("Generation of the container based instances", func() {
 		clientBuilder fake.ClientBuilder
 		reconciler    instctrl.InstanceReconciler
 
-		instance    clv1alpha2.Instance
-		template    clv1alpha2.Template
-		environment clv1alpha2.Environment
-		tenant      clv1alpha2.Tenant
-		index       int
+		instance         clv1alpha2.Instance
+		template         clv1alpha2.Template
+		environment      clv1alpha2.Environment
+		tenant           clv1alpha2.Tenant
+		environmentIndex int
 
 		objectName types.NamespacedName
 		svc        corev1.Service
@@ -99,17 +97,14 @@ var _ = Describe("Generation of the container based instances", func() {
 		memory      = "1250M"
 		disk        = "20Gi"
 
-		nfsServerName     = "rook-nfs-server-name"
-		nfsMyDriveExpPath = "/nfs/path"
-		shVolName         = "myshvol"
-		shVolNamespace    = "default"
-		shVolMirrorName   = "myshvol-kubernetes-0000-mirror"
-		shVolMountPath    = "/mnt/path"
-		shVolReadOnly     = true
+		shVolName       = "myshvol"
+		shVolNamespace  = "default"
+		shVolMirrorName = "myshvol-kubernetes-0000-mirror"
+		shVolMountPath  = "/mnt/path"
+		shVolReadOnly   = true
 	)
 
 	BeforeEach(func() {
-		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		containerOpts = forge.ContainerEnvOpts{
 			ImagesTag:            "v1.2.3",
 			XVncImg:              "x-vnc",
@@ -117,6 +112,43 @@ var _ = Describe("Generation of the container based instances", func() {
 			ContentDownloaderImg: "archdownloader:v0.1.2",
 		}
 
+		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
+
+		svc = corev1.Service{}
+		deploy = appsv1.Deployment{}
+		pvc = corev1.PersistentVolumeClaim{}
+
+		tenant = clv1alpha2.Tenant{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: tenantName,
+			},
+		}
+
+		environmentIndex = 0
+		environment = clv1alpha2.Environment{
+			Name:               environmentName,
+			EnvironmentType:    clv1alpha2.ClassContainer,
+			Image:              image,
+			MountMyDriveVolume: false,
+			Resources: clv1alpha2.EnvironmentResources{
+				CPU:                   cpu,
+				ReservedCPUPercentage: cpuReserved,
+				Memory:                resource.MustParse(memory),
+				Disk:                  resource.MustParse(disk),
+			},
+		}
+		template = clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      templateName,
+				Namespace: templateNamespace,
+			},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
+				WorkspaceRef: clv1alpha2.GenericRef{
+					Name: workspaceName,
+				},
+			},
+		}
 		instance = clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.InstanceSpec{
@@ -131,49 +163,6 @@ var _ = Describe("Generation of the container based instances", func() {
 					{Phase: ""},
 				},
 			},
-		}
-
-		environment = clv1alpha2.Environment{
-			Name:               environmentName,
-			EnvironmentType:    clv1alpha2.ClassContainer,
-			Image:              image,
-			MountMyDriveVolume: false,
-			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   cpu,
-				ReservedCPUPercentage: cpuReserved,
-				Memory:                resource.MustParse(memory),
-				Disk:                  resource.MustParse(disk),
-			},
-		}
-
-		template = clv1alpha2.Template{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      templateName,
-				Namespace: templateNamespace,
-			},
-			Spec: clv1alpha2.TemplateSpec{
-				EnvironmentList: []clv1alpha2.Environment{environment},
-				WorkspaceRef: clv1alpha2.GenericRef{
-					Name: workspaceName,
-				},
-			},
-		}
-
-		index = 0
-
-		objectName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
-
-		svc = corev1.Service{}
-		deploy = appsv1.Deployment{}
-		pvc = corev1.PersistentVolumeClaim{}
-
-		ownerRef = metav1.OwnerReference{
-			APIVersion:         clv1alpha2.GroupVersion.String(),
-			Kind:               "Instance",
-			Name:               instance.GetName(),
-			UID:                instance.GetUID(),
-			BlockOwnerDeletion: ptr.To(true),
-			Controller:         ptr.To(true),
 		}
 
 		shvol = clv1alpha2.SharedVolume{
@@ -206,10 +195,14 @@ var _ = Describe("Generation of the container based instances", func() {
 			},
 		}
 
-		tenant = clv1alpha2.Tenant{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: tenantName,
-			},
+		objectName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
+		ownerRef = metav1.OwnerReference{
+			APIVersion:         clv1alpha2.GroupVersion.String(),
+			Kind:               "Instance",
+			Name:               instance.GetName(),
+			UID:                instance.GetUID(),
+			BlockOwnerDeletion: ptr.To(true),
+			Controller:         ptr.To(true),
 		}
 
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
@@ -228,7 +221,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-		ctx = clctx.EnvironmentIndexInto(ctx, index)
+		ctx = clctx.EnvironmentIndexInto(ctx, environmentIndex)
 
 		mountInfos, _, err = forge.PVCMountInfosFromEnvironment(ctx, reconciler.Client)
 		Expect(err).ToNot(HaveOccurred())
@@ -276,15 +269,15 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the instance phase to starting", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 				})
 
 				When("the index is greater than 0 but still valid", func() {
-					BeforeEach(func() { index = 2 })
+					BeforeEach(func() { environmentIndex = 2 })
 
 					It("Should set the instance phase correctly", func() {
 						Expect(instance.Status.Environments).ToNot(BeEmpty())
-						Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+						Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 					})
 
 				})
@@ -305,7 +298,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the instance phase to Off", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -346,7 +339,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the correct instance phase", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseReady))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseReady))
 				})
 			})
 
@@ -370,7 +363,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the instance phase to Off", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -426,7 +419,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("Should set the instance phase as starting", func() {
 				Expect(instance.Status.Environments).ToNot(BeEmpty())
-				Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+				Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 			})
 		})
 
@@ -481,7 +474,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("Should set the correct instance phase", func() {
 				Expect(instance.Status.Environments).ToNot(BeEmpty())
-				Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+				Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 			})
 
 			Context("The instance is running", func() {
@@ -555,18 +548,14 @@ var _ = Describe("Generation of the container based instances", func() {
 			It("Should mount the shvol with RW permissions", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 
-				containers := deploy.Spec.Template.Spec.Containers
 				volumes := deploy.Spec.Template.Spec.Volumes
-				s, _ := json.Marshal(containers)
-				fmt.Printf("\n[CCCC]: %s\n", s)
-				s, _ = json.Marshal(volumes)
-				fmt.Printf("\n[VVVV]: %s\n", s)
-
 				for _, vol := range volumes {
 					if vol.PersistentVolumeClaim != nil {
 						Expect(vol.PersistentVolumeClaim.ReadOnly).To(Equal(false))
 					}
 				}
+
+				containers := deploy.Spec.Template.Spec.Containers
 				for _, cont := range containers {
 					for _, mount := range cont.VolumeMounts {
 						Expect(mount.ReadOnly).To(Equal(false))

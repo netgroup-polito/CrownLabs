@@ -35,7 +35,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
-var _ = Describe("NFS Mounts and Provisioning Job forging", func() {
+var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 	var (
 		mountInfo clv1alpha2.SharedVolumeMountInfo
 	)
