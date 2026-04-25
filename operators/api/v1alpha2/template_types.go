@@ -33,7 +33,7 @@ type EnvironmentScope string
 
 const (
 	// ClassContainer -> the environment is constituted by a Docker container exposing a service through a VNC server.
-	ClassContainer EnvironmentType = "Container" //TODO (Definitions): remove ClassContainer
+	ClassContainer EnvironmentType = "Container" //TODO CLEANUP (Definitions): remove ClassContainer, align behavior with ClassStandalone
 	// ClassVM -> the environment is constituted by a Virtual Machine.
 	ClassVM EnvironmentType = "VirtualMachine"
 	// ClassCloudVM -> the environment is constituited by a Virtual Machine started from cloud images downloaded from HTTP URL.

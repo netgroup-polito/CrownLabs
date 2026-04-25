@@ -63,7 +63,6 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 	// Add the "MyDrive" port only if the environment is a container or standalone.
 	//TODO CLEANUP: ClassContainer
 	//TODO CLEANUP: ScopeStandard
-	//TODO CLEANUP: ClassStandalone
 	if (environment.EnvironmentType == clv1alpha2.ClassStandalone || environment.EnvironmentType == clv1alpha2.ClassContainer) && template.Spec.Scope == clv1alpha2.ScopeStandard {
 		ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
 	}

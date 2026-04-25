@@ -300,7 +300,6 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 			}
 
 		//TODO CLEANUP: ClassContainer
-		//TODO CLEANUP: ClassStandalone
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)

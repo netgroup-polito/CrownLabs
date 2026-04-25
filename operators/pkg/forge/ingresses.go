@@ -68,7 +68,6 @@ func IngressGUIAnnotations(environment *clv1alpha2.Environment, annotations map[
 		annotations = map[string]string{}
 	}
 
-	//TODO CLEANUP: ClassStandalone
 	if environment.EnvironmentType == clv1alpha2.ClassStandalone && environment.RewriteURL {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpoint
 	}
@@ -117,7 +116,6 @@ func HostName(baseHostName string, scope clv1alpha2.EnvironmentScope) string {
 // IngressGUIPath returns the path of the ingress targeting the environment GUI vnc or Standalone.
 func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
-	//TODO CLEANUP: ClassStandalone
 	case clv1alpha2.ClassStandalone:
 		if environment.RewriteURL {
 			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", IngressInstancePrefix, instance.UID, environment.Name)

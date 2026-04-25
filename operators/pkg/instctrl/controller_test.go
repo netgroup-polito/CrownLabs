@@ -77,7 +77,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			{
 				Name:            "app-1",
 				Image:           "some-image:v0",
-				//TODO CLEANUP: ClassStandalone
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				Persistent:      false,
 				GuiEnabled:      true,
@@ -91,7 +90,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			{
 				Name:            "dev-1",
 				Image:           "some-image-dev:v1",
-				//TODO CLEANUP: ClassStandalone
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				Persistent:      true,
 				GuiEnabled:      true,
@@ -126,7 +124,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
 				//TODO CLEANUP: ScopeStandard
-				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -244,7 +241,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-persistent"
 				for i := range environmentList {
-					//TODO CLEANUP: ClassStandalone
 					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 					environmentList[i].Persistent = true
 				}
@@ -257,7 +253,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-not-persistent"
 				for i := range environmentList {
-					//TODO CLEANUP: ClassStandalone
 					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 					environmentList[i].Persistent = false
 				}
@@ -607,8 +602,8 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				// Public exposure only works with single environment templates
 				environmentList = []clv1alpha2.Environment{
 					{
-						Name:            "app-1",
-						Image:           "some-image:v0",
+						Name:  "app-1",
+						Image: "some-image:v0",
 						//TODO CLEANUP: ClassContainer
 						EnvironmentType: clv1alpha2.ClassContainer,
 						Persistent:      false,
@@ -788,8 +783,8 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				// Public exposure only works with single environment templates
 				environmentList = []clv1alpha2.Environment{
 					{
-						Name:            "app-1",
-						Image:           "some-image:v0",
+						Name:  "app-1",
+						Image: "some-image:v0",
 						//TODO CLEANUP: ClassContainer
 						EnvironmentType: clv1alpha2.ClassContainer,
 						Persistent:      false,

@@ -88,7 +88,6 @@ var _ = Describe("Ingresses", func() {
 			Environment    clv1alpha2.Environment
 		}
 
-		//TODO CLEANUP: ClassStandalone
 		When("EnvironmentType is ClassStandalone", func() {
 
 			DescribeTable("Correctly populates the annotations set",
@@ -97,13 +96,11 @@ var _ = Describe("Ingresses", func() {
 				},
 				Entry("When the input annotations map is nil and RewriteURL false", InstanceGUIAnnotationsCase{
 					Annotations:    nil,
-					//TODO CLEANUP: ClassStandalone
 					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
 				}),
 				Entry("When the input annotations map is nil and RewriteURL true", InstanceGUIAnnotationsCase{
 					Annotations: nil,
-					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
@@ -113,7 +110,6 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
-					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
@@ -123,7 +119,6 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
-					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
@@ -134,7 +129,6 @@ var _ = Describe("Ingresses", func() {
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
 						"user/key": "user/value",
 					}, "3600"),
-					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
@@ -145,7 +139,6 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
-					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
@@ -155,7 +148,6 @@ var _ = Describe("Ingresses", func() {
 			)
 		})
 
-		//TODO CLEANUP: ClassStandalone
 		When("EnvironmentType is not ClassStandalone", func() {
 			DescribeTable("Correctly populates the annotations set",
 				func(c InstanceGUIAnnotationsCase) {
@@ -295,10 +287,8 @@ var _ = Describe("Ingresses", func() {
 			JustBeforeEach(func() {
 				path = forge.IngressGUIPath(&instance, &environment)
 			})
-			//TODO CLEANUP: ClassStandalone
 			When("EnvironmentType is ClassStandalone", func() {
 				BeforeEach(func() {
-					//TODO CLEANUP: ClassStandalone
 					environment.EnvironmentType = clv1alpha2.ClassStandalone
 				})
 				When("Rewrite is true", func() {
@@ -323,7 +313,6 @@ var _ = Describe("Ingresses", func() {
 				})
 			})
 
-			//TODO CLEANUP: ClassStandalone
 			When("EnvironmentType is not ClassStandalone", func() {
 				BeforeEach(func() {
 					//TODO CLEANUP: ClassContainer
