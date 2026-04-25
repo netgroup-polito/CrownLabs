@@ -16,6 +16,8 @@ package instctrl_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -64,7 +66,6 @@ var _ = Describe("Generation of the container based instances", func() {
 		template    clv1alpha2.Template
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
-		manager     clv1alpha2.Tenant
 		index       int
 
 		objectName types.NamespacedName
@@ -80,8 +81,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		containerOpts forge.ContainerEnvOpts
 
-		err      error
-		errShVol error
+		err error
 	)
 
 	const (
@@ -92,7 +92,6 @@ var _ = Describe("Generation of the container based instances", func() {
 		templateNamespace = "workspace-netgroup"
 		environmentName   = "control-plane"
 		tenantName        = "tester"
-		tenantManagerName = "manager"
 
 		image       = "internal/registry/image:v1.0"
 		cpu         = 2
@@ -117,30 +116,6 @@ var _ = Describe("Generation of the container based instances", func() {
 			WebsockifyImg:        "wskfy",
 			ContentDownloaderImg: "archdownloader:v0.1.2",
 		}
-		template = clv1alpha2.Template{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      templateName,
-				Namespace: templateNamespace,
-			},
-			Spec: clv1alpha2.TemplateSpec{
-				WorkspaceRef: clv1alpha2.GenericRef{
-					Name: workspaceName,
-				},
-			},
-		}
-		manager = clv1alpha2.Tenant{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: tenantManagerName,
-				Labels: map[string]string{
-					clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager),
-				},
-			},
-		}
-
-		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
-			&template,
-			&manager,
-		)
 
 		instance = clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
@@ -172,9 +147,15 @@ var _ = Describe("Generation of the container based instances", func() {
 		}
 
 		template = clv1alpha2.Template{
-			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      templateName,
+				Namespace: templateNamespace,
+			},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
+				WorkspaceRef: clv1alpha2.GenericRef{
+					Name: workspaceName,
+				},
 			},
 		}
 
@@ -230,6 +211,11 @@ var _ = Describe("Generation of the container based instances", func() {
 				Name: tenantName,
 			},
 		}
+
+		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
+			&template,
+			&shvol,
+		)
 	})
 
 	JustBeforeEach(func() {
@@ -237,7 +223,6 @@ var _ = Describe("Generation of the container based instances", func() {
 			Client: clientBuilder.Build(), Scheme: scheme.Scheme,
 			ContainerEnvOpts: containerOpts,
 		}
-		errShVol = reconciler.Create(ctx, &shvol)
 
 		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -546,8 +531,6 @@ var _ = Describe("Generation of the container based instances", func() {
 		})
 
 		When("the shvol is not yet present", func() {
-			It("Creating shvol should not return an error", func() { Expect(errShVol).ToNot(HaveOccurred()) })
-
 			It("The deployment should be present and with the correct volumes spec", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 				expected := forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &containerOpts)
@@ -557,14 +540,14 @@ var _ = Describe("Generation of the container based instances", func() {
 		})
 
 		When("the tenant is a workspace manager", func() {
+			BeforeEach(func() {
+				// Make the tenant manager
+				tenant.Labels = map[string]string{
+					clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager),
+				}
+			})
+
 			JustBeforeEach(func() {
-				ctx, _ = clctx.TenantInto(ctx, &manager)
-
-				// Refresh mounts since now the tenant has changed
-				mounts, _, err := forge.PVCMountInfosFromEnvironment(ctx, reconciler.Client)
-				Expect(err).NotTo(HaveOccurred())
-				ctx = clctx.VolumeMountInfosInto(ctx, mounts)
-
 				err = reconciler.EnforceContainerEnvironment(ctx)
 				Expect(err).NotTo(HaveOccurred())
 			})
@@ -573,6 +556,17 @@ var _ = Describe("Generation of the container based instances", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 
 				containers := deploy.Spec.Template.Spec.Containers
+				volumes := deploy.Spec.Template.Spec.Volumes
+				s, _ := json.Marshal(containers)
+				fmt.Printf("\n[CCCC]: %s\n", s)
+				s, _ = json.Marshal(volumes)
+				fmt.Printf("\n[VVVV]: %s\n", s)
+
+				for _, vol := range volumes {
+					if vol.PersistentVolumeClaim != nil {
+						Expect(vol.PersistentVolumeClaim.ReadOnly).To(Equal(false))
+					}
+				}
 				for _, cont := range containers {
 					for _, mount := range cont.VolumeMounts {
 						Expect(mount.ReadOnly).To(Equal(false))

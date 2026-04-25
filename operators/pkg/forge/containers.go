@@ -262,9 +262,9 @@ func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string, m
 	SetContainerResourcesFromEnvironment(&appContainer, environment)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_REQUESTS", appContainer.Name, corev1.ResourceRequestsCPU, DefaultDivisor)
 	AddEnvVariableFromResourcesToContainer(&appContainer, "CROWNLABS_CPU_LIMITS", appContainer.Name, corev1.ResourceLimitsCPU, DefaultDivisor)
-	AddContainerVolumeMount(&appContainer, PersistentVolumeName, volumeMountPath)
+	AddContainerVolumeMount(&appContainer, PersistentVolumeName, volumeMountPath, false)
 	for _, mountInfo := range mountInfos {
-		AddContainerVolumeMount(&appContainer, mountInfo.Name, mountInfo.MountPath)
+		AddContainerVolumeMount(&appContainer, mountInfo.Name, mountInfo.MountPath, mountInfo.ReadOnly)
 	}
 	if environment.ContainerStartupOptions != nil {
 		appContainer.Args = environment.ContainerStartupOptions.StartupArgs
@@ -288,7 +288,7 @@ func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOp
 	contentDownloader := GenericContainer(ContentDownloaderName, fmt.Sprintf("%s:%s", ceOpts.ContentDownloaderImg, ceOpts.ImagesTag))
 	SetContainerResources(&contentDownloader, 0.5, 1, 256, 1024)
 	// MyDriveDefaultMountPath as mount point ensures a fixed path just for the download, it will likely be different in the application container
-	AddContainerVolumeMount(&contentDownloader, PersistentVolumeName, PersistentDefaultMountPath)
+	AddContainerVolumeMount(&contentDownloader, PersistentVolumeName, PersistentDefaultMountPath, false)
 	AddEnvVariableToContainer(&contentDownloader, "SOURCE_ARCHIVE", contentOrigin)
 	AddEnvVariableToContainer(&contentDownloader, "DESTINATION_PATH", PersistentDefaultMountPath)
 	return contentDownloader
@@ -298,7 +298,7 @@ func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOp
 func ContentUploaderJobContainer(contentDestination, filename string, ceOpts *ContainerEnvOpts) corev1.Container {
 	contentUploader := GenericContainer(ContentUploaderName, fmt.Sprintf("%s:%s", ceOpts.ContentUploaderImg, ceOpts.ImagesTag))
 	SetContainerResources(&contentUploader, 0.5, 1, 256, 1024)
-	AddContainerVolumeMount(&contentUploader, PersistentVolumeName, PersistentDefaultMountPath)
+	AddContainerVolumeMount(&contentUploader, PersistentVolumeName, PersistentDefaultMountPath, false)
 	AddEnvVariableToContainer(&contentUploader, "SOURCE_PATH", PersistentDefaultMountPath)
 	AddEnvVariableToContainer(&contentUploader, "DESTINATION_URL", contentDestination)
 	AddEnvVariableToContainer(&contentUploader, "FILENAME", filename)
@@ -371,10 +371,11 @@ func AddEnvVariableFromResourcesToContainer(c *corev1.Container, envVarName, src
 }
 
 // AddContainerVolumeMount appends a VolumeMount to the given container's volumeMounts.
-func AddContainerVolumeMount(c *corev1.Container, name, path string) {
+func AddContainerVolumeMount(c *corev1.Container, name, path string, readOnly bool) {
 	c.VolumeMounts = append(c.VolumeMounts, corev1.VolumeMount{
 		Name:      name,
 		MountPath: path,
+		ReadOnly:  readOnly,
 	})
 }
 

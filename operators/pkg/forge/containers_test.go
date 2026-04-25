@@ -60,6 +60,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		disk                 = "20Gi"
 		volumeName           = "vol"
 		volumePath           = "/path"
+		volumeReadOnly       = true
 		claimName            = "claim"
 		envVarName           = "VAR"
 		envVarVal            = "VALUE"
@@ -568,8 +569,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				},
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
-					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
-					forge.AddContainerVolumeMount(&c, myDriveName, forge.MyDriveVolumeMountPath)
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e), false)
+					forge.AddContainerVolumeMount(&c, myDriveName, forge.MyDriveVolumeMountPath, false)
 					return c.VolumeMounts
 				},
 			}))
@@ -579,7 +580,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				MountInfos:     nil,
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
-					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e), false)
 					return c.VolumeMounts
 				},
 			}))
@@ -592,9 +593,9 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				},
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
-					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
-					forge.AddContainerVolumeMount(&c, myDriveName, forge.MyDriveVolumeMountPath)
-					forge.AddContainerVolumeMount(&c, shVolName, shVolMountPath)
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e), false)
+					forge.AddContainerVolumeMount(&c, myDriveName, forge.MyDriveVolumeMountPath, false)
+					forge.AddContainerVolumeMount(&c, shVolName, shVolMountPath, shVolReadOnly)
 					return c.VolumeMounts
 				},
 			}))
@@ -606,8 +607,8 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				},
 				ExpectedOutput: func(e *clv1alpha2.Environment) []corev1.VolumeMount {
 					c := corev1.Container{}
-					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e))
-					forge.AddContainerVolumeMount(&c, shVolName, shVolMountPath)
+					forge.AddContainerVolumeMount(&c, forge.PersistentVolumeName, forge.PersistentMountPath(e), false)
+					forge.AddContainerVolumeMount(&c, shVolName, shVolMountPath, shVolReadOnly)
 					return c.VolumeMounts
 				},
 			}))
@@ -755,7 +756,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.ReadinessProbe).To(BeNil())
 		})
 		It("Should set the volume mount", func() {
-			forge.AddContainerVolumeMount(&expected, forge.PersistentVolumeName, forge.PersistentDefaultMountPath)
+			forge.AddContainerVolumeMount(&expected, forge.PersistentVolumeName, forge.PersistentDefaultMountPath, false)
 			Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
 		})
 		It("Should set the correct environment variables", func() {
@@ -825,7 +826,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(actual.ReadinessProbe).To(BeNil())
 		})
 		It("Should set the volume mount", func() {
-			forge.AddContainerVolumeMount(&expected, forge.PersistentVolumeName, forge.PersistentDefaultMountPath)
+			forge.AddContainerVolumeMount(&expected, forge.PersistentVolumeName, forge.PersistentDefaultMountPath, false)
 			Expect(actual.VolumeMounts).To(Equal(expected.VolumeMounts))
 		})
 		It("Should set the correct environment variables", func() {
@@ -924,12 +925,13 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 	Describe("The forge.AddContainerVolumeMount", func() {
 		JustBeforeEach(func() {
-			forge.AddContainerVolumeMount(&container, volumeName, volumePath)
+			forge.AddContainerVolumeMount(&container, volumeName, volumePath, volumeReadOnly)
 		})
 		It("Should add a single volumeMount entry with the specified parameters", func() {
 			Expect(container.VolumeMounts).To(ConsistOf(corev1.VolumeMount{
 				Name:      volumeName,
 				MountPath: volumePath,
+				ReadOnly:  volumeReadOnly,
 			}))
 		})
 	})
