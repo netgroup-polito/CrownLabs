@@ -32,6 +32,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -48,6 +49,8 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 		shVolNamespace = "default"
 		shVolMountPath = "/mnt/path"
 		shVolReadOnly  = true
+
+		targetLabelKey = "crownlabs.polito.it/operator-selector"
 	)
 
 	JustBeforeEach(func() {
@@ -518,6 +521,86 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 
 			// Verify that there is a container
 			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
+		})
+	})
+
+	Describe("MirrorPVCSpec", func() {
+		It("Should return the correct spec", func() {
+			pvc := corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      shVolName,
+					Namespace: shVolNamespace,
+				},
+			}
+			storageClass := "my-mirror-storageclass"
+
+			spec := forge.MirrorPVCSpec(&pvc, storageClass)
+
+			Expect(spec.AccessModes).To(HaveLen(1))
+			Expect(spec.AccessModes).To(ContainElement(corev1.ReadWriteMany))
+			Expect(*spec.Resources.Requests.Storage()).To(Equal(resource.MustParse("1")))
+			Expect(spec.DataSourceRef).ToNot(BeNil())
+			Expect(spec.DataSourceRef.APIGroup).To(BeNil())
+			Expect(spec.DataSourceRef.Kind).To(Equal("PersistentVolumeClaim"))
+			Expect(spec.DataSourceRef.Name).To(Equal(shVolName))
+			Expect(*spec.DataSourceRef.Namespace).To(Equal(shVolNamespace))
+		})
+	})
+
+	Describe("UpdateMyDriveMirrorPVCLabels", func() {
+		targetLabel := common.NewLabel(targetLabelKey, "test")
+
+		It("Should initialize labels if nil and set the right label", func() {
+			var labels map[string]string
+
+			labels = forge.UpdateMyDriveMirrorPVCLabels(labels, targetLabel)
+
+			Expect(labels).ToNot(BeNil())
+			Expect(labels).To(HaveKeyWithValue(forge.LabelManagedByKey, "tenant"))
+			Expect(labels).To(HaveKeyWithValue(targetLabelKey, "test"))
+			Expect(labels).To(HaveKeyWithValue(forge.LabelVolumeTypeKey, forge.VolumeTypeValueMirror))
+		})
+
+		It("Should update labels and keep the existing ones", func() {
+			labels := map[string]string{
+				targetLabelKey:   "old-value",
+				"existing-label": "existing-value",
+			}
+
+			labels = forge.UpdateMyDriveMirrorPVCLabels(labels, targetLabel)
+
+			Expect(labels).ToNot(BeNil())
+			Expect(labels).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(labels).To(HaveKeyWithValue(forge.LabelManagedByKey, "tenant"))
+			Expect(labels).To(HaveKeyWithValue(targetLabelKey, "test"))
+			Expect(labels).To(HaveKeyWithValue(forge.LabelVolumeTypeKey, forge.VolumeTypeValueMirror))
+
+		})
+	})
+
+	Describe("UpdateShVolMirrorPVCLabels", func() {
+		It("Should initialize labels if nil and set the right label", func() {
+			var labels map[string]string
+
+			labels = forge.UpdateShVolMirrorPVCLabels(labels)
+
+			Expect(labels).ToNot(BeNil())
+			Expect(labels).To(HaveKeyWithValue(forge.LabelManagedByKey, "instance"))
+			Expect(labels).To(HaveKeyWithValue(forge.LabelVolumeTypeKey, forge.VolumeTypeValueMirror))
+		})
+
+		It("Should update labels and keep the existing ones", func() {
+			labels := map[string]string{
+				"existing-label": "existing-value",
+			}
+
+			labels = forge.UpdateShVolMirrorPVCLabels(labels)
+
+			Expect(labels).ToNot(BeNil())
+			Expect(labels).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(labels).To(HaveKeyWithValue(forge.LabelManagedByKey, "instance"))
+			Expect(labels).To(HaveKeyWithValue(forge.LabelVolumeTypeKey, forge.VolumeTypeValueMirror))
+
 		})
 	})
 })

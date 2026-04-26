@@ -214,6 +214,65 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		Expect(reconciler.Get(ctx, objectNameEnv, &svc)).To(Succeed())
 	})
 
+	Context("Mount information configurations", func() {
+		MountConfigCase := func(description string, mounts []corev1.VolumeMount) {
+			Context(description, func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassVM
+					mountInfos = mounts
+				})
+
+				Context("with non-persistent environment", func() {
+					BeforeEach(func() {
+						environment.Persistent = false
+					})
+
+					It("The VMI should have the expected volume mounts", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
+						Expect(vmi.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
+						Expect(vmi.Spec.Volumes).To(HaveLen(len(mounts) + 1))
+						// + 1 since there is the "root" (ContainerDisk) Volume.
+
+						// The exact values in Filesystems and Volumes are checked in forge.
+					})
+				})
+
+				Context("with persistent environment", func() {
+					BeforeEach(func() {
+						environment.Persistent = true
+					})
+
+					It("The VM should have the expected volume mounts", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+						Expect(vm.Spec.Template.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
+						Expect(vm.Spec.Template.Spec.Volumes).To(HaveLen(len(mounts) + 1))
+						// + 1 since there is the "root" (Persistent) Volume.
+
+						// The exact values in Filesystems and Volumes are checked in forge.
+					})
+				})
+			})
+		}
+
+		MountConfigCase("with no mount information", []corev1.VolumeMount{})
+		MountConfigCase("with only MyDrive mount", []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+		})
+		MountConfigCase("with only shared volume mount", []corev1.VolumeMount{{
+			Name:      shVolName,
+			MountPath: shVolMountPath,
+			ReadOnly:  shVolReadOnly,
+		}})
+		MountConfigCase("with both MyDrive and shared volume mounts", []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
+		})
+	})
+
 	Context("The environment is not persistent", func() {
 		BeforeEach(func() { environment.Persistent = false })
 

@@ -1181,6 +1181,57 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}))
 	})
 
+	Describe("The forge.PVCVolumeFromVolumeMount function", func() {
+		var mount corev1.VolumeMount
+		var actual corev1.Volume
+
+		JustBeforeEach(func() {
+			actual = forge.PVCVolumeFromVolumeMount(&mount)
+		})
+
+		type PVCVolumeCase struct {
+			Mount             corev1.VolumeMount
+			ExpectedClaimName string
+			ExpectedReadOnly  bool
+		}
+
+		WhenBody := func(c PVCVolumeCase) func() {
+			return func() {
+				BeforeEach(func() {
+					mount = c.Mount
+				})
+
+				It("Should set the correct volume name", func() {
+					Expect(actual.Name).To(Equal(c.ExpectedClaimName))
+				})
+
+				It("Should use PVC as source", func() {
+					Expect(actual.VolumeSource.PersistentVolumeClaim).ToNot(BeNil())
+				})
+
+				It("Should set the correct claim name", func() {
+					Expect(actual.VolumeSource.PersistentVolumeClaim.ClaimName).To(Equal(c.ExpectedClaimName))
+				})
+
+				It("Should set the correct read only", func() {
+					Expect(actual.VolumeSource.PersistentVolumeClaim.ReadOnly).To(Equal(c.ExpectedReadOnly))
+				})
+			}
+		}
+
+		When("the volume to mount is a MyDrive (read-write)", WhenBody(PVCVolumeCase{
+			Mount:             mountInfoMyDrive,
+			ExpectedClaimName: myDriveName,
+			ExpectedReadOnly:  false,
+		}))
+
+		When("the volume to mount is a SharedVolume (read-only)", WhenBody(PVCVolumeCase{
+			Mount:             mountInfoShVol,
+			ExpectedClaimName: shVolName,
+			ExpectedReadOnly:  shVolReadOnly,
+		}))
+	})
+
 	Describe("The forge.NeedsInitContainer function", func() {
 		type NeedsInitContainerCase struct {
 			StartupOpts          *clv1alpha2.ContainerStartupOpts
