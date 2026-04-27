@@ -16,8 +16,6 @@
 // required by the different controllers.
 package forge
 
-//TODO: Rinominare nfs.go in storage.go o simili
-
 import (
 	"context"
 	"fmt"
