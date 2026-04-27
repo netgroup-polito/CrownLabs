@@ -51,13 +51,13 @@ mounts:
     - - s123456-drive-mirror
       - /media/mydrive
       - virtiofs
-      - rw,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
+      - rw,_netdev,user
       - "0"
       - "0"
     - - shvol-abc123-instance-def456-mirror
       - /mnt/path
       - virtiofs
-      - ro,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user
+      - ro,_netdev,user
       - "0"
       - "0"
 ssh_authorized_keys:

@@ -59,7 +59,7 @@ const (
 	AppMEMLimitsEnvName = "APP_MEM_LIMITS"
 	// PodNameEnvName -> name of the env variable containing the Pod Name.
 	PodNameEnvName = "POD_NAME"
-	// MyDriveVolumeMountPath -> Mount path for the NFS personal volume.
+	// MyDriveVolumeMountPath -> Mount path for the tenant's personal volume.
 	MyDriveVolumeMountPath = "/media/mydrive"
 
 	containersTerminationGracePeriod = 10

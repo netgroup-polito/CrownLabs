@@ -107,7 +107,7 @@ func virtiofsVolumeMount(mount *corev1.VolumeMount) []string {
 		mount.Name,
 		mount.MountPath,
 		"virtiofs",
-		fmt.Sprintf("%s,tcp,hard,intr,rsize=8192,wsize=8192,timeo=14,_netdev,user", rwPermission),
+		fmt.Sprintf("%s,_netdev,user", rwPermission),
 		"0",
 		"0",
 	}
