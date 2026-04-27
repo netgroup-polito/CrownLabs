@@ -22,6 +22,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/Nerzal/gocloak/v13"
 	"github.com/go-logr/logr"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -37,10 +38,10 @@ func (r *Reconciler) CheckKeycloakUserVerified(
 	ctx context.Context,
 	log logr.Logger,
 	tenant *v1alpha2.Tenant,
-) (bool, error) {
+) (bool, *gocloak.User, error) {
 	if !r.KeycloakActor.IsInitialized() {
 		log.Info("Keycloak actor not initialized, skipping Keycloak status check")
-		return true, nil
+		return true, nil, nil
 	}
 
 	// Check if the tenant exists in Keycloak
@@ -53,7 +54,7 @@ func (r *Reconciler) CheckKeycloakUserVerified(
 			err = r.createTenantInKeycloak(ctx, log, tenant)
 			if err != nil {
 				log.Error(err, "Error creating tenant in Keycloak")
-				return false, err
+				return false, nil, err
 			}
 
 			log.Info("Tenant created in Keycloak")
@@ -62,11 +63,11 @@ func (r *Reconciler) CheckKeycloakUserVerified(
 			user, err = r.KeycloakActor.GetUser(ctx, tenant.Name)
 			if err != nil {
 				log.Error(err, "Error retrieving newly created tenant in Keycloak")
-				return false, err
+				return false, nil, err
 			}
 		} else {
 			log.Error(err, "Error checking Keycloak status")
-			return false, err
+			return false, nil, err
 		}
 	} else if tenant.Status.Keycloak.UserCreated.Name != *user.ID {
 		log.Info("Tenant exists in Keycloak but with a different ID, updating status", "id", *user.ID)
@@ -84,7 +85,7 @@ func (r *Reconciler) CheckKeycloakUserVerified(
 		tenant.Status.Keycloak.UserConfirmed = *user.EmailVerified
 	}
 
-	return *user.EmailVerified, nil
+	return *user.EmailVerified, user, nil
 }
 
 func (r *Reconciler) createTenantInKeycloak(

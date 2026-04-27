@@ -193,6 +193,10 @@ spec:
                     required:
                     - created
                     type: object
+                  userRegistrationDate:
+                    description: When the user has been created in Keycloak.
+                    format: date-time
+                    type: string
                   userSynchronized:
                     description: |-
                       Whether the Tenant has successfully been synchronized with Keycloak.
