@@ -16,7 +16,6 @@ package instautoctrl_test
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -69,11 +68,7 @@ var _ = BeforeSuite(func() {
 
 	By("bootstrapping test environment")
 
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "deploy", "crds"),
-			filepath.Join("..", "..", "..", "tests", "crds")},
-		ErrorIfCRDPathMissing: true,
-	}
+	testEnv = tests.ForgeEnvtestEnv(true)
 	var err error
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())

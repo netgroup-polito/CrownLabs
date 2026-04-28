@@ -20,11 +20,11 @@ jobs:
             echo "number=${{ github.event.pull_request.number }}" >> $GITHUB_OUTPUT || \
             echo "number=${{ github.event.client_payload.github.payload.issue.number }}" >> $GITHUB_OUTPUT
 
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
+      - name: Notify Event to OPS
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
+          repository: netgroup-polito/ArgoCD-CrownNG
           event-type: undeploy-staging-event
           client-payload: |
             {
@@ -37,5 +37,5 @@ jobs:
         with:
           token: ${{ secrets.CI_TOKEN }}
           comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
-          reactions: 'hooray'
+          reactions: "hooray"
         if: github.event_name == 'repository_dispatch'

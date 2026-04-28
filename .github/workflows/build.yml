@@ -180,11 +180,11 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
         if: always()
 
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
+      - name: Notify Event to OPS
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
+          repository: netgroup-polito/ArgoCD-CrownNG
           event-type: preprod-event
           client-payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'
 
@@ -199,11 +199,11 @@ jobs:
       needs.configure.outputs.repo-push == 'true'
 
     steps:
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
+      - name: Notify Event to OPS
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
+          repository: netgroup-polito/ArgoCD-CrownNG
           event-type: deploy-staging-event
           client-payload: |
             {
@@ -294,10 +294,10 @@ jobs:
               --pages-index-path index.yaml \
               --push
 
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
+      - name: Notify Event to OPS
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
+          repository: netgroup-polito/ArgoCD-CrownNG
           event-type: release-event
           client-payload: '{"version": "${{ needs.configure.outputs.version }}"}'

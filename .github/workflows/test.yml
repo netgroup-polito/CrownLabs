@@ -65,7 +65,7 @@ jobs:
           persist-credentials: false
 
       - name: Check if /operators files changed
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v4
         id: pathFilter
         with:
           filters: |
@@ -73,9 +73,10 @@ jobs:
               - 'operators/**'
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
 
       - uses: actions/setup-python@v4
         with:
@@ -83,16 +84,11 @@ jobs:
 
       - name: Install Kubebuilder
         run: |
-          version=4.6.0 # latest stable version
-          kubernetes_version=1.29.0
-          curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
-          curl --fail -sSLo envtest-bins.tar.gz "https://github.com/kubernetes-sigs/controller-tools/releases/download/envtest-v${kubernetes_version}/envtest-v${kubernetes_version}-$(go env GOOS)-$(go env GOARCH).tar.gz"
-          tar -zxvf envtest-bins.tar.gz && rm -f envtest-bins.tar.gz
-          mv controller-tools kubebuilder #rename directories after download source changes
-          mv kubebuilder/envtest kubebuilder/bin
-          mv kubebuilder_linux_$(go env GOARCH) kubebuilder/bin/kubebuilder
-          sudo mv kubebuilder /usr/local/
-          sudo chmod +x /usr/local/kubebuilder/bin/*
+          version=4.6.0
+          curl -L -o kubebuilder "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
+          chmod +x kubebuilder
+          sudo mv kubebuilder /usr/local/bin/
+
       - name: Perform the tests
         working-directory: operators/
         run: |
@@ -123,9 +119,10 @@ jobs:
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
 
       - name: Run the automatic generation
         working-directory: operators/
