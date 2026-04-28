@@ -40,10 +40,6 @@ const (
 
 	// terminationGracePeriod -> the amount of seconds before a terminating VM is forcefully deleted.
 	terminationGracePeriod = 60
-
-	// PodBridgeNetworkLiveMigrationAnnotation enables live migration for VMs using the pod bridge network.
-	PodBridgeNetworkLiveMigrationAnnotation = "kubevirt.io/allow-pod-bridge-network-live-migration"
-	podBridgeNetworkLiveMigrationValue      = "true"
 )
 
 var (
@@ -58,13 +54,8 @@ var (
 func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineSpec {
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{
-				Labels: EnvironmentSelectorLabels(instance, environment),
-				Annotations: map[string]string{
-					PodBridgeNetworkLiveMigrationAnnotation: podBridgeNetworkLiveMigrationValue,
-				},
-			},
-			Spec: VirtualMachineInstanceSpec(instance, template, environment),
+			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
+			Spec:       VirtualMachineInstanceSpec(instance, template, environment),
 		},
 		DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
 			DataVolumeTemplate(NamespacedNameWithSuffix(instance, environment.Name).Name, environment),
