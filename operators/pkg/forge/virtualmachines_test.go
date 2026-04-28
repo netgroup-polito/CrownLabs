@@ -117,7 +117,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.CanonicalName(instance.GetName()))))
 		})
 		It("Should set the external volumes", func() {
-			Expect(spec.Volumes).To(ContainElements(forge.ExternalVolumes(mountInfos)))
+			Expect(spec.Volumes).To(ContainElements(forge.AttachableVolumes(mountInfos)))
 		})
 		It("Should set the correct readiness probe", func() {
 			Expect(spec.ReadinessProbe).To(Equal(forge.VirtualMachineReadinessProbe(&environment)))

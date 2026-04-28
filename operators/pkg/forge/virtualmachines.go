@@ -98,12 +98,12 @@ func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment,
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
 	}
-	volumes = append(volumes, ExternalVolumes(mountInfos)...)
+	volumes = append(volumes, AttachableVolumes(mountInfos)...)
 	return volumes
 }
 
-// ExternalVolumes forges the array of external volumes (MyDrive, SharedVolumes) to be mounted onto the VMI specification.
-func ExternalVolumes(mountInfos []corev1.VolumeMount) []virtv1.Volume {
+// AttachableVolumes forges the array of attachable volumes (MyDrive, SharedVolumes) to be mounted onto the VMI specification.
+func AttachableVolumes(mountInfos []corev1.VolumeMount) []virtv1.Volume {
 	volumes := []virtv1.Volume{}
 	for _, mount := range mountInfos {
 		volumes = append(volumes, VolumePVC(&mount))
