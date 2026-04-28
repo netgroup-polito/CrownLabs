@@ -148,7 +148,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 	// Create or Update the PVC, reconciling it with the SharedVolume spec.
 	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
-		Name:      forge.GetShVolPVCName(shvolume.GetName()),
+		Name:      forge.ShVolPVCName(shvolume.GetName()),
 		Namespace: shvolume.GetNamespace(),
 	}}
 

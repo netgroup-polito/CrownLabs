@@ -243,7 +243,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 
 					mountInfo := mountInfos[0]
 					expected := corev1.VolumeMount{
-						Name:      forge.GetMyDrivePVCMirrorName(tenantName),
+						Name:      forge.MyDrivePVCMirrorName(tenantName),
 						MountPath: forge.MyDriveVolumeMountPath,
 						ReadOnly:  false,
 					}
@@ -274,7 +274,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 
 					mountInfo := mountInfos[0]
 					expected := corev1.VolumeMount{
-						Name:      forge.GetShVolPVCMirrorName(shvol.Name, instanceName),
+						Name:      forge.ShVolPVCMirrorName(shvol.Name, instanceName),
 						MountPath: shVolMountPath,
 						ReadOnly:  false,
 					}
@@ -310,7 +310,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 
 						mountInfo := mountInfos[0]
 						expected := corev1.VolumeMount{
-							Name:      forge.GetShVolPVCMirrorName(shvol.Name, instanceName),
+							Name:      forge.ShVolPVCMirrorName(shvol.Name, instanceName),
 							MountPath: shVolMountPath,
 							ReadOnly:  false,
 						}
@@ -326,7 +326,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 
 						mountInfo := mountInfos[0]
 						expected := corev1.VolumeMount{
-							Name:      forge.GetShVolPVCMirrorName(shvol.Name, instanceName),
+							Name:      forge.ShVolPVCMirrorName(shvol.Name, instanceName),
 							MountPath: shVolMountPath,
 							ReadOnly:  true,
 						}
@@ -358,11 +358,11 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 
 					expected := []corev1.VolumeMount{
 						{
-							Name:      forge.GetMyDrivePVCMirrorName(tenantName),
+							Name:      forge.MyDrivePVCMirrorName(tenantName),
 							MountPath: forge.MyDriveVolumeMountPath,
 							ReadOnly:  false,
 						}, {
-							Name:      forge.GetShVolPVCMirrorName(shvol.Name, instanceName),
+							Name:      forge.ShVolPVCMirrorName(shvol.Name, instanceName),
 							MountPath: shVolMountPath,
 							ReadOnly:  false,
 						},
@@ -379,7 +379,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 		It("Should correctly format PVC name for tenant name without dots", func() {
 			tenantName := "student"
 
-			pvcName := forge.GetMyDrivePVCName(tenantName)
+			pvcName := forge.MyDrivePVCName(tenantName)
 
 			Expect(pvcName).To(Equal("student-drive"))
 		})
@@ -387,7 +387,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 		It("Should correctly format PVC name for tenant name with dots", func() {
 			tenantName := "s123456.student"
 
-			pvcName := forge.GetMyDrivePVCName(tenantName)
+			pvcName := forge.MyDrivePVCName(tenantName)
 
 			Expect(pvcName).To(Equal("s123456-student-drive"))
 		})

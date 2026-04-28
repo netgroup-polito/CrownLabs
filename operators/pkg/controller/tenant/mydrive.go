@@ -78,7 +78,7 @@ func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger
 func (r *Reconciler) enforceMyDrivePVCAbsence(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
 	pvc := v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      forge.GetMyDrivePVCName(tn.Name),
+			Name:      forge.MyDrivePVCName(tn.Name),
 			Namespace: r.MyDrivePVCsNamespace,
 		},
 	}
@@ -98,7 +98,7 @@ func (r *Reconciler) enforceMyDrivePVC(
 ) (*v1.PersistentVolumeClaim, error) {
 	pvc := v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      forge.GetMyDrivePVCName(tn.Name),
+			Name:      forge.MyDrivePVCName(tn.Name),
 			Namespace: r.MyDrivePVCsNamespace,
 		},
 	}
@@ -131,7 +131,7 @@ func (r *Reconciler) enforceMyDrivePVCMirror(
 
 	mirrPvc := v1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      forge.GetMyDrivePVCMirrorName(tn.Name),
+			Name:      forge.MyDrivePVCMirrorName(tn.Name),
 			Namespace: tn.Status.PersonalNamespace.Name,
 		},
 	}

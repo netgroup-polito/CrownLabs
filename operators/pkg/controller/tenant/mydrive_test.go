@@ -67,7 +67,7 @@ var _ = Describe("MyDrive management", func() {
 		It("Should create the PVC in the MyDrive namespace", func() {
 			pvc := &v1.PersistentVolumeClaim{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{
-				Name:      forge.GetMyDrivePVCName(tnName),
+				Name:      forge.MyDrivePVCName(tnName),
 				Namespace: "mydrive-pvcs",
 			}, pvc, BeTrue(), timeout, interval)
 
@@ -88,7 +88,7 @@ var _ = Describe("MyDrive management", func() {
 			// Create a PVC and set it to bound status
 			pvc := &v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      forge.GetMyDrivePVCName(tnName),
+					Name:      forge.MyDrivePVCName(tnName),
 					Namespace: "mydrive-pvcs",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
@@ -134,7 +134,7 @@ var _ = Describe("MyDrive management", func() {
 			It("Should create the PVC Mirror in the tenant namespace", func() {
 				mirror := &v1.PersistentVolumeClaim{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{
-					Name:      forge.GetMyDrivePVCMirrorName(tnName),
+					Name:      forge.MyDrivePVCMirrorName(tnName),
 					Namespace: "tenant-" + tnName,
 				}, mirror, BeTrue(), timeout, interval)
 
@@ -148,7 +148,7 @@ var _ = Describe("MyDrive management", func() {
 			It("Should create the provisioning job if not already run", func() {
 				job := &batchv1.Job{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{
-					Name:      forge.GetMyDrivePVCName(tnName) + "-provision",
+					Name:      forge.MyDrivePVCName(tnName) + "-provision",
 					Namespace: "mydrive-pvcs",
 				}, job, BeTrue(), timeout, interval)
 
@@ -157,7 +157,7 @@ var _ = Describe("MyDrive management", func() {
 				// Check for the updated PVC label
 				pvc := &v1.PersistentVolumeClaim{}
 				Expect(cl.Get(ctx, client.ObjectKey{
-					Name:      forge.GetMyDrivePVCName(tnName),
+					Name:      forge.MyDrivePVCName(tnName),
 					Namespace: "mydrive-pvcs",
 				}, pvc)).To(Succeed())
 
@@ -168,7 +168,7 @@ var _ = Describe("MyDrive management", func() {
 				// Create a PVC with provisioning label already set to pending
 				pvc := &v1.PersistentVolumeClaim{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      forge.GetMyDrivePVCName(tnName),
+						Name:      forge.MyDrivePVCName(tnName),
 						Namespace: "mydrive-pvcs",
 						Labels: map[string]string{
 							"crownlabs.polito.it/operator-selector": "test",
@@ -186,7 +186,7 @@ var _ = Describe("MyDrive management", func() {
 				// Create a job that has succeeded
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      forge.GetMyDrivePVCName(tnName) + "-provision",
+						Name:      forge.MyDrivePVCName(tnName) + "-provision",
 						Namespace: "mydrive-pvcs",
 						Labels: map[string]string{
 							forge.ProvisionJobLabel: forge.ProvisionJobValuePending,
@@ -213,7 +213,7 @@ var _ = Describe("MyDrive management", func() {
 					pvc := &v1.PersistentVolumeClaim{}
 					Eventually(func() string {
 						err := cl.Get(ctx, client.ObjectKey{
-							Name:      forge.GetMyDrivePVCName(tnName),
+							Name:      forge.MyDrivePVCName(tnName),
 							Namespace: "mydrive-pvcs",
 						}, pvc)
 						if err != nil {
@@ -228,7 +228,7 @@ var _ = Describe("MyDrive management", func() {
 				// Create a PVC with provisioning label already set to pending
 				pvc := &v1.PersistentVolumeClaim{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      forge.GetMyDrivePVCName(tnName),
+						Name:      forge.MyDrivePVCName(tnName),
 						Namespace: "mydrive-pvcs",
 						Labels: map[string]string{
 							"crownlabs.polito.it/operator-selector": "test",
@@ -246,7 +246,7 @@ var _ = Describe("MyDrive management", func() {
 				// Create a job that has failed
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      forge.GetMyDrivePVCName(tnName) + "-provision",
+						Name:      forge.MyDrivePVCName(tnName) + "-provision",
 						Namespace: "mydrive-pvcs",
 						Labels: map[string]string{
 							forge.ProvisionJobLabel: forge.ProvisionJobValuePending,
@@ -273,7 +273,7 @@ var _ = Describe("MyDrive management", func() {
 					pvc := &v1.PersistentVolumeClaim{}
 					Consistently(func() string {
 						err := cl.Get(ctx, client.ObjectKey{
-							Name:      forge.GetMyDrivePVCName(tnName),
+							Name:      forge.MyDrivePVCName(tnName),
 							Namespace: "mydrive-pvcs",
 						}, pvc)
 						if err != nil {
@@ -289,7 +289,7 @@ var _ = Describe("MyDrive management", func() {
 			// Create a PVC and set it to pending status
 			pvc := &v1.PersistentVolumeClaim{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      forge.GetMyDrivePVCName(tnName),
+					Name:      forge.MyDrivePVCName(tnName),
 					Namespace: "mydrive-pvcs",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
@@ -313,7 +313,7 @@ var _ = Describe("MyDrive management", func() {
 				mirror := &v1.PersistentVolumeClaim{}
 				Consistently(func() bool {
 					err := cl.Get(ctx, client.ObjectKey{
-						Name:      forge.GetMyDrivePVCMirrorName(tnName),
+						Name:      forge.MyDrivePVCMirrorName(tnName),
 						Namespace: "tenant-" + tnName,
 					}, mirror)
 					return err == nil
@@ -322,7 +322,7 @@ var _ = Describe("MyDrive management", func() {
 				job := &batchv1.Job{}
 				Consistently(func() bool {
 					err := cl.Get(ctx, client.ObjectKey{
-						Name:      forge.GetMyDrivePVCName(tnName) + "-provision",
+						Name:      forge.MyDrivePVCName(tnName) + "-provision",
 						Namespace: "mydrive-pvcs",
 					}, job)
 					return err == nil
@@ -343,7 +343,7 @@ var _ = Describe("MyDrive management", func() {
 		It("Should not create the PVC", func() {
 			pvc := &v1.PersistentVolumeClaim{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{
-				Name:      forge.GetMyDrivePVCName(tnName),
+				Name:      forge.MyDrivePVCName(tnName),
 				Namespace: "mydrive-pvcs",
 			}, pvc, BeFalse(), timeout, interval)
 		})
@@ -353,7 +353,7 @@ var _ = Describe("MyDrive management", func() {
 		// Create a PVC to be deleted
 		pvc := &v1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      forge.GetMyDrivePVCName(tnName),
+				Name:      forge.MyDrivePVCName(tnName),
 				Namespace: "mydrive-pvcs",
 				Labels: map[string]string{
 					"crownlabs.polito.it/operator-selector": "test",
@@ -380,7 +380,7 @@ var _ = Describe("MyDrive management", func() {
 			pvc := &v1.PersistentVolumeClaim{}
 			Eventually(func() bool {
 				err := cl.Get(ctx, client.ObjectKey{
-					Name:      forge.GetMyDrivePVCName(tnName),
+					Name:      forge.MyDrivePVCName(tnName),
 					Namespace: "mydrive-pvcs",
 				}, pvc)
 				return err == nil

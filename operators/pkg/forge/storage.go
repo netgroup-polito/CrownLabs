@@ -63,7 +63,7 @@ func NFSShVolSpec(pv *corev1.PersistentVolume) (serverAddress, exportPath string
 // MyDriveMountInfo forges the VolumeMount for the MyDrive volume.
 func MyDriveMountInfo(tnName string) corev1.VolumeMount {
 	return corev1.VolumeMount{
-		Name:      GetMyDrivePVCMirrorName(tnName),
+		Name:      MyDrivePVCMirrorName(tnName),
 		MountPath: MyDriveVolumeMountPath,
 		ReadOnly:  false,
 	}
@@ -72,7 +72,7 @@ func MyDriveMountInfo(tnName string) corev1.VolumeMount {
 // ShVolMountInfo forges the VolumeMount given the SharedVolumeMountInfo, its name will be shvol{i}.
 func ShVolMountInfo(mount clv1alpha2.SharedVolumeMountInfo, instanceName string) corev1.VolumeMount {
 	return corev1.VolumeMount{
-		Name:      GetShVolPVCMirrorName(mount.SharedVolumeRef.Name, instanceName),
+		Name:      ShVolPVCMirrorName(mount.SharedVolumeRef.Name, instanceName),
 		MountPath: mount.MountPath,
 		ReadOnly:  mount.ReadOnly,
 	}
@@ -159,24 +159,25 @@ func PVCProvisioningJobSpec(pvc *corev1.PersistentVolumeClaim) batchv1.JobSpec {
 	}
 }
 
-// GetMyDrivePVCName returns the name for a tenant's MyDrive PVC.
-func GetMyDrivePVCName(tenantName string) string {
+// MyDrivePVCName returns the name for a tenant's MyDrive PVC.
+func MyDrivePVCName(tenantName string) string {
 	return fmt.Sprintf("%s-drive", strings.ReplaceAll(tenantName, ".", "-"))
 }
 
-// GetMyDrivePVCMirrorName returns the name for the mirror of the tenant's MyDrive PVC.
-func GetMyDrivePVCMirrorName(tenantName string) string {
-	return fmt.Sprintf("%s-mirror", GetMyDrivePVCName(tenantName))
+// MyDrivePVCMirrorName returns the name for the mirror of the tenant's MyDrive PVC.
+func MyDrivePVCMirrorName(tenantName string) string {
+	return fmt.Sprintf("%s-mirror", MyDrivePVCName(tenantName))
 }
 
-// GetShVolPVCName returns the name of the SharedVolume's PVC.
-func GetShVolPVCName(shvolName string) string {
+// ShVolPVCName returns the name of the SharedVolume's PVC.
+func ShVolPVCName(shvolName string) string {
 	return fmt.Sprintf("shvol-%s", shvolName)
 }
 
-// GetShVolPVCMirrorName returns the name for the mirror of the SharedVolume PVC for the specified Instance.
-func GetShVolPVCMirrorName(shvolName, instanceName string) string {
+// ShVolPVCMirrorName returns the name for the mirror of the SharedVolume PVC for the specified Instance.
+func ShVolPVCMirrorName(shvolName, instanceName string) string {
 	// The maximum name length for a Kubernetes resource is 253 characters, (253 - len("--mirror") - 1)/2 = 122.
+	// Source: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#dns-subdomain-names
 	return fmt.Sprintf("%s-%s-mirror", LastCharsOf(shvolName, 122), LastCharsOf(instanceName, 122))
 }
 

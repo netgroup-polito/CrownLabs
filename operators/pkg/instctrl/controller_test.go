@@ -151,7 +151,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		}
 		myDriveMirrorPVC = corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      forge.GetMyDrivePVCMirrorName(testName),
+				Name:      forge.MyDrivePVCMirrorName(testName),
 				Namespace: testName,
 			},
 			Spec: corev1.PersistentVolumeClaimSpec{

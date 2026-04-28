@@ -75,7 +75,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 	)
 
 	var (
-		myDriveName      = forge.GetMyDrivePVCMirrorName(tenantName)
+		myDriveName      = forge.MyDrivePVCMirrorName(tenantName)
 		mountInfoMyDrive = forge.MyDriveMountInfo(tenantName)
 		mountInfoShVol   = corev1.VolumeMount{
 			Name:      shVolName,

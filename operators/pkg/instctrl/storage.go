@@ -36,14 +36,14 @@ func (r *InstanceReconciler) EnforceShVolMirrorPVCs(ctx context.Context) error {
 	for _, mountInfo := range environment.SharedVolumeMounts {
 		shvolPvc := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      forge.GetShVolPVCName(mountInfo.SharedVolumeRef.Name),
+				Name:      forge.ShVolPVCName(mountInfo.SharedVolumeRef.Name),
 				Namespace: mountInfo.SharedVolumeRef.Namespace,
 			},
 		}
 
 		mirrPvc := corev1.PersistentVolumeClaim{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      forge.GetShVolPVCMirrorName(mountInfo.SharedVolumeRef.Name, instance.Name),
+				Name:      forge.ShVolPVCMirrorName(mountInfo.SharedVolumeRef.Name, instance.Name),
 				Namespace: instance.Namespace,
 			},
 		}
