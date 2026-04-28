@@ -271,7 +271,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 			})
 
 			When("DataSourceRef is present", func() {
-				When("DataSourceRef is a PersistentVolumeClaim", func() {
+				When("DataSourceRef is a PersistentVolumeClaim in a different namespace", func() {
 					BeforeEach(func() {
 						mirrDataSrcRef = &corev1.TypedObjectReference{
 							APIGroup:  nil,
@@ -289,7 +289,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						Context("Namespace is authorized (shvol annotation)", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
+									forge.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey:     targetLabelVal,
@@ -366,7 +366,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						Context("Namespace is authorized (mydrive annotation)", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName),
+									forge.AuthorizationAnnotationKey: strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName),
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey:             targetLabelVal,
@@ -462,7 +462,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						When("target namespace does not have required label", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
+									forge.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey: targetLabelVal,
@@ -477,7 +477,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						When("annotation-label mismatch", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
+									forge.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey:     targetLabelVal,
@@ -500,6 +500,21 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						It("should return an error to slowly retry", func() {
 							ExpectInfeasibleError()
 						})
+					})
+				})
+
+				When("DataSourceRef is a PersistentVolumeClaim in the same namespace", func() {
+					BeforeEach(func() {
+						mirrDataSrcRef = &corev1.TypedObjectReference{
+							APIGroup:  nil,
+							Kind:      "PersistentVolumeClaim",
+							Name:      pvcOrigName,
+							Namespace: nil,
+						}
+					})
+
+					It("should return an ignored error", func() {
+						ExpectIgnoredError()
 					})
 				})
 
