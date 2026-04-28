@@ -55,11 +55,8 @@ type SharedVolumeSpec struct {
 
 // SharedVolumeStatus reflects the most recently observed status of the Shared Volume.
 type SharedVolumeStatus struct {
-	// The NFS server address. //XXX: Remove this.
-	ServerAddress string `json:"serverAddress,omitempty"`
-
-	// The NFS path. //XXX: Remove this.
-	ExportPath string `json:"exportPath,omitempty"`
+	// The PersistentVolume linked to the Shared Volume.
+	PVName string `json:"pvName,omitempty"`
 
 	// The current phase of the lifecycle of the Shared Volume.
 	Phase SharedVolumePhase `json:"phase,omitempty"`

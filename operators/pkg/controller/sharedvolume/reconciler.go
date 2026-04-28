@@ -210,17 +210,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{}, err
 		}
 
-		nfsServer, expPath := forge.NFSShVolSpec(&pv)
-		if nfsServer == "" || expPath == "" {
-			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
-			log.Error(fmt.Errorf("pv does not have CSI params"), "Phase transitioned to Error")
-			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVNoCSI, EvPVNoCSIMsg)
-			return ctrl.Result{}, nil
-		}
-
-		shvolume.Status.ServerAddress = nfsServer
-		shvolume.Status.ExportPath = expPath
-
+		shvolume.Status.PVName = pv.Name
 		shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseProvisioning
 
 		done, err := utils.NFSDriveProvisioning(ctx, log, r.Client, &pvc, &shvolume)

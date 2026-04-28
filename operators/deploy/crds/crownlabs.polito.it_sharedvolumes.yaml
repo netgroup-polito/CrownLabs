@@ -73,9 +73,6 @@ spec:
             description: SharedVolumeStatus reflects the most recently observed status
               of the Shared Volume.
             properties:
-              exportPath:
-                description: 'The NFS path. //XXX: Remove this.'
-                type: string
               phase:
                 description: The current phase of the lifecycle of the Shared Volume.
                 enum:
@@ -87,8 +84,8 @@ spec:
                 - ResourceQuotaExceeded
                 - Error
                 type: string
-              serverAddress:
-                description: 'The NFS server address. //XXX: Remove this.'
+              pvName:
+                description: The PersistentVolume linked to the Shared Volume.
                 type: string
             type: object
         type: object

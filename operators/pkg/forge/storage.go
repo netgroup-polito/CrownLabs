@@ -47,19 +47,6 @@ var (
 	DefaultMirrorCapacity = resource.MustParse("1")
 )
 
-// NFSShVolSpec obtains the NFS server address and the export path from the passed Persistent Volume. //XXX: Remove this.
-func NFSShVolSpec(pv *corev1.PersistentVolume) (serverAddress, exportPath string) {
-	serverAddress = ""
-	exportPath = ""
-
-	if pv.Spec.CSI != nil && pv.Spec.CSI.VolumeAttributes != nil {
-		serverAddress = fmt.Sprintf("%s.%s", pv.Spec.CSI.VolumeAttributes["server"], pv.Spec.CSI.VolumeAttributes["clusterID"])
-		exportPath = pv.Spec.CSI.VolumeAttributes["share"]
-	}
-
-	return
-}
-
 // MyDriveMountInfo forges the VolumeMount for the MyDrive volume.
 func MyDriveMountInfo(tnName string) corev1.VolumeMount {
 	return corev1.VolumeMount{
