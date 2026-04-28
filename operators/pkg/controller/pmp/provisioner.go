@@ -49,8 +49,10 @@ var (
 const (
 	// MirroredPvLabel is the key of the label identifying which PV is mirroring.
 	MirroredPvLabel = "crownlabs.polito.it/mirrored-pv"
-	// MirroredPvcLabel is the key of the label identifying which PVC is mirroring.
-	MirroredPvcLabel = "crownlabs.polito.it/mirrored-pvc"
+	// MirroredPvcNameLabel is the key of the label identifying the name of the PVC that is mirroring.
+	MirroredPvcNameLabel = "crownlabs.polito.it/mirrored-pvc-name"
+	// MirroredPvcNamespaceLabel is the key of the label identifying the namespace of the PVC that is mirroring.
+	MirroredPvcNamespaceLabel = "crownlabs.polito.it/mirrored-pvc-namespace"
 
 	// AuthorizationAnnotationKey is the key of the annotation that shows which labels are requested on the target ns to mirror the pvc.
 	AuthorizationAnnotationKey = "pmp.crownlabs.polito.it/required-target-ns-labels"
@@ -160,8 +162,9 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 		ObjectMeta: metav1.ObjectMeta{
 			Name: options.PVName, // By default: "pvc-" + claim.UID
 			Labels: map[string]string{
-				MirroredPvLabel:  originPV.Name,
-				MirroredPvcLabel: originPVC.Namespace + "---" + originPVC.Name,
+				MirroredPvLabel:           originPV.Name,
+				MirroredPvcNameLabel:      originPVC.Name,
+				MirroredPvcNamespaceLabel: originPVC.Namespace,
 			},
 		},
 		Spec: corev1.PersistentVolumeSpec{

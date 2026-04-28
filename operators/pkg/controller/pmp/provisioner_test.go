@@ -398,9 +398,10 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 									It("should successfully provision the mirror PV", func() {
 										ExpectNoError()
 										Expect(pvMirr).ToNot(BeNil())
-										Expect(pvMirr.Labels).To(HaveLen(2))
-										Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcLabel, originNsName+"---"+pvcOrigName))
+										Expect(pvMirr.Labels).To(HaveLen(3))
 										Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvLabel, pvOrigName))
+										Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNamespaceLabel, originNsName))
+										Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNameLabel, pvcOrigName))
 										Expect(pvMirr.Spec.CSI).ToNot(BeNil())
 										Expect(pvMirr.Spec.CSI.VolumeHandle).To(Equal("/nfs/path"))
 									})
