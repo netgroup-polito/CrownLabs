@@ -57,12 +57,6 @@
         "optional": true
     },
     {
-        "component": "crownlabs-image-list",
-        "context": "./operators",
-        "dockerfile": "./operators/build/crownlabs-image-list/Dockerfile",
-        "harbor-project": "crownlabs-core"
-    },
-    {
         "component": "frontend-app",
         "context": "./frontend",
         "build-args": "BUILD_TARGET=app\nSUBROUTE=/app/",

@@ -55,6 +55,9 @@ spec:
             - "--shared-volume-storage-class={{.Values.configurations.sharedVolumeOptions.storageClass }}"
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
+            - "--enable-image-list=true"
+            - "--image-list-config-file={{ .Values.configurations.imageList.configFile }}"
+            - "--image-list-update-interval={{ .Values.configurations.imageList.updateInterval }}"
           ports:
             - name: metrics
               containerPort: 8080
@@ -96,10 +99,19 @@ spec:
           volumeMounts:
           - mountPath: {{ .Values.webhook.deployment.certsMount | default "/tmp/k8s-webhook-server/serving-certs/" }}
             name: webhook-certs
+          - mountPath: /etc/config
+            name: image-list-config
       volumes:
       - name: webhook-certs
         secret:
           secretName: {{ include "operator.webhookname" . }}
+      - name: image-list-config
+        configMap:
+          optional: true
+          name: image-lists-sources
+          items:
+            - key: registries
+              path: registries.yaml
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
