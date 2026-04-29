@@ -27,7 +27,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-// RegistryConfig contains the configuration for a single registry endpoint
+// RegistryConfig contains the configuration for a single registry endpoint.
 type RegistryConfig struct {
 	Name          string `yaml:"name" json:"name"`
 	Type          string `yaml:"type" json:"type"`
@@ -63,7 +63,7 @@ type updater struct {
 
 var globalUpdater *updater
 
-// LoadRegistriesConfig loads registry configuration from file
+// LoadRegistriesConfig loads registry configuration from file.
 func LoadRegistriesConfig(filePath string) ([]RegistryConfig, error) {
 	configData, err := os.ReadFile(filePath) // #nosec G304: path is from controlled configuration
 	if err != nil {
@@ -82,7 +82,7 @@ func LoadRegistriesConfig(filePath string) ([]RegistryConfig, error) {
 	return config, nil
 }
 
-// Initialize initializes the image list updater with the given configuration
+// Initialize initializes the image list updater with the given configuration.
 func Initialize(k8sClient client.Client, log logr.Logger, options UpdaterOptions) error {
 	if globalUpdater != nil {
 		return fmt.Errorf("image list updater already initialized")
@@ -97,7 +97,7 @@ func Initialize(k8sClient client.Client, log logr.Logger, options UpdaterOptions
 	return nil
 }
 
-// Update performs a periodic update of all configured image lists
+// Update performs a periodic update of all configured image lists.
 func Update(ctx context.Context) error {
 	if globalUpdater == nil {
 		return fmt.Errorf("image list updater not initialized")
@@ -151,7 +151,7 @@ func (u *updater) update(ctx context.Context) error {
 	return nil
 }
 
-// ProcessSingleRegistryConfig processes a single registry configuration
+// ProcessSingleRegistryConfig processes a single registry configuration.
 func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) error {
 	var requestor Requestor
 
@@ -187,7 +187,7 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 	return nil
 }
 
-// ProcessSingleRegistryConfigWithItems processes a single registry configuration and returns the updated items
+// ProcessSingleRegistryConfigWithItems processes a single registry configuration and returns the updated items.
 func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) ([]clv1alpha1.ImageListItem, error) {
 	var requestor Requestor
 
