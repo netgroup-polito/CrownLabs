@@ -109,9 +109,6 @@ type KeycloakStatus struct {
 	// This is set to true only if the Tenant has been successfully synchronized with Keycloak
 	// the last time the operator has run.
 	UserSynchronized bool `json:"userSynchronized"`
-
-	// When the user has been created in Keycloak.
-	UserRegistrationDate *metav1.Time `json:"userRegistrationDate,omitempty"`
 }
 
 // TenantStatus reflects the most recently observed status of the Tenant.

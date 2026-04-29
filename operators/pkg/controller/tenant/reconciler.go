@@ -27,7 +27,6 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
@@ -142,7 +141,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	// check if the tenant is already been provisioned in Keycloak
 	// - if not, create the tenant in Keycloak
 	// - if yes, check if the tenant is verified
-	verified, user, err := r.CheckKeycloakUserVerified(ctx, log, &tn)
+	verified, err := r.CheckKeycloakUserVerified(ctx, log, &tn)
 	if err != nil {
 		log.Error(err, "Error checking Keycloak status for tenant", "tenant", tn.Name)
 		tn.Status.Keycloak.UserSynchronized = false
@@ -150,11 +149,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		hasErrors = true
 	} else {
 		tn.Status.Keycloak.UserSynchronized = true
-
-		if user != nil {
-			t := metav1.Unix(*user.CreatedTimestamp, 0)
-			tn.Status.Keycloak.UserRegistrationDate = &t
-		}
 	}
 
 	// manage keycloak tenant authorization for workspaces
