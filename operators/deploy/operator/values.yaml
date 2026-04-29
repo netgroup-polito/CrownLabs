@@ -43,24 +43,24 @@ configurations:
     configFile: /etc/config/registries.yaml
     updateInterval: 300
     registries:
-        - name: docker-registry
-          type: docker
-          url: http://docker-registry.docker-registry:5000
-          advertised: registry.internal.crownlabs.polito.it
-          username: ""
-          password: ""
-          imageListName: crownlabs-virtual-machine-images-test
-        - name: harbor-registry-containerdisks
-          type: harbor
-          url: http://harbor-registry.harbor-registry:8080
-          advertised: harbor.crownlabs.polito.it
-          username: ""
-          password: ""
-          imageListName: harbor-containerdisks-imagelist-test
-          project: crownlabs-containerdisks
+        # - name: docker-registry
+        #   type: docker
+        #   url: http://docker-registry.docker-registry:5000
+        #   advertised: registry.internal.crownlabs.polito.it
+        #   username: ""
+        #   password: ""
+        #  imageListName: crownlabs-virtual-machine-images-test
+        # - name: harbor-registry-containerdisks
+        #   type: harbor
+        #   url: http://harbor-core.harbor:80
+        #   advertised: harbor.crownlabs.polito.it
+        #   username: ""
+        #   password: ""
+        #   imageListName: harbor-containerdisks-imagelist-test
+        #   project: crownlabs-containerdisks
         - name: harbor-registry-2-standalone
           type: harbor
-          url: http://harbor-registry.harbor-registry:8080
+          url: http://harbor-core.harbor:80
           advertised: harbor.crownlabs.polito.it
           username: ""
           password: ""

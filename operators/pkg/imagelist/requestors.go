@@ -404,6 +404,9 @@ func (r *HarborImageListRequestor) deduplicateAndFilterTags(tags []string) []str
 }
 
 // doSingleGetAsList performs a GET request and expects an array response.
+// Harbor API can return either:
+// 1. A direct array: [...]
+// 2. A wrapped format: {"data": [...], "meta": {...}}
 func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path string) ([]map[string]interface{}, error) {
 	url := r.url + path
 	r.log.V(1).Info("performing GET request to Harbor (expecting array)", "url", url)
@@ -428,12 +431,61 @@ func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path s
 		return nil, err
 	}
 
-	var result []map[string]interface{}
-	if err := json.Unmarshal(body, &result); err != nil {
-		r.log.Error(err, "failed to parse JSON array response", "path", path)
+	// Try to parse as direct array first: [...]
+	var directArray []interface{}
+	if err := json.Unmarshal(body, &directArray); err == nil {
+		r.log.V(1).Info("parsed Harbor response as direct array", "path", path, "item_count", len(directArray))
+		// Convert []interface{} to []map[string]interface{}
+		result := make([]map[string]interface{}, 0, len(directArray))
+		for i, item := range directArray {
+			itemMap, ok := item.(map[string]interface{})
+			if !ok {
+				r.log.V(1).Info("skipping non-map item in data array", "path", path, "index", i, "item_type", fmt.Sprintf("%T", item))
+				continue
+			}
+			result = append(result, itemMap)
+		}
+		return result, nil
+	}
+
+	// Try to parse as wrapped format: {"data": [...], "meta": {...}}
+	var harborResponse map[string]interface{}
+	if err := json.Unmarshal(body, &harborResponse); err != nil {
+		r.log.Error(err, "failed to parse JSON response (tried both array and object formats)", "path", path, "body", string(body))
 		return nil, err
 	}
 
+	// Check if response contains an error
+	if errorsIface, ok := harborResponse["errors"]; ok {
+		r.log.Error(nil, "Harbor API returned error", "path", path, "errors", errorsIface, "full_response", harborResponse)
+		return nil, fmt.Errorf("Harbor API error: %v", errorsIface)
+	}
+
+	// Extract the data array from Harbor response
+	dataIface, ok := harborResponse["data"]
+	if !ok {
+		r.log.Error(nil, "data field not found in Harbor response", "path", path, "response_keys", getMapKeys(harborResponse), "full_response", harborResponse)
+		return nil, fmt.Errorf("data field not found in Harbor response")
+	}
+
+	dataArray, ok := dataIface.([]interface{})
+	if !ok {
+		r.log.Error(nil, "data field is not an array", "path", path, "data_type", fmt.Sprintf("%T", dataIface))
+		return nil, fmt.Errorf("data field is not an array: got %T", dataIface)
+	}
+
+	// Convert []interface{} to []map[string]interface{}
+	result := make([]map[string]interface{}, 0, len(dataArray))
+	for i, item := range dataArray {
+		itemMap, ok := item.(map[string]interface{})
+		if !ok {
+			r.log.V(1).Info("skipping non-map item in data array", "path", path, "index", i, "item_type", fmt.Sprintf("%T", item))
+			continue
+		}
+		result = append(result, itemMap)
+	}
+
+	r.log.V(1).Info("successfully parsed Harbor array response", "path", path, "item_count", len(result))
 	return result, nil
 }
 
