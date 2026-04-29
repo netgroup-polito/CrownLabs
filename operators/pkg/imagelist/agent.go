@@ -65,7 +65,7 @@ var globalUpdater *updater
 
 // LoadRegistriesConfig loads registry configuration from file
 func LoadRegistriesConfig(filePath string) ([]RegistryConfig, error) {
-	configData, err := os.ReadFile(filePath)
+	configData, err := os.ReadFile(filePath) // #nosec G304: path is from controlled configuration
 	if err != nil {
 		return nil, fmt.Errorf("failed to read configuration file %s: %w", filePath, err)
 	}

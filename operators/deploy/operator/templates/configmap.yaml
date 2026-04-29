@@ -4,7 +4,7 @@ metadata:
   name: registry-configuration-image-list-update
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "image-list.labels" . | nindent 4 }}
+    {{- include "operator.labels" . | nindent 4 }}
 data:
   registries: |
     {{- .Values.configurations.imageList.registries | toYaml | nindent 4 }}
