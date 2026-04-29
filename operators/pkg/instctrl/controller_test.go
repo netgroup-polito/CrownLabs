@@ -267,32 +267,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		})
 	})
 
-	Context("The instance is container based", func() {
-		When("the environment is persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-persistent"
-				for i := range environmentList {
-					//TODO CLEANUP: ClassContainer
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = true
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-		When("the environment is NOT persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-not-persistent"
-				for i := range environmentList {
-					//TODO CLEANUP: ClassContainer
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = false
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-	})
+	//TODO CHECK CLEANUP: The following context is not relevant anymore since container-based environments are not supported anymore, and the test is not really meaningful since it only checks that the controller doesn't create exposition resources for unsupported environment types.
 
 	Context("The instance is VM based", func() {
 		When("the environment is persistent", func() {
@@ -515,7 +490,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		})
 		When("The instance is a container", func() {
 			//TODO CLEANUP: ClassContainer
-			PodStatusIt("pod-stat-cont", clv1alpha2.ClassContainer, true)
+			PodStatusIt("pod-stat-cont", clv1alpha2.ClassStandalone, true)
 		})
 	})
 
@@ -610,7 +585,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 						Name:            "app-1",
 						Image:           "some-image:v0",
 						//TODO CLEANUP: ClassContainer
-						EnvironmentType: clv1alpha2.ClassContainer,
+						EnvironmentType: clv1alpha2.ClassStandalone,
 						Persistent:      false,
 						GuiEnabled:      true,
 						Resources: clv1alpha2.EnvironmentResources{
@@ -703,7 +678,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				runInstance = true
 				for i := range environmentList {
 					//TODO CLEANUP: ClassContainer
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 				}
 			})
 
@@ -742,7 +717,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				runInstance = false
 				for i := range environmentList {
 					//TODO CLEANUP: ClassContainer
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
+					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 				}
 			})
 
@@ -790,8 +765,8 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					{
 						Name:            "app-1",
 						Image:           "some-image:v0",
-						//TODO CLEANUP: ClassContainer
-						EnvironmentType: clv1alpha2.ClassContainer,
+						//TODO CLEANUP: ClassStandalone
+						EnvironmentType: clv1alpha2.ClassStandalone,
 						Persistent:      false,
 						GuiEnabled:      true,
 						Resources: clv1alpha2.EnvironmentResources{

@@ -241,21 +241,7 @@ var _ = Describe("InstancesnapshotController", func() {
 			checkIsnapCreationFailure(ctx, newInstanceSnapshot, WorkingNamespace, timeout, interval)
 		})
 
-		It("Should fail: environment is a container", func() {
-			By("Getting current Template")
-			currentTemplate := &crownlabsv1alpha2.Template{}
-			templateLookupKey := types.NamespacedName{Name: TemplateName, Namespace: WorkingNamespace}
-			Expect(k8sClient.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
-
-			By("Setting environment as Container")
-			//TODO CLEANUP: ClassContainer
-			currentTemplate.Spec.EnvironmentList[0].EnvironmentType = crownlabsv1alpha2.ClassContainer
-			Expect(k8sClient.Update(ctx, currentTemplate)).Should(Succeed())
-
-			newInstanceSnapshot := instanceSnapshot.DeepCopy()
-			newInstanceSnapshot.Name = fmt.Sprintf("isnap-sample-%v", rand.Int())
-			checkIsnapCreationFailure(ctx, newInstanceSnapshot, WorkingNamespace, timeout, interval)
-		})
+		//TODO CHECK CLEANUP classContaienr: ClassContainer doesn't exist anymore, thohugh it doesn't make sense to have a test on it since the forge.ClassContainer function doesn't exist anymore as well
 
 		It("Should fail: template does not exist", func() {
 			By("Getting current instance")
