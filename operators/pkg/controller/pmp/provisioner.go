@@ -31,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
@@ -168,7 +169,7 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 			},
 		},
 		Spec: corev1.PersistentVolumeSpec{
-			PersistentVolumeReclaimPolicy: *options.StorageClass.ReclaimPolicy,
+			PersistentVolumeReclaimPolicy: ptr.Deref(options.StorageClass.ReclaimPolicy, corev1.PersistentVolumeReclaimDelete),
 			AccessModes:                   options.PVC.Spec.AccessModes,
 			Capacity: corev1.ResourceList{
 				corev1.ResourceStorage: defaultMirrorCapacity,
@@ -204,7 +205,7 @@ func (p *PvcMirrorProvisioner) Start(ctx context.Context) error {
 		return err
 	}
 
-	if outputSc.Provisioner != p.MirrorProvisionerName || *outputSc.AllowVolumeExpansion {
+	if outputSc.Provisioner != p.MirrorProvisionerName || ptr.Deref(outputSc.AllowVolumeExpansion, false) {
 		p.Logger.Error(errInvalidConfig, "mismatching Provisioner or invalid storageclass AllowVolumeExpansion")
 		return errInvalidConfig
 	}
