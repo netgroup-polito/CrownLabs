@@ -17,7 +17,7 @@ package imagelist
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/go-logr/logr"
@@ -39,14 +39,14 @@ type RegistryConfig struct {
 	Project       string `yaml:"project" json:"project"`
 }
 
-// UpdateResult represents the result of updating a single image list
+// UpdateResult represents the result of updating a single image list.
 type UpdateResult struct {
 	ImageListName string
 	Items         []clv1alpha1.ImageListItem
 	Error         error
 }
 
-// UpdaterOptions holds configuration for the image list updater
+// UpdaterOptions holds configuration for the image list updater.
 type UpdaterOptions struct {
 	ConfigFilePath string
 	Interval       int // interval in seconds
@@ -65,7 +65,7 @@ var globalUpdater *updater
 
 // LoadRegistriesConfig loads registry configuration from file
 func LoadRegistriesConfig(filePath string) ([]RegistryConfig, error) {
-	configData, err := ioutil.ReadFile(filePath)
+	configData, err := os.ReadFile(filePath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read configuration file %s: %w", filePath, err)
 	}

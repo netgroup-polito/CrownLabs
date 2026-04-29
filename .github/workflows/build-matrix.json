@@ -57,13 +57,6 @@
         "optional": true
     },
     {
-        "component": "crownlabs-image-list",
-        "context": "./operators",
-        "dockerfile": "./operators/build/golang-common/Dockerfile",
-        "build-args": "COMPONENT=crownlabs-image-list",
-        "harbor-project": "crownlabs-core"
-    },
-    {
         "component": "frontend-app",
         "context": "./frontend",
         "build-args": "BUILD_TARGET=app\nSUBROUTE=/app/",
