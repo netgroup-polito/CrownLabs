@@ -18,9 +18,10 @@ import (
 	"context"
 	"flag"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 )
 
 var (
