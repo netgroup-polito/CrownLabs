@@ -483,41 +483,188 @@ For a deeper definition go to
 - `Workspace` [GoLang code version](./api/v1alpha1/workspace_types.go)
 - `Workspace` [YAML version](./deploy/crds/crownlabs.polito.it_workspaces.yaml)
 
-## CrownLabs Image List
+## CrownLabs Image List Updater
 
-The CrownLabs Image List script allows to to gather the list of available images from a Registry and expose it as an ImageList custom resource, to be consumed from the CrownLabs dashboard.
-The script is implemented as a Kubernetes CronJob, which can be scheduled to run periodically and keep the ImageList resource updated with the latest images available in the registries.
+The CrownLabs Image List Updater is a modular component that manages the retrieval and synchronization of available images from container registries and exposes them as ImageList custom resources in Kubernetes.
 
-The script performs the following steps:
-1. Read the list of registries to query from a ConfigMap (defined in `operators/deploy/image-list/values.yaml`), which contains the registry URLs and the credentials to access them.
-2. For each registry, for each registry, a Requestor object is created to handle the authentication and the API requests to the registry using the appropriate APIs (e.g., Docker Registry HTTP API V2).
-3. A Saver object is created to handle the creation and update of the ImageList custom resource in the cluster.
-4. An Updater object is created to orchestrate the Requestor and Saver, ensuring that the ImageList resource is updated with the latest images from the registries.
+The updater is now integrated into the main operator controller, eliminating the need for a separate deployment. It can be enabled as an optional feature and runs as a periodic background task with a configurable update interval.
 
-Both the Requestor and Saver are designed with an interface-based approach, allowing for easy extension to support new types of registries or different storage backends for the ImageList resource in the future.
-The following Requestor implementations are currently available:
-- `DockerImageListRequestor`: to query the Docker Hub registry
-- `HarborImageListRequestor`: to query a Harbor registry
+### Architecture
 
-The ConfigMap contains a list of registries to query, with all the required information to access them with the appropriate APIs and update the corresponding ImageList resource. Below is an example of the ConfigMap structure:
-```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: registry-configuration-image-list-update
-  namespace: test
-data:
-  registries: |
-    - name: dockerhub
-      url: https://registry.hub.docker.com
-      type: docker
-      credentials:
-        username: <username>
-        password: <password>
-    - name: harbor
-      url: https://harbor.example.com
-      type: harbor
-      credentials:
-        username: <username> 
-        password: <password>
+The Image List Updater is composed of:
+
+1. **Public Update Function** (`imagelist.Update(ctx)`) - Executes a complete update cycle across all configured registries. This function is:
+   - Called periodically by the internal scheduler
+   - Available for external components to call on-demand
+   - Reusable for triggered updates from webhooks or events
+
+2. **Periodic Scheduler** - Manages automatic updates at a configurable interval:
+   - Runs inside the operator when enabled
+   - Prevents concurrent updates with mutex protection
+   - Performs initial update on startup, then periodic updates
+
+3. **Configuration System** - Reads registry configurations from a ConfigMap containing:
+   - Registry URLs and authentication credentials
+   - Registry types (Docker, Harbor, etc.)
+   - Target ImageList resource names
+
+4. **Processing Pipeline**:
+   - **Requestor**: Authenticates with the registry and retrieves the list of available images
+   - **Updater**: Processes the raw image data and converts it to CRD format
+   - **Saver**: Creates or updates the ImageList custom resource in Kubernetes
+
+### Supported Registries
+
+The updater supports multiple registry types through pluggable Requestor implementations:
+- `DockerImageListRequestor`: Docker Registry HTTP API V2
+- `HarborImageListRequestor`: Harbor REST API v2
+
+### Architecture and Extensibility
+
+The Image List Updater uses a modular interface-based design that allows easy extension with new registry types:
+
+#### Requestor Interface
+
+Each registry type is implemented as a `Requestor`, which must satisfy the following interface:
+
+```go
+type Requestor interface {
+	// Initialize sets up the requestor with authentication credentials and registry URL
+	Initialize(username, password, registryURL string) (bool, error)
+	
+	// GetImageList retrieves the list of images from the registry
+	GetImageList(ctx context.Context) ([]map[string]interface{}, error)
+}
 ```
+
+**Key responsibilities:**
+- `Initialize`: Validates credentials and prepares the requestor for API calls
+- `GetImageList`: Fetches images from the registry and returns them in a normalized format
+
+#### Saver Interface
+
+The storage layer uses a `Saver` interface for creating/updating ImageList resources:
+
+```go
+type Saver interface {
+	// UpdateImageList updates the Kubernetes ImageList resource with images from a registry
+	UpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
+}
+```
+
+#### Adding a New Registry Type
+
+To add support for a new registry type:
+
+1. **Create a new requestor struct** in `pkg/imagelist/requestors.go`:
+   ```go
+   type MyCustomRegistryRequestor struct {
+       url         string
+       username    string
+       password    string
+       client      *http.Client
+       initialized bool
+       log         logr.Logger
+   }
+   ```
+
+2. **Implement the Requestor interface**:
+   ```go
+   func (r *MyCustomRegistryRequestor) Initialize(username, password, registryURL string) (bool, error) {
+       // Validate credentials and setup
+       return true, nil
+   }
+   
+   func (r *MyCustomRegistryRequestor) GetImageList(ctx context.Context) ([]map[string]interface{}, error) {
+       // Query registry API and return images
+   }
+   ```
+
+3. **Create a constructor function**:
+   ```go
+   func NewMyCustomRegistryRequestor(log logr.Logger) *MyCustomRegistryRequestor {
+       return &MyCustomRegistryRequestor{
+           client:      &http.Client{},
+           initialized: false,
+           log:         log,
+       }
+   }
+   ```
+
+4. **Update the initialization logic** in `pkg/imagelist/agent.go` to instantiate your requestor when the registry type matches:
+   ```go
+   case "mycustom":
+       requestor = NewMyCustomRegistryRequestor(log)
+   ```
+
+5. **Optional: Share configuration** using `RequestersSharedData` map for per-registry settings (e.g., project names):
+   ```go
+   RequestersSharedData["custom_project_name"] = regConfig.Project
+   ```
+
+### Integration with the Operator
+
+The Image List Updater is integrated into the main operator controller and can be enabled via Helm values or command-line flags:
+
+**Via Helm values:**
+```yaml
+configurations:
+  imageList:
+    enabled: true
+    configFile: /etc/config/registries.yaml
+    updateInterval: 300  # seconds
+```
+
+**Via command-line flags:**
+```bash
+--enable-image-list=true
+--image-list-config-file=/etc/config/registries.yaml
+--image-list-update-interval=300
+```
+
+### Registry Configuration (ConfigMap)
+
+The ConfigMap should contain a YAML array of registry configurations:
+
+```yaml
+- name: dockerhub
+  type: docker
+  url: https://registry.hub.docker.com
+  advertised: docker.io
+  imageListName: imagelist-docker
+  username: ""
+  password: ""
+
+- name: harbor
+  type: harbor
+  url: https://harbor.example.com
+  advertised: harbor.example.com
+  imageListName: imagelist-harbor
+  project: crownlabs-container-disks
+  username: admin
+  password: password
+```
+
+### Usage
+
+Other components can trigger updates programmatically by calling the public `Update()` function:
+
+```go
+import "github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
+
+// Initialize the updater once at startup
+err := imagelist.Initialize(k8sClient, log, imagelist.UpdaterOptions{
+    ConfigFilePath: "/etc/config/registries.yaml",
+    Interval:       300,
+})
+
+// Trigger a manual update from any component
+ctx := context.Background()
+err := imagelist.Update(ctx)
+```
+
+This enables integration with external triggers such as:
+- Webhook endpoints from registries notifying of new images
+- Event-based triggers from other controllers
+- On-demand API endpoints for manual updates
+

@@ -59,7 +59,7 @@ func (u *Updater) Update(ctx context.Context) error {
 	}
 
 	// Process and convert images to CRD format
-	imageListItems := processImageList(images)
+	imageListItems := ProcessImageList(images)
 	u.Log.V(1).Info("processed images", "imageCount", len(imageListItems))
 
 	// Save images using the configured saver
@@ -74,9 +74,9 @@ func (u *Updater) Update(ctx context.Context) error {
 	return nil
 }
 
-// processImageList converts raw image data from the registry into CRD ImageListItem objects.
+// ProcessImageList converts raw image data from the registry into CRD ImageListItem objects.
 // It removes "latest" tags and ensures all images have at least one version tag.
-func processImageList(images []map[string]interface{}) []clv1alpha1.ImageListItem {
+func ProcessImageList(images []map[string]interface{}) []clv1alpha1.ImageListItem {
 	var out []clv1alpha1.ImageListItem
 
 	for _, image := range images {

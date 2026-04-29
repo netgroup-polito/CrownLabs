@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 )
 
 var (
@@ -77,11 +79,19 @@ func main() {
 	var enableInstance bool
 	var enableSharedVolume bool
 	var enableKeycloak bool
+	var enableImageList bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
 	flag.BoolVar(&enableInstance, "enable-instance", true, "Enable the instance controller.")
 	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", true, "Enable the sharedvolume controller.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
+	flag.BoolVar(&enableImageList, "enable-image-list", true, "Enable the image list updater.")
+
+	// Image list configuration
+	var imageListConfigFile string
+	var imageListUpdateInterval int
+	flag.StringVar(&imageListConfigFile, "image-list-config-file", "/etc/config/registries.yaml", "Path to the image list registries configuration file")
+	flag.IntVar(&imageListUpdateInterval, "image-list-update-interval", 300, "Image list update interval in seconds")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
@@ -156,6 +166,14 @@ func main() {
 		}
 	}
 
+	if enableImageList {
+		log.Info("Starting the image list updater")
+		err := setupImageList(mgr, log, imageListConfigFile, imageListUpdateInterval)
+		if err != nil {
+			klog.Fatal(err, "Unable to setup image list updater")
+		}
+	}
+
 	// Setup operator probes
 	if err := addOperatorProbes(mgr); err != nil {
 		klog.Fatal(err, "Unable to set up operator probes")
@@ -182,4 +200,20 @@ func addOperatorProbes(mgr manager.Manager) error {
 	}
 
 	return nil
+}
+
+func setupImageList(mgr manager.Manager, log klog.Logger, configFile string, updateInterval int) error {
+	// Initialize the image list updater
+	if err := imagelist.Initialize(mgr.GetClient(), log.WithName("imagelist"), imagelist.UpdaterOptions{
+		ConfigFilePath: configFile,
+		Interval:       updateInterval,
+	}); err != nil {
+		return err
+	}
+
+	// Add the image list scheduler as a runnable to the manager
+	return mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		imagelist.StartScheduler(ctx)
+		return nil
+	}))
 }

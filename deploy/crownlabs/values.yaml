@@ -74,6 +74,33 @@ operator:
       rolesClientId: client-api-server
     maxConcurrentReconciles: 1
     tenantNamespaceKeepAlive: 168h
+    imageList:
+      configFile: /etc/config/registries.yaml
+      updateInterval: 300
+      registries:
+        - name: docker-registry
+          type: docker
+          url: http://docker-registry.docker-registry:5000
+          advertised: registry.internal.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: crownlabs-virtual-machine-images-test
+        - name: harbor-registry-containerdisks
+          type: harbor
+          url: http://harbor-registry.harbor-registry:8080
+          advertised: harbor.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-containerdisks-imagelist-test
+          project: crownlabs-containerdisks
+        - name: harbor-registry-2-standalone
+          type: harbor
+          url: http://harbor-registry.harbor-registry:8080
+          advertised: harbor.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-standalone-imagelist-test
+          project: crownlabs-standalone
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
@@ -248,42 +275,6 @@ bastion-operator:
       hostname: crownlabs.example.com
       path: /webssh
       pathType: Prefix
-
-image-list:
-  enabled: true
-  replicaCount: 1
-  image:
-    repository: crownlabs/crownlabs-image-list
-  rbacResourcesName: crownlabs-image-list
-  schedule: "*/1 * * * *"
-  startingDeadlineSeconds: 60
-  configMap:
-    name: registry-configuration-image-list-update
-    namespace: crownlabs-staging-988
-  registries:
-    - name: docker-registry
-      type: docker
-      url: http://docker-registry.docker-registry:5000
-      advertised: registry.internal.crownlabs.polito.it
-      username: ""
-      password: ""
-      imageListName: crownlabs-virtual-machine-images-test
-    - name: harbor-registry
-      type: harbor
-      url: http://harbor-registry.harbor-registry:8080
-      advertised: harbor.crownlabs.polito.it
-      username: ""
-      password: ""
-      imageListName: harbor-containerdisks-imagelist-test
-      project: crownlabs-containerdisks-test
-    - name: harbor-registry-2
-      type: harbor
-      url: http://harbor-registry.harbor-registry:8080
-      advertised: harbor.crownlabs.polito.it
-      username: ""
-      password: ""
-      imageListName: harbor-standalone-imagelist-test
-      project: crownlabs-standalone-test
 
 exam-agent:
   replicaCount: 1

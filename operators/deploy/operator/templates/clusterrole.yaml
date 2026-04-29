@@ -6,7 +6,7 @@ metadata:
     {{- include "operator.labels" . | nindent 4 }}
 rules:
 - apiGroups: ["crownlabs.polito.it"]
-  resources: ["workspaces", "workspaces/status", "tenants", "tenants/status", "instances", "instances/status", "templates", "templates/status"]
+  resources: ["workspaces", "workspaces/status", "tenants", "tenants/status", "instances", "instances/status", "templates", "templates/status", "imagelists", "imagelists/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
 
 - apiGroups: ["crownlabs.polito.it"]
@@ -14,7 +14,7 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
   
 - apiGroups: [""]
-  resources: ["namespaces", "resourcequotas", "limitranges", "secrets"]
+  resources: ["namespaces", "resourcequotas", "limitranges", "secrets", "configmaps"]
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
 - apiGroups: [""]
