@@ -118,7 +118,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			ImagesTag:       "tag",
 			XVncImg:         "x-vnc-img",
 			WebsockifyImg:   "wsfy-img",
-			ContentToolsImg: "cont-tools:tag",
+			ContentToolsImg: "cont-tools",
 		}
 		container = corev1.Container{}
 	})
@@ -300,49 +300,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			}))
 		})
 
-		When("the environment type is Container", func() {
-			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
-				//TODO CLEANUP: ScopeStandard
-				Scope:           clv1alpha2.ScopeStandard,
-				//TODO CLEANUP: ClassContainer
-				EnvironmentType: clv1alpha2.ClassContainer,
-				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, e, i),
-						forge.XVncContainer(&opts),
-						forge.AppContainer(e, forge.PersistentMountPath(e), mountInfos),
-					}
-				},
-			}))
-
-			When("the environment mode is Exercise", ContainersWhenBody(PodSpecContainersCase{
-				//TODO CLEANUP: ScopeStandard
-				Scope:           clv1alpha2.ScopeStandard,
-				//TODO CLEANUP: ClassContainer
-				EnvironmentType: clv1alpha2.ClassContainer,
-				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, e, i),
-						forge.XVncContainer(&opts),
-						forge.AppContainer(e, forge.PersistentMountPath(e), mountInfos),
-					}
-				},
-			}))
-
-			When("the environment mode is Exam", ContainersWhenBody(PodSpecContainersCase{
-				//TODO CLEANUP: ScopeStandard
-				Scope:           clv1alpha2.ScopeStandard,
-				//TODO CLEANUP: ClassContainer
-				EnvironmentType: clv1alpha2.ClassContainer,
-				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-					return []corev1.Container{
-						forge.WebsockifyContainer(&opts, e, i),
-						forge.XVncContainer(&opts),
-						forge.AppContainer(e, forge.PersistentMountPath(&environment), mountInfos),
-					}
-				},
-			}))
-		})
+		//TODO CHECK CLEANUP classContainer: classContainer doesn't exist anymore, thohugh it doesn't make sense to have a test on it since the forge.ClassContainer function doesn't exist anymore as well
 	})
 
 	Describe("The forge.StandaloneContainer function forges a standalone container", func() {

@@ -155,40 +155,7 @@ var _ = Describe("Ingresses", func() {
 			)
 		})
 
-		//TODO CLEANUP: ClassStandalone
-		When("EnvironmentType is not ClassStandalone", func() {
-			DescribeTable("Correctly populates the annotations set",
-				func(c InstanceGUIAnnotationsCase) {
-					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
-				},
-				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
-					Annotations:    nil,
-					//TODO CLEANUP: ClassContainer
-					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
-				}),
-				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
-					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-					//TODO CLEANUP: ClassContainer
-					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-				}),
-				Entry("When the input labels map contains only part of the expected values", InstanceGUIAnnotationsCase{
-					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-					//TODO CLEANUP: ClassContainer
-					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-				}),
-			)
-		})
+		//TODO CHECK CLEANUP classContainer: Test was referring to classContainer that doesn't exist anymore.
 	})
 
 	Describe("The forge.IngressAuthenticationAnnotations function", func() {
@@ -323,19 +290,7 @@ var _ = Describe("Ingresses", func() {
 				})
 			})
 
-			//TODO CLEANUP: ClassStandalone
-			When("EnvironmentType is not ClassStandalone", func() {
-				BeforeEach(func() {
-					//TODO CLEANUP: ClassContainer
-					environment.EnvironmentType = clv1alpha2.ClassContainer
-				})
-				Context("The instance has no special configurations", func() {
-					It("Should generate a path based on the instance UID", func() {
-						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
-					})
-				})
-			})
-
+			//TODO CHECK CLEANUP classContain: classContainer doesn't exist anymore, thohugh it doesn't make sense to have a test on it since the forge.ClassContainer function doesn't exist anymore as well
 		})
 
 		Describe("The forge.IngressGuiStatusURL function", func() {
