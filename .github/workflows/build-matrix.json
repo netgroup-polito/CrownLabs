@@ -82,13 +82,6 @@
         "todoCleanup": "REMOVE (provisioning/containers cleanup)"
     },
     {
-        "component": "websockify",
-        "context": "./provisioning/containers/gui-common/websockify",
-        "harbor-project": "crownlabs-container-envs-tools",
-        "optional": true,
-        "todoCleanup": "REMOVE (provisioning/containers cleanup)"
-    },
-    {
         "component": "content-tools",
         "context": "./provisioning/containers/utils/content-tools",
         "harbor-project": "crownlabs-container-envs-tools",

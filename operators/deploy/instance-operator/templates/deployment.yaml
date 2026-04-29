@@ -41,10 +41,6 @@ spec:
             - "--website-base-url={{ .Values.configurations.generic.websiteBaseUrl }}"
             - "--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}"
             - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
-            # TODO CLEANUP: remove with provisioning/containers cleanup.
-            - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
-            # TODO CLEANUP: remove with provisioning/containers cleanup.
-            - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
             # TODO CLEANUP: KEEP (container utils/content-tools).
             - "--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}"
             # TODO CLEANUP: instmetrics build-matrix entry targeted for removal; revisit endpoint usage.

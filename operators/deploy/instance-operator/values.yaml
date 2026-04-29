@@ -12,10 +12,6 @@ configurations:
     instancesAuthUrl: https://crownlabs.example.com/auth
   containerEnvironmentOptions:
     tag: ""
-    # TODO CLEANUP: remove with provisioning/containers cleanup.
-    websockifyImage: crownlabs/websockify
-    # TODO CLEANUP: remove with provisioning/containers cleanup.
-    xVncImage: crownlabs/tigervnc
     # TODO CLEANUP: KEEP (container utils/content-tools).
     contentToolsImg: crownlabs/content-tools
     # TODO CLEANUP: instmetrics build-matrix entry targeted for removal; revisit endpoint usage.

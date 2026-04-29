@@ -81,8 +81,6 @@ type MetricsScraper struct {
 // Start scraping metrics.
 func (ms *MetricsScraper) Start(ctx context.Context) {
 	ms.ignoredContainerNames = []string{
-		forge.XVncName,
-		forge.WebsockifyName,
 		forge.ContentDownloaderName,
 	}
 	ms.oldStats = map[string]*ContainerStats{}

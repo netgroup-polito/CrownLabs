@@ -33,10 +33,6 @@ import (
 )
 
 const (
-	// WebsockifyName -> name of the websockify sidecar container.
-	WebsockifyName = "websockify"
-	// XVncName -> name of the x+vnc server sidecar container.
-	XVncName = "xvnc"
 	// PersistentVolumeName -> name of the persistent volume.
 	PersistentVolumeName = "persistent"
 	// ContentDownloaderName -> name of the downloader initcontainer.
@@ -77,8 +73,6 @@ var (
 // ContainerEnvOpts contains images name and tag for container environment.
 type ContainerEnvOpts struct {
 	ImagesTag           string
-	XVncImg             string
-	WebsockifyImg       string
 	ContentToolsImg     string
 	InstMetricsEndpoint string
 }
@@ -200,43 +194,12 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	switch environment.EnvironmentType {
 	//TODO CLEANUP: ClassContainer
 	case clv1alpha2.ClassContainer:
-		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(environment, volumeMountPath, mountInfos))
+		containers = append(containers, AppContainer(environment, volumeMountPath, mountInfos))
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath, mountInfos))
 	default:
 	}
 	return containers
-}
-
-// WebsockifyContainer forges the sidecar container to proxy requests from websocket
-// to the VNC server.
-func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) corev1.Container {
-	websockifyContainer := GenericContainer(WebsockifyName, fmt.Sprintf("%s:%s", opts.WebsockifyImg, opts.ImagesTag))
-	SetContainerResources(&websockifyContainer, 0.01, 0.1, 30, 100)
-	AddEnvVariableFromFieldToContainer(&websockifyContainer, PodNameEnvName, "metadata.name")
-	AddEnvVariableFromResourcesToContainer(&websockifyContainer, AppCPULimitsEnvName, environment.Name, corev1.ResourceLimitsCPU, MilliDivisor)
-	AddEnvVariableFromResourcesToContainer(&websockifyContainer, AppMEMLimitsEnvName, environment.Name, corev1.ResourceLimitsMemory, DefaultDivisor)
-	AddTCPPortToContainer(&websockifyContainer, GUIPortName, GUIPortNumber)
-	AddTCPPortToContainer(&websockifyContainer, MetricsPortName, MetricsPortNumber)
-	AddContainerArg(&websockifyContainer, "http-addr", fmt.Sprintf(":%d", GUIPortNumber))
-	AddContainerArg(&websockifyContainer, "base-path", IngressGUICleanPath(instance, environment))
-	AddContainerArg(&websockifyContainer, "metrics-addr", fmt.Sprintf(":%d", MetricsPortNumber))
-	AddContainerArg(&websockifyContainer, "show-controls", fmt.Sprint(!environment.DisableControls))
-	AddContainerArg(&websockifyContainer, "instmetrics-server-endpoint", opts.InstMetricsEndpoint)
-	AddContainerArg(&websockifyContainer, "pod-name", fmt.Sprintf("$(%s)", PodNameEnvName))
-	AddContainerArg(&websockifyContainer, "cpu-limit", fmt.Sprintf("$(%s)", AppCPULimitsEnvName))
-	AddContainerArg(&websockifyContainer, "memory-limit", fmt.Sprintf("$(%s)", AppMEMLimitsEnvName))
-	SetContainerReadinessHTTPProbe(&websockifyContainer, GUIPortName, HealthzEndpoint)
-	return websockifyContainer
-}
-
-// XVncContainer forges the sidecar container which holds the desktop environment through a X+VNC server.
-func XVncContainer(opts *ContainerEnvOpts) corev1.Container {
-	xVncContainer := GenericContainer(XVncName, fmt.Sprintf("%s:%s", opts.XVncImg, opts.ImagesTag))
-	SetContainerResources(&xVncContainer, 0.05, 0.25, 200, 600)
-	AddTCPPortToContainer(&xVncContainer, XVncPortName, XVncPortNumber)
-	SetContainerReadinessTCPProbe(&xVncContainer, XVncPortName)
-	return xVncContainer
 }
 
 // StandaloneContainer forges the Standalone application container of the environment.
