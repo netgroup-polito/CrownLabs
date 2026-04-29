@@ -47,7 +47,7 @@ var _ = Describe("Authentication Unit", func() {
 		Context("When Keycloak actor is not initialized", func() {
 			It("should return true and no error", func() {
 				keycloakActor.EXPECT().IsInitialized().Return(false)
-				verified, _, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
+				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 			})
@@ -65,7 +65,7 @@ var _ = Describe("Authentication Unit", func() {
 					EmailVerified: gocloak.BoolP(true),
 				}, nil)
 
-				verified, _, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
+				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
 				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
@@ -81,7 +81,7 @@ var _ = Describe("Authentication Unit", func() {
 					EmailVerified: gocloak.BoolP(false),
 				}, nil)
 
-				verified, _, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
+				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeFalse())
 				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
@@ -98,7 +98,7 @@ var _ = Describe("Authentication Unit", func() {
 						Code:    500,
 					})
 
-					verified, _, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
@@ -116,7 +116,7 @@ var _ = Describe("Authentication Unit", func() {
 						}, nil),
 					)
 
-					verified, _, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
@@ -132,7 +132,7 @@ var _ = Describe("Authentication Unit", func() {
 						keycloakActor.EXPECT().CreateUser(gomock.Any(), tnName, tnResource.Spec.Email, tnResource.Spec.FirstName, tnResource.Spec.LastName).Return("", fmt.Errorf("error creating user")),
 					)
 
-					verified, _, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error creating user"))
@@ -145,7 +145,7 @@ var _ = Describe("Authentication Unit", func() {
 						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("error retrieving user")),
 					)
 
-					verified, _, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
+					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).To(HaveOccurred())
 					Expect(verified).To(BeFalse())
 					Expect(err.Error()).To(ContainSubstring("error retrieving user"))
