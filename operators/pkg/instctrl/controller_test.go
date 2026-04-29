@@ -123,7 +123,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
-				Scope:           clv1alpha2.ScopeStandard,
+				//TODO CLEANUP: ScopeStandard
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -267,6 +267,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-container-persistent"
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 					environmentList[i].Persistent = true
 				}
@@ -278,6 +279,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-container-not-persistent"
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 					environmentList[i].Persistent = false
 				}
@@ -507,6 +509,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			PodStatusIt("pod-stat-vm-p", clv1alpha2.ClassVM, true)
 		})
 		When("The instance is a container", func() {
+			//TODO CLEANUP: ClassContainer
 			PodStatusIt("pod-stat-cont", clv1alpha2.ClassContainer, true)
 		})
 	})
@@ -599,8 +602,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				// Public exposure only works with single environment templates
 				environmentList = []clv1alpha2.Environment{
 					{
-						Name:            "app-1",
-						Image:           "some-image:v0",
+						Name:  "app-1",
+						Image: "some-image:v0",
+						//TODO CLEANUP: ClassContainer
 						EnvironmentType: clv1alpha2.ClassContainer,
 						Persistent:      false,
 						GuiEnabled:      true,
@@ -693,6 +697,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				testName = "test-public-exposure-disabled"
 				runInstance = true
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 				}
 			})
@@ -731,6 +736,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				testName = "test-public-exposure-not-running"
 				runInstance = false
 				for i := range environmentList {
+					//TODO CLEANUP: ClassContainer
 					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 				}
 			})
@@ -777,8 +783,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				// Public exposure only works with single environment templates
 				environmentList = []clv1alpha2.Environment{
 					{
-						Name:            "app-1",
-						Image:           "some-image:v0",
+						Name:  "app-1",
+						Image: "some-image:v0",
+						//TODO CLEANUP: ClassContainer
 						EnvironmentType: clv1alpha2.ClassContainer,
 						Persistent:      false,
 						GuiEnabled:      true,

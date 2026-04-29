@@ -92,11 +92,13 @@ var _ = Describe("Generation of the exposition environment", func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme)
 
+		//TODO CLEANUP: ClassContainer
 		environment = clv1alpha2.Environment{Name: environmentName, EnvironmentType: clv1alpha2.ClassContainer}
 		template = clv1alpha2.Template{
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateName},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
+				//TODO CLEANUP: ScopeStandard
 				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
@@ -332,6 +334,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		Context("The environment is Container-based", func() {
 			BeforeEach(func() {
+				//TODO CLEANUP: ClassContainer
 				environment.EnvironmentType = clv1alpha2.ClassContainer
 				environment.GuiEnabled = true
 			})

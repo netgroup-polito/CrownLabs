@@ -115,10 +115,8 @@ var _ = Describe("Generation of the container based instances", func() {
 	BeforeEach(func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		containerOpts = forge.ContainerEnvOpts{
-			ImagesTag:            "v1.2.3",
-			XVncImg:              "x-vnc",
-			WebsockifyImg:        "wskfy",
-			ContentDownloaderImg: "archdownloader:v0.1.2",
+			ImagesTag:       "v1.2.3",
+			ContentToolsImg: "archdownloader:v0.1.2",
 		}
 		myDriveSecret = corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -174,6 +172,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 		environment = clv1alpha2.Environment{
 			Name:               environmentName,
+			//TODO CLEANUP: ClassContainer
 			EnvironmentType:    clv1alpha2.ClassContainer,
 			Image:              image,
 			MountMyDriveVolume: false,

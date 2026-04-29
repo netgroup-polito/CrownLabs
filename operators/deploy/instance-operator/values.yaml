@@ -12,10 +12,9 @@ configurations:
     instancesAuthUrl: https://crownlabs.example.com/auth
   containerEnvironmentOptions:
     tag: ""
-    websockifyImage: crownlabs/websockify
-    xVncImage: crownlabs/tigervnc
-    contentDownloaderImage: crownlabs/content-downloader
-    contentUploaderImage: crownlabs/content-uploader
+    # TODO CLEANUP: KEEP (container utils/content-tools).
+    contentToolsImg: crownlabs/content-tools
+    # TODO CLEANUP: instmetrics build-matrix entry targeted for removal; revisit endpoint usage.
     instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
   containerVmSnapshots:
     kanikoImage: gcr.io/kaniko-project/executor:latest
@@ -69,7 +68,6 @@ configurations:
     commonLabels: ""
     # Annotation key for specifying LoadBalancer IPs
     loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
-      
 
 image:
   repository: crownlabs/instance-operator
@@ -89,7 +87,7 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 20000

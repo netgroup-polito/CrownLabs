@@ -155,6 +155,7 @@ var _ = Describe("Ingresses", func() {
 				},
 				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
 					Annotations:    nil,
+					//TODO CLEANUP: ClassContainer
 					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
 				}),
@@ -162,6 +163,7 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
+					//TODO CLEANUP: ClassContainer
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
@@ -171,6 +173,7 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
+					//TODO CLEANUP: ClassContainer
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
@@ -259,14 +262,17 @@ var _ = Describe("Ingresses", func() {
 					Expect(forge.HostName(baseHost, c.Scope)).To(Equal(c.ExpectedOutput))
 				},
 				Entry("when the mode is Default", HostNameCase{
+					//TODO CLEANUP: ScopeStandard
 					Scope:          clv1alpha2.ScopeStandard,
 					ExpectedOutput: baseHost,
 				}),
 				Entry("when the mode is Exam", HostNameCase{
+					//TODO CLEANUP: ScopeExam
 					Scope:          clv1alpha2.ScopeExam,
 					ExpectedOutput: "exam." + baseHost,
 				}),
 				Entry("when the mode is Exercise", HostNameCase{
+					//TODO CLEANUP: ScopeExercise
 					Scope:          clv1alpha2.ScopeExercise,
 					ExpectedOutput: "exercise." + baseHost,
 				}),
@@ -309,6 +315,7 @@ var _ = Describe("Ingresses", func() {
 
 			When("EnvironmentType is not ClassStandalone", func() {
 				BeforeEach(func() {
+					//TODO CLEANUP: ClassContainer
 					environment.EnvironmentType = clv1alpha2.ClassContainer
 				})
 				Context("The instance has no special configurations", func() {

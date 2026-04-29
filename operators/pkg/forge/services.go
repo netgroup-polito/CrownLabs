@@ -28,8 +28,6 @@ const (
 	GUIPortNumber = 6080
 	// MyDrivePortNumber -> the port the "MyDrive" service is exposed to.
 	MyDrivePortNumber = 8080
-	// XVncPortNumber -> the port in the container in which the X server is accessible through VNC.
-	XVncPortNumber = 5900
 	// MetricsPortNumber -> the port in the container in which the metrics server is accessible.
 	MetricsPortNumber = 9090
 
@@ -39,8 +37,6 @@ const (
 	GUIPortName = "gui"
 	// MyDrivePortName -> the name of the port the "MyDrive" service is exposed to.
 	MyDrivePortName = "mydrive"
-	// XVncPortName -> the name of the port through which the X server is accessible through VNC.
-	XVncPortName = "xvnc"
 	// MetricsPortName -> the name of the port through which the metrics are exposed.
 	MetricsPortName = "metrics"
 )
@@ -61,11 +57,14 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 	}
 
 	// Add the "MyDrive" port only if the environment is a container or standalone.
+	//TODO CLEANUP: ClassContainer
+	//TODO CLEANUP: ScopeStandard
 	if (environment.EnvironmentType == clv1alpha2.ClassStandalone || environment.EnvironmentType == clv1alpha2.ClassContainer) && template.Spec.Scope == clv1alpha2.ScopeStandard {
 		ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
 	}
 
 	// Add the Metrics port only for container
+	//TODO CLEANUP: ClassContainer
 	if environment.EnvironmentType == clv1alpha2.ClassContainer {
 		ports = append(ports, serviceSpecTCPPort(MetricsPortName, MetricsPortNumber))
 	}

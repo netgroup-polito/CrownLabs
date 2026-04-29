@@ -299,6 +299,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				urlNeeded = true
 			}
 
+		//TODO CLEANUP: ClassContainer
 		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)

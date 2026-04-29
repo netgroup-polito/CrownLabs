@@ -37,6 +37,7 @@ func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context) error {
 	template := clctx.TemplateFrom(ctx)
 
 	// Enforce the cloud-init secret when environment is not restricted
+	//TODO CLEANUP: ScopeStandard
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		if err := r.EnforceCloudInitSecret(ctx); err != nil {
 			log.Error(err, "failed to enforce the cloud-init secret existence")

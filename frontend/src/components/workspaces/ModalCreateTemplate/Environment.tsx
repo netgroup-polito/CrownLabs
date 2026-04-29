@@ -563,6 +563,7 @@ const ContainerAlert = () => {
   return (
     <p>
       Must be compliant with{' '}
+      {/* TODO CLEANUP: provisioning/containers path will be removed (keep only utils/content-tools). */}
       <a
         href="https://github.com/netgroup-polito/CrownLabs/tree/master/provisioning/containers"
         target="_blank"

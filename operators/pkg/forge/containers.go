@@ -33,10 +33,6 @@ import (
 )
 
 const (
-	// WebsockifyName -> name of the websockify sidecar container.
-	WebsockifyName = "websockify"
-	// XVncName -> name of the x+vnc server sidecar container.
-	XVncName = "xvnc"
 	// PersistentVolumeName -> name of the persistent volume.
 	PersistentVolumeName = "persistent"
 	// ContentDownloaderName -> name of the downloader initcontainer.
@@ -76,12 +72,9 @@ var (
 
 // ContainerEnvOpts contains images name and tag for container environment.
 type ContainerEnvOpts struct {
-	ImagesTag            string
-	XVncImg              string
-	WebsockifyImg        string
-	ContentDownloaderImg string
-	ContentUploaderImg   string
-	InstMetricsEndpoint  string
+	ImagesTag           string
+	ContentToolsImg     string
+	InstMetricsEndpoint string
 }
 
 // PVCSpec forges a PersistentVolumeClaimSpec with the passed arguments.
@@ -199,44 +192,14 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 	var containers []corev1.Container
 	volumeMountPath := PersistentMountPath(environment)
 	switch environment.EnvironmentType {
+	//TODO CLEANUP: ClassContainer
 	case clv1alpha2.ClassContainer:
-		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(environment, volumeMountPath, mountInfos))
+		containers = append(containers, AppContainer(environment, volumeMountPath, mountInfos))
 	case clv1alpha2.ClassStandalone:
 		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath, mountInfos))
 	default:
 	}
 	return containers
-}
-
-// WebsockifyContainer forges the sidecar container to proxy requests from websocket
-// to the VNC server.
-func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) corev1.Container {
-	websockifyContainer := GenericContainer(WebsockifyName, fmt.Sprintf("%s:%s", opts.WebsockifyImg, opts.ImagesTag))
-	SetContainerResources(&websockifyContainer, 0.01, 0.1, 30, 100)
-	AddEnvVariableFromFieldToContainer(&websockifyContainer, PodNameEnvName, "metadata.name")
-	AddEnvVariableFromResourcesToContainer(&websockifyContainer, AppCPULimitsEnvName, environment.Name, corev1.ResourceLimitsCPU, MilliDivisor)
-	AddEnvVariableFromResourcesToContainer(&websockifyContainer, AppMEMLimitsEnvName, environment.Name, corev1.ResourceLimitsMemory, DefaultDivisor)
-	AddTCPPortToContainer(&websockifyContainer, GUIPortName, GUIPortNumber)
-	AddTCPPortToContainer(&websockifyContainer, MetricsPortName, MetricsPortNumber)
-	AddContainerArg(&websockifyContainer, "http-addr", fmt.Sprintf(":%d", GUIPortNumber))
-	AddContainerArg(&websockifyContainer, "base-path", IngressGUICleanPath(instance, environment))
-	AddContainerArg(&websockifyContainer, "metrics-addr", fmt.Sprintf(":%d", MetricsPortNumber))
-	AddContainerArg(&websockifyContainer, "show-controls", fmt.Sprint(!environment.DisableControls))
-	AddContainerArg(&websockifyContainer, "instmetrics-server-endpoint", opts.InstMetricsEndpoint)
-	AddContainerArg(&websockifyContainer, "pod-name", fmt.Sprintf("$(%s)", PodNameEnvName))
-	AddContainerArg(&websockifyContainer, "cpu-limit", fmt.Sprintf("$(%s)", AppCPULimitsEnvName))
-	AddContainerArg(&websockifyContainer, "memory-limit", fmt.Sprintf("$(%s)", AppMEMLimitsEnvName))
-	SetContainerReadinessHTTPProbe(&websockifyContainer, GUIPortName, HealthzEndpoint)
-	return websockifyContainer
-}
-
-// XVncContainer forges the sidecar container which holds the desktop environment through a X+VNC server.
-func XVncContainer(opts *ContainerEnvOpts) corev1.Container {
-	xVncContainer := GenericContainer(XVncName, fmt.Sprintf("%s:%s", opts.XVncImg, opts.ImagesTag))
-	SetContainerResources(&xVncContainer, 0.05, 0.25, 200, 600)
-	AddTCPPortToContainer(&xVncContainer, XVncPortName, XVncPortNumber)
-	SetContainerReadinessTCPProbe(&xVncContainer, XVncPortName)
-	return xVncContainer
 }
 
 // StandaloneContainer forges the Standalone application container of the environment.
@@ -267,7 +230,7 @@ func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string, m
 		AddContainerVolumeMount(&appContainer, mountInfo.VolumeName, mountInfo.MountPath)
 	}
 	if environment.ContainerStartupOptions != nil {
-		appContainer.Args = environment.ContainerStartupOptions.StartupArgs
+		SetContainerArgs(&appContainer, environment.ContainerStartupOptions.StartupArgs...)
 		if environment.ContainerStartupOptions.EnforceWorkdir {
 			appContainer.WorkingDir = PersistentMountPath(environment)
 		}
@@ -285,9 +248,9 @@ func InitContainers(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 
 // ContentDownloaderInitContainer forges a Container to be used as initContainer for downloading and decompressing an archive file into the <MyDriveName> volume.
 func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOpts) corev1.Container {
-	contentDownloader := GenericContainer(ContentDownloaderName, fmt.Sprintf("%s:%s", ceOpts.ContentDownloaderImg, ceOpts.ImagesTag))
+	contentDownloader := GenericContainer(ContentDownloaderName, fmt.Sprintf("%s:%s", ceOpts.ContentToolsImg, ceOpts.ImagesTag))
 	SetContainerResources(&contentDownloader, 0.5, 1, 256, 1024)
-	// MyDriveDefaultMountPath as mount point ensures a fixed path just for the download, it will likely be different in the application container
+	SetContainerArgs(&contentDownloader, "download")
 	AddContainerVolumeMount(&contentDownloader, PersistentVolumeName, PersistentDefaultMountPath)
 	AddEnvVariableToContainer(&contentDownloader, "SOURCE_ARCHIVE", contentOrigin)
 	AddEnvVariableToContainer(&contentDownloader, "DESTINATION_PATH", PersistentDefaultMountPath)
@@ -296,7 +259,8 @@ func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOp
 
 // ContentUploaderJobContainer forges a Container to be used within a Job to compress and upload an archive file from the <MyDriveName> volume.
 func ContentUploaderJobContainer(contentDestination, filename string, ceOpts *ContainerEnvOpts) corev1.Container {
-	contentUploader := GenericContainer(ContentUploaderName, fmt.Sprintf("%s:%s", ceOpts.ContentUploaderImg, ceOpts.ImagesTag))
+	contentUploader := GenericContainer(ContentUploaderName, fmt.Sprintf("%s:%s", ceOpts.ContentToolsImg, ceOpts.ImagesTag))
+	SetContainerArgs(&contentUploader, "upload")
 	SetContainerResources(&contentUploader, 0.5, 1, 256, 1024)
 	AddContainerVolumeMount(&contentUploader, PersistentVolumeName, PersistentDefaultMountPath)
 	AddEnvVariableToContainer(&contentUploader, "SOURCE_PATH", PersistentDefaultMountPath)
@@ -441,6 +405,11 @@ func SetContainerResourcesFromEnvironment(c *corev1.Container, env *clv1alpha2.E
 	}
 }
 
+// SetContainerArgs sets the given container's arguments
+func SetContainerArgs(c *corev1.Container, args ...string) {
+	c.Args = args
+}
+
 // ContainerVolumes forges the list of volumes for the deployment spec, possibly returning an empty
 // list in case the environment is not standard and not persistent.
 func ContainerVolumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo) []corev1.Volume {
@@ -517,6 +486,7 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 // InstanceHostname forges the hostname of the instance:
 // empty for standard mode (will use pod name) or the lowercase mode otherwise.
 func InstanceHostname(template *clv1alpha2.Template) string {
+	//TODO CLEANUP: ScopeStandard
 	if template.Spec.Scope != clv1alpha2.ScopeStandard {
 		return strings.ToLower(string(template.Spec.Scope))
 	}

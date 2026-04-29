@@ -99,10 +99,13 @@ func IngressAuthenticationAnnotations(annotations map[string]string, instancesAu
 // HostName returns the hostname based on the given EnvironmentScope.
 func HostName(baseHostName string, scope clv1alpha2.EnvironmentScope) string {
 	switch scope {
+	//TODO CLEANUP: ScopeStandard
 	case clv1alpha2.ScopeStandard:
 		return baseHostName
+	//TODO CLEANUP: ScopeExam
 	case clv1alpha2.ScopeExam:
 		return "exam." + baseHostName
+	//TODO CLEANUP: ScopeExercise
 	case clv1alpha2.ScopeExercise:
 		return "exercise." + baseHostName
 	}
@@ -118,6 +121,7 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", IngressInstancePrefix, instance.UID, environment.Name)
 		}
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
+	//TODO CLEANUP: ClassContainer
 	case clv1alpha2.ClassContainer:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
