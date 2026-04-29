@@ -29,14 +29,14 @@ import (
 
 // RegistryConfig contains the configuration for a single registry endpoint.
 type RegistryConfig struct {
-	Name          string `yaml:"name" json:"name"`
-	Type          string `yaml:"type" json:"type"`
-	URL           string `yaml:"url" json:"url"`
-	Advertised    string `yaml:"advertised" json:"advertised"`
-	Username      string `yaml:"username" json:"username"`
-	Password      string `yaml:"password" json:"password"`
-	ImageListName string `yaml:"imageListName" json:"imageListName"`
-	Project       string `yaml:"project" json:"project"`
+	Name          string `json:"name"`
+	Type          string `json:"type"`
+	URL           string `json:"url"`
+	Advertised    string `json:"advertised"`
+	Username      string `json:"username"`
+	Password      string `json:"password"`
+	ImageListName string `json:"imageListName"`
+	Project       string `json:"project,omitempty"` // Only for Harbor
 }
 
 // UpdateResult represents the result of updating a single image list.
@@ -52,7 +52,7 @@ type UpdaterOptions struct {
 	Interval       int // interval in seconds
 }
 
-// updater manages periodic image list updates
+// updater manages periodic image list updates.
 type updater struct {
 	k8sClient client.Client
 	log       logr.Logger
@@ -106,7 +106,7 @@ func Update(ctx context.Context) error {
 	return globalUpdater.update(ctx)
 }
 
-// update executes the update logic with mutex protection
+// update executes the update logic with mutex protection.
 func (u *updater) update(ctx context.Context) error {
 	log := u.log
 

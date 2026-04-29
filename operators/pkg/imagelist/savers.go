@@ -22,10 +22,10 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 // Saver defines the interface for objects responsible for saving image lists to Kubernetes resources.
@@ -73,13 +73,10 @@ func (s *DefaultImageListSaver) UpdateImageList(registryName string, images []cl
 
 // getImageListResourceVersion retrieves the resource version of the existing ImageList resource, or empty string if not found.
 func (s *DefaultImageListSaver) getImageListResourceVersion() (string, error) {
-	imageList := &clv1alpha1.ImageList{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: s.name,
-		},
-	}
+	imageList := &clv1alpha1.ImageList{}
 
-	key := forge.NamespacedNameImageList(imageList)
+	// ImageList is cluster-wide, so no namespace is needed
+	key := types.NamespacedName{Name: s.name}
 	err := s.client.Get(s.ctx, key, imageList)
 
 	if err != nil {

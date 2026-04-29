@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: registry-configuration-image-list-update
+  name: image-lists-sources
   namespace: {{ .Release.Namespace }}
   labels:
     {{- include "operator.labels" . | nindent 4 }}

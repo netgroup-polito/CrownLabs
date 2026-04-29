@@ -14,7 +14,7 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "patch", "delete", "deletecollection"]
   
 - apiGroups: [""]
-  resources: ["namespaces", "resourcequotas", "limitranges", "secrets", "configmaps"]
+  resources: ["namespaces", "resourcequotas", "limitranges", "secrets"]
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
 - apiGroups: [""]

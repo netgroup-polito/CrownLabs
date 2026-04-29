@@ -19,7 +19,7 @@ import (
 	"time"
 )
 
-// StartScheduler starts the periodic image list update scheduler
+// StartScheduler starts the periodic image list update scheduler.
 func StartScheduler(ctx context.Context) {
 	if globalUpdater == nil {
 		globalUpdater.log.Error(nil, "image list updater not initialized, cannot start scheduler")

@@ -107,7 +107,8 @@ spec:
           secretName: {{ include "operator.webhookname" . }}
       - name: image-list-config
         configMap:
-          name: registry-configuration-image-list-update
+          optional: true
+          name: image-lists-sources
           items:
             - key: registries
               path: registries.yaml

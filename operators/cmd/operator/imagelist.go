@@ -17,69 +17,34 @@ package main
 import (
 	"context"
 	"flag"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
-
-	"k8s.io/klog/v2"
-	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+	"k8s.io/klog/v2"
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
-// StartImageListStandalone starts the image list updater as a standalone component
-// This function can be used to run image-list independently from the main operator
-func StartImageListStandalone() {
-	var configFile string
-	var updateInterval int
+var (
+	imageListConfigFile     string
+	imageListUpdateInterval int
+)
 
-	flag.StringVar(&configFile, "config-file", "/etc/config/registries.yaml", "Path to the registries configuration file")
-	flag.IntVar(&updateInterval, "interval", 60, "Update interval in seconds")
+func init() {
+	flag.StringVar(&imageListConfigFile, "image-list-config-file", "/etc/config/registries.yaml", "Path to the image list registries configuration file")
+	flag.IntVar(&imageListUpdateInterval, "image-list-update-interval", 300, "Image list update interval in seconds")
+}
 
-	klog.InitFlags(nil)
-	flag.Parse()
-
-	ctrl.SetLogger(klog.NewKlogr())
-	log := ctrl.Log.WithName("imagelist")
-
-	k8sClient, err := utils.NewK8sClient()
-	if err != nil {
-		log.Error(err, "unable to prepare k8s client")
-		os.Exit(1)
-	}
-
+func setupImageList(mgr manager.Manager, log klog.Logger) error {
 	// Initialize the image list updater
-	if err := imagelist.Initialize(k8sClient, log, imagelist.UpdaterOptions{
-		ConfigFilePath: configFile,
-		Interval:       updateInterval,
+	if err := imagelist.Initialize(mgr.GetClient(), log.WithName("imagelist"), imagelist.UpdaterOptions{
+		ConfigFilePath: imageListConfigFile,
+		Interval:       imageListUpdateInterval,
 	}); err != nil {
-		log.Error(err, "failed to initialize image list updater")
-		os.Exit(1)
+		return err
 	}
 
-	// Create context with signal handling
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Setup signal handling for graceful shutdown
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGTERM, syscall.SIGINT)
-
-	// Start the scheduler in a goroutine
-	go imagelist.StartScheduler(ctx)
-
-	// Wait for shutdown signal
-	sig := <-sigChan
-	log.Info("received signal, shutting down", "signal", sig)
-
-	// Give scheduler time to shut down gracefully
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer shutdownCancel()
-
-	cancel()
-	<-shutdownCtx.Done()
-
-	log.Info("image list updater shut down successfully")
+	// Add the image list scheduler as a runnable to the manager
+	return mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		imagelist.StartScheduler(ctx)
+		return nil
+	}))
 }
