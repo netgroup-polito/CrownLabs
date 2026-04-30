@@ -3782,7 +3782,7 @@ export type TenantsQueryVariables = Exact<{
 }>;
 
 
-export type TenantsQuery = { __typename?: 'Query', tenants?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null> } | null };
+export type TenantsQuery = { __typename?: 'Query', tenants?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null> } | null };
 
 export type WorkspaceQueryVariables = Exact<{
   name: Scalars['String']['input'];
@@ -5288,11 +5288,14 @@ export const TenantsDocument = gql`
     items {
       metadata {
         name
+        creationTimestamp
+        labels
       }
       spec {
         firstName
         lastName
         email
+        lastLogin
         workspaces @include(if: $retrieveWorkspaces) {
           role
           name
