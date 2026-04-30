@@ -1,0 +1,22 @@
+{{- if .Values.gatewayAPI.enabled }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: {{ .Values.gatewayAPI.name }}
+  {{- with .Values.gatewayAPI.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  gatewayClassName: {{ .Values.gatewayAPI.class}}
+  listeners:
+    - name: {{ .Values.gatewayAPI.listenerName }}
+      protocol: HTTPS
+      port: 443
+      hostname: {{ .Values.gatewayAPI.hostname }}
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: {{ .Values.gatewayAPI.tls.certificateRefName }}
+{{- end }}

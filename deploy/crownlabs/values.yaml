@@ -11,7 +11,15 @@ frontend-app:
   replicaCount: 1
   image:
     repository: crownlabs/frontend-app
+  gatewayApiMode: false
   ingress:
+    hostname: crownlabs.example.com
+    path: /
+  httproute:
+    gateway:
+      name: crownlabs-gw
+      namespace: envoy-gateway-system
+      sectionName: https
     hostname: crownlabs.example.com
     path: /
   configuration:
@@ -259,6 +267,22 @@ image-list:
     advRegistryName: registry.crownlabs.example.com
     imageListName: crownlabs-virtual-machine-images
     updateInterval: 60
+
+# Gateway API core resources are rendered when gatewayAPI.enabled=true.
+# Application migration (Ingress vs HTTPRoute) remains controlled per app.
+gatewayAPI:
+  enabled: true
+  name: crownlabs-gw
+  class: cilium
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  listenerName: https
+  hostname: crownlabs.example.com
+  tls:
+    certificateRefName: crownlabs-certificate
+  allowedRoutes:
+    namespaceSelectorLabel: crownlabs.polito.it/gateway-route
+    namespaceSelectorValue: "true"
 
 exam-agent:
   replicaCount: 1
