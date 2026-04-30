@@ -161,6 +161,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment mode is Standard", func() {
 		BeforeEach(func() {
+			//TODO CLEANUP: ScopeStandard
 			template.Spec.Scope = clv1alpha2.ScopeStandard
 		})
 		It("Should enforce the cloud-init secret", func() {
@@ -171,6 +172,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment mode is Exam", func() {
 		BeforeEach(func() {
+			//TODO CLEANUP: ScopeExam
 			template.Spec.Scope = clv1alpha2.ScopeExam
 		})
 		It("Should not enforce the cloud-init secret", func() {
@@ -183,6 +185,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment mode is Exercise", func() {
 		BeforeEach(func() {
+			//TODO CLEANUP: ScopeExercise
 			template.Spec.Scope = clv1alpha2.ScopeExercise
 		})
 		It("Should not enforce the cloud-init secret", func() {

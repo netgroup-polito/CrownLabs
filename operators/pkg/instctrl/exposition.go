@@ -64,6 +64,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		}
 
 		labels := forge.EnvironmentObjectLabels(service.GetLabels(), instance, environment)
+		//TODO CLEANUP: ClassContainer
 		if environment.EnvironmentType == clv1alpha2.ClassContainer {
 			labels = forge.MonitorableServiceLabels(labels)
 		}
@@ -99,6 +100,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
 
+		//TODO CLEANUP: ScopeStandard
 		if template.Spec.Scope == clv1alpha2.ScopeStandard {
 			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
 		}

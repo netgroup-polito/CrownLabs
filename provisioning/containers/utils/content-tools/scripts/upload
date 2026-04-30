@@ -1,16 +1,16 @@
 #!/bin/bash -e
 
-if [ -z "$SOURCE_PATH"  ]; then
+if [ -z "$SOURCE_PATH" ]; then
   echo "Missing source env variable SOURCE_PATH"
   exit 1
 fi
 
-if [ -z "$DESTINATION_URL"  ]; then
+if [ -z "$DESTINATION_URL" ]; then
   echo "Missing destination env variable DESTINATION_URL"
   exit 1
 fi
 
-if [ -z "$FILENAME"  ]; then
+if [ -z "$FILENAME" ]; then
   echo "Missing destination env variable FILENAME"
   exit 1
 fi
@@ -24,8 +24,9 @@ HTTP_CODE=$(curl -v --request POST -o /tmp/response --form "binfile=@\"/tmp/$FIL
 
 if [ -f "/tmp/response" ]; then
   echo "Response:"
-  cat "/tmp/response"
-else 
+  RESPONSE_CONTENT="$(</tmp/response)"
+  echo "$RESPONSE_CONTENT"
+else
   echo "No response"
 fi
 

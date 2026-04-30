@@ -75,8 +75,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		createTemplate = true
 		environmentList = []clv1alpha2.Environment{
 			{
-				Name:            "app-1",
-				Image:           "some-image:v0",
+				Name:  "app-1",
+				Image: "some-image:v0",
+				// TODO CLEANUP: ClassStandalone
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				Persistent:      false,
 				GuiEnabled:      true,
@@ -88,8 +89,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				},
 			},
 			{
-				Name:            "dev-1",
-				Image:           "some-image-dev:v1",
+				Name:  "dev-1",
+				Image: "some-image-dev:v1",
+				// TODO CLEANUP: ClassStandalone
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				Persistent:      true,
 				GuiEnabled:      true,
@@ -123,7 +125,8 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
-				Scope:           clv1alpha2.ScopeStandard,
+				// TODO CLEANUP: ScopeStandard
+				Scope: clv1alpha2.ScopeStandard,
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -241,6 +244,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-persistent"
 				for i := range environmentList {
+					// TODO CLEANUP: ClassStandalone
 					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 					environmentList[i].Persistent = true
 				}
@@ -253,6 +257,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			BeforeEach(func() {
 				testName = "test-standalone-not-persistent"
 				for i := range environmentList {
+					// TODO CLEANUP: ClassStandalone
 					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 					environmentList[i].Persistent = false
 				}
@@ -262,30 +267,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		})
 	})
 
-	Context("The instance is container based", func() {
-		When("the environment is persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = true
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-		When("the environment is NOT persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-not-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = false
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-	})
+	// TODO CHECK CLEANUP: The following context is not relevant anymore since container-based environments are not supported anymore, and the test is not really meaningful since it only checks that the controller doesn't create exposition resources for unsupported environment types.
 
 	Context("The instance is VM based", func() {
 		When("the environment is persistent", func() {
@@ -777,9 +759,10 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				// Public exposure only works with single environment templates
 				environmentList = []clv1alpha2.Environment{
 					{
-						Name:            "app-1",
-						Image:           "some-image:v0",
-						EnvironmentType: clv1alpha2.ClassContainer,
+						Name:  "app-1",
+						Image: "some-image:v0",
+						// TODO CLEANUP: ClassStandalone
+						EnvironmentType: clv1alpha2.ClassStandalone,
 						Persistent:      false,
 						GuiEnabled:      true,
 						Resources: clv1alpha2.EnvironmentResources{

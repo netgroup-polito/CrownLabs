@@ -9,6 +9,7 @@ sig/operations:
 
 sig/user-environment:
   - provisioning/virtual-machines/**/*
+  # TODO CLEANUP: remove provisioning/containers/**/* (keep only provisioning/containers/utils)
   - provisioning/containers/**/*
 
 sig/devops:

@@ -60,6 +60,7 @@ dependencies:
   repository: file://../../operators/deploy/exam-agent
   condition: exam-agent.enabled
 
+# TODO CLEANUP: instmetrics build-matrix entry targeted for removal; verify chart dependency usage before deleting component.
 - name: instmetrics
   version: "0.1.0"
   repository: file://../../operators/deploy/instmetrics

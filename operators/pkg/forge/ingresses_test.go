@@ -88,6 +88,7 @@ var _ = Describe("Ingresses", func() {
 			Environment    clv1alpha2.Environment
 		}
 
+		//TODO CLEANUP: ClassStandalone
 		When("EnvironmentType is ClassStandalone", func() {
 
 			DescribeTable("Correctly populates the annotations set",
@@ -96,11 +97,13 @@ var _ = Describe("Ingresses", func() {
 				},
 				Entry("When the input annotations map is nil and RewriteURL false", InstanceGUIAnnotationsCase{
 					Annotations:    nil,
+					//TODO CLEANUP: ClassStandalone
 					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
 				}),
 				Entry("When the input annotations map is nil and RewriteURL true", InstanceGUIAnnotationsCase{
 					Annotations: nil,
+					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
@@ -110,6 +113,7 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
+					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
@@ -119,6 +123,7 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
+					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
@@ -129,6 +134,7 @@ var _ = Describe("Ingresses", func() {
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
 						"user/key": "user/value",
 					}, "3600"),
+					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
@@ -139,6 +145,7 @@ var _ = Describe("Ingresses", func() {
 					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
 						"user/key": "user/value",
 					}, "3600"),
+					//TODO CLEANUP: ClassStandalone
 					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true},
 					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
 						"nginx.ingress.kubernetes.io/rewrite-target": "/$2",
@@ -148,36 +155,7 @@ var _ = Describe("Ingresses", func() {
 			)
 		})
 
-		When("EnvironmentType is not ClassStandalone", func() {
-			DescribeTable("Correctly populates the annotations set",
-				func(c InstanceGUIAnnotationsCase) {
-					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
-				},
-				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
-					Annotations:    nil,
-					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
-				}),
-				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
-					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-				}),
-				Entry("When the input labels map contains only part of the expected values", InstanceGUIAnnotationsCase{
-					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-				}),
-			)
-		})
+		//TODO CHECK CLEANUP classContainer: Test was referring to classContainer that doesn't exist anymore.
 	})
 
 	Describe("The forge.IngressAuthenticationAnnotations function", func() {
@@ -259,14 +237,17 @@ var _ = Describe("Ingresses", func() {
 					Expect(forge.HostName(baseHost, c.Scope)).To(Equal(c.ExpectedOutput))
 				},
 				Entry("when the mode is Default", HostNameCase{
+					//TODO CLEANUP: ScopeStandard
 					Scope:          clv1alpha2.ScopeStandard,
 					ExpectedOutput: baseHost,
 				}),
 				Entry("when the mode is Exam", HostNameCase{
+					//TODO CLEANUP: ScopeExam
 					Scope:          clv1alpha2.ScopeExam,
 					ExpectedOutput: "exam." + baseHost,
 				}),
 				Entry("when the mode is Exercise", HostNameCase{
+					//TODO CLEANUP: ScopeExercise
 					Scope:          clv1alpha2.ScopeExercise,
 					ExpectedOutput: "exercise." + baseHost,
 				}),
@@ -281,8 +262,10 @@ var _ = Describe("Ingresses", func() {
 			JustBeforeEach(func() {
 				path = forge.IngressGUIPath(&instance, &environment)
 			})
+			//TODO CLEANUP: ClassStandalone
 			When("EnvironmentType is ClassStandalone", func() {
 				BeforeEach(func() {
+					//TODO CLEANUP: ClassStandalone
 					environment.EnvironmentType = clv1alpha2.ClassStandalone
 				})
 				When("Rewrite is true", func() {
@@ -307,17 +290,7 @@ var _ = Describe("Ingresses", func() {
 				})
 			})
 
-			When("EnvironmentType is not ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassContainer
-				})
-				Context("The instance has no special configurations", func() {
-					It("Should generate a path based on the instance UID", func() {
-						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
-					})
-				})
-			})
-
+			//TODO CHECK CLEANUP classContain: classContainer doesn't exist anymore, thohugh it doesn't make sense to have a test on it since the forge.ClassContainer function doesn't exist anymore as well
 		})
 
 		Describe("The forge.IngressGuiStatusURL function", func() {

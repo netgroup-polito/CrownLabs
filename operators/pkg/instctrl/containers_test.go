@@ -118,7 +118,7 @@ var _ = Describe("Generation of the container based instances", func() {
 			ImagesTag:            "v1.2.3",
 			XVncImg:              "x-vnc",
 			WebsockifyImg:        "wskfy",
-			ContentDownloaderImg: "archdownloader:v0.1.2",
+			ContentToolsImg: "archdownloader:v0.1.2",
 		}
 		myDriveSecret = corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
