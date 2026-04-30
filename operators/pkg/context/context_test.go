@@ -12,15 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package context
+package clcontext
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -147,6 +149,28 @@ var _ = Describe("CrownLabs Context Objects", func() {
 
 			It("EnvironmentFrom should retrieve the same Template object", func() {
 				Expect(EnvironmentFrom(ctx)).To(BeIdenticalTo(&environment))
+			})
+		})
+	})
+
+	Describe("The context.VolumeMountInfosInto/VolumeMountInfosFrom methods", func() {
+		When("storing volume mounts in the context and retrieving it", func() {
+			var mountInfos []corev1.VolumeMount
+
+			BeforeEach(func() {
+				mountInfos = []corev1.VolumeMount{{
+					Name:      fmt.Sprintf("%s-drive", "tester"),
+					MountPath: "/mnt/test",
+					ReadOnly:  false,
+				}}
+			})
+
+			JustBeforeEach(func() {
+				ctx = VolumeMountInfosInto(ctx, mountInfos)
+			})
+
+			It("VolumeMountInfosFrom should retrieve the same VolumeMount array", func() {
+				Expect(VolumeMountInfosFrom(ctx)).To(ContainElements(mountInfos))
 			})
 		})
 	})

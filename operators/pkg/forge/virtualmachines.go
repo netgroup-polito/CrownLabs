@@ -51,11 +51,11 @@ var (
 
 // VirtualMachineSpec forges the specification of a Kubevirt VirtualMachine object
 // representing the definition of the VM corresponding to a persistent CrownLabs environment.
-func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineSpec {
+func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.VirtualMachineSpec {
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
-			Spec:       VirtualMachineInstanceSpec(instance, template, environment),
+			Spec:       VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},
 		DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
 			DataVolumeTemplate(NamespacedNameWithSuffix(instance, environment.Name).Name, environment),
@@ -65,10 +65,10 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Temp
 
 // VirtualMachineInstanceSpec forges the specification of a Kubevirt VirtualMachineInstance
 // object representing the definition of the VMI corresponding to a non-persistent CrownLabs Environment.
-func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineInstanceSpec {
+func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.VirtualMachineInstanceSpec {
 	return virtv1.VirtualMachineInstanceSpec{
-		Domain:                        VirtualMachineDomain(environment, template),
-		Volumes:                       Volumes(instance, environment, template),
+		Domain:                        VirtualMachineDomain(environment, template, mountInfos),
+		Volumes:                       Volumes(instance, environment, template, mountInfos),
 		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
 		TerminationGracePeriodSeconds: ptr.To[int64](terminationGracePeriod),
@@ -78,26 +78,52 @@ func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alp
 
 // VirtualMachineDomain forges the specification of the domain of a Kubevirt VirtualMachineInstance
 // object representing the definition of the VM corresponding to a given CrownLabs Environment.
-func VirtualMachineDomain(environment *clv1alpha2.Environment, template *clv1alpha2.Template) virtv1.DomainSpec {
+func VirtualMachineDomain(environment *clv1alpha2.Environment, template *clv1alpha2.Template, mountInfos []corev1.VolumeMount) virtv1.DomainSpec {
 	return virtv1.DomainSpec{
 		CPU:       &virtv1.CPU{Cores: environment.Resources.CPU},
 		Memory:    &virtv1.Memory{Guest: &environment.Resources.Memory},
 		Resources: VirtualMachineResources(environment),
 		Devices: virtv1.Devices{
-			Disks:      VolumeDiskTargets(environment, template),
-			Interfaces: []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
+			Disks:       VolumeDiskTargets(environment, template),
+			Filesystems: VirtualMachineFilesystems(mountInfos),
+			Interfaces:  []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
 		},
 	}
 }
 
 // Volumes forges the array of volumes to be mounted onto the VMI specification.
-func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, template *clv1alpha2.Template) []virtv1.Volume {
+func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, template *clv1alpha2.Template, mountInfos []corev1.VolumeMount) []virtv1.Volume {
 	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
 	// Attach cloudinit volume on non-restricted environments
 	if template.Spec.Scope == clv1alpha2.ScopeStandard {
 		volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
 	}
+	volumes = append(volumes, AttachableVolumes(mountInfos)...)
 	return volumes
+}
+
+// AttachableVolumes forges the array of attachable volumes (MyDrive, SharedVolumes) to be mounted onto the VMI specification.
+func AttachableVolumes(mountInfos []corev1.VolumeMount) []virtv1.Volume {
+	volumes := []virtv1.Volume{}
+	for _, mount := range mountInfos {
+		volumes = append(volumes, VolumePVC(&mount))
+	}
+	return volumes
+}
+
+// VolumePVC forges the specification of an external volume (MyDrive, SharedVolume) to be mounted through PVC.
+func VolumePVC(mount *corev1.VolumeMount) virtv1.Volume {
+	return virtv1.Volume{
+		Name: mount.Name,
+		VolumeSource: virtv1.VolumeSource{
+			PersistentVolumeClaim: &virtv1.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mount.Name,
+					ReadOnly:  mount.ReadOnly,
+				},
+			},
+		},
+	}
 }
 
 // VolumeRootDisk forges the specification of the root volume, either ephemeral or persistent based on
@@ -167,6 +193,19 @@ func VolumeDiskTarget(name string) virtv1.Disk {
 			},
 		},
 	}
+}
+
+// VirtualMachineFilesystems forges the array of filesystems to be attached to the VM.
+func VirtualMachineFilesystems(mountInfos []corev1.VolumeMount) []virtv1.Filesystem {
+	fss := []virtv1.Filesystem{}
+
+	for _, mount := range mountInfos {
+		fss = append(fss, virtv1.Filesystem{
+			Name:     mount.Name,
+			Virtiofs: &virtv1.FilesystemVirtiofs{},
+		})
+	}
+	return fss
 }
 
 // VirtualMachineResources forges the resource requirements for a given VM environment.

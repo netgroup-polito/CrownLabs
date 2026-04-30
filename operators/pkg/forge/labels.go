@@ -83,6 +83,8 @@ const (
 
 	// VolumeTypeValueShVol -> Value of the label for PVC which has been created by a Shared Volume.
 	VolumeTypeValueShVol = "sharedvolume"
+	// VolumeTypeValueMirror -> Value of the label for PVC which has been created to mirror another PVC.
+	VolumeTypeValueMirror = "mirror"
 
 	labelFirstNameKey = "crownlabs.polito.it/first-name"
 	labelLastNameKey  = "crownlabs.polito.it/last-name"

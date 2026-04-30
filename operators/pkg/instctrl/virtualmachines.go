@@ -66,6 +66,7 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
+	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
 	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
@@ -83,7 +84,7 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 		// VirtualMachine specifications are forged only at creation time, as changing them later may be
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
 		if vm.CreationTimestamp.IsZero() {
-			vm.Spec = forge.VirtualMachineSpec(instance, template, environment)
+			vm.Spec = forge.VirtualMachineSpec(instance, template, environment, mountInfos)
 		}
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)
@@ -120,6 +121,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
+	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
 	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	var phase clv1alpha2.EnvironmentPhase
@@ -132,7 +134,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 			// VirtualMachineInstance specifications are forged only at creation time, as changing them later may be
 			// either rejected by the webhook or cause the restart of the VMI itself, with consequent data loss.
 			if vmi.CreationTimestamp.IsZero() {
-				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment)
+				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment, mountInfos)
 			}
 			vmi.SetLabels(forge.EnvironmentObjectLabels(vmi.GetLabels(), instance, environment))
 			return ctrl.SetControllerReference(instance, &vmi, r.Scheme)

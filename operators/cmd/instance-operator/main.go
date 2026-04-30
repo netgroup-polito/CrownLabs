@@ -65,6 +65,7 @@ func main() {
 	publicExposureIPPoolRaw := ""
 	publicExposureCommonAnnotationRaw := ""
 	publicExposureCommonLabelsRaw := ""
+	mirrorStorageClass := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -97,6 +98,8 @@ func main() {
 	flag.StringVar(&publicExposureCommonAnnotationRaw, "public-exposure-common-annotations", "", "Comma-separated list of common annotations in format key1=val1,key2=val2")
 	flag.StringVar(&publicExposureCommonLabelsRaw, "public-exposure-common-labels", "", "Comma-separated list of common labels in format key1=val1,key2=val2")
 	flag.StringVar(&publicExposureOpts.LoadBalancerIPsKey, "public-exposure-loadbalancer-ips-key", "metallb.universe.tf/loadBalancerIPs", "Annotation key for specifying LoadBalancer IPs")
+
+	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "nfs-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -169,14 +172,15 @@ func main() {
 	}
 
 	if err = (&instctrl.InstanceReconciler{
-		Client:                mgr.GetClient(),
-		Scheme:                mgr.GetScheme(),
-		EventsRecorder:        mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist:    nsWhitelist,
-		ServiceUrls:           svcUrls,
-		ContainerEnvOpts:      containerEnvOpts,
-		WebSSHMasterPublicKey: pubKeyBytes,
-		PublicExposureOpts:    publicExposureOpts,
+		Client:                    mgr.GetClient(),
+		Scheme:                    mgr.GetScheme(),
+		EventsRecorder:            mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:        nsWhitelist,
+		ServiceUrls:               svcUrls,
+		ContainerEnvOpts:          containerEnvOpts,
+		WebSSHMasterPublicKey:     pubKeyBytes,
+		PublicExposureOpts:        publicExposureOpts,
+		MirrorPVCStorageClassName: mirrorStorageClass,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

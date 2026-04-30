@@ -60,30 +60,26 @@ var _ = Describe("Generation of the container based instances", func() {
 		clientBuilder fake.ClientBuilder
 		reconciler    instctrl.InstanceReconciler
 
-		instance    clv1alpha2.Instance
-		template    clv1alpha2.Template
-		environment clv1alpha2.Environment
-		tenant      clv1alpha2.Tenant
-		manager     clv1alpha2.Tenant
-		index       int
+		instance         clv1alpha2.Instance
+		template         clv1alpha2.Template
+		environment      clv1alpha2.Environment
+		tenant           clv1alpha2.Tenant
+		environmentIndex int
 
 		objectName types.NamespacedName
 		svc        corev1.Service
 		deploy     appsv1.Deployment
 		pvc        corev1.PersistentVolumeClaim
 
-		myDriveSecret corev1.Secret
-
 		ownerRef metav1.OwnerReference
 
 		shvol       clv1alpha2.SharedVolume
 		shvolMounts []clv1alpha2.SharedVolumeMountInfo
-		mountInfos  []forge.NFSVolumeMountInfo
+		mountInfos  []corev1.VolumeMount
 
 		containerOpts forge.ContainerEnvOpts
 
-		err      error
-		errShVol error
+		err error
 	)
 
 	const (
@@ -94,7 +90,6 @@ var _ = Describe("Generation of the container based instances", func() {
 		templateNamespace = "workspace-netgroup"
 		environmentName   = "control-plane"
 		tenantName        = "tester"
-		tenantManagerName = "manager"
 
 		image       = "internal/registry/image:v1.0"
 		cpu         = 2
@@ -102,32 +97,44 @@ var _ = Describe("Generation of the container based instances", func() {
 		memory      = "1250M"
 		disk        = "20Gi"
 
-		nfsServerName     = "rook-nfs-server-name"
-		nfsMyDriveExpPath = "/nfs/path"
-		nfsShVolName      = "nfs0"
-		nfsShVolExpPath   = "/nfs/shvol"
-		nfsShVolMountPath = "/mnt/path"
-		nfsShVolReadOnly  = true
-		shVolName         = "myshvol"
-		shVolNamespace    = "default"
+		shVolName       = "myshvol"
+		shVolNamespace  = "default"
+		shVolMirrorName = "myshvol-kubernetes-0000-mirror"
+		shVolMountPath  = "/mnt/path"
+		shVolReadOnly   = true
 	)
 
 	BeforeEach(func() {
-		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		containerOpts = forge.ContainerEnvOpts{
 			ImagesTag:            "v1.2.3",
 			XVncImg:              "x-vnc",
 			WebsockifyImg:        "wskfy",
 			ContentDownloaderImg: "archdownloader:v0.1.2",
 		}
-		myDriveSecret = corev1.Secret{
+
+		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
+
+		svc = corev1.Service{}
+		deploy = appsv1.Deployment{}
+		pvc = corev1.PersistentVolumeClaim{}
+
+		tenant = clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      forge.NFSSecretName,
-				Namespace: instanceNamespace,
+				Name: tenantName,
 			},
-			Data: map[string][]byte{
-				forge.NFSSecretServerNameKey: []byte(nfsServerName),
-				forge.NFSSecretPathKey:       []byte(nfsMyDriveExpPath),
+		}
+
+		environmentIndex = 0
+		environment = clv1alpha2.Environment{
+			Name:               environmentName,
+			EnvironmentType:    clv1alpha2.ClassContainer,
+			Image:              image,
+			MountMyDriveVolume: false,
+			Resources: clv1alpha2.EnvironmentResources{
+				CPU:                   cpu,
+				ReservedCPUPercentage: cpuReserved,
+				Memory:                resource.MustParse(memory),
+				Disk:                  resource.MustParse(disk),
 			},
 		}
 		template = clv1alpha2.Template{
@@ -136,26 +143,12 @@ var _ = Describe("Generation of the container based instances", func() {
 				Namespace: templateNamespace,
 			},
 			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{environment},
 				WorkspaceRef: clv1alpha2.GenericRef{
 					Name: workspaceName,
 				},
 			},
 		}
-		manager = clv1alpha2.Tenant{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: tenantManagerName,
-				Labels: map[string]string{
-					clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager),
-				},
-			},
-		}
-
-		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
-			&template,
-			&myDriveSecret,
-			&manager,
-		)
-
 		instance = clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.InstanceSpec{
@@ -170,43 +163,6 @@ var _ = Describe("Generation of the container based instances", func() {
 					{Phase: ""},
 				},
 			},
-		}
-
-		environment = clv1alpha2.Environment{
-			Name:               environmentName,
-			EnvironmentType:    clv1alpha2.ClassContainer,
-			Image:              image,
-			MountMyDriveVolume: false,
-			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   cpu,
-				ReservedCPUPercentage: cpuReserved,
-				Memory:                resource.MustParse(memory),
-				Disk:                  resource.MustParse(disk),
-			},
-		}
-
-		template = clv1alpha2.Template{
-			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateNamespace},
-			Spec: clv1alpha2.TemplateSpec{
-				EnvironmentList: []clv1alpha2.Environment{environment},
-			},
-		}
-
-		index = 0
-
-		objectName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
-
-		svc = corev1.Service{}
-		deploy = appsv1.Deployment{}
-		pvc = corev1.PersistentVolumeClaim{}
-
-		ownerRef = metav1.OwnerReference{
-			APIVersion:         clv1alpha2.GroupVersion.String(),
-			Kind:               "Instance",
-			Name:               instance.GetName(),
-			UID:                instance.GetUID(),
-			BlockOwnerDeletion: ptr.To(true),
-			Controller:         ptr.To(true),
 		}
 
 		shvol = clv1alpha2.SharedVolume{
@@ -226,37 +182,51 @@ var _ = Describe("Generation of the container based instances", func() {
 					Name:      shvol.Name,
 					Namespace: shvol.Namespace,
 				},
-				MountPath: nfsShVolMountPath,
-				ReadOnly:  nfsShVolReadOnly,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
 			},
 		}
-		mountInfos = []forge.NFSVolumeMountInfo{
-			forge.MyDriveNFSVolumeMountInfo(nfsServerName, nfsMyDriveExpPath),
-			forge.ShVolNFSVolumeMountInfo(0, &shvol, shvolMounts[0]),
+		mountInfos = []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolMirrorName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
 		}
 
-		tenant = clv1alpha2.Tenant{
-			ObjectMeta: metav1.ObjectMeta{
-				Name: tenantName,
-			},
+		objectName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
+		ownerRef = metav1.OwnerReference{
+			APIVersion:         clv1alpha2.GroupVersion.String(),
+			Kind:               "Instance",
+			Name:               instance.GetName(),
+			UID:                instance.GetUID(),
+			BlockOwnerDeletion: ptr.To(true),
+			Controller:         ptr.To(true),
 		}
+
+		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
+			&template,
+			&shvol,
+		)
 	})
 
 	JustBeforeEach(func() {
-
 		reconciler = instctrl.InstanceReconciler{
 			Client: clientBuilder.Build(), Scheme: scheme.Scheme,
 			ContainerEnvOpts: containerOpts,
 		}
 
+		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-		ctx, _ = clctx.TenantInto(ctx, &tenant)
-		ctx, _ = clctx.TemplateInto(ctx, &template)
-		ctx = clctx.EnvironmentIndexInto(ctx, index)
+		ctx = clctx.EnvironmentIndexInto(ctx, environmentIndex)
 
-		errShVol = reconciler.Create(ctx, &shvol)
+		mountInfos, _, err = forge.PVCMountInfosFromEnvironment(ctx, reconciler.Client)
+		Expect(err).ToNot(HaveOccurred())
+		ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
+
 		err = reconciler.EnforceContainerEnvironment(ctx)
 	})
 
@@ -280,7 +250,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("The deployment should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-					expected := forge.DeploymentSpec(&instance, &template, &environment, nil, &containerOpts)
+					expected := forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &containerOpts)
 					expected.Replicas = forge.ReplicasCount(&instance, &environment, false)
 
 					// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -299,15 +269,15 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the instance phase to starting", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 				})
 
 				When("the index is greater than 0 but still valid", func() {
-					BeforeEach(func() { index = 2 })
+					BeforeEach(func() { environmentIndex = 2 })
 
 					It("Should set the instance phase correctly", func() {
 						Expect(instance.Status.Environments).ToNot(BeEmpty())
-						Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+						Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 					})
 
 				})
@@ -328,7 +298,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the instance phase to Off", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -369,7 +339,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the correct instance phase", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseReady))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseReady))
 				})
 			})
 
@@ -393,7 +363,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 				It("Should set the instance phase to Off", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
-					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
+					Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseOff))
 				})
 			})
 		})
@@ -426,7 +396,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The deployment should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
-				expected := forge.DeploymentSpec(&instance, &template, &environment, nil, &containerOpts)
+				expected := forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &containerOpts)
 				expected.Replicas = forge.ReplicasCount(&instance, &environment, true)
 
 				// These labels are checked here since it BeEquivalentTo ignores reordering. They are removed from the spec in deploymentSpecCleanup.
@@ -449,7 +419,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("Should set the instance phase as starting", func() {
 				Expect(instance.Status.Environments).ToNot(BeEmpty())
-				Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+				Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 			})
 		})
 
@@ -504,7 +474,7 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("Should set the correct instance phase", func() {
 				Expect(instance.Status.Environments).ToNot(BeEmpty())
-				Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
+				Expect(instance.Status.Environments[environmentIndex].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseStarting))
 			})
 
 			Context("The instance is running", func() {
@@ -536,13 +506,8 @@ var _ = Describe("Generation of the container based instances", func() {
 			// The spec of the deployment is checked in forge.
 		})
 
-		When("the mydrive-info secret is not present", func() {
-			BeforeEach(func() {
-				// Set a different name for the mydrive-info secret so the reconciler won't find it.
-				myDriveSecret.Name = "wrong-name"
-			})
-
-			It("Should return an error", func() { Expect(err).To(HaveOccurred()) })
+		When("the mydrive mirror is not present", func() {
+			// This case is handled by the more generic enforceEnvironments method
 		})
 	})
 
@@ -559,8 +524,6 @@ var _ = Describe("Generation of the container based instances", func() {
 		})
 
 		When("the shvol is not yet present", func() {
-			It("Creating shvol should not return an error", func() { Expect(errShVol).ToNot(HaveOccurred()) })
-
 			It("The deployment should be present and with the correct volumes spec", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 				expected := forge.DeploymentSpec(&instance, &template, &environment, mountInfos, &containerOpts)
@@ -570,19 +533,31 @@ var _ = Describe("Generation of the container based instances", func() {
 		})
 
 		When("the tenant is a workspace manager", func() {
+			BeforeEach(func() {
+				// Make the tenant manager
+				tenant.Labels = map[string]string{
+					clv1alpha2.WorkspaceLabelPrefix + workspaceName: string(clv1alpha2.Manager),
+				}
+			})
+
 			JustBeforeEach(func() {
-				ctx, _ = clctx.TenantInto(ctx, &manager)
 				err = reconciler.EnforceContainerEnvironment(ctx)
+				Expect(err).NotTo(HaveOccurred())
 			})
 
 			It("Should mount the shvol with RW permissions", func() {
 				Expect(reconciler.Get(ctx, objectName, &deploy)).To(Succeed())
 
+				volumes := deploy.Spec.Template.Spec.Volumes
+				for _, vol := range volumes {
+					if vol.PersistentVolumeClaim != nil {
+						Expect(vol.PersistentVolumeClaim.ReadOnly).To(Equal(false))
+					}
+				}
+
 				containers := deploy.Spec.Template.Spec.Containers
-				for i := range containers {
-					cont := containers[i]
-					for j := range cont.VolumeMounts {
-						mount := cont.VolumeMounts[j]
+				for _, cont := range containers {
+					for _, mount := range cont.VolumeMounts {
 						Expect(mount.ReadOnly).To(Equal(false))
 					}
 				}

@@ -17,8 +17,10 @@ package forge
 import (
 	"bytes"
 	_ "embed"
+	"fmt"
 
 	"gopkg.in/yaml.v3"
+	corev1 "k8s.io/api/core/v1"
 )
 
 // userdata is a helper structure to marshal the userdata configuration.
@@ -60,7 +62,7 @@ func CloudInitUserScriptData() ([]byte, error) {
 }
 
 // CloudInitUserData forges the yaml manifest representing the cloud-init userdata configuration.
-func CloudInitUserData(publicKeys []string, mountInfos []NFSVolumeMountInfo) ([]byte, error) {
+func CloudInitUserData(publicKeys []string, mountInfos []corev1.VolumeMount) ([]byte, error) {
 	config := userdata{
 		Users: []user{{
 			Name:       "crownlabs",
@@ -80,10 +82,9 @@ func CloudInitUserData(publicKeys []string, mountInfos []NFSVolumeMountInfo) ([]
 	}
 
 	config.Mounts = [][]string{}
-	for _, mountInfo := range mountInfos {
-		config.Mounts = append(config.Mounts, NFSVolumeMount(mountInfo.ServerAddress, mountInfo.ExportPath, mountInfo.MountPath, mountInfo.ReadOnly))
+	for _, mount := range mountInfos {
+		config.Mounts = append(config.Mounts, virtiofsVolumeMount(&mount))
 	}
-	config.Mounts = append(config.Mounts, CommentMount("If you change mount options from here, not even Santa will give you 18."))
 
 	output, err := yaml.Marshal(config)
 	if err != nil {
@@ -92,4 +93,22 @@ func CloudInitUserData(publicKeys []string, mountInfos []NFSVolumeMountInfo) ([]
 
 	output = append([]byte("#cloud-config\n"), output...)
 	return output, nil
+}
+
+// virtiofsVolumeMount forges the mount string array for a generic Virtiofs volume.
+func virtiofsVolumeMount(mount *corev1.VolumeMount) []string {
+	rwPermission := "rw"
+
+	if mount.ReadOnly {
+		rwPermission = "ro"
+	}
+
+	return []string{
+		mount.Name,
+		mount.MountPath,
+		"virtiofs",
+		fmt.Sprintf("%s,_netdev,user", rwPermission),
+		"0",
+		"0",
+	}
 }

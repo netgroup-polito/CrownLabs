@@ -198,4 +198,63 @@ var _ = Describe("Utils forging", func() {
 		})
 
 	})
+
+	Describe("The forge.LastCharsOf function", func() {
+		var (
+			actual string
+		)
+
+		type StringTestCase struct {
+			TestCaseName   string
+			OriginalString string
+			ManyChars      int
+			ExpectedString string
+		}
+
+		WhenBody := func(c StringTestCase) {
+			JustBeforeEach(func() {
+				actual = forge.LastCharsOf(c.OriginalString, c.ManyChars)
+			})
+
+			It(c.TestCaseName, func() {
+				Expect(actual).To(Equal(c.ExpectedString))
+			})
+		}
+
+		When("Many is not valid (less than 0)", func() {
+			WhenBody(StringTestCase{
+				TestCaseName:   "Should return an empty string",
+				OriginalString: "abcdef",
+				ManyChars:      -5,
+				ExpectedString: "",
+			})
+		})
+
+		When("Many is zero", func() {
+			WhenBody(StringTestCase{
+				TestCaseName:   "Should return an empty string",
+				OriginalString: "abcdef",
+				ManyChars:      0,
+				ExpectedString: "",
+			})
+		})
+
+		When("Many is smaller than the length of the string", func() {
+			WhenBody(StringTestCase{
+				TestCaseName:   "Should return the right substring",
+				OriginalString: "abcdef",
+				ManyChars:      5,
+				ExpectedString: "bcdef",
+			})
+		})
+
+		When("Many is bigger than the length of the string", func() {
+			WhenBody(StringTestCase{
+				TestCaseName:   "Should return the whole string",
+				OriginalString: "abcdef",
+				ManyChars:      100,
+				ExpectedString: "abcdef",
+			})
+		})
+	})
 })
