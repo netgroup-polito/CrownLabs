@@ -195,15 +195,13 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 
 // ContainersSpec returns the Containers obj based on Environment Type.
 func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) []corev1.Container {
-	var containers []corev1.Container
-	volumeMountPath := PersistentMountPath(environment)
-	switch environment.EnvironmentType {
-	//TODO CLEANUP: ClassStandalone
-	case clv1alpha2.ClassStandalone:
-		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath, mountInfos))
-	default:
+	return []corev1.Container{
+		StandaloneContainer(
+			instance,
+			environment,
+			PersistentMountPath(environment),
+			mountInfos),
 	}
-	return containers
 }
 
 // WebsockifyContainer forges the sidecar container to proxy requests from websocket
@@ -440,7 +438,7 @@ func SetContainerResourcesFromEnvironment(c *corev1.Container, env *clv1alpha2.E
 	}
 }
 
-// SetContainerArgs sets the given container's arguments
+// SetContainerArgs sets the given container's arguments.
 func SetContainerArgs(c *corev1.Container, args ...string) {
 	c.Args = args
 }
@@ -521,7 +519,7 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 // InstanceHostname forges the hostname of the instance:
 // empty for standard mode (will use pod name) or the lowercase mode otherwise.
 func InstanceHostname(template *clv1alpha2.Template) string {
-	//TODO CLEANUP: ScopeStandard
+	// TODO CLEANUP: ScopeStandard
 	if template.Spec.Scope != clv1alpha2.ScopeStandard {
 		return strings.ToLower(string(template.Spec.Scope))
 	}
