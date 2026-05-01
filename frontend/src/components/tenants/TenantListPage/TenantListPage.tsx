@@ -1,8 +1,22 @@
 import React, { useContext, useMemo, useState } from 'react';
-import { Table, Input, Spin, Col, Tooltip, Space, DatePicker, Popconfirm, message, Button } from 'antd';
+import {
+  Table,
+  Input,
+  Spin,
+  Col,
+  Tooltip,
+  Space,
+  DatePicker,
+  Popconfirm,
+  message,
+  Button,
+} from 'antd';
 import dayjs from 'dayjs';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { useTenantsQuery, useDeleteTenantMutation } from '../../../generated-types';
+import {
+  useTenantsQuery,
+  useDeleteTenantMutation,
+} from '../../../generated-types';
 import { makeTenantsList } from '../../../utilsLogic';
 import { multiStringIncludes, type Tenant } from '../../../utils';
 import Box from '../../common/Box';
@@ -14,8 +28,12 @@ export default function TenantListPage() {
   const navigate = useNavigate();
 
   const [searchText, setSearchText] = useState('');
-  const [registrationDateRange, setRegistrationDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
-  const [lastLoginDateRange, setLastLoginDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
+  const [registrationDateRange, setRegistrationDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
+  >(null);
+  const [lastLoginDateRange, setLastLoginDateRange] = useState<
+    [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
+  >(null);
   const [labelKeyFilter, setLabelKeyFilter] = useState('');
   const [labelValueFilter, setLabelValueFilter] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -25,27 +43,34 @@ export default function TenantListPage() {
     notifyOnNetworkStatusChange: true,
   });
 
-  const [deleteTenantMutation, { loading: deleteLoading }] = useDeleteTenantMutation({
-    onError: apolloErrorCatcher,
-  });
+  const [deleteTenantMutation, { loading: deleteLoading }] =
+    useDeleteTenantMutation({
+      onError: apolloErrorCatcher,
+    });
 
   const handleDeleteTenant = async (name: string) => {
     try {
       await deleteTenantMutation({ variables: { name } });
       message.success('Tenant deleted successfully');
       refetch();
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const handleDeleteMultipleTenants = async () => {
     try {
       await Promise.all(
-        selectedRowKeys.map((name) => deleteTenantMutation({ variables: { name: name as string } }))
+        selectedRowKeys.map(name =>
+          deleteTenantMutation({ variables: { name: name as string } }),
+        ),
       );
       message.success(`${selectedRowKeys.length} tenants deleted successfully`);
       setSelectedRowKeys([]);
       refetch();
-    } catch (e) {}
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const tenants = useMemo(() => makeTenantsList(data), [data]);
@@ -60,20 +85,32 @@ export default function TenantListPage() {
         );
 
         let matchesReg = true;
-        if (registrationDateRange && registrationDateRange[0] && registrationDateRange[1]) {
+        if (
+          registrationDateRange &&
+          registrationDateRange[0] &&
+          registrationDateRange[1]
+        ) {
           if (!tenant.creationDate) matchesReg = false;
           else {
             const date = dayjs(tenant.creationDate);
-            matchesReg = date.isAfter(registrationDateRange[0].startOf('day')) && date.isBefore(registrationDateRange[1].endOf('day'));
+            matchesReg =
+              date.isAfter(registrationDateRange[0].startOf('day')) &&
+              date.isBefore(registrationDateRange[1].endOf('day'));
           }
         }
 
         let matchesLogin = true;
-        if (lastLoginDateRange && lastLoginDateRange[0] && lastLoginDateRange[1]) {
+        if (
+          lastLoginDateRange &&
+          lastLoginDateRange[0] &&
+          lastLoginDateRange[1]
+        ) {
           if (!tenant.lastLogin) matchesLogin = false;
           else {
             const date = dayjs(tenant.lastLogin);
-            matchesLogin = date.isAfter(lastLoginDateRange[0].startOf('day')) && date.isBefore(lastLoginDateRange[1].endOf('day'));
+            matchesLogin =
+              date.isAfter(lastLoginDateRange[0].startOf('day')) &&
+              date.isBefore(lastLoginDateRange[1].endOf('day'));
           }
         }
 
@@ -83,19 +120,31 @@ export default function TenantListPage() {
             matchesLabel = false;
           } else {
             if (labelKeyFilter && labelValueFilter) {
-              matchesLabel = tenant.labels[labelKeyFilter] !== undefined && 
-                             tenant.labels[labelKeyFilter].toLowerCase().includes(labelValueFilter.toLowerCase());
+              matchesLabel =
+                tenant.labels[labelKeyFilter] !== undefined &&
+                tenant.labels[labelKeyFilter]
+                  .toLowerCase()
+                  .includes(labelValueFilter.toLowerCase());
             } else if (labelKeyFilter) {
               matchesLabel = tenant.labels[labelKeyFilter] !== undefined;
             } else if (labelValueFilter) {
-              matchesLabel = Object.values(tenant.labels).some(v => v.toLowerCase().includes(labelValueFilter.toLowerCase()));
+              matchesLabel = Object.values(tenant.labels).some(v =>
+                v.toLowerCase().includes(labelValueFilter.toLowerCase()),
+              );
             }
           }
         }
 
         return searchMatches && matchesReg && matchesLogin && matchesLabel;
       }),
-    [tenants, searchText, registrationDateRange, lastLoginDateRange, labelKeyFilter, labelValueFilter],
+    [
+      tenants,
+      searchText,
+      registrationDateRange,
+      lastLoginDateRange,
+      labelKeyFilter,
+      labelValueFilter,
+    ],
   );
 
   const handleSearch = (value: string) => {
@@ -121,7 +170,7 @@ export default function TenantListPage() {
                   enterButton
                   allowClear={true}
                 />
-                
+
                 <div className="flex flex-wrap justify-center gap-3 w-full">
                   {selectedRowKeys.length > 0 && (
                     <Popconfirm
@@ -130,33 +179,38 @@ export default function TenantListPage() {
                       okText="Yes"
                       cancelText="No"
                     >
-                      <Button type="primary" danger icon={<DeleteOutlined />} loading={deleteLoading}>
+                      <Button
+                        type="primary"
+                        danger
+                        icon={<DeleteOutlined />}
+                        loading={deleteLoading}
+                      >
                         Delete Selected ({selectedRowKeys.length})
                       </Button>
                     </Popconfirm>
                   )}
-                  <DatePicker.RangePicker 
+                  <DatePicker.RangePicker
                     className="w-full sm:w-auto"
                     placeholder={['Reg. Start', 'Reg. End']}
-                    onChange={(dates) => setRegistrationDateRange(dates as any)}
+                    onChange={dates => setRegistrationDateRange(dates)}
                     allowClear
                   />
-                  <DatePicker.RangePicker 
+                  <DatePicker.RangePicker
                     className="w-full sm:w-auto"
                     placeholder={['Login Start', 'Login End']}
-                    onChange={(dates) => setLastLoginDateRange(dates as any)}
+                    onChange={dates => setLastLoginDateRange(dates)}
                     allowClear
                   />
                   <Space.Compact className="w-full sm:w-auto flex">
-                    <Input 
-                      placeholder="Label Key" 
-                      onChange={(e) => setLabelKeyFilter(e.target.value)}
+                    <Input
+                      placeholder="Label Key"
+                      onChange={e => setLabelKeyFilter(e.target.value)}
                       allowClear
                       style={{ width: '40%' }}
                     />
-                    <Input 
-                      placeholder="Label Value" 
-                      onChange={(e) => setLabelValueFilter(e.target.value)}
+                    <Input
+                      placeholder="Label Value"
+                      onChange={e => setLabelValueFilter(e.target.value)}
                       allowClear
                       style={{ width: '60%' }}
                     />
@@ -217,8 +271,10 @@ export default function TenantListPage() {
               responsive={['md', 'lg']}
               title="Registration Date"
               dataIndex="creationDate"
-              render={(date: string) => date ? dayjs(date).format('YYYY-MM-DD') : 'N/A'}
-              sorter={(a: Tenant, b: Tenant) => 
+              render={(date: string) =>
+                date ? dayjs(date).format('YYYY-MM-DD') : 'N/A'
+              }
+              sorter={(a: Tenant, b: Tenant) =>
                 (a.creationDate || '').localeCompare(b.creationDate || '')
               }
               key="creationDate"
@@ -228,8 +284,10 @@ export default function TenantListPage() {
               responsive={['lg']}
               title="Last Login"
               dataIndex="lastLogin"
-              render={(date: string) => date ? dayjs(date).format('YYYY-MM-DD HH:mm') : 'N/A'}
-              sorter={(a: Tenant, b: Tenant) => 
+              render={(date: string) =>
+                date ? dayjs(date).format('YYYY-MM-DD HH:mm') : 'N/A'
+              }
+              sorter={(a: Tenant, b: Tenant) =>
                 (a.lastLogin || '').localeCompare(b.lastLogin || '')
               }
               key="lastLogin"
