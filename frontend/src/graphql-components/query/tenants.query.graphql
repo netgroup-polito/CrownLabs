@@ -3,11 +3,14 @@ query tenants($labels: String, $retrieveWorkspaces: Boolean = false) {
     items {
       metadata {
         name
+        creationTimestamp
+        labels
       }
       spec {
         firstName
         lastName
         email
+        lastLogin
         workspaces @include(if: $retrieveWorkspaces) {
           role
           name

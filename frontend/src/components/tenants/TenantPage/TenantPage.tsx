@@ -5,6 +5,7 @@ import { generateAvatarUrl } from '../../../utils';
 import { useTenantLazyQuery } from '../../../generated-types';
 import TenantInfo from '../TenantInfo';
 import TenantPersonalWorkspaceSettings from '../TenantPersonalWorkspaceSettings';
+import TenantWorkspaces from '../TenantWorkspaces';
 import { Link, useParams } from 'react-router-dom';
 import Box from '../../common/Box';
 
@@ -72,6 +73,11 @@ export default function TenantPage() {
                       key: 'info',
                       label: 'Info',
                       children: <TenantInfo tenant={data} />,
+                    },
+                    {
+                      key: 'workspaces',
+                      label: 'Workspaces',
+                      children: <TenantWorkspaces tenant={data} />,
                     },
                     {
                       key: 'personal-workspace',
