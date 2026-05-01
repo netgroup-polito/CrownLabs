@@ -1,12 +1,12 @@
 import { useContext, useMemo, useState } from 'react';
-import { Table, Input, Spin, Col, Tooltip, Space, DatePicker } from 'antd';
+import { Table, Input, Spin, Col, Tooltip, Space, DatePicker, Popconfirm, message, Button } from 'antd';
 import dayjs from 'dayjs';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { useTenantsQuery } from '../../../generated-types';
+import { useTenantsQuery, useDeleteTenantMutation } from '../../../generated-types';
 import { makeTenantsList } from '../../../utilsLogic';
 import { multiStringIncludes, type Tenant } from '../../../utils';
 import Box from '../../common/Box';
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 
 export default function TenantListPage() {
@@ -19,10 +19,22 @@ export default function TenantListPage() {
   const [labelKeyFilter, setLabelKeyFilter] = useState('');
   const [labelValueFilter, setLabelValueFilter] = useState('');
 
-  const { data, loading, error } = useTenantsQuery({
+  const { data, loading, error, refetch } = useTenantsQuery({
     onError: apolloErrorCatcher,
     notifyOnNetworkStatusChange: true,
   });
+
+  const [deleteTenantMutation] = useDeleteTenantMutation({
+    onCompleted: () => {
+      message.success('Tenant deleted successfully');
+      refetch();
+    },
+    onError: apolloErrorCatcher,
+  });
+
+  const handleDeleteTenant = (name: string) => {
+    deleteTenantMutation({ variables: { name } });
+  };
 
   const tenants = useMemo(() => makeTenantsList(data), [data]);
   const filteredTenants = useMemo(
@@ -197,14 +209,27 @@ export default function TenantListPage() {
             <Table.Column
               title="Actions"
               key="actions"
-              width={60}
+              width={100}
               render={(tenant: Tenant) => (
-                <Tooltip title="Edit tenant">
-                  <EditOutlined
-                    className="mr-2"
-                    onClick={() => navigate('/tenants/' + tenant.userid)}
-                  />
-                </Tooltip>
+                <Space>
+                  <Tooltip title="Edit tenant">
+                    <Button
+                      type="text"
+                      icon={<EditOutlined />}
+                      onClick={() => navigate('/tenants/' + tenant.userid)}
+                    />
+                  </Tooltip>
+                  <Tooltip title="Delete tenant">
+                    <Popconfirm
+                      title="Are you sure you want to delete this tenant?"
+                      onConfirm={() => handleDeleteTenant(tenant.userid)}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button type="text" danger icon={<DeleteOutlined />} />
+                    </Popconfirm>
+                  </Tooltip>
+                </Space>
               )}
             />
           </Table>
