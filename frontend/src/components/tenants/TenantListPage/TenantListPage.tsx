@@ -1,4 +1,4 @@
-import { useContext, useMemo, useState } from 'react';
+import React, { useContext, useMemo, useState } from 'react';
 import { Table, Input, Spin, Col, Tooltip, Space, DatePicker, Popconfirm, message, Button } from 'antd';
 import dayjs from 'dayjs';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
@@ -18,22 +18,34 @@ export default function TenantListPage() {
   const [lastLoginDateRange, setLastLoginDateRange] = useState<[dayjs.Dayjs | null, dayjs.Dayjs | null] | null>(null);
   const [labelKeyFilter, setLabelKeyFilter] = useState('');
   const [labelValueFilter, setLabelValueFilter] = useState('');
+  const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
 
   const { data, loading, error, refetch } = useTenantsQuery({
     onError: apolloErrorCatcher,
     notifyOnNetworkStatusChange: true,
   });
 
-  const [deleteTenantMutation] = useDeleteTenantMutation({
-    onCompleted: () => {
-      message.success('Tenant deleted successfully');
-      refetch();
-    },
+  const [deleteTenantMutation, { loading: deleteLoading }] = useDeleteTenantMutation({
     onError: apolloErrorCatcher,
   });
 
-  const handleDeleteTenant = (name: string) => {
-    deleteTenantMutation({ variables: { name } });
+  const handleDeleteTenant = async (name: string) => {
+    try {
+      await deleteTenantMutation({ variables: { name } });
+      message.success('Tenant deleted successfully');
+      refetch();
+    } catch (e) {}
+  };
+
+  const handleDeleteMultipleTenants = async () => {
+    try {
+      await Promise.all(
+        selectedRowKeys.map((name) => deleteTenantMutation({ variables: { name: name as string } }))
+      );
+      message.success(`${selectedRowKeys.length} tenants deleted successfully`);
+      setSelectedRowKeys([]);
+      refetch();
+    } catch (e) {}
   };
 
   const tenants = useMemo(() => makeTenantsList(data), [data]);
@@ -111,6 +123,18 @@ export default function TenantListPage() {
                 />
                 
                 <div className="flex flex-wrap justify-center gap-3 w-full">
+                  {selectedRowKeys.length > 0 && (
+                    <Popconfirm
+                      title={`Are you sure you want to delete ${selectedRowKeys.length} tenants?`}
+                      onConfirm={handleDeleteMultipleTenants}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button type="primary" danger icon={<DeleteOutlined />} loading={deleteLoading}>
+                        Delete Selected ({selectedRowKeys.length})
+                      </Button>
+                    </Popconfirm>
+                  )}
                   <DatePicker.RangePicker 
                     className="w-full sm:w-auto"
                     placeholder={['Reg. Start', 'Reg. End']}
@@ -148,6 +172,11 @@ export default function TenantListPage() {
             pagination={{ defaultPageSize: 10 }}
             dataSource={filteredTenants}
             size="small"
+            rowKey="userid"
+            rowSelection={{
+              selectedRowKeys,
+              onChange: setSelectedRowKeys,
+            }}
           >
             <Table.Column
               title="User ID"
