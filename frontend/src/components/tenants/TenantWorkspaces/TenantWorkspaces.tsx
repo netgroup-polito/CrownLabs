@@ -7,7 +7,16 @@ export interface ITenantWorkspacesProps {
 }
 
 const TenantWorkspaces: FC<ITenantWorkspacesProps> = ({ tenant }) => {
-  const workspaces = tenant.tenant?.spec?.workspaces ?? [];
+  const workspaces = (tenant.tenant?.spec?.workspaces ?? [])
+    .map(w => ({
+      name:
+        w?.workspaceWrapperTenantV1alpha2?.itPolitoCrownlabsV1alpha1Workspace
+          ?.spec?.prettyName ??
+        w?.name ??
+        '',
+      role: w?.role ?? 'unknown',
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   const columns = [
     {
