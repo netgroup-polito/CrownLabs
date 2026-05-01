@@ -3719,6 +3719,13 @@ export type DeleteTemplateMutationVariables = Exact<{
 
 export type DeleteTemplateMutation = { __typename?: 'Mutation', deletedTemplate?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
 
+export type DeleteTenantMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type DeleteTenantMutation = { __typename?: 'Mutation', deleteCrownlabsPolitoItV1alpha2Tenant?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
+
 export type DeleteWorkspaceMutationVariables = Exact<{
   name: Scalars['String']['input'];
 }>;
@@ -4640,6 +4647,39 @@ export function useDeleteTemplateMutation(baseOptions?: Apollo.MutationHookOptio
 export type DeleteTemplateMutationHookResult = ReturnType<typeof useDeleteTemplateMutation>;
 export type DeleteTemplateMutationResult = Apollo.MutationResult<DeleteTemplateMutation>;
 export type DeleteTemplateMutationOptions = Apollo.BaseMutationOptions<DeleteTemplateMutation, DeleteTemplateMutationVariables>;
+export const DeleteTenantDocument = gql`
+    mutation deleteTenant($name: String!) {
+  deleteCrownlabsPolitoItV1alpha2Tenant(name: $name) {
+    kind
+  }
+}
+    `;
+export type DeleteTenantMutationFn = Apollo.MutationFunction<DeleteTenantMutation, DeleteTenantMutationVariables>;
+
+/**
+ * __useDeleteTenantMutation__
+ *
+ * To run a mutation, you first call `useDeleteTenantMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteTenantMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteTenantMutation, { data, loading, error }] = useDeleteTenantMutation({
+ *   variables: {
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useDeleteTenantMutation(baseOptions?: Apollo.MutationHookOptions<DeleteTenantMutation, DeleteTenantMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteTenantMutation, DeleteTenantMutationVariables>(DeleteTenantDocument, options);
+      }
+export type DeleteTenantMutationHookResult = ReturnType<typeof useDeleteTenantMutation>;
+export type DeleteTenantMutationResult = Apollo.MutationResult<DeleteTenantMutation>;
+export type DeleteTenantMutationOptions = Apollo.BaseMutationOptions<DeleteTenantMutation, DeleteTenantMutationVariables>;
 export const DeleteWorkspaceDocument = gql`
     mutation deleteWorkspace($name: String!) {
   deletedWorkspace: deleteCrownlabsPolitoItV1alpha1Workspace(name: $name) {
