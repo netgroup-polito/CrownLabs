@@ -11,14 +11,14 @@ frontend-app:
   replicaCount: 1
   image:
     repository: crownlabs/frontend-app
-  gatewayApiMode: false
+  gatewayApiMode: true
   ingress:
     hostname: crownlabs.example.com
     path: /
   httproute:
     gateway:
-      name: crownlabs-gw
-      namespace: envoy-gateway-system
+      #name: crownlabs-gw
+      #namespace: envoy-gateway-system
       sectionName: https
     hostname: crownlabs.example.com
     path: /
@@ -280,9 +280,9 @@ gatewayAPI:
   hostname: crownlabs.example.com
   tls:
     certificateRefName: crownlabs-certificate
-  allowedRoutes:
-    namespaceSelectorLabel: crownlabs.polito.it/gateway-route
-    namespaceSelectorValue: "true"
+  #allowedRoutes:
+    #namespaceSelectorLabel: crownlabs.polito.it/gateway-route
+    #namespaceSelectorValue: "true"
 
 exam-agent:
   replicaCount: 1

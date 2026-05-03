@@ -6,6 +6,8 @@ metadata:
   labels:
     {{- include "frontend-app.labels" . | nindent 4 }}
 spec:
+  hostnames:
+    - {{ .Values.httproute.hostname }}
   parentRefs:
     - name: {{ .Values.httproute.gateway.name }}
       namespace: {{ .Values.httproute.gateway.namespace }}
