@@ -165,9 +165,8 @@ func main() {
 		err := setupImageList(mgr, log)
 		if err != nil {
 			klog.Fatal(err, "Unable to setup image list updater")
-    }
-    
-  }
+		}
+	}
 	if enablePmp {
 		log.Info("Starting the PVC mirror provisioner")
 		err := setupPmp(ctx, mgr, log, targetLabel)

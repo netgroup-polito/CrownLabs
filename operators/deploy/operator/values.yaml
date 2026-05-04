@@ -41,7 +41,7 @@ configurations:
   # Image list configuration
   imageList:
     configFile: /etc/config/registries.yaml
-    updateInterval: 300
+    updateInterval: 600
     registries:
         # - name: docker-registry
         #   type: docker
