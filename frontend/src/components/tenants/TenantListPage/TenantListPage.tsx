@@ -174,7 +174,7 @@ export default function TenantListPage() {
                 <div className="flex flex-wrap justify-center gap-3 w-full">
                   {selectedRowKeys.length > 0 && (
                     <Popconfirm
-                      title={`Are you sure you want to delete ${selectedRowKeys.length} tenants?`}
+                      title={`You are going to delete ${selectedRowKeys.length} users. Are you sure?`}
                       onConfirm={handleDeleteMultipleTenants}
                       okText="Yes"
                       cancelText="No"
@@ -308,7 +308,7 @@ export default function TenantListPage() {
                   </Tooltip>
                   <Tooltip title="Delete tenant">
                     <Popconfirm
-                      title="Are you sure you want to delete this tenant?"
+                      title="You are going to delete this user. Are you sure?"
                       onConfirm={() => handleDeleteTenant(tenant.userid)}
                       okText="Yes"
                       cancelText="No"

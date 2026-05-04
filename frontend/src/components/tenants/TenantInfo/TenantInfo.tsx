@@ -44,7 +44,7 @@ const TenantInfo: FC<ITenantInfoProps> = ({ tenant }) => {
       <hr className="my-4" />
 
       <p>
-        Registration date:
+        Creation date:
         <strong>
           {tenant.tenant?.metadata?.creationTimestamp
             ? new Date(
@@ -66,7 +66,7 @@ const TenantInfo: FC<ITenantInfoProps> = ({ tenant }) => {
 
       <div className="flex justify-end">
         <Popconfirm
-          title="Are you sure you want to delete this tenant?"
+          title="You are going to delete this user. Are you sure?"
           onConfirm={handleDelete}
           okText="Yes"
           cancelText="No"
