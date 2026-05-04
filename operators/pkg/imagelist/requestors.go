@@ -404,9 +404,6 @@ func (r *HarborImageListRequestor) deduplicateAndFilterTags(tags []string) []str
 }
 
 // doSingleGetAsList performs a GET request and expects an array response.
-// Harbor API can return either:
-// 1. A direct array: [...]
-// 2. A wrapped format: {"data": [...], "meta": {...}}
 func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path string) ([]map[string]interface{}, error) {
 	url := r.url + path
 	r.log.V(1).Info("performing GET request to Harbor (expecting array)", "url", url)
@@ -458,14 +455,14 @@ func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path s
 	// Check if response contains an error
 	if errorsIface, ok := harborResponse["errors"]; ok {
 		r.log.Error(nil, "Harbor API returned error", "path", path, "errors", errorsIface, "full_response", harborResponse)
-		return nil, fmt.Errorf("Harbor API error: %v", errorsIface)
+		return nil, fmt.Errorf("harbor API error: %v", errorsIface)
 	}
 
 	// Extract the data array from Harbor response
 	dataIface, ok := harborResponse["data"]
 	if !ok {
 		r.log.Error(nil, "data field not found in Harbor response", "path", path, "response_keys", getMapKeys(harborResponse), "full_response", harborResponse)
-		return nil, fmt.Errorf("data field not found in Harbor response")
+		return nil, fmt.Errorf("data field not found in harbor response")
 	}
 
 	dataArray, ok := dataIface.([]interface{})
@@ -518,16 +515,22 @@ func (r *HarborImageListRequestor) doSingleGet(ctx context.Context, path string)
 	var arrayResult []interface{}
 	if err := json.Unmarshal(body, &arrayResult); err == nil {
 		// Successfully parsed as array - wrap it in a map
+		r.log.V(1).Info("parsed Harbor response as array, wrapping in artifacts", "path", path, "item_count", len(arrayResult))
 		return map[string]interface{}{"artifacts": arrayResult}, nil
 	}
 
 	// Fall back to parsing as object
 	var result map[string]interface{}
 	if err := json.Unmarshal(body, &result); err != nil {
-		r.log.Error(err, "failed to parse JSON response", "path", path)
+		bodySample := string(body)
+		if len(bodySample) > 200 {
+			bodySample = bodySample[:200] + "..."
+		}
+		r.log.Error(err, "failed to parse JSON response", "path", path, "body_sample", bodySample)
 		return nil, err
 	}
 
+	r.log.V(1).Info("parsed Harbor response as object", "path", path, "response_keys", getMapKeys(result))
 	return result, nil
 }
 

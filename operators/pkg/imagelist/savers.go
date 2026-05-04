@@ -93,6 +93,11 @@ func (s *DefaultImageListSaver) getImageListResourceVersion() (string, error) {
 
 // createImageList creates a new ImageList resource in the cluster.
 func (s *DefaultImageListSaver) createImageList(registryName string, images []clv1alpha1.ImageListItem) error {
+	if len(images) == 0 {
+		s.log.Info("no images to save, skipping ImageList creation", "name", s.name, "registryName", registryName)
+		return nil
+	}
+
 	imageList := &clv1alpha1.ImageList{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.name,
@@ -115,6 +120,11 @@ func (s *DefaultImageListSaver) createImageList(registryName string, images []cl
 
 // updateImageList updates an existing ImageList resource in the cluster.
 func (s *DefaultImageListSaver) updateImageList(registryName string, images []clv1alpha1.ImageListItem, resourceVersion string) error {
+	if len(images) == 0 {
+		s.log.Info("no images to save, skipping ImageList update", "name", s.name, "registryName", registryName)
+		return nil
+	}
+
 	imageList := &clv1alpha1.ImageList{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: s.name,
