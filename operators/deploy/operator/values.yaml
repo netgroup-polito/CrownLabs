@@ -66,6 +66,10 @@ configurations:
           password: ""
           imageListName: harbor-standalone-imagelist-test
           project: crownlabs-standalone
+  
+  pvcMirrorProvisioner:  
+    provisionerName: pmp.crownlabs.polito.it
+    storageClassName: nfs-mirror
 
 image:
   repository: crownlabs/tenant-operator
