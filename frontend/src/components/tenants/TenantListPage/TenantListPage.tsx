@@ -269,7 +269,7 @@ export default function TenantListPage() {
             />
             <Table.Column
               responsive={['md', 'lg']}
-              title="Registration Date"
+              title="Creation date"
               dataIndex="creationDate"
               render={(date: string) =>
                 date ? dayjs(date).format('YYYY-MM-DD') : 'N/A'
@@ -282,7 +282,7 @@ export default function TenantListPage() {
             />
             <Table.Column
               responsive={['lg']}
-              title="Last Login"
+              title="Last login"
               dataIndex="lastLogin"
               render={(date: string) =>
                 date ? dayjs(date).format('YYYY-MM-DD HH:mm') : 'N/A'

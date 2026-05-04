@@ -44,7 +44,7 @@ const TenantInfo: FC<ITenantInfoProps> = ({ tenant }) => {
       <hr className="my-4" />
 
       <p>
-        Creation date:
+        Creation date:{' '}
         <strong>
           {tenant.tenant?.metadata?.creationTimestamp
             ? new Date(
