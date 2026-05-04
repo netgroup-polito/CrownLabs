@@ -45,7 +45,10 @@ func setupImageList(mgr manager.Manager, log klog.Logger) error {
 
 	// Add the image list scheduler as a runnable to the manager
 	return mgr.Add(manager.RunnableFunc(func(ctx context.Context) error {
+		lg := log.WithName("imagelist-scheduler")
+		lg.Info("imagelist updater routine started")
 		imagelist.StartScheduler(ctx)
+		lg.Info("imagelist updater routine stopping: context cancelled, shutting down")
 		return nil
 	}))
 }

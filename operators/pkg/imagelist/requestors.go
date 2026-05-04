@@ -38,7 +38,6 @@ type Requestor interface {
 }
 
 // RegisteredRequestors holds the list of all registered image list requestors.
-// RegisteredRequestors holds the list of all registered image list requestors.
 var RegisteredRequestors = []Requestor{}
 
 // RequestersSharedData stores configuration data shared across requestors.
@@ -86,7 +85,6 @@ func (r *DockerImageListRequestor) GetImageList(ctx context.Context) ([]map[stri
 		return nil, err
 	}
 
-	// Type assert to convert interface{} to []interface{}
 	reposInterface, ok := repositories["repositories"].([]interface{})
 	if !ok {
 		err := fmt.Errorf("unexpected catalog format: repositories not found or invalid type")
@@ -133,7 +131,6 @@ func (r *DockerImageListRequestor) doSingleGet(ctx context.Context, path string)
 }
 
 // doParallelGets performs concurrent GET requests to multiple paths and returns all results.
-// Skips repositories that return 404 (not found) and logs them as warnings.
 func (r *DockerImageListRequestor) doParallelGets(ctx context.Context, paths []string) ([]map[string]interface{}, error) {
 	var wg sync.WaitGroup
 	results := make([]map[string]interface{}, 0, len(paths))
@@ -312,7 +309,7 @@ func (r *HarborImageListRequestor) extractRepositoryName(repo map[string]interfa
 // Harbor artifacts endpoint returns array with objects containing "tags" field.
 func (r *HarborImageListRequestor) extractTagsFromArtifacts(repoName string, artifactData map[string]interface{}) []string {
 	var tags []string
-	r.log.V(1).Info("extractTagsFromArtifacts: starting", "repo_name", repoName, "artifact_data_keys", getMapKeys(artifactData))
+	r.log.V(1).Info("extractTagsFromArtifacts: starting", "repo_name", repoName, "artifact_data_keys", GetMapKeys(artifactData))
 
 	// Handle the case where artifacts are wrapped in "artifacts" key (from our wrapper)
 	if artifactsIface, ok := artifactData["artifacts"]; ok {
@@ -334,7 +331,7 @@ func (r *HarborImageListRequestor) extractTagsFromArtifacts(repoName string, art
 			r.log.V(1).Info("extractTagsFromArtifacts: artifacts field is not array", "repo_name", repoName, "type", fmt.Sprintf("%T", artifactsIface))
 		}
 	} else {
-		r.log.V(1).Info("extractTagsFromArtifacts: 'artifacts' key not found in artifact data", "repo_name", repoName, "available_keys", getMapKeys(artifactData))
+		r.log.V(1).Info("extractTagsFromArtifacts: 'artifacts' key not found in artifact data", "repo_name", repoName, "available_keys", GetMapKeys(artifactData))
 	}
 
 	// Remove duplicates and "latest" tag
@@ -347,7 +344,7 @@ func (r *HarborImageListRequestor) extractTagsFromArtifacts(repoName string, art
 // extractTagsFromSingleArtifact extracts all tag names from a single Harbor artifact object.
 func (r *HarborImageListRequestor) extractTagsFromSingleArtifact(repoName string, artifactIdx int, artifact map[string]interface{}) []string {
 	var tags []string
-	r.log.V(1).Info("extractTagsFromSingleArtifact: processing artifact", "repo_name", repoName, "artifact_index", artifactIdx, "artifact_keys", getMapKeys(artifact))
+	r.log.V(1).Info("extractTagsFromSingleArtifact: processing artifact", "repo_name", repoName, "artifact_index", artifactIdx, "artifact_keys", GetMapKeys(artifact))
 
 	if tagsIface, ok := artifact["tags"]; ok {
 		r.log.V(1).Info("extractTagsFromSingleArtifact: found 'tags' field", "repo_name", repoName, "artifact_index", artifactIdx, "type", fmt.Sprintf("%T", tagsIface))
@@ -371,7 +368,7 @@ func (r *HarborImageListRequestor) extractTagsFromSingleArtifact(repoName string
 			r.log.V(1).Info("extractTagsFromSingleArtifact: tags field is not array", "repo_name", repoName, "artifact_index", artifactIdx, "type", fmt.Sprintf("%T", tagsIface))
 		}
 	} else {
-		r.log.V(1).Info("extractTagsFromSingleArtifact: 'tags' field not found in artifact", "repo_name", repoName, "artifact_index", artifactIdx, "artifact_keys", getMapKeys(artifact))
+		r.log.V(1).Info("extractTagsFromSingleArtifact: 'tags' field not found in artifact", "repo_name", repoName, "artifact_index", artifactIdx, "artifact_keys", GetMapKeys(artifact))
 	}
 
 	return tags
@@ -461,7 +458,7 @@ func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path s
 	// Extract the data array from Harbor response
 	dataIface, ok := harborResponse["data"]
 	if !ok {
-		r.log.Error(nil, "data field not found in Harbor response", "path", path, "response_keys", getMapKeys(harborResponse), "full_response", harborResponse)
+		r.log.Error(nil, "data field not found in Harbor response", "path", path, "response_keys", GetMapKeys(harborResponse), "full_response", harborResponse)
 		return nil, fmt.Errorf("data field not found in harbor response")
 	}
 
@@ -530,7 +527,7 @@ func (r *HarborImageListRequestor) doSingleGet(ctx context.Context, path string)
 		return nil, err
 	}
 
-	r.log.V(1).Info("parsed Harbor response as object", "path", path, "response_keys", getMapKeys(result))
+	r.log.V(1).Info("parsed Harbor response as object", "path", path, "response_keys", GetMapKeys(result))
 	return result, nil
 }
 
@@ -594,8 +591,9 @@ func (r *HarborImageListRequestor) mapRepositoriesToPaths(repositories []map[str
 	return paths
 }
 
-// Helper function to get keys from a map for logging.
-func getMapKeys(m map[string]interface{}) []string {
+// GetMapKeys returns the keys from the provided map[string]interface{}.
+// This is useful for structured logging when the map shape is unknown.
+func GetMapKeys(m map[string]interface{}) []string {
 	var keys []string
 	for k := range m {
 		keys = append(keys, k)

@@ -22,31 +22,28 @@ import (
 // StartScheduler starts the periodic image list update scheduler.
 func StartScheduler(ctx context.Context) {
 	if globalUpdater == nil {
-		globalUpdater.log.Error(nil, "image list updater not initialized, cannot start scheduler")
 		return
 	}
 
 	log := globalUpdater.log
 
-	log.Info("starting image list scheduler", "interval_seconds", globalUpdater.options.Interval)
+	log.Info("starting imagelist scheduler", "interval_seconds", globalUpdater.options.Interval)
 
 	ticker := time.NewTicker(time.Duration(globalUpdater.options.Interval) * time.Second)
 	defer ticker.Stop()
 
-	// Perform initial update
-	if err := Update(ctx); err != nil {
-		log.Error(err, "initial image list update failed")
+	if err := globalUpdater.Update(ctx); err != nil {
+		log.Error(err, "initial imagelist update failed")
 	}
 
-	// Periodic updates
 	for {
 		select {
 		case <-ctx.Done():
-			log.Info("image list scheduler stopped")
+			log.Info("imagelist scheduler stopped")
 			return
 		case <-ticker.C:
-			if err := Update(ctx); err != nil {
-				log.Error(err, "periodic image list update failed")
+			if err := globalUpdater.Update(ctx); err != nil {
+				log.Error(err, "periodic imagelist update failed")
 			}
 		}
 	}

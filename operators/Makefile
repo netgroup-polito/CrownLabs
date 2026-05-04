@@ -134,8 +134,7 @@ run-operator: generate ## Run the main operator locally
 				--enable-pmp=true\
 				--enable-keycloak=true\
 				--enable-webhooks=false\
-				--enable-image-list=true\
-				--image-list-update-interval=300
+				--enable-image-list=true
 
 .PHONY: install-local
 install-local: manifests ## Install CrownLabs & support CRDs.

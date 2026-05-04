@@ -52,8 +52,9 @@ type UpdaterOptions struct {
 	Interval       int // interval in seconds
 }
 
-// updater manages periodic image list updates.
-type updater struct {
+// BackgroundUpdater manages periodic image list updates.
+// It holds the resources and configuration used by the scheduler.
+type BackgroundUpdater struct {
 	k8sClient client.Client
 	log       logr.Logger
 	mu        sync.Mutex
@@ -61,7 +62,7 @@ type updater struct {
 	options   UpdaterOptions
 }
 
-var globalUpdater *updater
+var globalUpdater *BackgroundUpdater
 
 // LoadRegistriesConfig loads registry configuration from file.
 func LoadRegistriesConfig(filePath string) ([]RegistryConfig, error) {
@@ -88,7 +89,7 @@ func Initialize(k8sClient client.Client, log logr.Logger, options UpdaterOptions
 		return fmt.Errorf("image list updater already initialized")
 	}
 
-	globalUpdater = &updater{
+	globalUpdater = &BackgroundUpdater{
 		k8sClient: k8sClient,
 		log:       log.WithName("imagelist-updater"),
 		options:   options,
@@ -97,18 +98,14 @@ func Initialize(k8sClient client.Client, log logr.Logger, options UpdaterOptions
 	return nil
 }
 
-// Update performs a periodic update of all configured image lists.
-func Update(ctx context.Context) error {
+// Update executes the update logic with mutex protection.
+func (u *BackgroundUpdater) Update(ctx context.Context) error {
+	log := u.log
+
 	if globalUpdater == nil {
+		log.Error(nil, "image list updater not initialized, cannot perform update")
 		return fmt.Errorf("image list updater not initialized")
 	}
-
-	return globalUpdater.update(ctx)
-}
-
-// update executes the update logic with mutex protection.
-func (u *updater) update(ctx context.Context) error {
-	log := u.log
 
 	// Prevent concurrent updates
 	if !u.mu.TryLock() {

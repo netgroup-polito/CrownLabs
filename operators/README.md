@@ -547,8 +547,8 @@ The storage layer uses a `Saver` interface for creating/updating ImageList resou
 
 ```go
 type Saver interface {
-	// UpdateImageList updates the Kubernetes ImageList resource with images from a registry
-	UpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
+  // CreateOrUpdateImageList creates or updates the Kubernetes ImageList resource with images from a registry
+  CreateOrUpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
 }
 ```
 

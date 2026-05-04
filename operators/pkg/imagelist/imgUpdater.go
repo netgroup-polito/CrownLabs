@@ -64,7 +64,7 @@ func (u *Updater) Update(ctx context.Context) error {
 
 	// Save images using the configured saver
 	if u.ImageListSaver != nil {
-		if err := u.ImageListSaver.UpdateImageList(u.RegistryAdvName, imageListItems); err != nil {
+		if err := u.ImageListSaver.CreateOrUpdateImageList(u.RegistryAdvName, imageListItems); err != nil {
 			u.Log.Error(err, "failed to save data as ImageList", "registry", u.RegistryAdvName)
 			return err
 		}
