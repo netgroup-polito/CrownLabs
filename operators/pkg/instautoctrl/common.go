@@ -51,6 +51,9 @@ const (
 	ExpirationMailTemplatePath = "instautoctrl_expiration_notification.yaml"
 	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
 	WarningExpirationMailTemplatePath = "instautoctrl_expiration_warning_notification.yaml"
+
+	// WarningDeletionMailTemplatePath is the path to the email template for the phase 2 deletion warning notifications.
+	WarningDeletionMailTemplatePath = "instautoctrl_deletion_warning_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -102,6 +105,11 @@ func SendInactivityTerminationNotification(ctx context.Context, mc *mail.Client,
 // SendExpiringWarningNotification sends expiration warning notification.
 func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
 	return sendNotification(ctx, mc, WarningExpirationMailTemplatePath, remainingTime)
+}
+
+// SendDeletionWarningNotification sends a deletion warning notification when a paused instance is about to be deleted.
+func SendDeletionWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, WarningDeletionMailTemplatePath, remainingTime)
 }
 
 // SendExpiringNotification sends expiration warning notification.
@@ -265,7 +273,18 @@ var inactivityTimeoutChanged = predicate.Funcs{
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
 		// Requeue only if the deleteAfter field has changed and it is not set to "never"
-		return newValue != NeverTimeoutValue
+		if newValue != NeverTimeoutValue {
+			return true
+		}
+
+		// Requeue also if the deleteAfterPause field has changed
+		oldPauseValue := oldTemplate.Spec.DeleteAfterPause
+		newPauseValue := newTemplate.Spec.DeleteAfterPause
+		if oldPauseValue != newPauseValue && newPauseValue != NeverTimeoutValue {
+			return true
+		}
+
+		return false
 	},
 }
 

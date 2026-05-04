@@ -27,6 +27,18 @@ You can prevent all instances in a namespace from being considered for inactivit
 	- `crownlabs.polito.it/last-running`: Used to detect if the instance has been restarted after being paused.
 	- `crownlabs.polito.it/custom-number-alerts`: Overrides the default max number of alerts for a specific template.
 
+## Phase 2: Inactivity Deletion After Pause (DeleteAfterPause)
+A second timeout, `DeleteAfterPause`, can be specified in the `Template` resource. 
+This applies exclusively to persistent instances that have been paused due to `InactivityTimeout`.
+- If `DeleteAfterPause` is set to `10d`, CrownLabs will track how long the instance has been paused.
+- Before reaching this limit, new warning notifications will be sent to the user.
+- If the user still doesn't turn the instance back on, the persistent instance will be permanently **deleted** to completely free up resources (including the persistent volume).
+
+Annotations added for this feature:
+- `crownlabs.polito.it/paused-timestamp`: Timestamp when the instance was paused.
+- `crownlabs.polito.it/deletion-alerts-sent`: Number of deletion warnings sent.
+- `crownlabs.polito.it/last-deletion-notification-timestamp`: Timestamp of the last deletion warning sent.
+
 For more technical details, see the [Instance Automation Controller README](../pkg/instautoctrl/README.md).
 
 

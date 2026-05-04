@@ -123,6 +123,49 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, nil
 	}
 
+	// Se l'istanza è in pausa (Running == false) gestiamo il secondo timer
+	if !instance.Spec.Running {
+		deleteAfterPause := template.Spec.DeleteAfterPause // <-- Il nuovo campo
+		if deleteAfterPause != NeverTimeoutValue && deleteAfterPause != "" {
+			deleteAfterPauseDuration, err := ParseDurationWithDays(ctx, deleteAfterPause)
+			if err != nil {
+				return ctrl.Result{}, fmt.Errorf("failed to parse deleteAfterPause duration %s: %w", deleteAfterPause, err)
+			}
+
+			// Recuperiamo quando è stata messa in pausa
+			pausedTimeStr := instance.Annotations["crownlabs.polito.it/paused-timestamp"]
+			if pausedTimeStr != "" {
+				pausedTime, err := time.Parse(time.RFC3339, pausedTimeStr)
+				if err != nil {
+					log.Error(err, "failed to parse paused time")
+					return ctrl.Result{}, err
+				}
+				remainingPauseTime := deleteAfterPauseDuration - time.Since(pausedTime)
+
+				if remainingPauseTime <= 0 {
+					// logica di notifica email che dice che l'istanza verrà eliminata
+					if r.EnableInactivityNotifications {
+						shouldSendWarning, _ := r.ShouldSendDeletionWarningNotification(ctx, instance)
+						if shouldSendWarning {
+							window, _ := r.GetDeletionNotificationWindow(ctx, instance)
+							// Invia la notifica email e metti in coda dopo l'intervallo
+							_ = r.SendDeletionWarning(ctx, instance, window)
+							return ctrl.Result{RequeueAfter: r.NotificationInterval}, nil
+						}
+					}
+					// Se tutte le email sono state mandate (o disabilitate), eliminiamo l'istanza definitivamente:
+					log.Info("Deleting paused persistent instance due to prolonged inactivity...")
+					return ctrl.Result{}, r.Delete(ctx, instance)
+				} else {
+					// Ritorna requeue in base al tempo rimanente per la distruzione
+					return ctrl.Result{RequeueAfter: remainingPauseTime + r.MarginTime}, nil
+				}
+			}
+		}
+		// Ritorno early per evitare che venga eseguita la normale logica di inattività per una macchina già spenta
+		return ctrl.Result{}, nil
+	}
+
 	inactivityTimeoutDuration, err := ParseDurationWithDays(ctx, inactivityTimeout)
 	if err != nil {
 		log.Error(err, "failed to parse deleteAfter duration")
@@ -383,6 +426,12 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 		if !ok || lastRunningStr != currentRunningStr {
 			instance.Annotations[forge.LastRunningAnnotation] = currentRunningStr
 		}
+
+		// Aggiungiamo l'annotazione che registra quando la macchina è andata in pausa
+		if instance.Annotations["crownlabs.polito.it/paused-timestamp"] == "" {
+			instance.Annotations["crownlabs.polito.it/paused-timestamp"] = time.Now().Format(time.RFC3339)
+		}
+
 		return r.Update(ctx, instance)
 	}
 	log.Info("Deleting non-persistent instance...")
@@ -663,6 +712,12 @@ func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Con
 		log.Info("Detected transition from false to true: resetting alert counter and last activity field")
 		instance.Annotations[forge.AlertAnnotationNum] = "0"
 		instance.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
+
+		// Puliamo il contatore delle mail di distruzione e il timestamp di pausa
+		delete(instance.Annotations, "crownlabs.polito.it/paused-timestamp")
+		delete(instance.Annotations, "crownlabs.polito.it/deletion-alerts-sent")
+		delete(instance.Annotations, "crownlabs.polito.it/last-deletion-notification-timestamp")
+
 		updated = true
 	}
 	// update the LastRunningAnnotation
@@ -681,4 +736,49 @@ func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Con
 	}
 
 	return nil
+}
+
+// GetDeletionNotificationWindow calcola quanto tempo rimane prima della distruzione definitiva
+func (r *InstanceInactiveTerminationReconciler) GetDeletionNotificationWindow(ctx context.Context, instance *clv1alpha2.Instance) (time.Duration, error) {
+	numAlertsStr := instance.Annotations["crownlabs.polito.it/deletion-alerts-sent"]
+	numAlerts, _ := strconv.Atoi(numAlertsStr)
+	maxAlerts := r.InstanceMaxNumberOfAlerts
+	remainingAlerts := maxAlerts - numAlerts
+	if remainingAlerts <= 0 {
+		return 0, nil
+	}
+	return time.Duration(remainingAlerts) * r.NotificationInterval, nil
+}
+
+// ShouldSendDeletionWarningNotification controlla se è il momento di mandare una notifica email per avvisare della distruzione
+func (r *InstanceInactiveTerminationReconciler) ShouldSendDeletionWarningNotification(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	numAlertsStr := instance.Annotations["crownlabs.polito.it/deletion-alerts-sent"]
+	numAlerts, _ := strconv.Atoi(numAlertsStr)
+	maxAlerts := r.InstanceMaxNumberOfAlerts // Oppure potremmo leggerlo dalle annotazioni del template
+
+	lastNotificationTimeStr := instance.Annotations["crownlabs.polito.it/last-deletion-notification-timestamp"]
+	if lastNotificationTimeStr == "" {
+		return true, nil // Prima mail
+	}
+
+	lastNotificationTime, _ := time.Parse(time.RFC3339, lastNotificationTimeStr)
+	if numAlerts > 0 && time.Since(lastNotificationTime) < r.NotificationInterval-r.MarginTime {
+		return false, nil // L'intervallo non è ancora passato
+	}
+	return numAlerts < maxAlerts, nil
+}
+
+// SendDeletionWarning invia materialmente l'email e aggiorna i contatori nelle annotazioni
+func (r *InstanceInactiveTerminationReconciler) SendDeletionWarning(ctx context.Context, instance *clv1alpha2.Instance, remainingTime time.Duration) error {
+	// 1. Qui chiamiamo la funzione di invio email che si trova in common.go.
+	_ = SendDeletionWarningNotification(ctx, r.MailClient, remainingTime)
+
+	// 2. Aggiorniamo le annotazioni per contare quante email abbiamo mandato
+	numAlertsStr := instance.Annotations["crownlabs.polito.it/deletion-alerts-sent"]
+	numAlerts, _ := strconv.Atoi(numAlertsStr)
+
+	patch := client.MergeFrom(instance.DeepCopy())
+	instance.Annotations["crownlabs.polito.it/deletion-alerts-sent"] = strconv.Itoa(numAlerts + 1)
+	instance.Annotations["crownlabs.polito.it/last-deletion-notification-timestamp"] = time.Now().Format(time.RFC3339)
+	return r.Patch(ctx, instance, patch)
 }
