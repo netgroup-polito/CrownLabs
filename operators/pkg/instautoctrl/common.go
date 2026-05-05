@@ -53,7 +53,7 @@ const (
 	WarningExpirationMailTemplatePath = "instautoctrl_expiration_warning_notification.yaml"
 
 	// WarningDeletionMailTemplatePath is the path to the email template for the phase 2 deletion warning notifications.
-	WarningDeletionMailTemplatePath = "instautoctrl_deletion_warning_notification.yaml"
+	WarningDeletionMailTemplatePath = "instautoctrl_inactivity_deletion_warning_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
