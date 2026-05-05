@@ -52,8 +52,8 @@ const (
 	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
 	WarningExpirationMailTemplatePath = "instautoctrl_expiration_warning_notification.yaml"
 
-	// WarningDeletionMailTemplatePath is the path to the email template for the phase 2 deletion warning notifications.
-	WarningDeletionMailTemplatePath = "instautoctrl_deletion_warning_notification.yaml"
+	// WarningDestructionMailTemplatePath is the path to the email template for the destruction warning notifications.
+	WarningDestructionMailTemplatePath = "instautoctrl_destruction_warning_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -107,9 +107,9 @@ func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client, remai
 	return sendNotification(ctx, mc, WarningExpirationMailTemplatePath, remainingTime)
 }
 
-// SendDeletionWarningNotification sends a deletion warning notification when a paused instance is about to be deleted.
-func SendDeletionWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
-	return sendNotification(ctx, mc, WarningDeletionMailTemplatePath, remainingTime)
+// SendDestructionWarningNotification sends a destruction warning notification when a powered-off instance is about to be destroyed.
+func SendDestructionWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, WarningDestructionMailTemplatePath, remainingTime)
 }
 
 // SendExpiringNotification sends expiration warning notification.
@@ -272,15 +272,15 @@ var inactivityTimeoutChanged = predicate.Funcs{
 		log.Info("template %s/%s: old inactivityTimeout=%s, new inactivityTimeout=%s",
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
-		// Requeue only if the deleteAfter field has changed and it is not set to "never"
+		// Requeue only if the inactivity destruction time field has changed and it is not set to "never"
 		if newValue != NeverTimeoutValue {
 			return true
 		}
 
-		// Requeue also if the deleteAfterPause field has changed
-		oldPauseValue := oldTemplate.Spec.DeleteAfterPause
-		newPauseValue := newTemplate.Spec.DeleteAfterPause
-		if oldPauseValue != newPauseValue && newPauseValue != NeverTimeoutValue {
+		// Requeue also if the powered off destruction time field has changed
+		oldPoweredOffValue := oldTemplate.Spec.DestroyAfterInactivity
+		newPoweredOffValue := newTemplate.Spec.DestroyAfterInactivity
+		if oldPoweredOffValue != newPoweredOffValue && newPoweredOffValue != NeverTimeoutValue {
 			return true
 		}
 

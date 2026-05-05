@@ -98,9 +98,9 @@ type TemplateSpec struct {
 
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
 	// +kubebuilder:default="never"
-	// The maximum period of time a persistent instance can remain paused
+	// The maximum period of time a persistent instance can remain powered off
 	// after being stopped for inactivity, before being completely deleted.
-	DeleteAfterPause string `json:"deleteAfterPause,omitempty"`
+	DestroyAfterInactivity string `json:"destroyAfterInactivity,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.
