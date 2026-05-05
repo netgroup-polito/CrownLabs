@@ -48,7 +48,7 @@ func setupImageList(mgr manager.Manager, log klog.Logger) error {
 		lg := log.WithName("imagelist-scheduler")
 		lg.Info("imagelist updater routine started")
 		imagelist.StartScheduler(ctx)
-		lg.Info("imagelist updater routine stopping: context cancelled, shutting down")
+		lg.Info("imagelist updater routine stopping: context canceled, shutting down")
 		return nil
 	}))
 }
