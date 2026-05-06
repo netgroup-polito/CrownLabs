@@ -237,6 +237,7 @@ export type Tenant = {
   creationDate?: string;
   lastLogin?: string;
   labels?: Record<string, string>;
+  personalWorkspace?: boolean;
 };
 
 export function makeRandomDigits(value: number) {

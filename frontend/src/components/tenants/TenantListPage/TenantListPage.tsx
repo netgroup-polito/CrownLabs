@@ -11,6 +11,7 @@ import {
   message,
   Button,
   Select,
+  InputNumber,
 } from 'antd';
 import dayjs from 'dayjs';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
@@ -39,10 +40,16 @@ export default function TenantListPage() {
   const [labelValueFilter, setLabelValueFilter] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
+  const [minWorkspaces, setMinWorkspaces] = useState<number | null>(null);
+  const [maxWorkspaces, setMaxWorkspaces] = useState<number | null>(null);
+  const [personalWorkspaceActive, setPersonalWorkspaceActive] = useState<string | null>(null);
 
   const { data, loading, error, refetch } = useTenantsQuery({
     onError: apolloErrorCatcher,
     notifyOnNetworkStatusChange: true,
+    variables: {
+      retrieveWorkspaces: true,
+    },
   });
 
   const [deleteTenantMutation, { loading: deleteLoading }] =
@@ -76,7 +83,7 @@ export default function TenantListPage() {
   };
 
   const tenants = useMemo(() => makeTenantsList(data), [data]);
-  
+
   const operatorSelectorValues = useMemo(() => {
     const values = new Set<string>();
     tenants.forEach(tenant => {
@@ -155,7 +162,24 @@ export default function TenantListPage() {
           }
         }
 
-        return searchMatches && matchesReg && matchesLogin && matchesLabel && matchesOperator;
+        let matchesWorkspaces = true;
+        const wsCount = tenant.workspaces?.length || 0;
+        if (minWorkspaces !== null && wsCount < minWorkspaces) matchesWorkspaces = false;
+        if (maxWorkspaces !== null && wsCount > maxWorkspaces) matchesWorkspaces = false;
+
+        let matchesPW = true;
+        if (personalWorkspaceActive === 'yes' && !tenant.personalWorkspace) matchesPW = false;
+        if (personalWorkspaceActive === 'no' && tenant.personalWorkspace) matchesPW = false;
+
+        return (
+          searchMatches &&
+          matchesReg &&
+          matchesLogin &&
+          matchesLabel &&
+          matchesOperator &&
+          matchesWorkspaces &&
+          matchesPW
+        );
       }),
     [
       tenants,
@@ -165,6 +189,9 @@ export default function TenantListPage() {
       labelKeyFilter,
       labelValueFilter,
       selectedOperators,
+      minWorkspaces,
+      maxWorkspaces,
+      personalWorkspaceActive,
     ],
   );
 
@@ -244,7 +271,36 @@ export default function TenantListPage() {
                     style={{ minWidth: 200 }}
                     value={selectedOperators}
                     onChange={setSelectedOperators}
-                    options={operatorSelectorValues.map(v => ({ label: v, value: v }))}
+                    options={operatorSelectorValues.map(v => ({
+                      label: v,
+                      value: v,
+                    }))}
+                  />
+                  <Space.Compact className="w-full sm:w-auto flex">
+                    <InputNumber
+                      placeholder="Min Workspaces"
+                      value={minWorkspaces}
+                      onChange={setMinWorkspaces}
+                      style={{ width: '50%' }}
+                    />
+                    <InputNumber
+                      placeholder="Max Workspaces"
+                      value={maxWorkspaces}
+                      onChange={setMaxWorkspaces}
+                      style={{ width: '50%' }}
+                    />
+                  </Space.Compact>
+                  <Select
+                    allowClear
+                    placeholder="Personal Workspace"
+                    className="w-full sm:w-auto"
+                    style={{ minWidth: 180 }}
+                    value={personalWorkspaceActive}
+                    onChange={setPersonalWorkspaceActive}
+                    options={[
+                      { label: 'Yes', value: 'yes' },
+                      { label: 'No', value: 'no' },
+                    ]}
                   />
                 </div>
               </div>
@@ -323,6 +379,31 @@ export default function TenantListPage() {
               }
               key="lastLogin"
               width={150}
+            />
+            <Table.Column
+              responsive={['sm', 'md', 'lg']}
+              title="Workspaces"
+              dataIndex="workspaces"
+              render={(workspaces: Tenant['workspaces']) =>
+                workspaces ? workspaces.length : 0
+              }
+              sorter={(a: Tenant, b: Tenant) =>
+                (a.workspaces ? a.workspaces.length : 0) -
+                (b.workspaces ? b.workspaces.length : 0)
+              }
+              key="workspaces"
+              width={120}
+            />
+            <Table.Column
+              responsive={['sm', 'md', 'lg']}
+              title="Personal Workspace"
+              dataIndex="personalWorkspace"
+              render={(active: boolean) => (active ? 'Yes' : 'No')}
+              sorter={(a: Tenant, b: Tenant) =>
+                (a.personalWorkspace === b.personalWorkspace) ? 0 : a.personalWorkspace ? -1 : 1
+              }
+              key="personalWorkspace"
+              width={140}
             />
             <Table.Column
               title="Actions"
