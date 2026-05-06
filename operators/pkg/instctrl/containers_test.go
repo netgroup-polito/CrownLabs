@@ -115,9 +115,9 @@ var _ = Describe("Generation of the container based instances", func() {
 	BeforeEach(func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
 		containerOpts = forge.ContainerEnvOpts{
-			ImagesTag:            "v1.2.3",
-			XVncImg:              "x-vnc",
-			WebsockifyImg:        "wskfy",
+			ImagesTag:       "v1.2.3",
+			XVncImg:         "x-vnc",
+			WebsockifyImg:   "wskfy",
 			ContentToolsImg: "archdownloader:v0.1.2",
 		}
 		myDriveSecret = corev1.Secret{

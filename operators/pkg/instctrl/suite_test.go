@@ -87,9 +87,9 @@ var _ = BeforeSuite(func() {
 			InstancesAuthURL: "fake.com/auth",
 		},
 		ContainerEnvOpts: forge.ContainerEnvOpts{
-			ImagesTag:            "v0.1.2",
-			XVncImg:              "fake-xvnc",
-			WebsockifyImg:        "fake-wskfy",
+			ImagesTag:       "v0.1.2",
+			XVncImg:         "fake-xvnc",
+			WebsockifyImg:   "fake-wskfy",
 			ContentToolsImg: "fake-archdl",
 		},
 		PublicExposureOpts: forge.PublicExposureOpts{

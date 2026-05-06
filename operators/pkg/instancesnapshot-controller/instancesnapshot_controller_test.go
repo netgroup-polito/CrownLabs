@@ -241,8 +241,6 @@ var _ = Describe("InstancesnapshotController", func() {
 			checkIsnapCreationFailure(ctx, newInstanceSnapshot, WorkingNamespace, timeout, interval)
 		})
 
-		//TODO CHECK CLEANUP classContaienr: ClassContainer doesn't exist anymore, thohugh it doesn't make sense to have a test on it since the forge.ClassContainer function doesn't exist anymore as well
-
 		It("Should fail: template does not exist", func() {
 			By("Getting current instance")
 			currentInstance := &crownlabsv1alpha2.Instance{}

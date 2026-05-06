@@ -143,7 +143,6 @@ var _ = Describe("Services forging", func() {
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
 				},
 			}),
-			//TODO CHECK CLEANUP classContainer: ClassContainer doesn't exist anymore, thohugh it doesn't make sense to have a test on it since the forge.ClassContainer function doesn't exist anymore as well
 		)
 	})
 })

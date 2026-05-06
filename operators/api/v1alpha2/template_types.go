@@ -38,15 +38,15 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
-	// ClassContainer -> Alias Legacy that now points to Standalone
-	ClassContainer EnvironmentType = ClassStandalone;
+	// ClassContainer -> Alias Legacy that now points to Standalone.
+	ClassContainer EnvironmentType = ClassStandalone
 	// ScopeStandard -> Normal operation (authentication, ssh, files access).
 	ScopeStandard EnvironmentScope = "Standard"
 	// ScopeExam -> Restricted access (no authentication, no mydrive access).
 	ScopeExam EnvironmentScope = "Exam"
 	// ScopeExercise -> Restricted access (no authentication, no mydrive access).
 	ScopeExercise EnvironmentScope = "Exercise"
-) //TODO CLEANUP (Definitions): Remove ScopeStandard, ScopeExam, ScopeExercise
+)
 
 // TemplateSpec is the specification of the desired state of the Template.
 type TemplateSpec struct {

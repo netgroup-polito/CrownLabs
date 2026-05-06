@@ -105,7 +105,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
-				//TODO CLEANUP: ScopeStandard
 				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
@@ -288,9 +287,7 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment type is Standalone", func() {
 			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
-				//TODO CLEANUP: ScopeStandard
 				Scope:           clv1alpha2.ScopeStandard,
-				//TODO CLEANUP: ClassStandalone
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
@@ -300,7 +297,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			}))
 		})
 
-		//TODO CHECK CLEANUP classContainer: classContainer doesn't exist anymore, thohugh it doesn't make sense to have a test on it since the forge.ClassContainer function doesn't exist anymore as well
 	})
 
 	Describe("The forge.StandaloneContainer function forges a standalone container", func() {
@@ -414,7 +410,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("the environment mode is Standard", func() {
 			BeforeEach(func() {
 				instance.UID = instanceName
-				//TODO CLEANUP: ScopeStandard
 				template.Spec.Scope = clv1alpha2.ScopeStandard
 			})
 			It("Should set the correct arguments", func() {
@@ -434,7 +429,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("the environment mode is non Standard", func() {
 			BeforeEach(func() {
 				instance.UID = instanceName
-				//TODO CLEANUP: ScopeExercise
 				template.Spec.Scope = clv1alpha2.ScopeExercise
 			})
 			It("Should set the correct arguments", func() {
@@ -1023,7 +1017,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is standard", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			//TODO CLEANUP: ScopeStandard
 			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
@@ -1032,7 +1025,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is exam", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			//TODO CLEANUP: ScopeExam
 			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
@@ -1041,7 +1033,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is exercise", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			//TODO CLEANUP: ScopeExercise
 			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
@@ -1050,7 +1041,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is standard", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			//TODO CLEANUP: ScopeStandard
 			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
@@ -1059,7 +1049,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is exam", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			//TODO CLEANUP: ScopeExam
 			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
@@ -1068,7 +1057,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is exercise", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			//TODO CLEANUP: ScopeExercise
 			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
@@ -1078,7 +1066,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("the environment has the source archive url option", WhenBody(ContainerVolumesCase{
 			StartupOpts: &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
 			Persistent:  false,
-			//TODO CLEANUP: ScopeExam
 			Scope:       clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
@@ -1290,19 +1277,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}
 
 		When("the environment mode is Exercise", WhenBody(EnvModeCase{
-			//TODO CLEANUP: ScopeExercise
 			EnvScope:       clv1alpha2.ScopeExercise,
 			ExpectedOutput: "exercise",
 		}))
 
 		When("the environment mode is Exam", WhenBody(EnvModeCase{
-			//TODO CLEANUP: ScopeExam
 			EnvScope:       clv1alpha2.ScopeExam,
 			ExpectedOutput: "exam",
 		}))
 
 		When("the environment mode is Standard", WhenBody(EnvModeCase{
-			//TODO CLEANUP: ScopeStandard
 			EnvScope:       clv1alpha2.ScopeStandard,
 			ExpectedOutput: "",
 		}))

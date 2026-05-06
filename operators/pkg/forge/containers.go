@@ -194,7 +194,7 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 }
 
 // ContainersSpec returns the Containers obj based on Environment Type.
-func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, opts *ContainerEnvOpts) []corev1.Container {
+func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, _ *ContainerEnvOpts) []corev1.Container {
 	return []corev1.Container{
 		StandaloneContainer(
 			instance,
@@ -519,7 +519,6 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 // InstanceHostname forges the hostname of the instance:
 // empty for standard mode (will use pod name) or the lowercase mode otherwise.
 func InstanceHostname(template *clv1alpha2.Template) string {
-	// TODO CLEANUP: ScopeStandard
 	if template.Spec.Scope != clv1alpha2.ScopeStandard {
 		return strings.ToLower(string(template.Spec.Scope))
 	}
