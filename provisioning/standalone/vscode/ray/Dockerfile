@@ -4,10 +4,6 @@ INCLUDE+ ./base/Dockerfile
 
 ENV SUDO_FORCE_REMOVE yes
 
-ENV RAY_ADDRESS="ray://raycluster-head-svc.workspace-kuberay-gpu.svc.crowng:10001"
-ENV SHARED_STORAGE_PATH="/shared/models"
-ENV WORKSPACE_PVC_NAME="shvol-shvol-kuberay-gpu"
-
 # Install Python 3.11 via deadsnakes PPA + kubectl
 ARG KUBECTL_VERSION=v1.30.0
 RUN apt-get update && \
@@ -53,6 +49,9 @@ RUN code-server --extensions-dir ${VSCODE_SRV_DIR}/extensions \
 # Workspace files go to /example_project; start.sh --load-example seeds
 # /vscode/workspace on first launch (idempotent via .startup sentinel file)
 COPY --chown=${USER}:${USER} workspace/ /example_project/
+
+COPY --chown=${USER}:${USER} start.sh /start.sh
+RUN chmod +x /start.sh
 
 # Set permissions and drop apt + sudo (CrownLabs security convention)
 RUN chown -R ${USER}:${USER} ${VSCODE_SRV_DIR} /example_project && \
