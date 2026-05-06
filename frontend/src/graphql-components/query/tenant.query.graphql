@@ -36,6 +36,7 @@ query tenant($tenantId: String!) {
     metadata {
       name
       creationTimestamp
+      labels
     }
     status {
       personalNamespace {

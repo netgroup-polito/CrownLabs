@@ -10,6 +10,7 @@ import {
   Popconfirm,
   message,
   Button,
+  Select,
 } from 'antd';
 import dayjs from 'dayjs';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
@@ -37,6 +38,7 @@ export default function TenantListPage() {
   const [labelKeyFilter, setLabelKeyFilter] = useState('');
   const [labelValueFilter, setLabelValueFilter] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
 
   const { data, loading, error, refetch } = useTenantsQuery({
     onError: apolloErrorCatcher,
@@ -74,6 +76,16 @@ export default function TenantListPage() {
   };
 
   const tenants = useMemo(() => makeTenantsList(data), [data]);
+  
+  const operatorSelectorValues = useMemo(() => {
+    const values = new Set<string>();
+    tenants.forEach(tenant => {
+      const val = tenant.labels?.['crownlabsPolitoItOperatorSelector'];
+      if (val) values.add(val);
+    });
+    return Array.from(values).sort();
+  }, [tenants]);
+
   const filteredTenants = useMemo(
     () =>
       tenants.filter(tenant => {
@@ -135,7 +147,15 @@ export default function TenantListPage() {
           }
         }
 
-        return searchMatches && matchesReg && matchesLogin && matchesLabel;
+        let matchesOperator = true;
+        if (selectedOperators.length > 0) {
+          const val = tenant.labels?.['crownlabsPolitoItOperatorSelector'];
+          if (!val || !selectedOperators.includes(val)) {
+            matchesOperator = false;
+          }
+        }
+
+        return searchMatches && matchesReg && matchesLogin && matchesLabel && matchesOperator;
       }),
     [
       tenants,
@@ -144,6 +164,7 @@ export default function TenantListPage() {
       lastLoginDateRange,
       labelKeyFilter,
       labelValueFilter,
+      selectedOperators,
     ],
   );
 
@@ -215,6 +236,16 @@ export default function TenantListPage() {
                       style={{ width: '60%' }}
                     />
                   </Space.Compact>
+                  <Select
+                    mode="multiple"
+                    allowClear
+                    placeholder="Filter by Operator"
+                    className="w-full sm:w-auto"
+                    style={{ minWidth: 200 }}
+                    value={selectedOperators}
+                    onChange={setSelectedOperators}
+                    options={operatorSelectorValues.map(v => ({ label: v, value: v }))}
+                  />
                 </div>
               </div>
             </div>
