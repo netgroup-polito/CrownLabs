@@ -51,13 +51,6 @@ configurations:
         #   password: ""
         #  imageListName: crownlabs-virtual-machine-images-test
         # - name: harbor-registry-containerdisks
-        #   type: harbor
-        #   url: http://harbor-core.harbor:80
-        #   advertised: harbor.crownlabs.polito.it
-        #   username: ""
-        #   password: ""
-        #   imageListName: harbor-containerdisks-imagelist-test
-        #   project: crownlabs-containerdisks
         - name: harbor-registry-2-standalone
           type: harbor
           url: http://harbor-core.harbor:80
@@ -66,6 +59,14 @@ configurations:
           password: ""
           imageListName: harbor-standalone-imagelist-test
           project: crownlabs-standalone
+        - name: harbor-registry-1-containerdisks
+          type: harbor
+          url: http://harbor-core.harbor:80
+          advertised: harbor.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-containerdisks-imagelist-test
+          project: crownlabs-containerdisks
   
   pvcMirrorProvisioner:  
     provisionerName: pmp.crownlabs.polito.it

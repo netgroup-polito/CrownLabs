@@ -75,7 +75,6 @@ operator:
     maxConcurrentReconciles: 1
     tenantNamespaceKeepAlive: 168h
     imageList:
-      configFile: /etc/config/registries.yaml
       updateInterval: 600
       registries:
         # - name: docker-registry
@@ -85,14 +84,6 @@ operator:
         #   username: ""
         #   password: ""
         #  imageListName: crownlabs-virtual-machine-images-test
-        # - name: harbor-registry-containerdisks
-        #   type: harbor
-        #   url: http://harbor-core.harbor:80
-        #   advertised: harbor.crownlabs.polito.it
-        #   username: ""
-        #   password: ""
-        #   imageListName: harbor-containerdisks-imagelist-test
-        #   project: crownlabs-containerdisks
         - name: harbor-registry-2-standalone
           type: harbor
           url: http://harbor-core.harbor:80
@@ -101,6 +92,14 @@ operator:
           password: ""
           imageListName: harbor-standalone-imagelist-test
           project: crownlabs-standalone
+        - name: harbor-registry-1-containerdisks
+          type: harbor
+          url: http://harbor-core.harbor:80
+          advertised: harbor.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-containerdisks-imagelist-test
+          project: crownlabs-containerdisks
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
