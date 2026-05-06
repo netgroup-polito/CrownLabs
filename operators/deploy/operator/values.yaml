@@ -49,7 +49,7 @@ configurations:
           advertised: harbor.crownlabs.polito.it
           username: ""
           password: ""
-          imageListName: harbor-standalone-imagelist
+          imageListName: harbor-standalone
           project: crownlabs-standalone
         - name: harbor-registry-1-containerdisks
           type: harbor
@@ -57,7 +57,7 @@ configurations:
           advertised: harbor.crownlabs.polito.it
           username: ""
           password: ""
-          imageListName: harbor-containerdisks-imagelist
+          imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
   
   pvcMirrorProvisioner:  

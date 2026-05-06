@@ -90,7 +90,7 @@ operator:
           advertised: harbor.crownlabs.polito.it
           username: ""
           password: ""
-          imageListName: harbor-standalone-imagelist-test
+          imageListName: harbor-standalone
           project: crownlabs-standalone
         - name: harbor-registry-1-containerdisks
           type: harbor
@@ -98,7 +98,7 @@ operator:
           advertised: harbor.crownlabs.polito.it
           username: ""
           password: ""
-          imageListName: harbor-containerdisks-imagelist-test
+          imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
   webhook:
     deployment:
