@@ -1,10 +1,10 @@
 """
 RAY CPU SUM TEST
 ----------------
-Use this script to verify that your Ray cluster can successfully 
-distribute tasks across standard CPU worker nodes. 
+Use this script to verify that your Ray cluster can successfully
+distribute tasks across standard CPU worker nodes.
 
-Instead of a heavy machine learning model, this script performs 
+Instead of a heavy machine learning model, this script performs
 a parallelized mathematical operation (summing numbers) to ensure:
 1. The Ray Head can communicate with CPU workers.
 2. The scheduler properly chunks and distributes tasks.
@@ -22,11 +22,12 @@ N = 10_000_000_000               # The massive number we want to sum up to
 NUM_CHUNKS = 2                   # Number of parallel tasks to split the work into
 EXPECTED_SUM = N * (N + 1) // 2  # Mathematical truth (Gauss's formula) for validation
 
+
 def main():
     print(f"Step 1: Connecting to Ray cluster at {RAY_HEAD_ADDRESS}...")
-    
+
     try:
-        # Initialize Ray. 
+        # Initialize Ray.
         # No runtime_env is needed here because this script only uses standard Python math.
         ray.init(
             address=RAY_HEAD_ADDRESS,
@@ -39,18 +40,18 @@ def main():
         @ray.remote(num_cpus=1)
         def sum_cpu_chunk(start: int, end: int) -> int:
             import time
-            
+
             # Print statements inside remote functions show up in the worker logs
             print(f"[CPU Worker] Computing sum for chunk: [{start:,} to {end:,})")
-            
-            # We use Gauss's formula to calculate the sum instantly. 
-            # We add a small sleep to simulate computation time so we can actually 
+
+            # We use Gauss's formula to calculate the sum instantly.
+            # We add a small sleep to simulate computation time so we can actually
             # observe the parallel execution in the cluster dashboard.
-            time.sleep(1.0) 
-            
+            time.sleep(1.0)
+
             def gauss(k):
                 return k * (k + 1) // 2
-                
+
             return gauss(end - 1) - gauss(start - 1)
 
         # --- Execution Logic ---
@@ -66,7 +67,7 @@ def main():
             start = i * chunk_size + 1
             # Ensure the last chunk catches any remainder
             end = (i + 1) * chunk_size + 1 if i < NUM_CHUNKS - 1 else N + 1
-            
+
             # .remote() submits the task to the cluster immediately
             futures.append(sum_cpu_chunk.remote(start, end))
 
@@ -74,7 +75,7 @@ def main():
 
         # ray.get() blocks until all tasks are finished, returning a list of the partial sums
         partial_results = ray.get(futures)
-        
+
         # Combine the distributed results locally
         total = sum(partial_results)
         elapsed = time.time() - start_time
@@ -96,11 +97,12 @@ def main():
 
     except Exception as e:
         print(f"\n❌ Failed to execute test. Is the Ray cluster running? Error details: {e}")
-        
+
     finally:
         # Always disconnect cleanly to free up cluster resources
         if ray.is_initialized():
             ray.shutdown()
+
 
 if __name__ == "__main__":
     main()

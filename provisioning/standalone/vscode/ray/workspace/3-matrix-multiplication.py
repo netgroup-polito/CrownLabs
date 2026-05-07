@@ -7,7 +7,7 @@ This script serves as a diagnostic tool to verify that:
 3. The GPU worker has the correct drivers and PyTorch version installed.
 4. Numerical computation (Matrix Multiplication) is performing at expected TFLOPS.
 
-The script performs iterative matrix multiplications (AxB) on the GPU 
+The script performs iterative matrix multiplications (AxB) on the GPU
 and calculates the aggregate performance in Teraflops.
 """
 
@@ -18,9 +18,10 @@ import time
 RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
 
 # --- Configuration ---
-NUM_TASKS   = 1      # Number of parallel Ray tasks to launch
+NUM_TASKS = 1      # Number of parallel Ray tasks to launch
 MATRIX_SIZE = 10000  # Dimension of the square matrix (10k x 10k)
-NUM_ITERS   = 1000   # Number of matrix multiplication iterations per task
+NUM_ITERS = 1000   # Number of matrix multiplication iterations per task
+
 
 def main():
     print(f"Connecting to Ray cluster at: {RAY_HEAD_ADDRESS}...")
@@ -53,7 +54,7 @@ def main():
             # Explicitly target the first available GPU allocated by Ray
             device = torch.device("cuda")
             gpu_name = torch.cuda.get_device_name(0)
-            
+
             print(f"[Task {task_id}] Running on: {gpu_name}")
             print(f"[Task {task_id}] Matrix size: {matrix_size}x{matrix_size} | Iterations: {num_iters}")
 
@@ -67,7 +68,7 @@ def main():
 
             # Warmup: Pre-heat the GPU kernels before starting the timer to avoid JIT overhead
             _ = torch.matmul(A, B)
-            torch.cuda.synchronize() # Wait for GPU to finish the warmup pass
+            torch.cuda.synchronize()  # Wait for GPU to finish the warmup pass
 
             # Start timing the heavy computation loop
             start = time.time()
@@ -84,7 +85,7 @@ def main():
                 # Progress log every 50 iterations
                 if i % 50 == 0:
                     # Sync before measurement to get accurate timing of GPU progress
-                    torch.cuda.synchronize() 
+                    torch.cuda.synchronize()
                     elapsed = time.time() - start
                     print(f"[Task {task_id}] Iter {i+1:03d}/{num_iters} | {elapsed:.1f}s elapsed")
 
@@ -93,12 +94,12 @@ def main():
             total_time = time.time() - start
 
             # Performance Calculation:
-            # 2 * N^3 operations per matmul. 
+            # 2 * N^3 operations per matmul.
             # We divide by 1e12 to get Teraflops (TFLOPS).
-            checksum       = result.sum().item()
+            checksum = result.sum().item()
             flops_per_iter = 2 * (matrix_size ** 3)
-            total_flops    = flops_per_iter * num_iters
-            tflops         = total_flops / total_time / 1e12
+            total_flops = flops_per_iter * num_iters
+            tflops = total_flops / total_time / 1e12
 
             print(f"[Task {task_id}] ✅ Done | {total_time:.2f}s | {tflops:.2f} TFLOPS")
 
@@ -106,11 +107,11 @@ def main():
             torch.cuda.empty_cache()
 
             return {
-                "task_id":     task_id,
-                "device":      gpu_name,
-                "total_time":  total_time,
-                "tflops":      tflops,
-                "checksum":    checksum,
+                "task_id": task_id,
+                "device": gpu_name,
+                "total_time": total_time,
+                "tflops": tflops,
+                "checksum": checksum,
             }
 
         # --- Execution Logic ---
@@ -143,6 +144,7 @@ def main():
         if ray.is_initialized():
             ray.shutdown()
             print("Ray connection shut down.")
+
 
 if __name__ == "__main__":
     main()

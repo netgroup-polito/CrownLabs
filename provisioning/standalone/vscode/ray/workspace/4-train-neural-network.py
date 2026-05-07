@@ -1,8 +1,8 @@
 """
 RAY DEEP NEURAL NETWORK TRAINING
 --------------------------------
-This script demonstrates how to train a deep neural network 
-on a Ray cluster using a dedicated GPU worker. 
+This script demonstrates how to train a deep neural network
+on a Ray cluster using a dedicated GPU worker.
 
 It handles:
 1. Connecting to the Ray cluster.
@@ -25,16 +25,16 @@ import ray
 # ==========================================
 
 # Cluster & Storage Settings
-RAY_HEAD_ADDRESS    = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
+RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
 SHARED_STORAGE_PATH = "/shared/models/neural_network_ray_example.pth"
 
 # Training Hyperparameters
-NUM_EPOCHS    = 100      # Number of times to iterate over the dataset
-BATCH_SIZE    = 64       # Number of samples per gradient update
+NUM_EPOCHS = 100      # Number of times to iterate over the dataset
+BATCH_SIZE = 64       # Number of samples per gradient update
 LEARNING_RATE = 0.01     # Step size for the optimizer
-HIDDEN_SIZE   = 256      # Number of neurons in the primary hidden layers
-NUM_SAMPLES   = 5000     # Size of the synthetic dataset to generate
-RANDOM_SEED   = 42       # For reproducibility
+HIDDEN_SIZE = 256      # Number of neurons in the primary hidden layers
+NUM_SAMPLES = 5000     # Size of the synthetic dataset to generate
+RANDOM_SEED = 42       # For reproducibility
 
 # ==========================================
 
@@ -46,7 +46,7 @@ class NeuralNetwork(torch.nn.Module):
     """
     def __init__(self, num_inputs: int, num_outputs: int, hidden_size: int):
         super().__init__()
-        
+
         self.layers = torch.nn.Sequential(
             # Input layer expanding to hidden_size
             torch.nn.Linear(num_inputs, hidden_size),
@@ -129,7 +129,7 @@ def train_model_task() -> dict:
     # 1. Environment Setup
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     worker_id = ray.get_runtime_context().get_worker_id()
-    
+
     print(f"\n🚀 [Worker {worker_id[:8]}] Initialized on device: {device}")
     torch.manual_seed(RANDOM_SEED)
 
@@ -144,7 +144,7 @@ def train_model_task() -> dict:
     y_test = ((X_test[:, 0] + X_test[:, 1]) > 0).long().to(device)
 
     train_loader = DataLoader(ToyDataset(X_train.cpu(), y_train.cpu()), batch_size=BATCH_SIZE, shuffle=True)
-    test_loader  = DataLoader(ToyDataset(X_test.cpu(), y_test.cpu()), batch_size=BATCH_SIZE, shuffle=False)
+    test_loader = DataLoader(ToyDataset(X_test.cpu(), y_test.cpu()), batch_size=BATCH_SIZE, shuffle=False)
 
     # 3. Model & Optimizer Initialization
     model = NeuralNetwork(num_inputs=2, num_outputs=2, hidden_size=HIDDEN_SIZE).to(device)
@@ -153,23 +153,23 @@ def train_model_task() -> dict:
     # 4. Training Loop
     print(f"⚙️  [Worker {worker_id[:8]}] Starting training ({NUM_EPOCHS} Epochs)...")
     start_time = time.time()
-    
+
     for epoch in range(NUM_EPOCHS):
         model.train()
         epoch_loss = 0.0
-        
+
         for features, labels in train_loader:
             features, labels = features.to(device), labels.to(device)
-            
+
             # Forward & Backward pass
             optimizer.zero_grad()
             logits = model(features)
             loss = F.cross_entropy(logits, labels)
             loss.backward()
             optimizer.step()
-            
+
             epoch_loss += loss.item()
-            
+
         # Print progress every 10 epochs or on the last epoch
         if (epoch + 1) % 10 == 0 or epoch == NUM_EPOCHS - 1:
             avg_loss = epoch_loss / len(train_loader)
@@ -179,13 +179,13 @@ def train_model_task() -> dict:
 
     # 5. Evaluation
     train_acc = compute_accuracy(model, train_loader, device)
-    test_acc  = compute_accuracy(model, test_loader, device)
-    
+    test_acc = compute_accuracy(model, test_loader, device)
+
     print(f"✅ [Worker {worker_id[:8]}] Training complete in {training_time:.1f}s")
-    print(f"🎯 [Worker {worker_id[:8]}] Final Test Accuracy: {test_acc:.4f}")
+    print(f"🎯 [Worker {worker_id[:8]}] Train Acc: {train_acc:.4f} | Final Test Acc: {test_acc:.4f}")
 
     # 6. Safe Serialization
-    # CRITICAL: We must move the model to CPU before returning its state_dict. 
+    # CRITICAL: We must move the model to CPU before returning its state_dict.
     # If we return CUDA tensors, Ray will crash trying to serialize them back to the head node.
     model_cpu = model.cpu()
     state_dict_cpu = model_cpu.state_dict()
@@ -201,7 +201,7 @@ def train_model_task() -> dict:
     }
 
 
-# Notice: num_cpus=1 instead of num_gpus=1. 
+# Notice: num_cpus=1 instead of num_gpus=1.
 # Saving a file to disk doesn't require a GPU, so we don't waste expensive resources here.
 @ray.remote(num_cpus=1)
 def save_model_to_disk(state_dict: dict, file_path: str) -> bool:
@@ -219,7 +219,7 @@ def save_model_to_disk(state_dict: dict, file_path: str) -> bool:
 
 def main():
     print(f"Step 1: Connecting to Ray cluster at {RAY_HEAD_ADDRESS}...")
-    
+
     try:
         # We ensure PyTorch is installed on the worker before starting
         ray.init(
@@ -240,7 +240,7 @@ def main():
         print("Step 2: Submitting Deep GPU training task to cluster...")
         # Submit the training task
         future = train_model_task.remote()
-        
+
         # Block until training is finished and get the result
         result = ray.get(future)
 
@@ -264,6 +264,7 @@ def main():
         if ray.is_initialized():
             ray.shutdown()
             print("\nRay connection closed. Resources released.")
+
 
 if __name__ == "__main__":
     main()

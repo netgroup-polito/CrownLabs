@@ -1,11 +1,11 @@
 """
 RAY GPU SANITY CHECK
 --------------------
-Use this script to verify that your Ray cluster is properly 
-allocating GPU resources and that PyTorch can communicate 
+Use this script to verify that your Ray cluster is properly
+allocating GPU resources and that PyTorch can communicate
 with the NVIDIA drivers.
 
-It performs a basic hardware check and a quick matrix 
+It performs a basic hardware check and a quick matrix
 multiplication to ensure the GPU is fully functional.
 """
 
@@ -14,11 +14,12 @@ import ray
 # The internal cluster address for the Ray Head service.
 RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
 
+
 def main():
     print("Step 1: Connecting to the Ray Cluster...")
-    
+
     try:
-        # Initialize Ray. The runtime_env ensures PyTorch is available 
+        # Initialize Ray. The runtime_env ensures PyTorch is available
         # on the worker node before the task starts.
         ray.init(
             address=RAY_HEAD_ADDRESS,
@@ -36,7 +37,7 @@ def main():
             import torch
 
             print("--- Running Hardware Diagnostics ---")
-            
+
             # 1. Check if PyTorch can see the NVIDIA drivers
             cuda_available = torch.cuda.is_available()
             if not cuda_available:
@@ -59,16 +60,16 @@ def main():
                 # Create two random matrices directly on the GPU
                 A = torch.randn(1000, 1000, device="cuda")
                 B = torch.randn(1000, 1000, device="cuda")
-                
+
                 # Multiply them together
                 _ = torch.matmul(A, B)
-                
+
                 # Force PyTorch to wait for the GPU to finish the calculation
                 torch.cuda.synchronize()
-                
+
                 print("✅ Matrix multiplication successful!")
                 math_success = True
-                
+
             except Exception as e:
                 print(f"❌ Matrix multiplication failed: {e}")
                 math_success = False
@@ -86,7 +87,7 @@ def main():
         # --- Execution Logic ---
         print("Step 2: Submitting GPU diagnostic task...")
         print("(If the cluster is scaling up a new GPU node, this may take a minute or two)\n")
-        
+
         # .remote() submits the task, ray.get() waits for the result
         future = verify_gpu_and_drivers.remote()
         result = ray.get(future)
@@ -103,11 +104,12 @@ def main():
 
     except Exception as e:
         print(f"\n❌ Failed to execute test. Is the Ray cluster running? Error details: {e}")
-        
+
     finally:
         # Always disconnect cleanly
         if ray.is_initialized():
             ray.shutdown()
+
 
 if __name__ == "__main__":
     main()
