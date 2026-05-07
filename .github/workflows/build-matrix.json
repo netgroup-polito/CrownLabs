@@ -88,8 +88,7 @@
     {
         "component": "content-tools",
         "context": "./provisioning/containers/utils/content-tools",
-        "harbor-project": "crownlabs-container-envs-tools",
-        "optional": true
+        "harbor-project": "crownlabs-container-envs-tools"
     },
     {
         "component": "ssh-bastion",
