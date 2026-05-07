@@ -217,12 +217,11 @@ func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *Regist
 		return nil, fmt.Errorf("failed to update the ImageList resource: %w", err)
 	}
 
-	// Retrieve the updated items from the requestor
-	images, err := requestor.GetImageList(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to retrieve updated images: %w", err)
+	// Return the items persisted by the updater to avoid querying the registry twice.
+	var imageList clv1alpha1.ImageList
+	if err := k8sClient.Get(ctx, client.ObjectKey{Name: regConfig.ImageListName}, &imageList); err != nil {
+		return nil, fmt.Errorf("failed to retrieve updated ImageList resource: %w", err)
 	}
 
-	items := ProcessImageList(images)
-	return items, nil
+	return imageList.Spec.Images, nil
 }

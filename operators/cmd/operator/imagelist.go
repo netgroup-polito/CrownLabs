@@ -18,10 +18,10 @@ import (
 	"context"
 	"flag"
 
-	"sigs.k8s.io/controller-runtime/pkg/manager"
-
 	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
+
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 )
 
 var (

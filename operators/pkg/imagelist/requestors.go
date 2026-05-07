@@ -115,6 +115,11 @@ func (r *DockerImageListRequestor) doSingleGet(ctx context.Context, path string)
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		r.log.Error(nil, "unexpected HTTP status code from registry", "path", path, "status_code", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected HTTP status code: %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		r.log.Error(err, "failed to read response body", "path", path)
@@ -144,12 +149,6 @@ func (r *DockerImageListRequestor) doParallelGets(ctx context.Context, paths []s
 			defer wg.Done()
 			resp, err := r.doSingleGet(ctx, path)
 			if err != nil {
-				// Check if it's a 404 error (repository not found)
-				if strings.Contains(err.Error(), "404") {
-					r.log.V(1).Info("repository not found (404), skipping", "path", path)
-					return
-				}
-				// For other errors, record them
 				errorsMutex.Lock()
 				errors = append(errors, fmt.Errorf("path %s: %w", path, err))
 				errorsMutex.Unlock()
@@ -419,6 +418,11 @@ func (r *HarborImageListRequestor) doSingleGetAsList(ctx context.Context, path s
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		r.log.Error(nil, "unexpected HTTP status code from Harbor", "path", path, "status_code", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected HTTP status code: %d", resp.StatusCode)
+	}
+
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		r.log.Error(err, "failed to read response body", "path", path)
@@ -501,6 +505,11 @@ func (r *HarborImageListRequestor) doSingleGet(ctx context.Context, path string)
 		return nil, err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		r.log.Error(nil, "unexpected HTTP status code from Harbor", "path", path, "status_code", resp.StatusCode)
+		return nil, fmt.Errorf("unexpected HTTP status code: %d", resp.StatusCode)
+	}
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
