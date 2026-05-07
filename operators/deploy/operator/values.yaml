@@ -38,6 +38,10 @@ configurations:
   sharedVolumeOptions:
     storageClass: rook-nfs
 
+  pvcMirrorProvisioner:  
+    provisionerName: pmp.crownlabs.polito.it
+    storageClassName: nfs-mirror
+
 image:
   repository: crownlabs/tenant-operator
   pullPolicy: IfNotPresent
