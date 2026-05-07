@@ -29,7 +29,13 @@ func StartScheduler(ctx context.Context) {
 
 	log.Info("starting imagelist scheduler", "interval_seconds", globalUpdater.options.Interval)
 
-	ticker := time.NewTicker(time.Duration(globalUpdater.options.Interval) * time.Second)
+	interval := globalUpdater.options.Interval
+	if interval <= 0 {
+		log.Info("invalid update interval configured, defaulting to 300 seconds")
+		interval = 300
+	}
+
+	ticker := time.NewTicker(time.Duration(interval) * time.Second)
 	defer ticker.Stop()
 
 	if err := globalUpdater.Update(ctx); err != nil {

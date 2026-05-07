@@ -18,9 +18,9 @@ import (
 	"context"
 	"flag"
 
-	"k8s.io/klog/v2"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
+	"github.com/go-logr/logr"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 )
 
@@ -34,7 +34,7 @@ func init() {
 	flag.IntVar(&imageListUpdateInterval, "image-list-update-interval", 300, "Image list update interval in seconds")
 }
 
-func setupImageList(mgr manager.Manager, log klog.Logger) error {
+func setupImageList(mgr manager.Manager, log logr.Logger) error {
 	// Initialize the image list updater
 	if err := imagelist.Initialize(mgr.GetClient(), log.WithName("imagelist"), imagelist.UpdaterOptions{
 		ConfigFilePath: imageListConfigFile,

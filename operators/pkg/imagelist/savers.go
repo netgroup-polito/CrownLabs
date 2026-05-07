@@ -60,8 +60,7 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 	s.log.V(1).Info("creating or updating ImageList", "registryName", registryName, "imageCount", len(images))
 
 	if len(images) == 0 {
-		s.log.Info("no images to save, skipping ImageList processing", "name", s.name, "registryName", registryName)
-		return nil
+		s.log.Info("no images found; persisting empty ImageList", "name", s.name, "registryName", registryName)
 	}
 
 	// Try to get existing ImageList

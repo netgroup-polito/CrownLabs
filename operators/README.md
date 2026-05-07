@@ -488,17 +488,18 @@ For a deeper definition go to
 The CrownLabs Image List Updater is a modular component that manages the retrieval and synchronization of available images from container registries and exposes them as ImageList custom resources in Kubernetes.
 
 The updater is now integrated into the main operator controller, eliminating the need for a separate deployment. It can be enabled as an optional feature and runs as a periodic background task with a configurable update interval.
+When `configurations.imageList` is not defined in the Helm values, the operator does not mount the registry ConfigMap and does not pass the image list command-line arguments.
 
 ### Architecture
 
 The Image List Updater is composed of:
 
-1. **Public Update Function** (`imagelist.Update(ctx)`) - Executes a complete update cycle across all configured registries. This function is:
-   - Called periodically by the internal scheduler
-   - Available for external components to call on-demand
-   - Reusable for triggered updates from webhooks or events
+1. **Update Method** (`(*BackgroundUpdater).Update(ctx)`) - Executes a complete update cycle across all configured registries. This method is:
+    - Called by the scheduler when periodic updates are enabled
+    - Intended to be invoked on a `BackgroundUpdater` instance for on-demand or event-triggered updates
+    - Protected against overlapping executions by the updater's concurrency controls
 
-2. **Periodic Scheduler** - Manages automatic updates at a configurable interval:
+2. **Periodic Scheduler** (`StartScheduler(ctx)`) - Manages automatic updates at a configurable interval:
    - Runs inside the operator when enabled
    - Prevents concurrent updates with mutex protection
    - Performs initial update on startup, then periodic updates
@@ -610,7 +611,6 @@ The Image List Updater is integrated into the main operator controller and can b
 ```yaml
 configurations:
   imageList:
-    enabled: true
     configFile: /etc/config/registries.yaml
     updateInterval: 300  # seconds
 ```
@@ -621,6 +621,8 @@ configurations:
 --image-list-config-file=/etc/config/registries.yaml
 --image-list-update-interval=300
 ```
+
+If `configurations.imageList` is omitted, these flags are not rendered and image list processing remains disabled.
 
 ### Registry Configuration (ConfigMap)
 
@@ -647,20 +649,17 @@ The ConfigMap should contain a YAML array of registry configurations:
 
 ### Usage
 
-Other components can trigger updates programmatically by calling the public `Update()` function:
+Other components can trigger updates programmatically by calling the `Update()` method on the configured `BackgroundUpdater` instance:
 
 ```go
 import "github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 
-// Initialize the updater once at startup
-err := imagelist.Initialize(k8sClient, log, imagelist.UpdaterOptions{
-    ConfigFilePath: "/etc/config/registries.yaml",
-    Interval:       300,
-})
+ // Keep a reference to the updater created during application startup.
+ var updater *imagelist.BackgroundUpdater
 
 // Trigger a manual update from any component
 ctx := context.Background()
-err := imagelist.Update(ctx)
+err := updater.Update(ctx)
 ```
 
 This enables integration with external triggers such as:
