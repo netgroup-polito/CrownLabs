@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/klog/v2/textlogger"
@@ -59,7 +60,7 @@ func NewDockerImageListRequestor(log logr.Logger) *DockerImageListRequestor {
 		url:         "",
 		username:    "",
 		password:    "",
-		client:      &http.Client{},
+		client:      &http.Client{Timeout: 10 * time.Second},
 		initialized: false,
 		log:         log,
 	}

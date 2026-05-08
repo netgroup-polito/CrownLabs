@@ -101,9 +101,9 @@ func ProcessImageList(images []map[string]interface{}) []clv1alpha1.ImageListIte
 			}
 		}
 
-		// Ensure at least one version exists
+		// Skip image if no non-latest versions are present
 		if len(versions) == 0 {
-			versions = []string{"latest"}
+			continue
 		}
 
 		out = append(out, clv1alpha1.ImageListItem{
