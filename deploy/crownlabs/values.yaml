@@ -87,7 +87,7 @@ operator:
         - name: harbor-registry-2-standalone
           type: harbor
           url: http://harbor-core.harbor:80
-          advertised: harbor.crownlabs.polito.it
+          advertised: harbor.ng.crownlabs.polito.it
           username: ""
           password: ""
           imageListName: harbor-standalone
@@ -95,7 +95,7 @@ operator:
         - name: harbor-registry-1-containerdisks
           type: harbor
           url: http://harbor-core.harbor:80
-          advertised: harbor.crownlabs.polito.it
+          advertised: harbor.ng.crownlabs.polito.it
           username: ""
           password: ""
           imageListName: harbor-containerdisks

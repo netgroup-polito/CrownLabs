@@ -59,8 +59,11 @@ func NewDefaultImageListSaver(ctx context.Context, name string, k8sClient client
 func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error {
 	s.log.V(1).Info("creating or updating ImageList", "registryName", registryName, "imageCount", len(images))
 
+	persistedImages := images
 	if len(images) == 0 {
 		s.log.Info("no images found; persisting empty ImageList", "name", s.name, "registryName", registryName)
+		persistedImages = []clv1alpha1.ImageListItem{}
+
 	}
 
 	// Try to get existing ImageList
@@ -76,7 +79,7 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 				},
 				Spec: clv1alpha1.ImageListSpec{
 					RegistryName: registryName,
-					Images:       images,
+					Images:       persistedImages,
 				},
 			}
 
@@ -96,7 +99,7 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 	// Update existing ImageList
 	imageList.Spec = clv1alpha1.ImageListSpec{
 		RegistryName: registryName,
-		Images:       images,
+		Images:       persistedImages,
 	}
 
 	if err := s.client.Update(s.ctx, imageList); err != nil {
