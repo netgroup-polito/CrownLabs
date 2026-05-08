@@ -113,18 +113,20 @@ If the request for a new snapshot is valid, a new Job is created that performs t
 
 When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, you should first create a new Template with the newly uploaded image.
 
-### Personal storage
+### Attachable storage
 
-The Instance Operator can attach the user's personal storage to the running instance using the parameters stored in the `mydrive-info` secret created by the Tenant Operator. 
+The Instance Operator can mount two types of AttachableVolumes to the running instance, that are the user's personal storage (aka `MyDrive`) and `SharedVolume`s. 
 
-The Instance Operator mounts or not the user's personal storage inside an `Environment`, basing on the `MountMyDriveVolume` flag inside each `Environment` that can be found in an Instance Resource.
+The Instance Operator mounts or not the user's personal storage inside an Environment, based on the `MountMyDriveVolume` flag inside each Environment that can be found in an Instance Resource.
 
-This operation is performed both for Containers and VirtualMachines.
+The Instance Operator, also, mounts all SharedVolumes mentioned inside an Environment, based on the `SharedVolumeMounts` array inside each Environment that can be found in an Instance Resource.
 
-For containers, the user's personal storage is attached as a NFS volume to the `Pod` and then mounted in the container environment with a `VolumeMount`.
+This operation is performed both for Containers and VirtualMachines. 
+In both cases, for SharedVolumes, the Instance Operator creates a PVC (known as "mirror PVC") in the tenant's namespace, that will be used to refer to the original PVC without moving it from the workspace namespace (as `Pod`s cannot refer to PVC across namespaces).
 
-For Virtual Machines, the user's personal storage is attached by the VM itself: `cloud-init` is used to add the mount point to the VM's `/etc/fstab` file and the machine tries to mount it using the NFS filesystem.\
-The VM must be able to mount the NFS volume, this means that it should have the necessary packages installed (`nfs-common` or `nfs-utils` according to the OS).
+But more specifically:
+- for Containers, the mirror PVCs are directly mounted on the `Pod` as `VolumeMount`.
+- for Virtual Machines, the mirror PVCs are attached to the `Pod`: then, to use them in the VM, cloud-init is used to add the mount point to the VM's `/etc/fstab` file and the machine tries to mount it using the virtio Filesystem.
 
 ### Build from source
 

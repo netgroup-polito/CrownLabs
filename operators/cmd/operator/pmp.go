@@ -31,7 +31,7 @@ var (
 )
 
 func init() {
-	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "nfs-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
+	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
 	flag.StringVar(&mirrorProvisionerName, "mirror-provisioner-name", "pmp.crownlabs.polito.it", "The provisioner name to be used for the mirror StorageClass")
 }
 
