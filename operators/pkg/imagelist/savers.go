@@ -63,7 +63,6 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 	if len(images) == 0 {
 		s.log.Info("no images found; persisting empty ImageList", "name", s.name, "registryName", registryName)
 		persistedImages = []clv1alpha1.ImageListItem{}
-
 	}
 
 	// Try to get existing ImageList
