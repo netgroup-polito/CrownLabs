@@ -15,6 +15,7 @@
 package tenant_test
 
 import (
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -71,6 +72,7 @@ var _ = Describe("MyDrive management", func() {
 			}, pvc, BeTrue(), timeout, interval)
 
 			Expect(pvc.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
+			Expect(pvc.Annotations).To(HaveKeyWithValue(forge.AuthorizationAnnotationKey, strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tnName)))
 			Expect(pvc.Spec.AccessModes).To(ContainElement(v1.ReadWriteMany))
 			Expect(pvc.Spec.StorageClassName).ToNot(BeNil())
 			Expect(*pvc.Spec.StorageClassName).To(Equal("nfs"))
