@@ -49,6 +49,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
 		index       int
+		mountInfos  []corev1.VolumeMount
 
 		objectName    types.NamespacedName
 		objectNameEnv types.NamespacedName
@@ -77,6 +78,10 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		cpuReserved = 25
 		memory      = "1250M"
 		disk        = "20Gi"
+
+		shVolName      = "shvol-abc123-instance-def456-mirror"
+		shVolMountPath = "/mnt/path"
+		shVolReadOnly  = true
 	)
 
 	BeforeEach(func() {
@@ -130,6 +135,15 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		index = 0
 		tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
 
+		mountInfos = []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
+		}
+
 		objectName = forge.NamespacedName(&instance)
 		objectNameEnv = forge.NamespacedNameWithSuffix(&instance, environmentName)
 
@@ -151,11 +165,13 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	JustBeforeEach(func() {
 		reconciler = instctrl.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme}
 
+		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx = clctx.EnvironmentIndexInto(ctx, index)
+		ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
+
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
@@ -198,6 +214,65 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		Expect(reconciler.Get(ctx, objectNameEnv, &svc)).To(Succeed())
 	})
 
+	Context("Mount information configurations", func() {
+		MountConfigCase := func(description string, mounts []corev1.VolumeMount) {
+			Context(description, func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassVM
+					mountInfos = mounts
+				})
+
+				Context("with non-persistent environment", func() {
+					BeforeEach(func() {
+						environment.Persistent = false
+					})
+
+					It("The VMI should have the expected volume mounts", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
+						Expect(vmi.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
+						Expect(vmi.Spec.Volumes).To(HaveLen(len(mounts) + 1))
+						// + 1 since there is the "root" (ContainerDisk) Volume.
+
+						// The exact values in Filesystems and Volumes are checked in forge.
+					})
+				})
+
+				Context("with persistent environment", func() {
+					BeforeEach(func() {
+						environment.Persistent = true
+					})
+
+					It("The VM should have the expected volume mounts", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+						Expect(vm.Spec.Template.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
+						Expect(vm.Spec.Template.Spec.Volumes).To(HaveLen(len(mounts) + 1))
+						// + 1 since there is the "root" (Persistent) Volume.
+
+						// The exact values in Filesystems and Volumes are checked in forge.
+					})
+				})
+			})
+		}
+
+		MountConfigCase("with no mount information", []corev1.VolumeMount{})
+		MountConfigCase("with only MyDrive mount", []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+		})
+		MountConfigCase("with only shared volume mount", []corev1.VolumeMount{{
+			Name:      shVolName,
+			MountPath: shVolMountPath,
+			ReadOnly:  shVolReadOnly,
+		}})
+		MountConfigCase("with both MyDrive and shared volume mounts", []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
+		})
+	})
+
 	Context("The environment is not persistent", func() {
 		BeforeEach(func() { environment.Persistent = false })
 
@@ -218,7 +293,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					// appropriate test case.
 					vmi.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vmi.Spec.NodeSelector = map[string]string{}
-					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
+					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
 				})
 
 				It("Should leave the instance phase unset", func() {
@@ -326,7 +401,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vm.Spec.Running = nil
 					vm.Spec.Template.Spec.NodeSelector = map[string]string{}
-					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment)))
+					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)))
 				})
 
 				It("The VM should be present and with the running flag set", func() {

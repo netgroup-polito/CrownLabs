@@ -10,6 +10,7 @@ configurations:
     whitelistLabels: crownlabs.polito.it/operator-selector=production
     websiteBaseUrl: crownlabs.example.com
     instancesAuthUrl: https://crownlabs.example.com/auth
+    mirrorStorageClass: pvc-mirror
   containerEnvironmentOptions:
     tag: ""
     websockifyImage: crownlabs/websockify
