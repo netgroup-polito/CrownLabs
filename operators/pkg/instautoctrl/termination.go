@@ -202,5 +202,13 @@ func (r *InstanceTerminationReconciler) TerminateInstance(ctx context.Context, i
 
 	instance.Spec.Running = false
 
+	// Add the annotation that records when the machine was powered off
+	if instance.Annotations == nil {
+		instance.Annotations = make(map[string]string)
+	}
+	if instance.Annotations[forge.LastPoweredOffTimestampAnnotation] == "" {
+		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+	}
+
 	return r.Update(ctx, instance)
 }
