@@ -43,19 +43,18 @@ import (
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
 type InstanceInactiveTerminationReconciler struct {
 	client.Client
-	EventsRecorder                           record.EventRecorder
-	Scheme                                   *runtime.Scheme
-	NamespaceWhitelist                       metav1.LabelSelector
-	StatusCheckRequestTimeout                time.Duration
-	InstanceMaxNumberOfAlerts                int
-	EnableInactivityNotifications            bool
-	EnableInactivityDestructionNotifications bool
-	NotificationInterval                     time.Duration
-	DestructionNotificationInterval          time.Duration
-	TestInactivityDestructionTime            time.Duration
-	MailClient                               *mail.Client
-	Prometheus                               PrometheusClientInterface
-	MarginTime                               time.Duration
+	EventsRecorder                  record.EventRecorder
+	Scheme                          *runtime.Scheme
+	NamespaceWhitelist              metav1.LabelSelector
+	StatusCheckRequestTimeout       time.Duration
+	InstanceMaxNumberOfAlerts       int
+	EnableInactivityNotifications   bool
+	NotificationInterval            time.Duration
+	DestructionNotificationInterval time.Duration
+	TestInactivityDestructionTime   time.Duration
+	MailClient                      *mail.Client
+	Prometheus                      PrometheusClientInterface
+	MarginTime                      time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -155,17 +154,45 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 						}
 						return ctrl.Result{RequeueAfter: r.DestructionNotificationInterval}, nil
 					}
+					shouldDelete, err := r.ShouldDeleteInstance(ctx, instance)
+					if err != nil {
+						log.Error(err, "failed checking if should delete instance")
+						return ctrl.Result{}, err
+					}
+					if !shouldDelete {
+						// We have not sent all the emails, we are just waiting for the next interval.
+						// Calculate how much time is left and requeue.
+						lastNotificationTimeStr := instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation]
+						lastNotificationTime, _ := time.Parse(time.RFC3339, lastNotificationTimeStr)
+						requeueTime := r.DestructionNotificationInterval - time.Since(lastNotificationTime) + r.MarginTime
+						if requeueTime < 0 {
+							requeueTime = r.MarginTime
+						}
+
+						dbgLog.Info("requeueing paused instance to wait for next destruction notification interval")
+						return ctrl.Result{RequeueAfter: requeueTime}, nil
+					}
 				}
 				// If all the emails have been sent (or disabled), we delete the instance
 				log.Info("Deleting paused persistent instance due to prolonged inactivity...")
-				return ctrl.Result{}, r.Delete(ctx, instance)
+				if err := r.DeleteInstance(ctx); err != nil {
+					log.Error(err, "failed to delete inactive instance")
+					return ctrl.Result{}, err
+				}
+				// Send notification for instance deletion
+				if err := r.NotifyInstanceDeletion(ctx); err != nil {
+					log.Error(err, "failed to send deletion notification")
+					return ctrl.Result{}, err
+				}
+				tracer.Step("instance deleted")
+				return ctrl.Result{}, nil
 			}
-			
+
 			// Requeue based on the remaining time for the destruction
 			dbgLog.Info("requeueing paused instance for destruction check")
 			return ctrl.Result{RequeueAfter: remainingPauseTime + r.MarginTime}, nil
 		}
-		
+
 		// Early return to avoid executing the normal inactivity logic for a machine that is already powered off
 		return ctrl.Result{}, nil
 	}
@@ -874,4 +901,67 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityDestructio
 
 	remainingTime := destroyAfterInactivityDuration - time.Since(poweredOffTime)
 	return remainingTime, true, nil
+}
+
+// ShouldDeleteInstance checks if the instance should be deleted based on the number of destruction alerts sent.
+func (r *InstanceInactiveTerminationReconciler) ShouldDeleteInstance(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	if r.EnableInactivityNotifications {
+		numAlertsStr := instance.Annotations[forge.DestructionAlertsSentAnnotation]
+		numAlerts := 0
+		if numAlertsStr != "" {
+			var err error
+			numAlerts, err = strconv.Atoi(numAlertsStr)
+			if err != nil {
+				return false, err
+			}
+		}
+		return numAlerts >= r.InstanceMaxNumberOfAlerts, nil
+	}
+	return true, nil
+}
+
+// DeleteInstance attempts to delete the instance.
+func (r *InstanceInactiveTerminationReconciler) DeleteInstance(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+
+	if err := r.Delete(ctx, instance); err != nil {
+		if kerrors.IsNotFound(err) {
+			log.Info("Instance already deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
+			return nil
+		}
+		return fmt.Errorf("failed to delete instance: %w", err)
+	}
+
+	log.Info("Instance has been deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
+	return nil
+}
+
+// NotifyInstanceDeletion handles sending notification emails when an instance is deleted.
+func (r *InstanceInactiveTerminationReconciler) NotifyInstanceDeletion(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx).WithName("notify-instance-deletion")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
+	}
+
+	// Send the notification email
+	if r.EnableInactivityNotifications {
+		if err := SendDestructionNotification(ctx, r.MailClient); err != nil {
+			return fmt.Errorf("failed sending notification email: %w", err)
+		}
+		log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
+	} else {
+		log.Info("Destruction notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
+	}
+
+	return nil
 }

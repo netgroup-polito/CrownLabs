@@ -51,9 +51,10 @@ const (
 	ExpirationMailTemplatePath = "instautoctrl_expiration_notification.yaml"
 	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
 	WarningExpirationMailTemplatePath = "instautoctrl_expiration_warning_notification.yaml"
-
 	// WarningDestructionMailTemplatePath is the path to the email template for the destruction warning notifications.
 	WarningDestructionMailTemplatePath = "instautoctrl_destruction_warning_notification.yaml"
+	// DestructionMailTemplatePath is the path to the email template for the destruction notification.
+	DestructionMailTemplatePath = "instautoctrl_destruction_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -110,6 +111,11 @@ func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client, remai
 // SendDestructionWarningNotification sends a destruction warning notification when a powered-off instance is about to be destroyed.
 func SendDestructionWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
 	return sendNotification(ctx, mc, WarningDestructionMailTemplatePath, remainingTime)
+}
+
+// SendDestructionNotification sends a deletion notification when an instance is deleted.
+func SendDestructionNotification(ctx context.Context, mc *mail.Client) error {
+	return sendNotification(ctx, mc, DestructionMailTemplatePath, 0)
 }
 
 // SendExpiringNotification sends expiration warning notification.

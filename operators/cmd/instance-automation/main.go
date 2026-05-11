@@ -104,7 +104,6 @@ func main() {
 
 	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", false, "Enable the sending of inactivity notifications to users on instance inactivity")
 	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", false, "Enable the sending of expiration notifications to users on instance expiration")
-	enableInactivityDestructionNotifications := flag.Bool("enable-inactivity-destruction-notifications", false, "Enable the sending of inactivity destruction notifications to users on instance inactivity")
 
 	mailTemplateDir := flag.String("mail-template-dir", "/etc/crownmail/templates", "The directory containing email templates and configuration (typically through a mounted ConfigMap)")
 	mailConfigDir := flag.String("mail-config-dir", "/etc/crownmail/configs", "The directory containing email configuration (typically through a mounted Secret)")
@@ -195,20 +194,19 @@ func main() {
 		// Configure the Instance Inactive termination controller
 		instanceInactiveTermination := "InstanceInactiveTermination."
 		if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
-			Client:                                   mgr.GetClient(),
-			Scheme:                                   mgr.GetScheme(),
-			EventsRecorder:                           mgr.GetEventRecorderFor(instanceInactiveTermination),
-			NamespaceWhitelist:                       nsWhitelist,
-			StatusCheckRequestTimeout:                *instanceInactiveTerminationStatusCheckTimeout,
-			InstanceMaxNumberOfAlerts:                *instanceInactiveTerminationMaxNumberOfAlerts,
-			EnableInactivityNotifications:            *enableInactivityNotifications,
-			EnableInactivityDestructionNotifications: *enableInactivityDestructionNotifications,
-			MailClient:                               mailClient,
-			Prometheus:                               prometheus,
-			NotificationInterval:                     *instanceInactiveTerminationNotificationInterval,
-			DestructionNotificationInterval:          *inactiveDestructionNotificationInterval,
-			TestInactivityDestructionTime:            *testInactivityDestructionTime,
-			MarginTime:                               *marginTime,
+			Client:                          mgr.GetClient(),
+			Scheme:                          mgr.GetScheme(),
+			EventsRecorder:                  mgr.GetEventRecorderFor(instanceInactiveTermination),
+			NamespaceWhitelist:              nsWhitelist,
+			StatusCheckRequestTimeout:       *instanceInactiveTerminationStatusCheckTimeout,
+			InstanceMaxNumberOfAlerts:       *instanceInactiveTerminationMaxNumberOfAlerts,
+			EnableInactivityNotifications:   *enableInactivityNotifications,
+			MailClient:                      mailClient,
+			Prometheus:                      prometheus,
+			NotificationInterval:            *instanceInactiveTerminationNotificationInterval,
+			DestructionNotificationInterval: *inactiveDestructionNotificationInterval,
+			TestInactivityDestructionTime:   *testInactivityDestructionTime,
+			MarginTime:                      *marginTime,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)
