@@ -28,7 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/context/mocks"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext/mocks"
 )
 
 var _ = Describe("CrownLabs Context Objects", func() {
