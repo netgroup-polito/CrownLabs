@@ -185,7 +185,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 }
 
 // handlePoweredOffInstance manages the inactivity lifecycle for instances that are already powered off.
-func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx context.Context, instance *clv1alpha2.Instance, tracer *trace.Trace) (ctrl.Result, error) {
+func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx context.Context, instance *clv1alpha2.Instance, tracer *trace.Trace) (res ctrl.Result, err error) {
 	log := ctrl.LoggerFrom(ctx)
 	dbgLog := log.V(utils.LogDebugLevel)
 
@@ -262,7 +262,7 @@ func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx con
 }
 
 // handleInactivityInstance processes the instance when its inactivity timeout has been reached.
-func (r *InstanceInactiveTerminationReconciler) handleInactivityInstance(ctx context.Context, instance *clv1alpha2.Instance) (ctrl.Result, bool, error) {
+func (r *InstanceInactiveTerminationReconciler) handleInactivityInstance(ctx context.Context, instance *clv1alpha2.Instance) (res ctrl.Result, terminateEarly bool, err error) {
 	log := ctrl.LoggerFrom(ctx)
 	if r.EnableInactivityNotifications {
 		// Check if all notifications have already been sent
