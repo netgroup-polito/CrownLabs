@@ -229,6 +229,37 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	tracer.Step("retrieved the instance tenant")
 	log.Info("successfully retrieved the instance tenant")
 
+	// Enforce the LastPoweredOffTimestampAnnotation based on the instance running state
+	hasTimestamp := false
+	if instance.Annotations != nil && instance.Annotations[forge.LastPoweredOffTimestampAnnotation] != "" {
+		hasTimestamp = true
+	}
+
+	annotationsUpdated := false
+	if !instance.Spec.Running && !hasTimestamp {
+		annotationsUpdated = true
+	} else if instance.Spec.Running && hasTimestamp {
+		annotationsUpdated = true
+	}
+
+	if annotationsUpdated {
+		original := instance.DeepCopy()
+		if instance.Annotations == nil {
+			instance.Annotations = make(map[string]string)
+		}
+		if !instance.Spec.Running {
+			instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+		} else {
+			delete(instance.Annotations, forge.LastPoweredOffTimestampAnnotation)
+		}
+		if err := r.Patch(ctx, &instance, client.MergeFrom(original)); err != nil {
+			log.Error(err, "failed to update the instance annotations")
+			return ctrl.Result{}, err
+		}
+		tracer.Step("instance annotations updated")
+		log.Info("instance annotations correctly configured")
+	}
+
 	// Patch the instance labels to allow for easier categorization.
 	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
 	if updated || instance.Spec.PrettyName == "" {
