@@ -14,9 +14,6 @@ a parallelized mathematical operation (summing numbers) to ensure:
 import ray
 import time
 
-# The internal cluster address for the Ray Head service.
-RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
-
 # --- Configuration ---
 N = 10_000_000_000               # The massive number we want to sum up to
 NUM_CHUNKS = 2                   # Number of parallel tasks to split the work into
@@ -24,13 +21,12 @@ EXPECTED_SUM = N * (N + 1) // 2  # Mathematical truth (Gauss's formula) for vali
 
 
 def main():
-    print(f"Step 1: Connecting to Ray cluster at {RAY_HEAD_ADDRESS}...")
+    print(f"Step 1: Connecting to Ray cluster...")
 
     try:
         # Initialize Ray.
         # No runtime_env is needed here because this script only uses standard Python math.
         ray.init(
-            address=RAY_HEAD_ADDRESS,
             ignore_reinit_error=True
         )
         print("✅ Connected successfully to the cluster.\n")

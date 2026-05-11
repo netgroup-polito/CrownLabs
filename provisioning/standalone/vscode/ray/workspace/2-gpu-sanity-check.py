@@ -11,10 +11,6 @@ multiplication to ensure the GPU is fully functional.
 
 import ray
 
-# The internal cluster address for the Ray Head service.
-RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
-
-
 def main():
     print("Step 1: Connecting to the Ray Cluster...")
 
@@ -22,7 +18,6 @@ def main():
         # Initialize Ray. The runtime_env ensures PyTorch is available
         # on the worker node before the task starts.
         ray.init(
-            address=RAY_HEAD_ADDRESS,
             runtime_env={
                 "pip": ["torch==2.4.1"]
             },

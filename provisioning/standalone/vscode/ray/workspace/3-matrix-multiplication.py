@@ -14,9 +14,6 @@ and calculates the aggregate performance in Teraflops.
 import ray
 import time
 
-# The internal cluster address for the Ray Head service.
-RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
-
 # --- Configuration ---
 NUM_TASKS = 1      # Number of parallel Ray tasks to launch
 MATRIX_SIZE = 10000  # Dimension of the square matrix (10k x 10k)
@@ -24,7 +21,7 @@ NUM_ITERS = 1000   # Number of matrix multiplication iterations per task
 
 
 def main():
-    print(f"Connecting to Ray cluster at: {RAY_HEAD_ADDRESS}...")
+    print(f"Connecting to Ray cluster...")
 
     try:
         # runtime_env ensures the worker has the required packages.
@@ -37,7 +34,6 @@ def main():
 
         # Initialize the Ray connection with the defined environment.
         ray.init(
-            address=RAY_HEAD_ADDRESS,
             runtime_env=runtime_env,
             ignore_reinit_error=True,
             log_to_driver=True,

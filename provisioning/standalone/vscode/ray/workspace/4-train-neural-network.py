@@ -24,8 +24,7 @@ import ray
 # Modify these variables to adjust the run
 # ==========================================
 
-# Cluster & Storage Settings
-RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
+# Storage Settings
 SHARED_STORAGE_PATH = "/shared/models/neural_network_ray_example.pth"
 
 # Training Hyperparameters
@@ -218,12 +217,11 @@ def save_model_to_disk(state_dict: dict, file_path: str) -> bool:
 
 
 def main():
-    print(f"Step 1: Connecting to Ray cluster at {RAY_HEAD_ADDRESS}...")
+    print(f"Step 1: Connecting to Ray cluster...")
 
     try:
         # We ensure PyTorch is installed on the worker before starting
         ray.init(
-            address=RAY_HEAD_ADDRESS,
             runtime_env={"pip": ["torch==2.4.1"]},
             ignore_reinit_error=True
         )
