@@ -1,0 +1,18 @@
+# Base scientific
+numpy
+pandas
+networkx
+sympy
+jinja2
+
+# Ray client + utilities
+ray[default]==2.47.1
+kubernetes
+cloudpickle
+requests
+pyyaml
+grpcio
+protobuf
+
+# PyTorch client side: CPU-only is sufficient for running the script and serializing models
+torch==2.4.1
