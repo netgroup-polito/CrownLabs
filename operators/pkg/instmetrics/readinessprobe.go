@@ -21,7 +21,7 @@ import (
 	"github.com/go-logr/logr"
 	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 )
 
 // ReadinessProbeHandler is the handler for the readiness probe requests.
