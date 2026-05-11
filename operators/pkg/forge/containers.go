@@ -192,7 +192,7 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 }
 
 // ContainersSpec returns the Containers obj based on Environment Type.
-func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []NFSVolumeMountInfo, _ *ContainerEnvOpts) []corev1.Container {
+func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, _ *ContainerEnvOpts) []corev1.Container {
 	return []corev1.Container{
 		StandaloneContainer(
 			instance,

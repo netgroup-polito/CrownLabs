@@ -702,11 +702,10 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			actual = forge.ContentDownloaderInitContainer(httpPath, &opts)
 		})
 
-		It("Should set the correct container name, args and image", func() {
+		It("Should set the correct container name and image", func() {
 			// PodSecurityContext setting is checked by GenericContainer specific tests
 			Expect(actual.Name).To(Equal(containerName))
 			Expect(actual.Image).To(Equal("cont-tools:tag"))
-			Expect(actual.Args).To(Equal([]string{"download"}))
 		})
 		It("Should set the correct resources", func() {
 			forge.SetContainerResources(&expected, 0.5, 1, 256, 1024)

@@ -90,10 +90,10 @@ var _ = Describe("Storage enforcement", func() {
 			}
 
 			containerOpts = forge.ContainerEnvOpts{
-				ImagesTag:            "v1.2.3",
-				XVncImg:              "x-vnc",
-				WebsockifyImg:        "wskfy",
-				ContentDownloaderImg: "archdownloader:v0.1.2",
+				ImagesTag:       "v1.2.3",
+				XVncImg:         "x-vnc",
+				WebsockifyImg:   "wskfy",
+				ContentToolsImg: "archdownloader:v0.1.2",
 			}
 
 			environment = clv1alpha2.Environment{
