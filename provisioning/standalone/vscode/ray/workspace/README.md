@@ -74,7 +74,7 @@ print(results) # Output: [2, 2, 2, 2...]
 ---
 
 ## 📂 Sample Scripts
-Inside the `samples/` folder, you will find ready-to-run scripts progressing from basic sanity checks to advanced machine learning sweeps.
+Inside the default folder (`/vscode/workspace`), you will find ready-to-run scripts progressing from basic sanity checks to advanced machine learning sweeps.
 We highly recommend running them in this order:
 
 | Script | Purpose | Description |
