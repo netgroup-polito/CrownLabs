@@ -64,7 +64,7 @@ futures = [calculate_math.remote() for _ in range(10)]
 
 ### 3. Retrieving Results (`ray.get()`)
 To get the actual data back from the cluster, pass the Future(s) to `ray.get()`.
-**Note:** This is a blocking operation; your script will pause here until the cluster finishes the work.
+**Note:** This is a blocking operation; your script will pause here until your remote task finishes the work.
 
 ```python
 results = ray.get(futures)
@@ -74,7 +74,7 @@ print(results) # Output: [2, 2, 2, 2...]
 ---
 
 ## 📂 Sample Scripts
-Inside the default folder (`/vscode/workspace`), you will find ready-to-run scripts progressing from basic sanity checks to advanced machine learning sweeps.
+The default folder (`/vscode/workspace`) contains some ready-to-run scripts progressing from basic sanity checks to advanced machine learning sweeps.
 We highly recommend running them in this order:
 
 | Script | Purpose | Description |
