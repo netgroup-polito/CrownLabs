@@ -118,6 +118,18 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	ctx, _ = pkgcontext.TemplateInto(ctx, template)
 	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
+	// Setup instance annotations
+	if err := r.SetupInstanceAnnotations(ctx); err != nil {
+		log.Error(err, "failed setting up instance annotations")
+		return ctrl.Result{}, err
+	}
+
+	// Verify whether the instance annotations need to be reset, and reset them if necessary.
+	if err := r.ResetAnnotations(ctx); err != nil {
+		log.Error(err, "failed resetting instance annotations")
+		return ctrl.Result{}, err
+	}
+
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
 	if inactivityTimeout == NeverTimeoutValue {
@@ -204,21 +216,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	tracer.Step("labels checked")
-
-	err = r.SetupInstanceAnnotations(ctx)
-	if err != nil {
-		log.Error(err, "failed setting up instance annotations")
-		return ctrl.Result{}, err
-	}
-
-	tracer.Step("annotations setup done")
-
-	// Verify whether the instance annotations need to be reset, and reset them if necessary.
-	err = r.ResetAnnotations(ctx)
-	if err != nil {
-		log.Error(err, "failed resetting instance annotations")
-		return ctrl.Result{}, err
-	}
 
 	// Update the last login time of the instance based on the Prometheus data
 	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
@@ -525,6 +522,27 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 		updated = true
 	}
 
+	// Check and set the destruction alert annotation if not present
+	if _, ok := instance.Annotations[forge.DestructionAlertsSentAnnotation]; !ok {
+		log.Info("adding destruction alert number annotation to instance for the first time", "annotation", forge.DestructionAlertsSentAnnotation)
+		instance.Annotations[forge.DestructionAlertsSentAnnotation] = "0"
+		updated = true
+	}
+
+	// Check and set the last destruction notification time annotation if not present
+	if _, ok := instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation]; !ok {
+		log.Info("adding last destruction notification time annotation to instance for the first time", "annotation", forge.LastDestructionNotificationTimestampAnnotation)
+		instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation] = ""
+		updated = true
+	}
+
+	// Check and set the last powered off timestamp annotation if not present
+	if _, ok := instance.Annotations[forge.LastPoweredOffTimestampAnnotation]; !ok {
+		log.Info("adding last powered off timestamp annotation to instance for the first time", "annotation", forge.LastPoweredOffTimestampAnnotation)
+		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
+		updated = true
+	}
+
 	// Apply the patch only if something changed
 	if updated {
 		patch := client.MergeFrom(original)
@@ -747,10 +765,17 @@ func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Con
 		// Reset the destruction mail counter and the pause timestamp
 		instance.Annotations[forge.DestructionAlertsSentAnnotation] = "0"
 		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
-		//instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation] = ""
+		instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation] = ""
 
 		updated = true
 	}
+	// Se l'istanza è spenta e manca il timestamp di spegnimento, impostalo ora
+	if !instance.Spec.Running && instance.Annotations[forge.LastPoweredOffTimestampAnnotation] == "" {
+		log.Info("Instance is off but timestamp is missing, setting it now")
+		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+		updated = true
+	}
+
 	// update the LastRunningAnnotation
 	currentRunningStr := strconv.FormatBool(instance.Spec.Running)
 	if lastRunningStr != currentRunningStr {
