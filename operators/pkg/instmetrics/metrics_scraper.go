@@ -25,7 +25,7 @@ import (
 	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/trace"
 
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
