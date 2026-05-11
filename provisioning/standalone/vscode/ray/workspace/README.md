@@ -85,6 +85,9 @@ We highly recommend running them in this order:
 | `4-train-neural-network.py` | Deep Learning | A complete template for generating data, training a PyTorch Neural Network, and saving the model to shared storage. |
 | `5-grid-search.py` | Hyperparameter Tuning | Advanced script showing how to train multiple models in parallel with strict concurrency limits. |
 
+The script `0-skeleton.py` is a template you can use to start writing your code with Ray.
+Please refer to sample `4-train-neural-network.py` for a baseline implementation you can adapt for training.
+
 ---
 
 ## ⚠️ Best Practices & Gotchas
