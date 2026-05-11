@@ -79,11 +79,11 @@ We highly recommend running them in this order:
 
 | Script | Purpose | Description |
 | :--- | :--- | :--- |
-| `cpu_sum_test.py` | CPU Diagnostics | Verifies that your code can connect to the cluster and distribute standard Python math tasks across CPU cores. |
-| `gpu_sanity_check.py` | GPU Diagnostics | A quick check to verify NVIDIA drivers are working and PyTorch can utilize the GPUs. |
-| `matrix_multiply.py` | Performance Benchmark | A heavy stress-test that distributes massive matrix calculations to measure the cluster's aggregate TFLOPS. |
-| `single_gpu_training.py` | Deep Learning | A complete template for generating data, training a PyTorch Neural Network, and saving the model to shared storage. |
-| `grid_search_sweep.py` | Hyperparameter Tuning | Advanced script showing how to train multiple models in parallel with strict concurrency limits. |
+| `1-cpu-sum.py` | CPU Diagnostics | Verifies that your code can connect to the cluster and distribute standard Python math tasks across CPU cores. |
+| `2-gpu-sanity-check.py` | GPU Diagnostics | A quick check to verify NVIDIA drivers are working and PyTorch can utilize the GPUs. |
+| `3-matrix-multiplication.py` | Performance Benchmark | A heavy stress-test that distributes massive matrix calculations to measure the cluster's aggregate TFLOPS. |
+| `4-train-neural-network.py` | Deep Learning | A complete template for generating data, training a PyTorch Neural Network, and saving the model to shared storage. |
+| `5-grid-search.py` | Hyperparameter Tuning | Advanced script showing how to train multiple models in parallel with strict concurrency limits. |
 
 ---
 
