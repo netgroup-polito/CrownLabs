@@ -231,17 +231,9 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	log.Info("successfully retrieved the instance tenant")
 
 	// Enforce the LastPoweredOffTimestampAnnotation based on the instance running state
-	hasTimestamp := false
-	if instance.Annotations != nil && instance.Annotations[forge.LastPoweredOffTimestampAnnotation] != "" {
-		hasTimestamp = true
-	}
+	hasTimestamp := instance.Annotations != nil && instance.Annotations[forge.LastPoweredOffTimestampAnnotation] != ""
 
-	annotationsUpdated := false
-	if !instance.Spec.Running && !hasTimestamp {
-		annotationsUpdated = true
-	} else if instance.Spec.Running && hasTimestamp {
-		annotationsUpdated = true
-	}
+	annotationsUpdated := instance.Spec.Running == hasTimestamp
 
 	if annotationsUpdated {
 		original := instance.DeepCopy()
