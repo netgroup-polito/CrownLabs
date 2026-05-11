@@ -43,16 +43,18 @@ import (
 // InstanceInactiveTerminationReconciler watches for instances to be terminated.
 type InstanceInactiveTerminationReconciler struct {
 	client.Client
-	EventsRecorder                record.EventRecorder
-	Scheme                        *runtime.Scheme
-	NamespaceWhitelist            metav1.LabelSelector
-	StatusCheckRequestTimeout     time.Duration
-	InstanceMaxNumberOfAlerts     int
-	EnableInactivityNotifications bool
-	NotificationInterval          time.Duration
-	MailClient                    *mail.Client
-	Prometheus                    PrometheusClientInterface
-	MarginTime                    time.Duration
+	EventsRecorder                  record.EventRecorder
+	Scheme                          *runtime.Scheme
+	NamespaceWhitelist              metav1.LabelSelector
+	StatusCheckRequestTimeout       time.Duration
+	InstanceMaxNumberOfAlerts       int
+	EnableInactivityNotifications   bool
+	NotificationInterval            time.Duration
+	DestructionNotificationInterval time.Duration
+	TestInactivityDestructionTime   time.Duration
+	MailClient                      *mail.Client
+	Prometheus                      PrometheusClientInterface
+	MarginTime                      time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -116,10 +118,94 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	ctx, _ = pkgcontext.TemplateInto(ctx, template)
 	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
 
+	// Setup instance annotations
+	if err := r.SetupInstanceAnnotations(ctx); err != nil {
+		log.Error(err, "failed setting up instance annotations")
+		return ctrl.Result{}, err
+	}
+
+	// Verify whether the instance annotations need to be reset, and reset them if necessary.
+	if err := r.ResetAnnotations(ctx); err != nil {
+		log.Error(err, "failed resetting instance annotations")
+		return ctrl.Result{}, err
+	}
+
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
 	if inactivityTimeout == NeverTimeoutValue {
 		dbgLog.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
+		return ctrl.Result{}, nil
+	}
+
+	// Checks if the instance is running, if not, we start the countdown for destruction for persistent instances.
+	if !instance.Spec.Running {
+		remainingPauseTime, isActive, err := r.GetRemainingInactivityDestructionTime(ctx, instance)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+
+		if isActive {
+			if remainingPauseTime <= 0 {
+				// Email logic to inform the user that the instance will be destroyed
+				if r.EnableInactivityNotifications {
+					shouldSendWarning, err := r.ShouldSendDestructionWarningNotification(ctx, instance)
+					if err != nil {
+						log.Error(err, "failed checking if should send destruction warning notification")
+						return ctrl.Result{}, err
+					}
+					if shouldSendWarning {
+						window, err := r.GetDestructionNotificationWindow(ctx, instance)
+						if err != nil {
+							log.Error(err, "failed getting destruction notification window")
+							return ctrl.Result{}, err
+						}
+						// Send the email notification and requeue after the interval
+						if err := r.SendDestructionWarning(ctx, instance, window); err != nil {
+							log.Error(err, "failed sending destruction warning email")
+							return ctrl.Result{}, err
+						}
+						return ctrl.Result{RequeueAfter: r.DestructionNotificationInterval}, nil
+					}
+					shouldDelete, err := r.ShouldDeleteInstance(ctx, instance)
+					if err != nil {
+						log.Error(err, "failed checking if should delete instance")
+						return ctrl.Result{}, err
+					}
+					if !shouldDelete {
+						// We have not sent all the emails, we are just waiting for the next interval.
+						// Calculate how much time is left and requeue.
+						lastNotificationTimeStr := instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation]
+						lastNotificationTime, _ := time.Parse(time.RFC3339, lastNotificationTimeStr)
+						requeueTime := r.DestructionNotificationInterval - time.Since(lastNotificationTime) + r.MarginTime
+						if requeueTime < 0 {
+							requeueTime = r.MarginTime
+						}
+
+						dbgLog.Info("requeueing paused instance to wait for next destruction notification interval")
+						return ctrl.Result{RequeueAfter: requeueTime}, nil
+					}
+				}
+				// If all the emails have been sent (or disabled), we delete the instance
+				log.Info("Deleting paused persistent instance due to prolonged inactivity...")
+				if err := r.DeleteInstance(ctx); err != nil {
+					log.Error(err, "failed to delete inactive instance")
+					return ctrl.Result{}, err
+				}
+				// Send notification for instance deletion
+				if err := r.NotifyInstanceDeletion(ctx); err != nil {
+					log.Error(err, "failed to send deletion notification")
+					return ctrl.Result{}, err
+				}
+				tracer.Step("instance deleted")
+				return ctrl.Result{}, nil
+			}
+
+			// Requeue based on the remaining time for the destruction
+			dbgLog.Info("requeueing paused instance for destruction check")
+			return ctrl.Result{RequeueAfter: remainingPauseTime + r.MarginTime}, nil
+		}
+
+		// Early return to avoid executing the normal inactivity logic for a machine that is already powered off
 		return ctrl.Result{}, nil
 	}
 
@@ -130,21 +216,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	tracer.Step("labels checked")
-
-	err = r.SetupInstanceAnnotations(ctx)
-	if err != nil {
-		log.Error(err, "failed setting up instance annotations")
-		return ctrl.Result{}, err
-	}
-
-	tracer.Step("annotations setup done")
-
-	// Verify whether the instance annotations need to be reset, and reset them if necessary.
-	err = r.ResetAnnotations(ctx)
-	if err != nil {
-		log.Error(err, "failed resetting instance annotations")
-		return ctrl.Result{}, err
-	}
 
 	// Update the last login time of the instance based on the Prometheus data
 	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
@@ -383,6 +454,12 @@ func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Co
 		if !ok || lastRunningStr != currentRunningStr {
 			instance.Annotations[forge.LastRunningAnnotation] = currentRunningStr
 		}
+
+		// Add the annotation that records when the machine was powered off
+		if instance.Annotations[forge.LastPoweredOffTimestampAnnotation] == "" {
+			instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+		}
+
 		return r.Update(ctx, instance)
 	}
 	log.Info("Deleting non-persistent instance...")
@@ -442,6 +519,27 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 	if _, ok := instance.Annotations[forge.LastNotificationTimestampAnnotation]; !ok {
 		log.Info("adding last notification time annotation to instance for the first time", "annotation", forge.LastNotificationTimestampAnnotation)
 		instance.Annotations[forge.LastNotificationTimestampAnnotation] = ""
+		updated = true
+	}
+
+	// Check and set the destruction alert annotation if not present
+	if _, ok := instance.Annotations[forge.DestructionAlertsSentAnnotation]; !ok {
+		log.Info("adding destruction alert number annotation to instance for the first time", "annotation", forge.DestructionAlertsSentAnnotation)
+		instance.Annotations[forge.DestructionAlertsSentAnnotation] = "0"
+		updated = true
+	}
+
+	// Check and set the last destruction notification time annotation if not present
+	if _, ok := instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation]; !ok {
+		log.Info("adding last destruction notification time annotation to instance for the first time", "annotation", forge.LastDestructionNotificationTimestampAnnotation)
+		instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation] = ""
+		updated = true
+	}
+
+	// Check and set the last powered off timestamp annotation if not present
+	if _, ok := instance.Annotations[forge.LastPoweredOffTimestampAnnotation]; !ok {
+		log.Info("adding last powered off timestamp annotation to instance for the first time", "annotation", forge.LastPoweredOffTimestampAnnotation)
+		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
 		updated = true
 	}
 
@@ -663,8 +761,21 @@ func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Con
 		log.Info("Detected transition from false to true: resetting alert counter and last activity field")
 		instance.Annotations[forge.AlertAnnotationNum] = "0"
 		instance.Annotations[forge.LastActivityAnnotation] = time.Now().Format(time.RFC3339)
+
+		// Reset the destruction mail counter and the pause timestamp
+		instance.Annotations[forge.DestructionAlertsSentAnnotation] = "0"
+		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
+		instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation] = ""
+
 		updated = true
 	}
+	// Se l'istanza è spenta e manca il timestamp di spegnimento, impostalo ora
+	if !instance.Spec.Running && instance.Annotations[forge.LastPoweredOffTimestampAnnotation] == "" {
+		log.Info("Instance is off but timestamp is missing, setting it now")
+		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+		updated = true
+	}
+
 	// update the LastRunningAnnotation
 	currentRunningStr := strconv.FormatBool(instance.Spec.Running)
 	if lastRunningStr != currentRunningStr {
@@ -678,6 +789,203 @@ func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Con
 			log.Error(err, "failed updating instance annotations")
 			return err
 		}
+	}
+
+	return nil
+}
+
+// GetDestructionNotificationWindow the remaining time available for sending inactivity destruction notifications to the given instance, based on the maximum allowed number of notifications and those already sent.
+func (r *InstanceInactiveTerminationReconciler) GetDestructionNotificationWindow(ctx context.Context, instance *clv1alpha2.Instance) (time.Duration, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("GetDestructionNotificationWindow")
+
+	numAlertsStr := instance.Annotations[forge.DestructionAlertsSentAnnotation]
+	numAlerts := 0
+	if numAlertsStr != "" {
+		var err error
+		numAlerts, err = strconv.Atoi(numAlertsStr)
+		if err != nil {
+			log.Error(err, "failed converting string of destruction alerts sent in int number", "annotation", numAlertsStr)
+			return 0, err
+		}
+	}
+
+	maxAlerts := r.InstanceMaxNumberOfAlerts
+	remainingAlerts := maxAlerts - numAlerts
+	if remainingAlerts <= 0 {
+		return 0, nil
+	}
+	return time.Duration(remainingAlerts) * r.DestructionNotificationInterval, nil
+}
+
+// ShouldSendDestructionWarningNotification checks if the notification should be sent based on the number of alerts sent and the last notification time.
+func (r *InstanceInactiveTerminationReconciler) ShouldSendDestructionWarningNotification(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("ShouldSendDestructionWarningNotification")
+
+	numAlertsStr := instance.Annotations[forge.DestructionAlertsSentAnnotation]
+	numAlerts := 0
+	if numAlertsStr != "" {
+		var err error
+		numAlerts, err = strconv.Atoi(numAlertsStr)
+		if err != nil {
+			log.Error(err, "failed converting string of destruction alerts sent in int number", "annotation", numAlertsStr)
+			return false, err
+		}
+	}
+
+	maxAlerts := r.InstanceMaxNumberOfAlerts
+
+	lastNotificationTimeStr := instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation]
+	if lastNotificationTimeStr == "" {
+		log.Info("Last destruction notification time annotation not found or empty, sending notification", "instance", instance.Name)
+		return true, nil // First email
+	}
+
+	lastNotificationTime, err := time.Parse(time.RFC3339, lastNotificationTimeStr)
+	if err != nil {
+		log.Error(err, "failed parsing last destruction notification time", "lastNotificationTime", lastNotificationTimeStr)
+		return false, err
+	}
+
+	if numAlerts > 0 && time.Since(lastNotificationTime) < r.DestructionNotificationInterval-r.MarginTime {
+		log.Info("Last destruction notification sent within the notification interval, skipping email notification", "instance", instance.Name)
+		return false, nil // The interval has not yet passed
+	}
+	return numAlerts < maxAlerts, nil
+}
+
+// SendDestructionWarning sends the destruction warning email to the user and updates the instance annotations.
+func (r *InstanceInactiveTerminationReconciler) SendDestructionWarning(ctx context.Context, instance *clv1alpha2.Instance, remainingTime time.Duration) error {
+	log := ctrl.LoggerFrom(ctx).WithName("SendDestructionWarning")
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
+	}
+
+	// 1. Call the function to send the email that is in common.go.
+	if err := SendDestructionWarningNotification(ctx, r.MailClient, remainingTime); err != nil {
+		log.Error(err, "failed sending destruction notification email to user", "email", tenant.Spec.Email)
+		return fmt.Errorf("failed to send destruction warning email: %w", err)
+	}
+	log.Info("Destruction notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
+
+	// 2. Update the annotations to count how many emails we have sent.
+	numAlertsStr := instance.Annotations[forge.DestructionAlertsSentAnnotation]
+	numAlerts := 0
+	if numAlertsStr != "" {
+		var err error
+		numAlerts, err = strconv.Atoi(numAlertsStr)
+		if err != nil {
+			log.Error(err, "failed converting string to int")
+			return err
+		}
+	}
+
+	patch := client.MergeFrom(instance.DeepCopy())
+	instance.Annotations[forge.DestructionAlertsSentAnnotation] = strconv.Itoa(numAlerts + 1)
+	instance.Annotations[forge.LastDestructionNotificationTimestampAnnotation] = time.Now().Format(time.RFC3339)
+	if err := r.Patch(ctx, instance, patch); err != nil {
+		log.Error(err, "failed updating instance annotations")
+		return err
+	}
+
+	return nil
+}
+
+// GetRemainingInactivityDestructionTime checks the remaining time before the instance is destroyed due to prolonged inactivity while powered off.
+func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityDestructionTime(ctx context.Context, instance *clv1alpha2.Instance) (time.Duration, bool, error) {
+	log := ctrl.LoggerFrom(ctx).WithName("check-instance-destruction")
+	template := pkgcontext.TemplateFrom(ctx)
+	if template == nil {
+		return 0, false, fmt.Errorf("template not found in context")
+	}
+
+	destroyAfterInactivity := template.Spec.DestroyAfterInactivity
+	if destroyAfterInactivity == NeverTimeoutValue || destroyAfterInactivity == "" {
+		return 0, false, nil
+	}
+
+	destroyAfterInactivityDuration, err := ParseDurationWithDays(ctx, destroyAfterInactivity)
+	if err != nil {
+		return 0, false, fmt.Errorf("failed to parse destroyAfterInactivity duration %s: %w", destroyAfterInactivity, err)
+	}
+
+	if r.TestInactivityDestructionTime > 0 {
+		destroyAfterInactivityDuration = r.TestInactivityDestructionTime
+	}
+
+	poweredOffTimeStr := instance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+	if poweredOffTimeStr == "" {
+		return 0, false, nil // No powered-off timestamp, nothing to calculate
+	}
+
+	poweredOffTime, err := time.Parse(time.RFC3339, poweredOffTimeStr)
+	if err != nil {
+		log.Error(err, "failed to parse last powered off time", "timestamp", poweredOffTimeStr)
+		return 0, false, err
+	}
+
+	remainingTime := destroyAfterInactivityDuration - time.Since(poweredOffTime)
+	return remainingTime, true, nil
+}
+
+// ShouldDeleteInstance checks if the instance should be deleted based on the number of destruction alerts sent.
+func (r *InstanceInactiveTerminationReconciler) ShouldDeleteInstance(ctx context.Context, instance *clv1alpha2.Instance) (bool, error) {
+	if r.EnableInactivityNotifications {
+		numAlertsStr := instance.Annotations[forge.DestructionAlertsSentAnnotation]
+		numAlerts := 0
+		if numAlertsStr != "" {
+			var err error
+			numAlerts, err = strconv.Atoi(numAlertsStr)
+			if err != nil {
+				return false, err
+			}
+		}
+		return numAlerts >= r.InstanceMaxNumberOfAlerts, nil
+	}
+	return true, nil
+}
+
+// DeleteInstance attempts to delete the instance.
+func (r *InstanceInactiveTerminationReconciler) DeleteInstance(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+
+	if err := r.Delete(ctx, instance); err != nil {
+		if kerrors.IsNotFound(err) {
+			log.Info("Instance already deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
+			return nil
+		}
+		return fmt.Errorf("failed to delete instance: %w", err)
+	}
+
+	log.Info("Instance has been deleted", "name", instance.GetName(), "namespace", instance.GetNamespace())
+	return nil
+}
+
+// NotifyInstanceDeletion handles sending notification emails when an instance is deleted.
+func (r *InstanceInactiveTerminationReconciler) NotifyInstanceDeletion(ctx context.Context) error {
+	log := ctrl.LoggerFrom(ctx).WithName("notify-instance-deletion")
+	instance := pkgcontext.InstanceFrom(ctx)
+	if instance == nil {
+		return fmt.Errorf("instance not found in context")
+	}
+
+	tenant := pkgcontext.TenantFrom(ctx)
+	if tenant == nil {
+		return fmt.Errorf("tenant not found in context")
+	}
+
+	// Send the notification email
+	if r.EnableInactivityNotifications {
+		if err := SendDestructionNotification(ctx, r.MailClient); err != nil {
+			return fmt.Errorf("failed sending notification email: %w", err)
+		}
+		log.Info("Notification email sent to user", "instance", instance.Name, "email", tenant.Spec.Email)
+	} else {
+		log.Info("Destruction notifications are disabled, skipping email notification", "instance", instance.Name, "email", tenant.Spec.Email)
 	}
 
 	return nil
