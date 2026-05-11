@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
 
@@ -502,6 +503,82 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 		})
 
+	})
+
+	Context("Testing destruction after inactivity", func() {
+		It("Should delete the persistent instance if destroy timer is exceeded", func() {
+			By("Getting current instance")
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
+			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+
+			By("Setting instance as powered off and old timestamp")
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, instanceLookupKey, currentInstance); err != nil {
+					return err
+				}
+				currentInstance.Spec.Running = false
+				if currentInstance.Annotations == nil {
+					currentInstance.Annotations = make(map[string]string)
+				}
+				currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Add(-150 * time.Hour).Format(time.RFC3339)
+				return k8sClient.Update(ctx, currentInstance)
+			}, timeout, interval).Should(Succeed())
+
+			By("Updating template with destroyAfterInactivity")
+			currentTemplate := &crownlabsv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
+					return err
+				}
+				currentTemplate.Spec.DestroyAfterInactivity = "100h"
+				return k8sClient.Update(ctx, currentTemplate)
+			}, timeout, interval).Should(Succeed())
+
+			By("Checking the instance is deleted")
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClient)
+		})
+
+		It("Should not delete the persistent instance if destroy timer is NOT exceeded", func() {
+			By("Getting current instance")
+			currentInstance := &crownlabsv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
+			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+
+			By("Setting instance as powered off and recent timestamp")
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, instanceLookupKey, currentInstance); err != nil {
+					return err
+				}
+				currentInstance.Spec.Running = false
+				if currentInstance.Annotations == nil {
+					currentInstance.Annotations = make(map[string]string)
+				}
+				currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Add(-50 * time.Hour).Format(time.RFC3339)
+				return k8sClient.Update(ctx, currentInstance)
+			}, timeout, interval).Should(Succeed())
+
+			By("Updating template with destroyAfterInactivity")
+			currentTemplate := &crownlabsv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
+					return err
+				}
+				currentTemplate.Spec.DestroyAfterInactivity = "100h"
+				return k8sClient.Update(ctx, currentTemplate)
+			}, timeout, interval).Should(Succeed())
+
+			By("Checking the instance is NOT deleted")
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
+				if err != nil {
+					return false
+				}
+				return !currentInstance.Spec.Running
+			}, time.Second*5, interval).Should(BeTrue(), "The instance should not be deleted")
+		})
 	})
 
 	Context("Testing errors", func() {
