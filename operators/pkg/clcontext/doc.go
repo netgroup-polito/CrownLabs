@@ -12,16 +12,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package context_test
-
-import (
-	"testing"
-
-	. "github.com/onsi/ginkgo/v2"
-	. "github.com/onsi/gomega"
-)
-
-func TestContext(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Context Suite")
-}
+// Package clcontext groups the methods used to enrich a context with CrownLabs-related objects.
+package clcontext
