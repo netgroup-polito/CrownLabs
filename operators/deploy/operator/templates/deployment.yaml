@@ -58,6 +58,7 @@ spec:
             - "--enable-pmp={{.Values.configurations.features.pmp}}"
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
+            - "--enable-imagelist={{ .Values.configurations.features.imagelist }}"
             {{- if .Values.configurations.imageList }}
             - "--image-list-config-file={{ .Values.configurations.imageList.configFile }}"
             - "--image-list-update-interval={{ .Values.configurations.imageList.updateInterval }}"
