@@ -15,4 +15,4 @@ grpcio
 protobuf
 
 # PyTorch client side: CPU-only is sufficient for running the script and serializing models
-torch==2.4.1
+torch==2.8.0
