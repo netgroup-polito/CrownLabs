@@ -217,7 +217,7 @@ def save_model_to_disk(state_dict: dict, file_path: str) -> bool:
 
 
 def main():
-    print(f"Step 1: Connecting to Ray cluster...")
+    print("Step 1: Connecting to Ray cluster...")
 
     try:
         # We ensure PyTorch is installed on the worker before starting

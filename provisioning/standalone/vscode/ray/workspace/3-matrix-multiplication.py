@@ -21,7 +21,7 @@ NUM_ITERS = 1000   # Number of matrix multiplication iterations per task
 
 
 def main():
-    print(f"Connecting to Ray cluster...")
+    print("Connecting to Ray cluster...")
 
     try:
         # runtime_env ensures the worker has the required packages.

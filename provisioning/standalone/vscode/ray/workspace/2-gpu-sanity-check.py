@@ -11,6 +11,7 @@ multiplication to ensure the GPU is fully functional.
 
 import ray
 
+
 def main():
     print("Step 1: Connecting to the Ray Cluster...")
 

@@ -111,7 +111,7 @@ def evaluate_config(run_id: int, lr: float, batch_size: int, hidden_size: int) -
 # --- 3. Cluster Execution & Sliding Window ---
 
 def main():
-    print(f"Step 1: Connecting to Ray cluster...")
+    print("Step 1: Connecting to Ray cluster...")
 
     try:
         ray.init(

@@ -11,6 +11,7 @@ import ray
 # Remember that, in case you are requesting a lot of resources (e.g., N GPUs),
 # the Ray cluster must have been configured to support your request.
 # In case of errors, contact the cluster administrators.
+
 @ray.remote(num_gpus=1)
 def my_cluster_task():
 

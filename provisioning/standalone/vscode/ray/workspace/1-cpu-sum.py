@@ -21,7 +21,7 @@ EXPECTED_SUM = N * (N + 1) // 2  # Mathematical truth (Gauss's formula) for vali
 
 
 def main():
-    print(f"Step 1: Connecting to Ray cluster...")
+    print("Step 1: Connecting to Ray cluster...")
 
     try:
         # Initialize Ray.
