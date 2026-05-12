@@ -22,6 +22,7 @@ def my_cluster_task():
     # [INSERT YOUR MODEL OR COMPUTE LOGIC HERE]
 
     # Return whatever data you need back on your local machine
+    # This value will be stored in the variable that collects the results of the remote function (i.e., the one called with .remote())
     return {"status": "Done", "message": "My code ran successfully!"}
 
 
