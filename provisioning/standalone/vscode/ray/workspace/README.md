@@ -8,24 +8,40 @@ Instead of rewriting your code from scratch, Ray allows you to take standard Pyt
 
 ---
 
+## 📦 Pre-installed Environment
+
+The following packages are pre-installed on Ray workers:
+- `torch==2.4.1`
+- `torchvision==0.19.1`
+- `torchaudio==2.4.1`
+
+> [!WARNING]
+> Even though these are pre-installed, you must specify them in your `runtime_env` within your script to ensure the worker processes correctly link to these libraries. This same method is used if you need to add any additional libraries not listed above.
+
+---
+
 ## 🔌 Connecting to the Cluster
 Since Ray and PyTorch are already installed and configured in your environment, you can jump straight into the code! 
 
 To execute code on the cluster, your Python script must connect to the Ray Head Node.
-On Crownlabs, the internal cluster address is:
+On Crownlabs, the internal cluster address is something like this:
 
 **Address:** `ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001`
 
-You initialize this connection at the very top of your script using `ray.init()`:
+You initialize this connection at the very top of your script using `ray.init()`.
+You must define the runtime_env to include the necessary dependencies.
 
 ```python
 import ray
 
 RAY_HEAD = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
 
-# Connect to the cluster
+# Connect to the cluster and specify the environment
 ray.init(
     address=RAY_HEAD,
+    runtime_env={
+        "pip": ["torch==2.4.1"]
+    },
     ignore_reinit_error=True
 )
 ```
@@ -64,7 +80,7 @@ futures = [calculate_math.remote() for _ in range(10)]
 
 ### 3. Retrieving Results (`ray.get()`)
 To get the actual data back from the cluster, pass the Future(s) to `ray.get()`.
-**Note:** This is a blocking operation; your script will pause here until the cluster finishes the work.
+**Note:** This is a blocking operation; your script will pause here until your remote task finishes the work.
 
 ```python
 results = ray.get(futures)
@@ -74,16 +90,19 @@ print(results) # Output: [2, 2, 2, 2...]
 ---
 
 ## 📂 Sample Scripts
-Inside the `samples/` folder, you will find ready-to-run scripts progressing from basic sanity checks to advanced machine learning sweeps.
+The default folder (`/vscode/workspace`) contains some ready-to-run scripts progressing from basic sanity checks to advanced machine learning sweeps.
 We highly recommend running them in this order:
 
 | Script | Purpose | Description |
 | :--- | :--- | :--- |
-| `cpu_sum_test.py` | CPU Diagnostics | Verifies that your code can connect to the cluster and distribute standard Python math tasks across CPU cores. |
-| `gpu_sanity_check.py` | GPU Diagnostics | A quick check to verify NVIDIA drivers are working and PyTorch can utilize the GPUs. |
-| `matrix_multiply.py` | Performance Benchmark | A heavy stress-test that distributes massive matrix calculations to measure the cluster's aggregate TFLOPS. |
-| `single_gpu_training.py` | Deep Learning | A complete template for generating data, training a PyTorch Neural Network, and saving the model to shared storage. |
-| `grid_search_sweep.py` | Hyperparameter Tuning | Advanced script showing how to train multiple models in parallel with strict concurrency limits. |
+| `1-cpu-sum.py` | CPU Diagnostics | Verifies that your code can connect to the cluster and distribute standard Python math tasks across CPU cores. |
+| `2-gpu-sanity-check.py` | GPU Diagnostics | A quick check to verify NVIDIA drivers are working and PyTorch can utilize the GPUs. |
+| `3-matrix-multiplication.py` | Performance Benchmark | A heavy stress-test that distributes massive matrix calculations to measure the cluster's aggregate TFLOPS. |
+| `4-train-neural-network.py` | Deep Learning | A complete template for generating data, training a PyTorch Neural Network, and saving the model to shared storage. |
+| `5-grid-search.py` | Hyperparameter Tuning | Advanced script showing how to train multiple models in parallel with strict concurrency limits. |
+
+The script `0-skeleton.py` is a template you can use to start writing your code with Ray.
+Please refer to sample `4-train-neural-network.py` for a baseline implementation you can adapt for training.
 
 ---
 

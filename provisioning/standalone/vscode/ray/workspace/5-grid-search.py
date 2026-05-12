@@ -24,8 +24,6 @@ from torch.utils.data import DataLoader, Dataset
 # ⚙️ CONFIGURATION SECTION
 # ==========================================
 
-RAY_HEAD_ADDRESS = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
-
 # Grid Search Parameters (Add more values here to expand the sweep)
 LEARNING_RATES = [0.1, 0.01, 0.001]
 BATCH_SIZES = [16, 32, 64]
@@ -113,11 +111,10 @@ def evaluate_config(run_id: int, lr: float, batch_size: int, hidden_size: int) -
 # --- 3. Cluster Execution & Sliding Window ---
 
 def main():
-    print(f"Step 1: Connecting to Ray cluster at {RAY_HEAD_ADDRESS}...")
+    print("Step 1: Connecting to Ray cluster...")
 
     try:
         ray.init(
-            address=RAY_HEAD_ADDRESS,
             runtime_env={"pip": ["torch==2.4.1"]},
             ignore_reinit_error=True
         )
