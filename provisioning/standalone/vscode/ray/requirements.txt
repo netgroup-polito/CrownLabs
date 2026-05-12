@@ -6,7 +6,7 @@ sympy
 jinja2
 
 # Ray client + utilities
-ray[default]==2.47.1
+ray[default]==2.55.0
 kubernetes
 cloudpickle
 requests
