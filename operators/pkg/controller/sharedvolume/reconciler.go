@@ -30,7 +30,6 @@ import (
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -61,11 +60,6 @@ type Reconciler struct {
 
 // SetupWithManager registers a new controller for SharedVolume resources.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
-	pred, err := r.TargetLabel.GetPredicate()
-	if err != nil {
-		return fmt.Errorf("error creating predicate for sharedvolume controller: %w", err)
-	}
-
 	// Register index to filter by phase
 	if err := mgr.GetFieldIndexer().IndexField(
 		context.Background(),
@@ -80,7 +74,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&clv1alpha2.SharedVolume{}, builder.WithPredicates(pred)).
+		For(&clv1alpha2.SharedVolume{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&batchv1.Job{}).
 		Watches(&clv1alpha2.Template{},
@@ -327,6 +321,8 @@ func (r *Reconciler) getDeletingSharedVolumes(ctx context.Context, obj client.Ob
 		})
 	}
 
-	log.Info("enqueuing requests for sharedvolumes in deleting phase", "requests", enqueues)
+	if len(enqueues) > 0 {
+		log.Info("enqueuing requests for sharedvolumes in deleting phase", "requests", enqueues)
+	}
 	return enqueues
 }
