@@ -85,7 +85,7 @@ func main() {
 	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", true, "Enable the sharedvolume controller.")
 	flag.BoolVar(&enablePmp, "enable-pmp", true, "Enable the PVC mirror provisioner.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
-	flag.BoolVar(&enableImageList, "enable-image-list", false, "Enable the image list updater.")
+	flag.BoolVar(&enableImageList, "enable-imagelist", false, "Enable the image list updater.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
