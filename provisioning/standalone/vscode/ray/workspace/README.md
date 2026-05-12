@@ -8,24 +8,40 @@ Instead of rewriting your code from scratch, Ray allows you to take standard Pyt
 
 ---
 
+## 📦 Pre-installed Environment
+
+The following packages are pre-installed on Ray workers:
+- `torch==2.4.1`
+- `torchvision==0.19.1`
+- `torchaudio==2.4.1`
+
+> [!WARNING]
+> Even though these are pre-installed, you must specify them in your `runtime_env` within your script to ensure the worker processes correctly link to these libraries. This same method is used if you need to add any additional libraries not listed above.
+
+---
+
 ## 🔌 Connecting to the Cluster
 Since Ray and PyTorch are already installed and configured in your environment, you can jump straight into the code! 
 
 To execute code on the cluster, your Python script must connect to the Ray Head Node.
-On Crownlabs, the internal cluster address is:
+On Crownlabs, the internal cluster address is something like this:
 
 **Address:** `ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001`
 
-You initialize this connection at the very top of your script using `ray.init()`:
+You initialize this connection at the very top of your script using `ray.init()`.
+You must define the runtime_env to include the necessary dependencies.
 
 ```python
 import ray
 
 RAY_HEAD = "ray://raycluster-head-svc.workspace-kuberay-gpu.svc.cluster.local:10001"
 
-# Connect to the cluster
+# Connect to the cluster and specify the environment
 ray.init(
     address=RAY_HEAD,
+    runtime_env={
+        "pip": ["torch==2.4.1"]
+    },
     ignore_reinit_error=True
 )
 ```
