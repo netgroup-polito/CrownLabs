@@ -32,6 +32,8 @@ def main():
     print("Connecting to Ray cluster...")
 
     # [INSERT ANY PIP PACKAGES YOU NEED HERE]
+    # They will be automatically installed in the worker
+    # before starting your task
     ray.init(
         runtime_env={
             "pip": ["torch==2.4.1"]
