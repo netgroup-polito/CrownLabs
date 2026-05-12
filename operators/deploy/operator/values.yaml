@@ -7,7 +7,7 @@ replicaCount: 1
 configurations:
   features:
     pmp: false
-    imagelist: true
+    imageList: true
 
   targetLabel: crownlabs.polito.it/operator-selector=production
   keycloak:
