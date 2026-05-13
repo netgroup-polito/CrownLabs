@@ -27,7 +27,7 @@ configurations:
     secretName: registry-credentials
   maxConcurrentReconciles: 1
   monitoring:
-    prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
+    prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
     queryBastionSSHAvailable: count(up{container="bastion-operator-tracker-sidecar"})
     queryWebSSHAvailable: count(up{container="webssh"})
