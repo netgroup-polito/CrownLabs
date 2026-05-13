@@ -95,8 +95,8 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
                 </Link>
               ),
             } as MenuItemType;
-            // Add divider after first menu item (Manage account)
-            if (index === 0) {
+            // Add divider after first menu item (Manage account), if there are other items
+            if (index === 0 && routes.length > 1) {
               return [
                 menuItem,
                 { type: 'divider', key: 'divider-manage-account' } as unknown as MenuItemType,

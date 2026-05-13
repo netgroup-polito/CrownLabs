@@ -58,6 +58,11 @@ spec:
             - "--enable-pmp={{.Values.configurations.features.pmp}}"
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
+            - "--enable-imagelist={{ .Values.configurations.features.imageList }}"
+            {{- if .Values.configurations.imageList }}
+            - "--image-list-config-file={{ .Values.configurations.imageList.configFile }}"
+            - "--image-list-update-interval={{ .Values.configurations.imageList.updateInterval }}"
+            {{- end }}
           ports:
             - name: metrics
               containerPort: 8080
@@ -99,10 +104,23 @@ spec:
           volumeMounts:
           - mountPath: {{ .Values.webhook.deployment.certsMount | default "/tmp/k8s-webhook-server/serving-certs/" }}
             name: webhook-certs
+          {{- if .Values.configurations.imageList }}
+          - mountPath: /etc/config
+            name: image-list-config
+          {{- end }}
       volumes:
       - name: webhook-certs
         secret:
           secretName: {{ include "operator.webhookname" . }}
+      {{- if .Values.configurations.imageList }}
+      - name: image-list-config
+        configMap:
+          optional: true
+          name: image-lists-sources
+          items:
+            - key: registries
+              path: registries.yaml
+      {{- end }}
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
