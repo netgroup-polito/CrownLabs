@@ -409,82 +409,19 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 		})
 	})
 
-	Describe("ConfigureMyDrivePVC", func() {
-		It("Should initialize labels if nil and set PVC properties", func() {
-			pvc := &corev1.PersistentVolumeClaim{}
+	Describe("MyDrivePVCSpec", func() {
+		It("Should return the correct spec", func() {
+			var spec corev1.PersistentVolumeClaimSpec
 			storageClassName := "example-storage-class"
 			storageSize := resource.MustParse("10Gi")
-			labels := map[string]string{
-				"custom-label": "custom-value",
-			}
-			annotations := map[string]string{
-				"custom-annotation": "custom-value",
-			}
 
-			forge.ConfigureMyDrivePVC(pvc, storageClassName, storageSize, labels, annotations)
+			spec = forge.MyDrivePVCSpec(storageClassName, storageSize)
 
-			Expect(pvc.Labels).ToNot(BeNil())
-			Expect(pvc.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
-			Expect(pvc.Annotations).ToNot(BeNil())
-			Expect(pvc.Annotations).To(HaveKeyWithValue("custom-annotation", "custom-value"))
-			Expect(pvc.Spec.AccessModes).To(ConsistOf(corev1.ReadWriteMany))
-			Expect(pvc.Spec.StorageClassName).ToNot(BeNil())
-			Expect(*pvc.Spec.StorageClassName).To(Equal(storageClassName))
-			Expect(pvc.Spec.Resources.Requests).ToNot(BeNil())
-			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("10Gi"))
-		})
-
-		It("Should preserve existing labels and update storage size if larger", func() {
-			existingSize := resource.MustParse("5Gi")
-			pvc := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"existing-label": "existing-value",
-					},
-				},
-				Spec: corev1.PersistentVolumeClaimSpec{
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: existingSize,
-						},
-					},
-				},
-			}
-
-			storageClassName := "example-storage-class"
-			storageSize := resource.MustParse("10Gi")
-			labels := map[string]string{
-				"custom-label": "custom-value",
-			}
-
-			forge.ConfigureMyDrivePVC(pvc, storageClassName, storageSize, labels, nil)
-
-			Expect(pvc.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
-			Expect(pvc.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
-			Expect(pvc.Spec.Resources.Requests).ToNot(BeNil())
-			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("10Gi"))
-		})
-
-		It("Should not update storage size if existing size is larger", func() {
-			existingSize := resource.MustParse("20Gi")
-			pvc := &corev1.PersistentVolumeClaim{
-				Spec: corev1.PersistentVolumeClaimSpec{
-					Resources: corev1.VolumeResourceRequirements{
-						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: existingSize,
-						},
-					},
-				},
-			}
-
-			storageClassName := "example-storage-class"
-			storageSize := resource.MustParse("10Gi")
-			labels := map[string]string{}
-
-			forge.ConfigureMyDrivePVC(pvc, storageClassName, storageSize, labels, nil)
-
-			Expect(pvc.Spec.Resources.Requests).ToNot(BeNil())
-			Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal("20Gi"))
+			Expect(spec.AccessModes).To(ConsistOf(corev1.ReadWriteMany))
+			Expect(spec.StorageClassName).ToNot(BeNil())
+			Expect(*spec.StorageClassName).To(Equal(storageClassName))
+			Expect(spec.Resources.Requests).ToNot(BeNil())
+			Expect(spec.Resources.Requests.Storage().String()).To(Equal("10Gi"))
 		})
 	})
 
