@@ -105,9 +105,17 @@ func (r *Reconciler) enforceMyDrivePVC(
 
 	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// Configure the PVC
-		forge.ConfigureMyDrivePVC(&pvc, r.MyDrivePVCsStorageClassName, r.MyDrivePVCsSize,
-			forge.UpdateTenantResourceCommonLabels(pvc.Labels, r.TargetLabel),
-			forge.UpdateMyDrivePVCAnnotations(pvc.Annotations, tn.Name))
+		if pvc.CreationTimestamp.IsZero() {
+			pvc.Spec = forge.MyDrivePVCSpec(r.MyDrivePVCsStorageClassName, r.MyDrivePVCsSize)
+		}
+		pvc.SetLabels(forge.UpdateTenantResourceCommonLabels(pvc.Labels, r.TargetLabel))
+		pvc.SetAnnotations(forge.UpdateMyDrivePVCAnnotations(pvc.Annotations, tn.Name))
+
+		// Update size only if it needs to be bigger
+		oldSize := *pvc.Spec.Resources.Requests.Storage()
+		if sizeDiff := r.MyDrivePVCsSize.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
+			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
+		}
 
 		return controllerutil.SetControllerReference(tn, &pvc, r.Scheme)
 	})

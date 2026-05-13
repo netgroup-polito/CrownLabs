@@ -19,7 +19,6 @@ package forge
 import (
 	"context"
 	"fmt"
-	"maps"
 	"strings"
 
 	batchv1 "k8s.io/api/batch/v1"
@@ -180,29 +179,16 @@ func ShVolPVCMirrorName(shvolName, instanceName string) string {
 	return fmt.Sprintf("%s-%s-mirror", LastCharsOf(shvolName, 27), LastCharsOf(instanceName, 27))
 }
 
-// ConfigureMyDrivePVC configures a PVC for tenant's MyDrive storage.
-func ConfigureMyDrivePVC(pvc *corev1.PersistentVolumeClaim, storageClassName string, storageSize resource.Quantity, labels, annotations map[string]string) {
-	// Set the labels and annotations
-	if pvc.Labels == nil {
-		pvc.Labels = make(map[string]string)
-	}
-	if pvc.Annotations == nil {
-		pvc.Annotations = make(map[string]string)
-	}
-
-	// Copy the provided labels and annotations
-	maps.Copy(pvc.Labels, labels)
-	maps.Copy(pvc.Annotations, annotations)
-
-	// Configure the PVC spec
-	pvc.Spec.AccessModes = []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany}
-	pvc.Spec.StorageClassName = &storageClassName
-
-	// Set resources if the current ones are missing or smaller than the requested ones
-	if pvc.Spec.Resources.Requests == nil {
-		pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: storageSize}
-	} else if oldSize := *pvc.Spec.Resources.Requests.Storage(); storageSize.Cmp(oldSize) > 0 || oldSize.IsZero() {
-		pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: storageSize}
+// MyDrivePVCSpec forges the spec for the PVC for tenant's MyDrive storage.
+func MyDrivePVCSpec(storageClassName string, storageSize resource.Quantity) corev1.PersistentVolumeClaimSpec {
+	return corev1.PersistentVolumeClaimSpec{
+		AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+		StorageClassName: &storageClassName,
+		Resources: corev1.VolumeResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: storageSize,
+			},
+		},
 	}
 }
 
