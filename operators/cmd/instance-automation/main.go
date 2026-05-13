@@ -73,7 +73,7 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
-	prometheusURL := flag.String("monitoring-prometheus-url", "http://kube-prometheus-stack-prometheus.monitoring:9090", "The URL of the Prometheus instance to use for the Inactive Termination")
+	prometheusURL := flag.String("monitoring-prometheus-url", "http://monitoring-kube-prometheus-prometheus.monitoring:9090", "The URL of the Prometheus instance to use for the Inactive Termination")
 	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics"})`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
 	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container="bastion-operator-tracker-sidecar"})`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
 	prometheusWebSSHAvailability := flag.String("monitoring-web-ssh-availability", `count(up{container="webssh"})`, "Prometheus Query to understand if WebSSH (custom metric) Metrics are available in Prometheus.")
