@@ -143,66 +143,6 @@ var _ = Describe("Services forging", func() {
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
 				},
 			}),
-			Entry("When the Environment is of type Container in standard mode", ServiceSpecCase{
-				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
-					env.EnvironmentType = clv1alpha2.ClassContainer
-					env.GuiEnabled = true
-					return env
-				},
-				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
-					tmpl.Spec.Scope = clv1alpha2.ScopeStandard
-					return tmpl
-				},
-				Expected: []corev1.ServicePort{
-					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
-					{Name: forge.MyDrivePortName, Protocol: corev1.ProtocolTCP, Port: forge.MyDrivePortNumber, TargetPort: intstr.FromInt(forge.MyDrivePortNumber)},
-					{Name: forge.MetricsPortName, Protocol: corev1.ProtocolTCP, Port: forge.MetricsPortNumber, TargetPort: intstr.FromInt(forge.MetricsPortNumber)},
-				},
-			}),
-			Entry("When the Environment is a Container", ServiceSpecCase{
-				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
-					env.EnvironmentType = clv1alpha2.ClassContainer
-					env.GuiEnabled = true
-					return env
-				},
-				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
-					return tmpl
-				},
-				Expected: []corev1.ServicePort{
-					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
-					{Name: forge.MetricsPortName, Protocol: corev1.ProtocolTCP, Port: forge.MetricsPortNumber, TargetPort: intstr.FromInt(forge.MetricsPortNumber)},
-				},
-			}),
-			Entry("When the Environment is of type Container in exam mode", ServiceSpecCase{
-				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
-					env.EnvironmentType = clv1alpha2.ClassContainer
-					env.GuiEnabled = true
-					return env
-				},
-				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
-					tmpl.Spec.Scope = clv1alpha2.ScopeExam
-					return tmpl
-				},
-				Expected: []corev1.ServicePort{
-					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
-					{Name: forge.MetricsPortName, Protocol: corev1.ProtocolTCP, Port: forge.MetricsPortNumber, TargetPort: intstr.FromInt(forge.MetricsPortNumber)},
-				},
-			}),
-			Entry("When the Environment is of type Container in exercise mode", ServiceSpecCase{
-				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
-					env.EnvironmentType = clv1alpha2.ClassContainer
-					env.GuiEnabled = true
-					return env
-				},
-				TemplateMutator: func(tmpl *clv1alpha2.Template) *clv1alpha2.Template {
-					tmpl.Spec.Scope = clv1alpha2.ScopeExercise
-					return tmpl
-				},
-				Expected: []corev1.ServicePort{
-					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
-					{Name: forge.MetricsPortName, Protocol: corev1.ProtocolTCP, Port: forge.MetricsPortNumber, TargetPort: intstr.FromInt(forge.MetricsPortNumber)},
-				},
-			}),
 		)
 	})
 })

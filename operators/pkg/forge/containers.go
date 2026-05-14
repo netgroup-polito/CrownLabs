@@ -74,12 +74,11 @@ var (
 
 // ContainerEnvOpts contains images name and tag for container environment.
 type ContainerEnvOpts struct {
-	ImagesTag            string
-	XVncImg              string
-	WebsockifyImg        string
-	ContentDownloaderImg string
-	ContentUploaderImg   string
-	InstMetricsEndpoint  string
+	ImagesTag           string
+	XVncImg             string
+	WebsockifyImg       string
+	ContentToolsImg     string
+	InstMetricsEndpoint string
 }
 
 // PVCSpec forges a PersistentVolumeClaimSpec with the passed arguments.
@@ -193,17 +192,14 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 }
 
 // ContainersSpec returns the Containers obj based on Environment Type.
-func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, opts *ContainerEnvOpts) []corev1.Container {
-	var containers []corev1.Container
-	volumeMountPath := PersistentMountPath(environment)
-	switch environment.EnvironmentType {
-	case clv1alpha2.ClassContainer:
-		containers = append(containers, WebsockifyContainer(opts, environment, instance), XVncContainer(opts), AppContainer(environment, volumeMountPath, mountInfos))
-	case clv1alpha2.ClassStandalone:
-		containers = append(containers, StandaloneContainer(instance, environment, volumeMountPath, mountInfos))
-	default:
+func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, _ *ContainerEnvOpts) []corev1.Container {
+	return []corev1.Container{
+		StandaloneContainer(
+			instance,
+			environment,
+			PersistentMountPath(environment),
+			mountInfos),
 	}
-	return containers
 }
 
 // WebsockifyContainer forges the sidecar container to proxy requests from websocket
@@ -265,7 +261,7 @@ func AppContainer(environment *clv1alpha2.Environment, volumeMountPath string, m
 		AddContainerVolumeMount(&appContainer, mountInfo.Name, mountInfo.MountPath, mountInfo.ReadOnly)
 	}
 	if environment.ContainerStartupOptions != nil {
-		appContainer.Args = environment.ContainerStartupOptions.StartupArgs
+		SetContainerArgs(&appContainer, environment.ContainerStartupOptions.StartupArgs...)
 		if environment.ContainerStartupOptions.EnforceWorkdir {
 			appContainer.WorkingDir = PersistentMountPath(environment)
 		}
@@ -283,7 +279,7 @@ func InitContainers(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 
 // ContentDownloaderInitContainer forges a Container to be used as initContainer for downloading and decompressing an archive file into the <MyDriveName> volume.
 func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOpts) corev1.Container {
-	contentDownloader := GenericContainer(ContentDownloaderName, fmt.Sprintf("%s:%s", ceOpts.ContentDownloaderImg, ceOpts.ImagesTag))
+	contentDownloader := GenericContainer(ContentDownloaderName, fmt.Sprintf("%s:%s", ceOpts.ContentToolsImg, ceOpts.ImagesTag))
 	SetContainerResources(&contentDownloader, 0.5, 1, 256, 1024)
 	// MyDriveDefaultMountPath as mount point ensures a fixed path just for the download, it will likely be different in the application container
 	AddContainerVolumeMount(&contentDownloader, PersistentVolumeName, PersistentDefaultMountPath, false)
@@ -294,7 +290,8 @@ func ContentDownloaderInitContainer(contentOrigin string, ceOpts *ContainerEnvOp
 
 // ContentUploaderJobContainer forges a Container to be used within a Job to compress and upload an archive file from the <MyDriveName> volume.
 func ContentUploaderJobContainer(contentDestination, filename string, ceOpts *ContainerEnvOpts) corev1.Container {
-	contentUploader := GenericContainer(ContentUploaderName, fmt.Sprintf("%s:%s", ceOpts.ContentUploaderImg, ceOpts.ImagesTag))
+	contentUploader := GenericContainer(ContentUploaderName, fmt.Sprintf("%s:%s", ceOpts.ContentToolsImg, ceOpts.ImagesTag))
+	SetContainerArgs(&contentUploader, "upload")
 	SetContainerResources(&contentUploader, 0.5, 1, 256, 1024)
 	AddContainerVolumeMount(&contentUploader, PersistentVolumeName, PersistentDefaultMountPath, false)
 	AddEnvVariableToContainer(&contentUploader, "SOURCE_PATH", PersistentDefaultMountPath)
@@ -438,6 +435,11 @@ func SetContainerResourcesFromEnvironment(c *corev1.Container, env *clv1alpha2.E
 			corev1.ResourceMemory: env.Resources.Memory,
 		},
 	}
+}
+
+// SetContainerArgs sets the given container's arguments.
+func SetContainerArgs(c *corev1.Container, args ...string) {
+	c.Args = args
 }
 
 // ContainerVolumes forges the list of volumes for the deployment spec, possibly returning an empty

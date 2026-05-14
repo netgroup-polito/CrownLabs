@@ -315,7 +315,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 				urlNeeded = true
 			}
 
-		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
+		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err

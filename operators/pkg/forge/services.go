@@ -65,11 +65,6 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 		ports = append(ports, serviceSpecTCPPort(MyDrivePortName, MyDrivePortNumber))
 	}
 
-	// Add the Metrics port only for container
-	if environment.EnvironmentType == clv1alpha2.ClassContainer {
-		ports = append(ports, serviceSpecTCPPort(MetricsPortName, MetricsPortNumber))
-	}
-
 	spec := corev1.ServiceSpec{
 		Type:     corev1.ServiceTypeClusterIP,
 		Selector: EnvironmentSelectorLabels(instance, environment),

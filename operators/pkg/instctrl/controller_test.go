@@ -281,31 +281,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		})
 	})
 
-	Context("The instance is container based", func() {
-		When("the environment is persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = true
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-		When("the environment is NOT persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-not-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = false
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-	})
-
 	Context("The instance is VM based", func() {
 		When("the environment is persistent", func() {
 			ContextBody := func(envType clv1alpha2.EnvironmentType, name string) {
@@ -798,7 +773,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					{
 						Name:            "app-1",
 						Image:           "some-image:v0",
-						EnvironmentType: clv1alpha2.ClassContainer,
+						EnvironmentType: clv1alpha2.ClassStandalone,
 						Persistent:      false,
 						GuiEnabled:      true,
 						Resources: clv1alpha2.EnvironmentResources{

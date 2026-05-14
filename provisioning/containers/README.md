@@ -1,3 +1,11 @@
+⚠️ <span style="color:red"><strong>DEPRECATION NOTICE</strong></span> ⚠️
+
+Container instances no longer provide the functionality they previously offered and will soon be discontinued. It is recommended to avoid using them, even during this transition phase.
+
+If you're wondering what could happen, you would simply see an endless loading spinner near your Container instance when you try to start it.
+
+<hr style="border: 0; border-top: 1px solid red; margin: 1rem 0;">
+
 # Creating and uploading Docker-based graphical applications in CrownLabs
 
 This folder contains the files required to create docker-based graphical applications in CrownLabs, as an alternative solution to VMs.
