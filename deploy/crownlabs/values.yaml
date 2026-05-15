@@ -205,7 +205,6 @@ instance-operator:
       instancesAuthUrl: https://crownlabs.example.com/auth
     containerEnvironmentOptions:
       tag: ""
-      vncImage: crownlabs/tigervnc
       contentDownloaderImage: crownlabs/content-downloader
       contentUploaderImage: crownlabs/content-uploader
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
