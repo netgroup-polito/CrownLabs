@@ -18,6 +18,7 @@ package examagent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,6 +31,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -39,15 +41,23 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
+// CustomizationUrls contains optional URLs for advanced integration features
+// used by the exam agent API.
+type CustomizationUrls struct {
+	ContentOrigin      string `json:"contentOrigin,omitempty"`
+	ContentDestination string `json:"contentDestination,omitempty"`
+	StatusCheck        string `json:"statusCheck,omitempty"`
+}
+
 // InstanceAdapter represents an Instance within the examagent.
 type InstanceAdapter struct {
-	ID          string                         `json:"id"`
-	Template    string                         `json:"template"`
-	Running     *bool                          `json:"running,omitempty"`
-	ContentUrls clv1alpha2.InstanceContentUrls `json:"contentUrls"`
-	Phase       string                         `json:"phase"`
-	URL         string                         `json:"url,omitempty"`
-	Labels      map[string]string              `json:"labels"`
+	ID                string            `json:"id"`
+	Template          string            `json:"template"`
+	Running           *bool             `json:"running,omitempty"`
+	CustomizationUrls CustomizationUrls `json:"customizationUrls"`
+	Phase             string            `json:"phase"`
+	URL               string            `json:"url,omitempty"`
+	Labels            map[string]string `json:"labels"`
 }
 
 // InstanceHandler is the handler for the InstanceAdapter.
@@ -156,8 +166,16 @@ func (ih *InstanceHandler) HandlePut(w http.ResponseWriter, r *http.Request, log
 	instance := ih.EmptyInstanceFromRequest(r)
 	log = log.WithValues("instance", instance.Name)
 
+	spec, err := InstanceSpecFromAdapter(r.Context(), ih.Client, &adapter)
+	if err != nil {
+		log.Error(err, "cannot compute instance spec")
+		w.WriteHeader(http.StatusBadRequest)
+		fmt.Fprint(w, "Bad request")
+		return
+	}
+
 	op, err := ctrl.CreateOrUpdate(r.Context(), ih.Client, instance, func() error {
-		instance.Spec = InstanceSpecFromAdapter(&adapter)
+		instance.Spec = spec
 		instance.SetLabels(labels.Merge(instance.GetLabels(), adapter.Labels))
 		return nil
 	})
@@ -275,11 +293,28 @@ func InstanceAdapterFromRequest(r *http.Request, log logr.Logger) (InstanceAdapt
 }
 
 // InstanceSpecFromAdapter creates an InstanceSpec from a given InstanceAdapter.
-func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
+// It fetches the referenced Template to retrieve the first environment name, which
+// is used as the key in the ContentUrls map. It returns an error if the template
+// cannot be fetched or if it contains more than one environment (unsupported by the exam-agent).
+func InstanceSpecFromAdapter(ctx context.Context, cl client.Client, instReq *InstanceAdapter) (clv1alpha2.InstanceSpec, error) {
 	running := ptr.Deref(instReq.Running, true)
 
-	contentUrls := make(map[string]clv1alpha2.InstanceContentUrls)
-	contentUrls["default"] = instReq.ContentUrls
+	tmpl := &clv1alpha2.Template{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: instReq.Template, Namespace: Options.Namespace}, tmpl); err != nil {
+		return clv1alpha2.InstanceSpec{}, fmt.Errorf("failed to retrieve template %q: %w", instReq.Template, err)
+	}
+
+	if len(tmpl.Spec.EnvironmentList) != 1 {
+		return clv1alpha2.InstanceSpec{}, fmt.Errorf("template %q must have exactly one environment, found %d", instReq.Template, len(tmpl.Spec.EnvironmentList))
+	}
+
+	envName := tmpl.Spec.EnvironmentList[0].Name
+	contentUrls := map[string]clv1alpha2.InstanceContentUrls{
+		envName: {
+			Origin:      instReq.CustomizationUrls.ContentOrigin,
+			Destination: instReq.CustomizationUrls.ContentDestination,
+		},
+	}
 
 	return clv1alpha2.InstanceSpec{
 		Template: clv1alpha2.GenericRef{
@@ -290,9 +325,10 @@ func InstanceSpecFromAdapter(instReq *InstanceAdapter) clv1alpha2.InstanceSpec {
 		Tenant: clv1alpha2.GenericRef{
 			Name: clv1alpha2.SVCTenantName,
 		},
-		PrettyName:  fmt.Sprintf("Exam %s", instReq.ID),
-		ContentUrls: contentUrls,
-	}
+		PrettyName:     fmt.Sprintf("Exam %s", instReq.ID),
+		ContentUrls:    contentUrls,
+		StatusCheckURL: instReq.CustomizationUrls.StatusCheck,
+	}, nil
 }
 
 // AdapterFromInstance creates an InstanceAdapter from a given Instance.
@@ -301,7 +337,6 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 		ID:       inst.Name,
 		Template: inst.Spec.Template.Name,
 		Running:  ptr.To(inst.Spec.Running),
-		URL:      inst.Status.URL,
 		Phase:    string(inst.Status.Phase),
 		Labels:   inst.GetLabels(),
 	}
@@ -312,10 +347,12 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 		adapter.URL = ""
 	}
 
-	// get the first ContentUrl if available
+	// Populate CustomizationUrls from the instance spec.
+	adapter.CustomizationUrls.StatusCheck = inst.Spec.StatusCheckURL
 	if len(inst.Spec.ContentUrls) > 0 {
 		for _, contentURL := range inst.Spec.ContentUrls {
-			adapter.ContentUrls = contentURL
+			adapter.CustomizationUrls.ContentOrigin = contentURL.Origin
+			adapter.CustomizationUrls.ContentDestination = contentURL.Destination
 			break
 		}
 	}
