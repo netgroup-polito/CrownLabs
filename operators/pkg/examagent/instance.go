@@ -295,7 +295,7 @@ func InstanceAdapterFromRequest(r *http.Request, log logr.Logger) (InstanceAdapt
 // InstanceSpecFromAdapter creates an InstanceSpec from a given InstanceAdapter.
 // It fetches the referenced Template to retrieve the first environment name, which
 // is used as the key in the ContentUrls map. It returns an error if the template
-// cannot be fetched or if it contains more than one environment (unsupported by the exam-agent).
+// cannot be fetched or if it contains more than one environment (unsupported by the exam agent).
 func InstanceSpecFromAdapter(ctx context.Context, cl client.Client, instReq *InstanceAdapter) (clv1alpha2.InstanceSpec, error) {
 	running := ptr.Deref(instReq.Running, true)
 
@@ -337,6 +337,7 @@ func AdapterFromInstance(inst *clv1alpha2.Instance) *InstanceAdapter {
 		ID:       inst.Name,
 		Template: inst.Spec.Template.Name,
 		Running:  ptr.To(inst.Spec.Running),
+		URL:      inst.Status.URL,
 		Phase:    string(inst.Status.Phase),
 		Labels:   inst.GetLabels(),
 	}
