@@ -18,6 +18,7 @@ package forge
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -196,8 +197,18 @@ func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 }
 
 // StandaloneContainer forges the Standalone application container of the environment.
-func StandaloneContainer(_ *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string, mountInfos []corev1.VolumeMount) corev1.Container {
+func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string, mountInfos []corev1.VolumeMount) corev1.Container {
 	standaloneContainer := AppContainer(environment, volumeMountPath, mountInfos)
+	AddTCPPortToContainer(&standaloneContainer, GUIPortName, GUIPortNumber)
+
+	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_BASE_PATH", IngressGUICleanPath(instance, environment))
+	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_LISTEN_PORT", strconv.Itoa(GUIPortNumber))
+
+	if environment.RewriteURL {
+		SetContainerReadinessHTTPProbe(&standaloneContainer, GUIPortName, "/")
+	} else {
+		SetContainerReadinessHTTPProbe(&standaloneContainer, GUIPortName, IngressGUIPath(instance, environment))
+	}
 
 	return standaloneContainer
 }
