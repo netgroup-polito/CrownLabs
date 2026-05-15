@@ -13,8 +13,6 @@ configurations:
     mirrorStorageClass: pvc-mirror
   containerEnvironmentOptions:
     tag: ""
-    websockifyImage: crownlabs/websockify
-    xVncImage: crownlabs/tigervnc
     contentToolsImg: crownlabs/content-tools
     instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
   containerVmSnapshots:

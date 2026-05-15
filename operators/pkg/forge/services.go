@@ -28,8 +28,6 @@ const (
 	GUIPortNumber = 6080
 	// MyDrivePortNumber -> the port the "MyDrive" service is exposed to.
 	MyDrivePortNumber = 8080
-	// XVncPortNumber -> the port in the container in which the X server is accessible through VNC.
-	XVncPortNumber = 5900
 	// MetricsPortNumber -> the port in the container in which the metrics server is accessible.
 	MetricsPortNumber = 9090
 
@@ -39,8 +37,6 @@ const (
 	GUIPortName = "gui"
 	// MyDrivePortName -> the name of the port the "MyDrive" service is exposed to.
 	MyDrivePortName = "mydrive"
-	// XVncPortName -> the name of the port through which the X server is accessible through VNC.
-	XVncPortName = "xvnc"
 	// MetricsPortName -> the name of the port through which the metrics are exposed.
 	MetricsPortName = "metrics"
 )
