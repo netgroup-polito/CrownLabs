@@ -291,38 +291,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			}))
 		})
 
-		When("the environment type is Container", func() {
-			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
-				Scope:           clv1alpha2.ScopeStandard,
-				EnvironmentType: clv1alpha2.ClassContainer,
-				ExpectedOutput: func(_ *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-					return []corev1.Container{
-						forge.AppContainer(e, forge.PersistentMountPath(e), mountInfos),
-					}
-				},
-			}))
-
-			When("the environment mode is Exercise", ContainersWhenBody(PodSpecContainersCase{
-				Scope:           clv1alpha2.ScopeExercise,
-				EnvironmentType: clv1alpha2.ClassContainer,
-				ExpectedOutput: func(_ *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-					return []corev1.Container{
-						forge.AppContainer(e, forge.PersistentMountPath(e), mountInfos),
-					}
-				},
-			}))
-
-			When("the environment mode is Exam", ContainersWhenBody(PodSpecContainersCase{
-				Scope:           clv1alpha2.ScopeExam,
-				EnvironmentType: clv1alpha2.ClassContainer,
-				ExpectedOutput: func(_ *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
-					return []corev1.Container{
-						forge.AppContainer(e, forge.PersistentMountPath(e), mountInfos),
-					}
-				},
-			}))
-		})
-
 	})
 
 	Describe("The forge.StandaloneContainer function forges a standalone container", func() {
@@ -332,49 +300,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			actual = forge.StandaloneContainer(&instance, &environment, forge.PersistentMountPath(&environment), mountInfos)
 		})
 
-		It("Should set container port", func() {
-			Expect(actual.Ports).To(Equal([]corev1.ContainerPort{{
-				Name:          "gui",
-				ContainerPort: int32(6080),
-				Protocol:      corev1.ProtocolTCP},
-			}))
+		It("Should NOT set container ports", func() {
+			Expect(actual.Ports).To(BeEmpty())
 		})
 
-		When("RewriteURL is true", func() {
-			var probe *corev1.Probe
-			BeforeEach(func() {
-				probe = forge.ContainerProbe()
-				probe.HTTPGet = &corev1.HTTPGetAction{
-					Port: intstr.FromString("gui"),
-					Path: "/",
-				}
-				environment.RewriteURL = true
-			})
-			It("ReadinessProbe URL is /", func() {
-				Expect(actual.ReadinessProbe).To(Equal(probe))
-			})
-		})
-
-		When("RewriteURL is false", func() {
-			var probe *corev1.Probe
-			BeforeEach(func() {
-				probe = forge.ContainerProbe()
-				probe.HTTPGet = &corev1.HTTPGetAction{
-					Port: intstr.FromString("gui"),
-					Path: forge.IngressGUIPath(&instance, &environment),
-				}
-				environment.RewriteURL = false
-			})
-			It("ReadinessProbe URL is "+forge.IngressGUIPath(&instance, &environment), func() {
-				Expect(actual.ReadinessProbe).To(Equal(probe))
-			})
-
+		It("Should NOT set readiness probes", func() {
+			Expect(actual.ReadinessProbe).To(BeNil())
 		})
 
 		It("Should set the env variables", func() {
 			expected.Name = envName
-			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_BASE_PATH", forge.IngressGUICleanPath(&instance, &environment))
-			forge.AddEnvVariableToContainer(&expected, "CROWNLABS_LISTEN_PORT", "6080")
 			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", expected.Name, corev1.ResourceRequestsCPU, forge.DefaultDivisor)
 			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", expected.Name, corev1.ResourceLimitsCPU, forge.DefaultDivisor)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
