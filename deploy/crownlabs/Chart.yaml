@@ -55,11 +55,6 @@ dependencies:
   repository: file://../../operators/deploy/exam-agent
   condition: exam-agent.enabled
 
-- name: instmetrics
-  version: "0.1.0"
-  repository: file://../../operators/deploy/instmetrics
-  condition: instmetrics.enabled
-
 - name: policies
   version: "0.1.0"
   repository: file://../../policies
