@@ -97,7 +97,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateName},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
-				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 		instance = clv1alpha2.Instance{

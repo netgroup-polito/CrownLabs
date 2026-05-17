@@ -85,7 +85,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		return nil
 	}
 
-	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+	// TODO SCOPE: torna qui dopo forge HostName
+	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, "")
 
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
@@ -98,10 +99,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		ingressGUI.SetLabels(forge.EnvironmentObjectLabels(ingressGUI.GetLabels(), instance, environment))
 
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
-
-		if template.Spec.Scope == clv1alpha2.ScopeStandard {
-			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
-		}
 
 		return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
 	})
