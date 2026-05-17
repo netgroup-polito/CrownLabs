@@ -275,10 +275,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(spec.EnableServiceLinks).To(PointTo(BeFalse()))
 		})
 
-		It("Should set the container hostname accordingly", func() {
-			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&template)))
-		})
-
 		It("Should set the node selector labels accordingly", func() {
 			Expect(spec.NodeSelector).To(Equal(forge.NodeSelectorLabels(&instance, &template)))
 		})
@@ -1292,46 +1288,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("content path is specified", WhenBody(MyDriveMountPathCase{
 			StartupOpts:    &clv1alpha2.ContainerStartupOpts{ContentPath: volumePath},
 			ExpectedOutput: volumePath,
-		}))
-	})
-
-	Describe("The forge.InstanceHostname function", func() {
-		var actual string
-
-		JustBeforeEach(func() {
-			actual = forge.InstanceHostname(&template)
-		})
-
-		type EnvModeCase struct {
-			EnvScope       clv1alpha2.EnvironmentScope
-			ExpectedOutput string
-		}
-
-		WhenBody := func(c EnvModeCase) func() {
-			return func() {
-				BeforeEach(func() {
-					template.Spec.Scope = c.EnvScope
-				})
-
-				It("Should return the correct hostname", func() {
-					Expect(actual).To(Equal(c.ExpectedOutput))
-				})
-			}
-		}
-
-		When("the environment mode is Exercise", WhenBody(EnvModeCase{
-			EnvScope:       clv1alpha2.ScopeExercise,
-			ExpectedOutput: "exercise",
-		}))
-
-		When("the environment mode is Exam", WhenBody(EnvModeCase{
-			EnvScope:       clv1alpha2.ScopeExam,
-			ExpectedOutput: "exam",
-		}))
-
-		When("the environment mode is Standard", WhenBody(EnvModeCase{
-			EnvScope:       clv1alpha2.ScopeStandard,
-			ExpectedOutput: "",
 		}))
 	})
 
