@@ -111,10 +111,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 
 		It("Should set the correct domain", func() {
-			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, &template, mountInfos)))
-		})
-		It("Should set the cloud-init volumes", func() {
-			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.CanonicalName(instance.GetName()))))
+			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, mountInfos)))
 		})
 		It("Should set the external volumes", func() {
 			Expect(spec.Volumes).To(ContainElements(forge.AttachableVolumes(mountInfos)))
@@ -148,7 +145,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		var domain virtv1.DomainSpec
 
 		JustBeforeEach(func() {
-			domain = forge.VirtualMachineDomain(&environment, &template, mountInfos)
+			domain = forge.VirtualMachineDomain(&environment, mountInfos)
 		})
 
 		It("Should set the correct CPU value", func() {
@@ -162,72 +159,22 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 		It("Should set the correct devices", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
-			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
 			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
 		})
 	})
 
-	Describe("The forge.Volumes function", func() {
-		type VolumesCase struct {
-			Scope    clv1alpha2.EnvironmentScope
-			Expected func(*clv1alpha2.Instance, *clv1alpha2.Environment) []virtv1.Volume
-		}
-
-		WhenBody := func(c VolumesCase) func() {
-			return func() {
-				var actual, expected []virtv1.Volume
-
-				BeforeEach(func() {
-					template.Spec.Scope = c.Scope
-				})
-
-				JustBeforeEach(func() {
-					actual = forge.Volumes(&instance, &environment, &template, mountInfos)
-					expected = c.Expected(&instance, &environment)
-				})
-
-				It("Correctly returns the expected volumes array", func() {
-					Expect(actual).To(ConsistOf(expected))
-				})
+	// The volumes array is now checked inline in VirtualMachineInstanceSpec
+	Describe("The volumes array in VirtualMachineInstanceSpec", func() {
+		It("Correctly returns the expected volumes array", func() {
+			spec := forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)
+			expected := []virtv1.Volume{
+				forge.VolumeRootDisk(&instance, &environment),
+				forge.VirtPVCVolume(&mountInfoMyDrive),
+				forge.VirtPVCVolume(&mountInfoShVol),
 			}
-		}
-
-		When("scope is Standard", WhenBody(VolumesCase{
-			Scope: clv1alpha2.ScopeStandard,
-			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
-				return []virtv1.Volume{
-					forge.VolumeCloudInit(forge.CanonicalName(i.GetName())),
-					forge.VolumeRootDisk(i, e),
-					forge.VirtPVCVolume(&mountInfoMyDrive),
-					forge.VirtPVCVolume(&mountInfoShVol),
-				}
-			},
-		}))
-
-		When("scope is Exercise", WhenBody(VolumesCase{
-			Scope: clv1alpha2.ScopeExercise,
-			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
-				return []virtv1.Volume{
-					forge.VolumeRootDisk(i, e),
-					// Originally, the scope would exclude external volumes from mounting, but it is deprecated now.
-					forge.VirtPVCVolume(&mountInfoMyDrive),
-					forge.VirtPVCVolume(&mountInfoShVol),
-				}
-			},
-		}))
-
-		When("scope is Exam", WhenBody(VolumesCase{
-			Scope: clv1alpha2.ScopeExam,
-			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
-				return []virtv1.Volume{
-					forge.VolumeRootDisk(i, e),
-					// Originally, the scope would exclude external volumes from mounting, but it is deprecated now.
-					forge.VirtPVCVolume(&mountInfoMyDrive),
-					forge.VirtPVCVolume(&mountInfoShVol),
-				}
-			},
-		}))
+			Expect(spec.Volumes).To(ConsistOf(expected))
+		})
 	})
 
 	Describe("The forge.VolumeRootDisk function", func() {
@@ -279,63 +226,15 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Should set the correct volume image pull policy", func() { Expect(volume.ContainerDisk.ImagePullPolicy).To(BeIdenticalTo(corev1.PullIfNotPresent)) })
 	})
 
-	Describe("The forge.VolumeCloudInit function", func() {
-		var volume virtv1.Volume
-		const name = "cloud-init-secret"
-
-		JustBeforeEach(func() {
-			volume = forge.VolumeCloudInit(name)
-		})
-
-		It("Should set the correct volume name", func() { Expect(volume.Name).To(BeIdenticalTo("cloud-init")) })
-		It("Should set the correct volume type", func() { Expect(volume.CloudInitNoCloud).ToNot(BeNil()) })
-		It("Should set the correct volume secret reference", func() {
-			Expect(volume.CloudInitNoCloud.UserDataSecretRef.Name).To(BeIdenticalTo(name))
-		})
-	})
-
-	Describe("The forge.VolumeDiskTargets function", func() {
-		type VolumesDiskTargetsCase struct {
-			Scope    clv1alpha2.EnvironmentScope
-			Expected []virtv1.Disk
-		}
-
-		WhenBody := func(c VolumesDiskTargetsCase) func() {
-			return func() {
-				var actual, expected []virtv1.Disk
-
-				BeforeEach(func() {
-					template.Spec.Scope = c.Scope
-				})
-
-				JustBeforeEach(func() {
-					actual = forge.VolumeDiskTargets(&environment, &template)
-					expected = c.Expected
-				})
-
-				It("Correctly returns the expected disks array", func() {
-					Expect(actual).To(ConsistOf(expected))
-				})
-			}
-		}
-
-		When("scope is Standard", WhenBody(VolumesDiskTargetsCase{
-			Scope: clv1alpha2.ScopeStandard,
-			Expected: []virtv1.Disk{
+	// The disks array is now only root, checked inline in domain spec
+	Describe("The disks array in VirtualMachineDomain", func() {
+		It("Correctly returns the expected disks array", func() {
+			domain := forge.VirtualMachineDomain(&environment, mountInfos)
+			expected := []virtv1.Disk{
 				forge.VolumeDiskTarget("root"),
-				forge.VolumeDiskTarget("cloud-init"),
-			},
-		}))
-
-		When("scope is Exercise", WhenBody(VolumesDiskTargetsCase{
-			Scope:    clv1alpha2.ScopeExercise,
-			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
-		}))
-
-		When("scope is Exam", WhenBody(VolumesDiskTargetsCase{
-			Scope:    clv1alpha2.ScopeExam,
-			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
-		}))
+			}
+			Expect(domain.Devices.Disks).To(ConsistOf(expected))
+		})
 	})
 
 	Describe("The forge.VolumeDiskTarget function", func() {
