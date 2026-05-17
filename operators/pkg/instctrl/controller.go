@@ -327,8 +327,8 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	}
 	if urlNeeded {
 		// Enforce the ingress to access the GUI
-		// TODO SCOPE: torna qui dopo forge HostName
-		host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, "")
+		// Use the configured website base URL
+		host := r.ServiceUrls.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
 		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)

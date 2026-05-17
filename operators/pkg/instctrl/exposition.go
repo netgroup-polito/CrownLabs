@@ -85,8 +85,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		return nil
 	}
 
-	// TODO SCOPE: torna qui dopo forge HostName
-	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, "")
+	// Use the configured website base URL
+	host := r.ServiceUrls.WebsiteBaseURL
 
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
