@@ -189,17 +189,6 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 	}
 }
 
-// ContainersSpec returns the Containers obj based on Environment Type.
-func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, _ *ContainerEnvOpts) []corev1.Container {
-	return []corev1.Container{
-		StandaloneContainer(
-			instance,
-			environment,
-			PersistentMountPath(environment),
-			mountInfos),
-	}
-}
-
 // WebsockifyContainer forges the sidecar container to proxy requests from websocket
 // to the VNC server.
 func WebsockifyContainer(opts *ContainerEnvOpts, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) corev1.Container {
