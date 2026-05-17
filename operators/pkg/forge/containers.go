@@ -159,7 +159,7 @@ func DeploymentSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template
 // PodSpec forges the pod specification for X-VNC based container instance.
 func PodSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, opts *ContainerEnvOpts) corev1.PodSpec {
 	return corev1.PodSpec{
-		Containers:                    ContainersSpec(instance, environment, mountInfos, opts),
+		Containers:                    []corev1.Container{StandaloneContainer(instance, environment, PersistentMountPath(environment), mountInfos)},
 		Volumes:                       ContainerVolumes(instance, environment, mountInfos),
 		SecurityContext:               PodSecurityContext(),
 		AutomountServiceAccountToken:  ptr.To(false),

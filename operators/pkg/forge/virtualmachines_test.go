@@ -75,7 +75,6 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
-				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 		mountInfos = []corev1.VolumeMount{
