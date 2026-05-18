@@ -51,7 +51,6 @@ type InstanceInactiveTerminationReconciler struct {
 	EnableInactivityNotifications   bool
 	NotificationInterval            time.Duration
 	DestructionNotificationInterval time.Duration
-	TestInactivityDestructionTime   time.Duration
 	MailClient                      *mail.Client
 	Prometheus                      PrometheusClientInterface
 	MarginTime                      time.Duration
@@ -250,18 +249,18 @@ func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx con
 					tracer.Step("instance deleted")
 				}
 				return ctrl.Result{}, nil
-			} else {
-				// If notifications are disabled, we delete the instance immediately
-				log.Info("Deleting paused persistent instance due to prolonged inactivity...")
-				if err := r.DeleteInstance(ctx); err != nil {
-					log.Error(err, "failed to delete inactive instance")
-					return ctrl.Result{}, err
-				}
-				if tracer != nil {
-					tracer.Step("instance deleted")
-				}
-				return ctrl.Result{}, nil
 			}
+
+			// If notifications are disabled, we delete the instance immediately
+			log.Info("Deleting paused persistent instance due to prolonged inactivity...")
+			if err := r.DeleteInstance(ctx); err != nil {
+				log.Error(err, "failed to delete inactive instance")
+				return ctrl.Result{}, err
+			}
+			if tracer != nil {
+				tracer.Step("instance deleted")
+			}
+			return ctrl.Result{}, nil
 		}
 
 		// Requeue based on the remaining time for the destruction
@@ -568,6 +567,16 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 		log.Info("adding last powered off timestamp annotation to instance for the first time", "annotation", forge.LastPoweredOffTimestampAnnotation)
 		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
 		updated = true
+	}
+
+	// Check and set the destroy-after-inactivity annotation from the template
+	template := pkgcontext.TemplateFrom(ctx)
+	if template != nil {
+		if val, ok := instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"]; !ok || val != template.Spec.DestroyAfterInactivity {
+			log.Info("updating destroy-after-inactivity annotation", "annotation", "crownlabs.polito.it/destroy-after-inactivity", "value", template.Spec.DestroyAfterInactivity)
+			instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"] = template.Spec.DestroyAfterInactivity
+			updated = true
+		}
 	}
 
 	// Apply the patch only if something changed
@@ -927,15 +936,16 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityDestructio
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to parse destroyAfterInactivity duration %s: %w", destroyAfterInactivity, err)
 	}
-
-	if r.TestInactivityDestructionTime > 0 {
-		destroyAfterInactivityDuration = r.TestInactivityDestructionTime
-	}
-
 	poweredOffTimeStr := instance.Annotations[forge.LastPoweredOffTimestampAnnotation]
 	if poweredOffTimeStr == "" {
 		return 0, false, nil // No powered-off timestamp, nothing to calculate
 	}
+
+	// Store the destroyAfterInactivity value as an annotation for validation/visibility
+	if instance.Annotations == nil {
+		instance.Annotations = make(map[string]string)
+	}
+	instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"] = destroyAfterInactivity
 
 	poweredOffTime, err := time.Parse(time.RFC3339, poweredOffTimeStr)
 	if err != nil {
