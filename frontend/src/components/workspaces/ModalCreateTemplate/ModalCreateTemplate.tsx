@@ -539,80 +539,85 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
   const automaticInstanceSavingResource = <>
   <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => handleEnablingCleanUp(e.target.checked)}>Enable automatic clean-up</Checkbox>
         
-      <Form.Item
-        label="Time to power off"
-        name="inactivityTimeout"
-        required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
-        {...formItemLayout}> 
-        
-        <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
-            <InfoCircleOutlined className='ml-2'/>
-          </Tooltip>
-          <InputNumber
-            onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
-            min={0}
-            max={60}
-            defaultValue={timeouts.inactivityTimeout.value }
-            disabled={!automaticStoppingEnabled}
-          >
-          </InputNumber>
+      <div className="mb-2 ml-2">
+        <Typography.Text strong>Inactivity options:</Typography.Text>
+      </div>
+      <div className="pl-6 border-l-2 border-gray-200 dark:border-zinc-700 ml-3 mb-4 flex flex-col gap-4">
+        <Form.Item
+          label="Time to power off"
+          name="inactivityTimeout"
+          required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
+          validateTrigger="onChange"
+          rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
+          {...formItemLayout}> 
+          
+          <div className="flex gap-4 items-center">
+            <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
+              <InfoCircleOutlined className='ml-2'/>
+            </Tooltip>
+            <InputNumber
+              onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
+              min={0}
+              max={60}
+              defaultValue={timeouts.inactivityTimeout.value }
+              disabled={!automaticStoppingEnabled}
+            >
+            </InputNumber>
 
-          <Select
-            onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
-            disabled={isTimeUnitDisabled('inactivityTimeout') || !automaticStoppingEnabled}
-            placeholder="Select Time unit"
-            getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
-            
-          >
-            {TimeUnitOptions.map(option => (
-              <Select.Option key={option.value} value={option.value}>
-                {option.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      </Form.Item>
+            <Select
+              onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
+              disabled={isTimeUnitDisabled('inactivityTimeout') || !automaticStoppingEnabled}
+              placeholder="Select Time unit"
+              getPopupContainer={trigger => trigger.parentElement || document.body}
+              defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
+              
+            >
+              {TimeUnitOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Form.Item>
 
-      <Form.Item
-        label="Time to destroy"
-        name="destroyAfterInactivity"
-        required={isTimeUnitDisabled('destroyAfterInactivity') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }]}
-        {...formItemLayout}> 
-        
-        <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Instances based on this template are deleted if they're not powered on within this time.</p> <b>Set 0 to disable the feature.</b></>}>
-            <InfoCircleOutlined className='ml-2'/>
-          </Tooltip>
-          <InputNumber
-            onChange={value => handleTimeoutValueChange(value, 'destroyAfterInactivity')}
-            min={0}
-            max={60}
-            defaultValue={timeouts.destroyAfterInactivity.value}
-            disabled={!automaticStoppingEnabled}
-          >
-          </InputNumber>
+        <Form.Item
+          label="Time to destroy"
+          name="destroyAfterInactivity"
+          required={isTimeUnitDisabled('destroyAfterInactivity') ? false : true}
+          validateTrigger="onChange"
+          rules={[{ validator: validateTimeout }]}
+          {...formItemLayout}> 
+          
+          <div className="flex gap-4 items-center">
+            <Tooltip title={<><p>Instances based on this template are deleted if they're not powered on within this time.</p> <b>Set 0 to disable the feature.</b></>}>
+              <InfoCircleOutlined className='ml-2'/>
+            </Tooltip>
+            <InputNumber
+              onChange={value => handleTimeoutValueChange(value, 'destroyAfterInactivity')}
+              min={0}
+              max={60}
+              defaultValue={timeouts.destroyAfterInactivity.value}
+              disabled={!automaticStoppingEnabled}
+            >
+            </InputNumber>
 
-          <Select
-            onChange={value => handleTimeUnitChange(value, 'destroyAfterInactivity')}
-            disabled={isTimeUnitDisabled('destroyAfterInactivity') || !automaticStoppingEnabled}
-            placeholder="Select Time unit"
-            getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.destroyAfterInactivity).unit}
-          >
-            {TimeUnitOptions.map(option => (
-              <Select.Option key={option.value} value={option.value}>
-                {option.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      </Form.Item>
+            <Select
+              onChange={value => handleTimeUnitChange(value, 'destroyAfterInactivity')}
+              disabled={isTimeUnitDisabled('destroyAfterInactivity') || !automaticStoppingEnabled}
+              placeholder="Select Time unit"
+              getPopupContainer={trigger => trigger.parentElement || document.body}
+              defaultValue={parseTimeoutString(template?.destroyAfterInactivity).unit}
+            >
+              {TimeUnitOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Form.Item>
+      </div>
 
       <Form.Item
         label="Max Lifetime"
