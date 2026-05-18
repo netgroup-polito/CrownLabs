@@ -1,10 +1,12 @@
+{{- if .Values.configurations.pvcMirrorProvisioner.storageClass.deploy }}
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   annotations:
     storageclass.kubernetes.io/is-default-class: "false"
-  name: {{ .Values.configurations.pvcMirrorProvisioner.storageClassName }}
+  name: {{ .Values.configurations.pvcMirrorProvisioner.storageClass.name }}
 provisioner: {{ .Values.configurations.pvcMirrorProvisioner.provisionerName }}
 reclaimPolicy: Delete
 volumeBindingMode: Immediate
 allowVolumeExpansion: false
+{{- end }}

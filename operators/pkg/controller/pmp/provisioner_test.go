@@ -92,6 +92,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 			resRequirements corev1.VolumeResourceRequirements
 			origVolumeName  string
 			pvcOrigPhase    corev1.PersistentVolumeClaimPhase
+			pvcAccessMode   corev1.PersistentVolumeAccessMode
 			mirrDataSrcRef  *corev1.TypedObjectReference
 
 			isPVCOrigCreated bool
@@ -244,6 +245,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 				AddObject(&pvcOrig)
 
 				pvcOrig.Status.Phase = pvcOrigPhase
+				pvcOrig.Status.AccessModes = []corev1.PersistentVolumeAccessMode{pvcAccessMode}
 				UpdateObjectStatus(&pvcOrig)
 			}
 			AddObject(&pvcMirr)
@@ -271,7 +273,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 			})
 
 			When("DataSourceRef is present", func() {
-				When("DataSourceRef is a PersistentVolumeClaim", func() {
+				When("DataSourceRef is a PersistentVolumeClaim in a different namespace", func() {
 					BeforeEach(func() {
 						mirrDataSrcRef = &corev1.TypedObjectReference{
 							APIGroup:  nil,
@@ -289,7 +291,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						Context("Namespace is authorized (shvol annotation)", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
+									forge.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey:     targetLabelVal,
@@ -304,34 +306,50 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 									pvcOrigPhase = corev1.ClaimBound
 								})
 
-								When("the origin PV has CSI spec", func() {
+								When("the origin PVC is RWX", func() {
 									BeforeEach(func() {
-										pvSource = corev1.PersistentVolumeSource{
-											CSI: &corev1.CSIPersistentVolumeSource{
-												Driver:       "nfs.example.com",
-												VolumeHandle: "/nfs/path",
-												VolumeAttributes: map[string]string{
-													"server": "my-nfs-cluster",
-												},
-											},
-										}
+										pvcAccessMode = corev1.ReadWriteMany
 									})
 
-									It("should successfully provision the mirror PV", func() {
-										ExpectNoError()
-										Expect(pvMirr).ToNot(BeNil())
-										Expect(pvMirr.Spec.CSI).ToNot(BeNil())
-										Expect(pvMirr.Spec.CSI.VolumeHandle).To(Equal("/nfs/path"))
+									When("the origin PV has CSI spec", func() {
+										BeforeEach(func() {
+											pvSource = corev1.PersistentVolumeSource{
+												CSI: &corev1.CSIPersistentVolumeSource{
+													Driver:       "nfs.example.com",
+													VolumeHandle: "/nfs/path",
+													VolumeAttributes: map[string]string{
+														"server": "my-nfs-cluster",
+													},
+												},
+											}
+										})
+
+										It("should successfully provision the mirror PV", func() {
+											ExpectNoError()
+											Expect(pvMirr).ToNot(BeNil())
+											Expect(pvMirr.Spec.CSI).ToNot(BeNil())
+											Expect(pvMirr.Spec.CSI.VolumeHandle).To(Equal("/nfs/path"))
+										})
+									})
+
+									When("the origin PV does not have CSI spec", func() {
+										BeforeEach(func() {
+											pvSource = corev1.PersistentVolumeSource{
+												HostPath: &corev1.HostPathVolumeSource{
+													Path: "/tmp/pv",
+												},
+											}
+										})
+
+										It("should return an ignored error", func() {
+											ExpectIgnoredError()
+										})
 									})
 								})
 
-								When("the origin PV does not have CSI spec", func() {
+								When("the origin PVC is not RWX", func() {
 									BeforeEach(func() {
-										pvSource = corev1.PersistentVolumeSource{
-											HostPath: &corev1.HostPathVolumeSource{
-												Path: "/tmp/pv",
-											},
-										}
+										pvcAccessMode = corev1.ReadWriteOnce
 									})
 
 									It("should return an ignored error", func() {
@@ -366,7 +384,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						Context("Namespace is authorized (mydrive annotation)", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName),
+									forge.AuthorizationAnnotationKey: strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName),
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey:             targetLabelVal,
@@ -382,38 +400,54 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 									pvcOrigPhase = corev1.ClaimBound
 								})
 
-								When("the origin PV has CSI spec", func() {
+								When("the origin PVC is RWX", func() {
 									BeforeEach(func() {
-										pvSource = corev1.PersistentVolumeSource{
-											CSI: &corev1.CSIPersistentVolumeSource{
-												Driver:       "nfs.example.com",
-												VolumeHandle: "/nfs/path",
-												VolumeAttributes: map[string]string{
-													"server": "my-nfs-cluster",
-												},
-											},
-										}
+										pvcAccessMode = corev1.ReadWriteMany
 									})
 
-									It("should successfully provision the mirror PV", func() {
-										ExpectNoError()
-										Expect(pvMirr).ToNot(BeNil())
-										Expect(pvMirr.Labels).To(HaveLen(3))
-										Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvLabel, pvOrigName))
-										Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNamespaceLabel, originNsName))
-										Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNameLabel, pvcOrigName))
-										Expect(pvMirr.Spec.CSI).ToNot(BeNil())
-										Expect(pvMirr.Spec.CSI.VolumeHandle).To(Equal("/nfs/path"))
+									When("the origin PV has CSI spec", func() {
+										BeforeEach(func() {
+											pvSource = corev1.PersistentVolumeSource{
+												CSI: &corev1.CSIPersistentVolumeSource{
+													Driver:       "nfs.example.com",
+													VolumeHandle: "/nfs/path",
+													VolumeAttributes: map[string]string{
+														"server": "my-nfs-cluster",
+													},
+												},
+											}
+										})
+
+										It("should successfully provision the mirror PV", func() {
+											ExpectNoError()
+											Expect(pvMirr).ToNot(BeNil())
+											Expect(pvMirr.Labels).To(HaveLen(3))
+											Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvLabel, pvOrigName))
+											Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNamespaceLabel, originNsName))
+											Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNameLabel, pvcOrigName))
+											Expect(pvMirr.Spec.CSI).ToNot(BeNil())
+											Expect(pvMirr.Spec.CSI.VolumeHandle).To(Equal("/nfs/path"))
+										})
+									})
+
+									When("the origin PV does not have CSI spec", func() {
+										BeforeEach(func() {
+											pvSource = corev1.PersistentVolumeSource{
+												HostPath: &corev1.HostPathVolumeSource{
+													Path: "/tmp/pv",
+												},
+											}
+										})
+
+										It("should return an ignored error", func() {
+											ExpectIgnoredError()
+										})
 									})
 								})
 
-								When("the origin PV does not have CSI spec", func() {
+								When("the origin PVC is not RWX", func() {
 									BeforeEach(func() {
-										pvSource = corev1.PersistentVolumeSource{
-											HostPath: &corev1.HostPathVolumeSource{
-												Path: "/tmp/pv",
-											},
-										}
+										pvcAccessMode = corev1.ReadWriteOnce
 									})
 
 									It("should return an ignored error", func() {
@@ -462,7 +496,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						When("target namespace does not have required label", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
+									forge.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey: targetLabelVal,
@@ -477,7 +511,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						When("annotation-label mismatch", func() {
 							BeforeEach(func() {
 								pvcAnnotations = map[string]string{
-									pmp.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
+									forge.AuthorizationAnnotationKey: forge.ShVolAuthorizationAnnotationValue,
 								}
 								nsTgtLabels = map[string]string{
 									targetLabelKey:     targetLabelVal,
@@ -500,6 +534,21 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 						It("should return an error to slowly retry", func() {
 							ExpectInfeasibleError()
 						})
+					})
+				})
+
+				When("DataSourceRef is a PersistentVolumeClaim in the same namespace", func() {
+					BeforeEach(func() {
+						mirrDataSrcRef = &corev1.TypedObjectReference{
+							APIGroup:  nil,
+							Kind:      "PersistentVolumeClaim",
+							Name:      pvcOrigName,
+							Namespace: nil,
+						}
+					})
+
+					It("should return an ignored error", func() {
+						ExpectIgnoredError()
 					})
 				})
 

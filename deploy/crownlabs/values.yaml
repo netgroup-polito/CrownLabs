@@ -82,6 +82,32 @@ operator:
       rolesClientId: client-api-server
     maxConcurrentReconciles: 1
     tenantNamespaceKeepAlive: 168h
+    imageList:
+      updateInterval: 600
+      registries:
+        # - name: docker-registry
+        #   type: docker
+        #   url: http://docker-registry.docker-registry:5000
+        #   advertised: registry.internal.crownlabs.polito.it
+        #   username: ""
+        #   password: ""
+        #  imageListName: crownlabs-virtual-machine-images-test
+        - name: harbor-registry-2-standalone
+          type: harbor
+          url: http://harbor-core.harbor:80
+          advertised: harbor.ng.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-standalone
+          project: crownlabs-standalone
+        - name: harbor-registry-1-containerdisks
+          type: harbor
+          url: http://harbor-core.harbor:80
+          advertised: harbor.ng.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-containerdisks
+          project: crownlabs-containerdisks
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
@@ -187,8 +213,6 @@ instance-operator:
       instancesAuthUrl: https://crownlabs.example.com/auth
     containerEnvironmentOptions:
       tag: ""
-      websockifyImage: crownlabs/websockify
-      vncImage: crownlabs/tigervnc
       contentDownloaderImage: crownlabs/content-downloader
       contentUploaderImage: crownlabs/content-uploader
       instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090

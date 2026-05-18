@@ -113,18 +113,20 @@ If the request for a new snapshot is valid, a new Job is created that performs t
 
 When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, you should first create a new Template with the newly uploaded image.
 
-### Personal storage
+### Attachable storage
 
-The Instance Operator can attach the user's personal storage to the running instance using the parameters stored in the `mydrive-info` secret created by the Tenant Operator. 
+The Instance Operator can mount two types of AttachableVolumes to the running instance, that are the user's personal storage (aka `MyDrive`) and `SharedVolume`s. 
 
-The Instance Operator mounts or not the user's personal storage inside an `Environment`, basing on the `MountMyDriveVolume` flag inside each `Environment` that can be found in an Instance Resource.
+The Instance Operator mounts or not the user's personal storage inside an Environment, based on the `MountMyDriveVolume` flag inside each Environment that can be found in an Instance Resource.
 
-This operation is performed both for Containers and VirtualMachines.
+The Instance Operator, also, mounts all SharedVolumes mentioned inside an Environment, based on the `SharedVolumeMounts` array inside each Environment that can be found in an Instance Resource.
 
-For containers, the user's personal storage is attached as a NFS volume to the `Pod` and then mounted in the container environment with a `VolumeMount`.
+This operation is performed both for Containers and VirtualMachines. 
+In both cases, for SharedVolumes, the Instance Operator creates a PVC (known as "mirror PVC") in the tenant's namespace, that will be used to refer to the original PVC without moving it from the workspace namespace (as `Pod`s cannot refer to PVC across namespaces).
 
-For Virtual Machines, the user's personal storage is attached by the VM itself: `cloud-init` is used to add the mount point to the VM's `/etc/fstab` file and the machine tries to mount it using the NFS filesystem.\
-The VM must be able to mount the NFS volume, this means that it should have the necessary packages installed (`nfs-common` or `nfs-utils` according to the OS).
+But more specifically:
+- for Containers, the mirror PVCs are directly mounted on the `Pod` as `VolumeMount`.
+- for Virtual Machines, the mirror PVCs are attached to the `Pod`: then, to use them in the VM, cloud-init is used to add the mount point to the VM's `/etc/fstab` file and the machine tries to mount it using the virtio Filesystem.
 
 ### Build from source
 
@@ -483,35 +485,187 @@ For a deeper definition go to
 - `Workspace` [GoLang code version](./api/v1alpha1/workspace_types.go)
 - `Workspace` [YAML version](./deploy/crds/crownlabs.polito.it_workspaces.yaml)
 
-## CrownLabs Image List
+## CrownLabs Image List Updater
 
-The CrownLabs Image List script allows to to gather the list of available images from a Docker Registry and expose it as an ImageList custom resource, to be consumed from the CrownLabs dashboard.
+The CrownLabs Image List Updater is a modular component that manages the retrieval and synchronization of available images from container registries and exposes them as ImageList custom resources in Kubernetes.
+
+The updater is now integrated into the main operator controller, eliminating the need for a separate deployment. It can be enabled as an optional feature and runs as a periodic background task with a configurable update interval.
+When `configurations.imageList` is not defined in the Helm values, the operator does not mount the registry ConfigMap and does not pass the image list command-line arguments.
+
+### Architecture
+
+The Image List Updater is composed of:
+
+1. **Update Method** (`(*BackgroundUpdater).Update(ctx)`) - Executes a complete update cycle across all configured registries. This method is:
+    - Called by the scheduler when periodic updates are enabled
+    - Intended to be invoked on a `BackgroundUpdater` instance for on-demand or event-triggered updates
+    - Protected against overlapping executions by the updater's concurrency controls
+
+2. **Periodic Scheduler** (`StartScheduler(ctx)`) - Manages automatic updates at a configurable interval:
+   - Runs inside the operator when enabled
+   - Prevents concurrent updates with mutex protection
+   - Performs initial update on startup, then periodic updates
+
+3. **Configuration System** - Reads registry configurations from a ConfigMap containing:
+   - Registry URLs and authentication credentials
+   - Registry types (Docker, Harbor, etc.)
+   - Target ImageList resource names
+
+4. **Processing Pipeline**:
+   - **Requestor**: Authenticates with the registry and retrieves the list of available images
+   - **Updater**: Processes the raw image data and converts it to CRD format
+   - **Saver**: Creates or updates the ImageList custom resource in Kubernetes
+
+### Supported Registries
+
+The updater supports multiple registry types through pluggable Requestor implementations:
+- `DockerImageListRequestor`: Docker Registry HTTP API V2
+- `HarborImageListRequestor`: Harbor REST API v2
+
+### Architecture and Extensibility
+
+The Image List Updater uses a modular interface-based design that allows easy extension with new registry types:
+
+#### Requestor Interface
+
+Each registry type is implemented as a `Requestor`, which must satisfy the following interface:
+
+```go
+type Requestor interface {
+	// Initialize sets up the requestor with authentication credentials and registry URL
+	Initialize(username, password, registryURL string) (bool, error)
+	
+	// GetImageList retrieves the list of images from the registry
+	GetImageList(ctx context.Context) ([]map[string]interface{}, error)
+}
+```
+
+**Key responsibilities:**
+- `Initialize`: Validates credentials and prepares the requestor for API calls
+- `GetImageList`: Fetches images from the registry and returns them in a normalized format
+
+#### Saver Interface
+
+The storage layer uses a `Saver` interface for creating/updating ImageList resources:
+
+```go
+type Saver interface {
+  // CreateOrUpdateImageList creates or updates the Kubernetes ImageList resource with images from a registry
+  CreateOrUpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
+}
+```
+
+#### Adding a New Registry Type
+
+To add support for a new registry type:
+
+1. **Create a new requestor struct** in `pkg/imagelist/requestors.go`:
+   ```go
+   type MyCustomRegistryRequestor struct {
+       url         string
+       username    string
+       password    string
+       client      *http.Client
+       initialized bool
+       log         logr.Logger
+   }
+   ```
+
+2. **Implement the Requestor interface**:
+   ```go
+   func (r *MyCustomRegistryRequestor) Initialize(username, password, registryURL string) (bool, error) {
+       // Validate credentials and setup
+       return true, nil
+   }
+   
+   func (r *MyCustomRegistryRequestor) GetImageList(ctx context.Context) ([]map[string]interface{}, error) {
+       // Query registry API and return images
+   }
+   ```
+
+3. **Create a constructor function**:
+   ```go
+   func NewMyCustomRegistryRequestor(log logr.Logger) *MyCustomRegistryRequestor {
+       return &MyCustomRegistryRequestor{
+           client:      &http.Client{},
+           initialized: false,
+           log:         log,
+       }
+   }
+   ```
+
+4. **Update the initialization logic** in `pkg/imagelist/agent.go` to instantiate your requestor when the registry type matches:
+   ```go
+   case "mycustom":
+       requestor = NewMyCustomRegistryRequestor(log)
+   ```
+
+5. **Optional: Share configuration** using `RequestersSharedData` map for per-registry settings (e.g., project names):
+   ```go
+   RequestersSharedData["custom_project_name"] = regConfig.Project
+   ```
+
+### Integration with the Operator
+
+The Image List Updater is integrated into the main operator controller and can be enabled via Helm values or command-line flags:
+
+**Via Helm values:**
+```yaml
+configurations:
+  imageList:
+    configFile: /etc/config/registries.yaml
+    updateInterval: 300  # seconds
+```
+
+**Via command-line flags:**
+```bash
+--enable-image-list=true
+--image-list-config-file=/etc/config/registries.yaml
+--image-list-update-interval=300
+```
+
+If `configurations.imageList` is omitted, these flags are not rendered and image list processing remains disabled.
+
+### Registry Configuration (ConfigMap)
+
+The ConfigMap should contain a YAML array of registry configurations:
+
+```yaml
+- name: dockerhub
+  type: docker
+  url: https://registry.hub.docker.com
+  advertised: docker.io
+  imageListName: imagelist-docker
+  username: ""
+  password: ""
+
+- name: harbor
+  type: harbor
+  url: https://harbor.example.com
+  advertised: harbor.example.com
+  imageListName: imagelist-harbor
+  project: crownlabs-container-disks
+  username: admin
+  password: password
+```
 
 ### Usage
 
-```
-usage: update-crownlabs-image-list.py [-h]
-    --advertised-registry-name ADVERTISED_REGISTRY_NAME
-    --image-list-name IMAGE_LIST_NAME
-    --registry-url REGISTRY_URL
-    [--registry-username REGISTRY_USERNAME]
-    [--registry-password REGISTRY_PASSWORD]
-    --update-interval UPDATE_INTERVAL
+Other components can trigger updates programmatically by calling the `Update()` method on the configured `BackgroundUpdater` instance:
 
-Periodically requests the list of images from a Docker registry and stores it as a Kubernetes CR
+```go
+import "github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 
-Arguments:
-  -h, --help            show this help message and exit
-  --advertised-registry-name ADVERTISED_REGISTRY_NAME
-                        the host name of the Docker registry where the images can be retrieved
-  --image-list-name IMAGE_LIST_NAME
-                        the name assigned to the resulting ImageList object
-  --registry-url REGISTRY_URL
-                        the URL used to contact the Docker registry
-  --registry-username REGISTRY_USERNAME
-                        the username used to access the Docker registry
-  --registry-password REGISTRY_PASSWORD
-                        the password used to access the Docker registry
-  --update-interval UPDATE_INTERVAL
-                        the interval (in seconds) between one update and the following
+ // Keep a reference to the updater created during application startup.
+ var updater *imagelist.BackgroundUpdater
+
+// Trigger a manual update from any component
+ctx := context.Background()
+err := updater.Update(ctx)
 ```
+
+This enables integration with external triggers such as:
+- Webhook endpoints from registries notifying of new images
+- Event-based triggers from other controllers
+- On-demand API endpoints for manual updates
+

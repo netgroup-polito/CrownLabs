@@ -234,6 +234,10 @@ export type Tenant = {
   surname: string;
   email: string;
   workspaces: WorkspaceEntry[];
+  creationDate?: string;
+  lastLogin?: string;
+  labels?: Record<string, string>;
+  personalWorkspace?: boolean;
 };
 
 export function makeRandomDigits(value: number) {
