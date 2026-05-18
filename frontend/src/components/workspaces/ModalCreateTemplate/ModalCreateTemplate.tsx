@@ -235,6 +235,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       allowPublicExposure: isPublicExposureEnabled,
       description: template.description || template.name,
       inactivityTimeout: timeouts.inactivityTimeout.value === 0 ? 'never' : `${timeouts.inactivityTimeout.value}${timeouts.inactivityTimeout.unit}`,
+      destroyAfterInactivity: timeouts.destroyAfterInactivity.value === 0 ? 'never' : `${timeouts.destroyAfterInactivity.value}${timeouts.destroyAfterInactivity.unit}`,
       deleteAfter: timeouts.deleteAfter.value === 0 ? 'never' : `${timeouts.deleteAfter.value}${timeouts.deleteAfter.unit}`,
       environments: template.environments.map(env => ({
         ...env,
@@ -249,6 +250,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       form.resetFields();
       setTimeouts({
         inactivityTimeout: { value: 0, unit: '' },
+        destroyAfterInactivity: { value: 0, unit: '' },
         deleteAfter: { value: 0, unit: '' },
       });
       setNodeSelectorMode('Disabled');
@@ -280,6 +282,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const [timeouts, setTimeouts] = useState(
     {
     inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
+    destroyAfterInactivity: { value: parseTimeoutString(template?.destroyAfterInactivity).value ?? 0, unit: parseTimeoutString(template?.destroyAfterInactivity).unit ?? '' },
     deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
   });
 
@@ -301,10 +304,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     form.setFieldsValue(initial);
     setTimeouts({
       inactivityTimeout: parseTimeoutString(initial.inactivityTimeout),
+      destroyAfterInactivity: parseTimeoutString(initial.destroyAfterInactivity),
       deleteAfter: parseTimeoutString(initial.deleteAfter),
     });
     setAutomaticStoppingEnabled(
       (initial.inactivityTimeout) !== 'never' ||
+        (initial.destroyAfterInactivity) !== 'never' ||
         (initial.deleteAfter) !== 'never',
     );
     setIsPublicExposureEnabled(initial.allowPublicExposure ?? false);
@@ -342,6 +347,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     form.setFieldsValue(getInitialValues(undefined));
     setTimeouts({
       inactivityTimeout: { value: 0, unit: '' },
+      destroyAfterInactivity: { value: 0, unit: '' },
       deleteAfter: { value: 0, unit: '' },
     });
     setAutomaticStoppingEnabled(false);
@@ -400,7 +406,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
-  const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'deleteAfter') => {
+  const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
       [field]: {
@@ -409,13 +415,13 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       },
     }));
     form.setFieldValue(field, {
-    value,
-    unit: timeouts[field].unit,
+      value,
+      unit: timeouts[field].unit,
     });
-    form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
+    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => {});
   }
 
-  const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'deleteAfter') => {
+  const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
       [field]: {
@@ -424,18 +430,18 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       },
     }));
     form.setFieldValue(field, {
-    value: timeouts[field].value,
-    unit: value,
+      value: timeouts[field].value,
+      unit: value,
     });
-    form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
+    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => {});
   }
 
-  const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'deleteAfter') => {
+  const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
     return timeouts[field].value === 0;
   };
   
-  const validateTimeout = async (_: RuleObject, _val: { value: number; unit: string } ) => {
-    if (_val.value === undefined || _val.value === 0) {
+  const validateTimeout = async (_: RuleObject, _val: { value: number; unit: string } | undefined) => {
+    if (!_val || _val.value === undefined || _val.value === 0) {
       return true; 
     }
 
@@ -445,7 +451,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     return true;
   };
 
-  const validateTimeoutOrder = async (_: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'deleteAfter') => {
+  const validateTimeoutOrder = async (_: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
    
     const toMinutes = (t: { value: number; unit: string } | undefined) => {
       if (!t) return undefined;
@@ -520,54 +526,98 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
         // If disabling, reset timeouts to 0
         setTimeouts({
           inactivityTimeout: { value: 0, unit: '' },
+          destroyAfterInactivity: { value: 0, unit: '' },
           deleteAfter: { value: 0, unit: '' },
         });
         form.setFieldValue('inactivityTimeout', { value: 0, unit: '' });
+        form.setFieldValue('destroyAfterInactivity', { value: 0, unit: '' });
         form.setFieldValue('deleteAfter', { value: 0, unit: '' });
-        form.validateFields(['inactivityTimeout', 'deleteAfter']).catch(() => {});
+        form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => {});
       }
     };
 
   const automaticInstanceSavingResource = <>
   <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => handleEnablingCleanUp(e.target.checked)}>Enable automatic clean-up</Checkbox>
         
-      <Form.Item
-        label="Max Inactivity"
-        name="inactivityTimeout"
-        required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
-        {...formItemLayout}> 
-        
-        <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
-            <InfoCircleOutlined className='ml-2'/>
-          </Tooltip>
-          <InputNumber
-            onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
-            min={0}
-            max={60}
-            defaultValue={timeouts.inactivityTimeout.value }
-            disabled={!automaticStoppingEnabled}
-          >
-          </InputNumber>
+      <div className="mb-2 ml-2">
+        <Typography.Text strong>Inactivity options:</Typography.Text>
+      </div>
+      <div className="pl-6 border-l-2 border-gray-200 dark:border-zinc-700 ml-3 mb-4 flex flex-col gap-4">
+        <Form.Item
+          label="Time to power off"
+          name="inactivityTimeout"
+          required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
+          validateTrigger="onChange"
+          rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
+          {...formItemLayout}> 
+          
+          <div className="flex gap-4 items-center">
+            <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
+              <InfoCircleOutlined className='ml-2'/>
+            </Tooltip>
+            <InputNumber
+              onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
+              min={0}
+              max={60}
+              defaultValue={timeouts.inactivityTimeout.value }
+              disabled={!automaticStoppingEnabled}
+            >
+            </InputNumber>
 
-          <Select
-            onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
-            disabled={isTimeUnitDisabled('inactivityTimeout') || !automaticStoppingEnabled}
-            placeholder="Select Time unit"
-            getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
-            
-          >
-            {TimeUnitOptions.map(option => (
-              <Select.Option key={option.value} value={option.value}>
-                {option.label}
-              </Select.Option>
-            ))}
-          </Select>
-        </div>
-      </Form.Item>
+            <Select
+              onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
+              disabled={isTimeUnitDisabled('inactivityTimeout') || !automaticStoppingEnabled}
+              placeholder="Select Time unit"
+              getPopupContainer={trigger => trigger.parentElement || document.body}
+              defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
+              
+            >
+              {TimeUnitOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Form.Item>
+
+        <Form.Item
+          label="Time to destroy"
+          name="destroyAfterInactivity"
+          required={isTimeUnitDisabled('destroyAfterInactivity') ? false : true}
+          validateTrigger="onChange"
+          rules={[{ validator: validateTimeout }]}
+          {...formItemLayout}> 
+          
+          <div className="flex gap-4 items-center">
+            <Tooltip title={<><p>Instances based on this template are deleted if they're not powered on within this time.</p> <b>Set 0 to disable the feature.</b></>}>
+              <InfoCircleOutlined className='ml-2'/>
+            </Tooltip>
+            <InputNumber
+              onChange={value => handleTimeoutValueChange(value, 'destroyAfterInactivity')}
+              min={0}
+              max={60}
+              defaultValue={timeouts.destroyAfterInactivity.value}
+              disabled={!automaticStoppingEnabled}
+            >
+            </InputNumber>
+
+            <Select
+              onChange={value => handleTimeUnitChange(value, 'destroyAfterInactivity')}
+              disabled={isTimeUnitDisabled('destroyAfterInactivity') || !automaticStoppingEnabled}
+              placeholder="Select Time unit"
+              getPopupContainer={trigger => trigger.parentElement || document.body}
+              defaultValue={parseTimeoutString(template?.destroyAfterInactivity).unit}
+            >
+              {TimeUnitOptions.map(option => (
+                <Select.Option key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Form.Item>
+      </div>
 
       <Form.Item
         label="Max Lifetime"
@@ -751,7 +801,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     children: automaticInstanceSavingResource,
     style: panelStyle,
     forceRender: true,
-    extra: <><Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('inactivityTimeout') ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
+    extra: <><Text keyboard>{automaticStoppingEnabled && (!isTimeUnitDisabled('inactivityTimeout') || !isTimeUnitDisabled('destroyAfterInactivity')) ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
   },
   {
     key: '3',

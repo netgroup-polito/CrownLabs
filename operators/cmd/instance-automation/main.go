@@ -95,7 +95,6 @@ func main() {
 	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 	expirationNotificationInterval := flag.Duration("expiration-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 	inactiveDestructionNotificationInterval := flag.Duration("inactive-destruction-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
-	testInactivityDestructionTime := flag.Duration("test-inactivity-destruction-time", 0, "Override destroy after inactivity duration for testing purposes")
 
 	marginTime := flag.Duration("margin-time", 1*time.Minute, "The margin time to add to operations involving time comparisons to avoid edge cases due to delays")
 
@@ -205,7 +204,6 @@ func main() {
 			Prometheus:                      prometheus,
 			NotificationInterval:            *instanceInactiveTerminationNotificationInterval,
 			DestructionNotificationInterval: *inactiveDestructionNotificationInterval,
-			TestInactivityDestructionTime:   *testInactivityDestructionTime,
 			MarginTime:                      *marginTime,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)

@@ -17,6 +17,7 @@ export type TemplateForm = {
   environments: TemplateFormEnv[];
   deleteAfter: string;
   inactivityTimeout: string;
+  destroyAfterInactivity: string;
   allowPublicExposure: boolean;
   nodeSelector?: Record<string, string> | null;
 };

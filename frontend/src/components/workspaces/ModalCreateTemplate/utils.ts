@@ -24,6 +24,7 @@ export const getDefaultTemplate = (resources: Resources): Template => {
     environments: [getDefaultTemplateEnvironment(resources, 0)],
     deleteAfter: 'never',
     inactivityTimeout: 'never',
+    destroyAfterInactivity: 'never',
     allowPublicExposure: false,
   };
 };

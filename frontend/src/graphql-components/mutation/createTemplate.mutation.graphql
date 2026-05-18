@@ -7,6 +7,7 @@ mutation createTemplate(
   $deleteAfter: String
   $descriptionTemplate: String!
   $inactivityTimeout: String
+  $destroyAfterInactivity: String
   $allowPublicExposure: Boolean
   $nodeSelector: JSON
 ) {
@@ -20,6 +21,7 @@ mutation createTemplate(
         description: $descriptionTemplate
         deleteAfter: $deleteAfter
         inactivityTimeout: $inactivityTimeout
+        destroyAfterInactivity: $destroyAfterInactivity
         environmentList: $environmentList
         allowPublicExposure: $allowPublicExposure
         nodeSelector: $nodeSelector
@@ -33,6 +35,7 @@ mutation createTemplate(
       description
       deleteAfter
       inactivityTimeout
+      destroyAfterInactivity
       allowPublicExposure
       nodeSelector
       environmentList {

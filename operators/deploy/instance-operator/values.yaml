@@ -52,7 +52,6 @@ configurations:
     inactiveTerminationNotificationInterval: "10m" # for staging test
     expirationNotificationInterval: "1h" # for staging test
     inactiveDestructionNotificationInterval: "10m" # for staging test
-    testInactivityDestructionTime: "10m" # for staging test
     marginTime: "1m"
   publicExposure:
     # The IP pool used to assign public IPs to instances.

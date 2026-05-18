@@ -100,6 +100,7 @@ export const makeGuiTemplate = (
     description: tq.original.spec?.description ?? '',
     deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
     inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
+    destroyAfterInactivity: tq.original.spec?.destroyAfterInactivity ?? 'never',
     persistent: hasPersistent,
     nodeSelector: tq.original.spec?.nodeSelector,
     resources: {
@@ -233,9 +234,9 @@ const hasActivePublicExposure = (
 
   return Boolean(
     (spec?.ports && spec.ports.length > 0) ||
-      (status?.ports &&
-        status.ports.length > 0 &&
-        safePhaseConversion(status.phase) !== Phase.Off),
+    (status?.ports &&
+      status.ports.length > 0 &&
+      safePhaseConversion(status.phase) !== Phase.Off),
   );
 };
 
@@ -720,6 +721,7 @@ export const getTemplatesMapped = (
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
       deleteAfter: '',
       inactivityTimeout: '',
+      destroyAfterInactivity: '',
     };
   });
 };
@@ -859,9 +861,8 @@ export const filterUser = (instance: Instance, search: string) => {
   if (!search) {
     return true;
   }
-  const composedString = `${
-    instance.tenantId
-  }${instance.tenantDisplayName?.replace(/\s+/g, '')}`.toLowerCase();
+  const composedString = `${instance.tenantId
+    }${instance.tenantDisplayName?.replace(/\s+/g, '')}`.toLowerCase();
   return composedString.includes(search);
 };
 

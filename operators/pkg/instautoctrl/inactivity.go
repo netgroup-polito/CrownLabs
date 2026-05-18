@@ -51,7 +51,6 @@ type InstanceInactiveTerminationReconciler struct {
 	EnableInactivityNotifications   bool
 	NotificationInterval            time.Duration
 	DestructionNotificationInterval time.Duration
-	TestInactivityDestructionTime   time.Duration
 	MailClient                      *mail.Client
 	Prometheus                      PrometheusClientInterface
 	MarginTime                      time.Duration
@@ -196,8 +195,8 @@ func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx con
 
 	if isActive {
 		if remainingPauseTime <= 0 {
-			// Email logic to inform the user that the instance will be destroyed
 			if r.EnableInactivityNotifications {
+				// Email logic to inform the user that the instance will be destroyed
 				shouldSendWarning, err := r.ShouldSendDestructionWarningNotification(ctx, instance)
 				if err != nil {
 					log.Error(err, "failed checking if should send destruction warning notification")
@@ -234,16 +233,28 @@ func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx con
 					dbgLog.Info("requeueing paused instance to wait for next destruction notification interval")
 					return ctrl.Result{RequeueAfter: requeueTime}, nil
 				}
+
+				// If all the emails have been sent, we delete the instance
+				log.Info("Deleting paused persistent instance due to prolonged inactivity...")
+				if err := r.DeleteInstance(ctx); err != nil {
+					log.Error(err, "failed to delete inactive instance")
+					return ctrl.Result{}, err
+				}
+				// Send notification for instance deletion
+				if err := r.NotifyInstanceDeletion(ctx); err != nil {
+					log.Error(err, "failed to send deletion notification")
+					return ctrl.Result{}, err
+				}
+				if tracer != nil {
+					tracer.Step("instance deleted")
+				}
+				return ctrl.Result{}, nil
 			}
-			// If all the emails have been sent (or disabled), we delete the instance
+
+			// If notifications are disabled, we delete the instance immediately
 			log.Info("Deleting paused persistent instance due to prolonged inactivity...")
 			if err := r.DeleteInstance(ctx); err != nil {
 				log.Error(err, "failed to delete inactive instance")
-				return ctrl.Result{}, err
-			}
-			// Send notification for instance deletion
-			if err := r.NotifyInstanceDeletion(ctx); err != nil {
-				log.Error(err, "failed to send deletion notification")
 				return ctrl.Result{}, err
 			}
 			if tracer != nil {
@@ -556,6 +567,16 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 		log.Info("adding last powered off timestamp annotation to instance for the first time", "annotation", forge.LastPoweredOffTimestampAnnotation)
 		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
 		updated = true
+	}
+
+	// Check and set the destroy-after-inactivity annotation from the template
+	template := pkgcontext.TemplateFrom(ctx)
+	if template != nil {
+		if val, ok := instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"]; !ok || val != template.Spec.DestroyAfterInactivity {
+			log.Info("updating destroy-after-inactivity annotation", "annotation", "crownlabs.polito.it/destroy-after-inactivity", "value", template.Spec.DestroyAfterInactivity)
+			instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"] = template.Spec.DestroyAfterInactivity
+			updated = true
+		}
 	}
 
 	// Apply the patch only if something changed
@@ -915,15 +936,16 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityDestructio
 	if err != nil {
 		return 0, false, fmt.Errorf("failed to parse destroyAfterInactivity duration %s: %w", destroyAfterInactivity, err)
 	}
-
-	if r.TestInactivityDestructionTime > 0 {
-		destroyAfterInactivityDuration = r.TestInactivityDestructionTime
-	}
-
 	poweredOffTimeStr := instance.Annotations[forge.LastPoweredOffTimestampAnnotation]
 	if poweredOffTimeStr == "" {
 		return 0, false, nil // No powered-off timestamp, nothing to calculate
 	}
+
+	// Store the destroyAfterInactivity value as an annotation for validation/visibility
+	if instance.Annotations == nil {
+		instance.Annotations = make(map[string]string)
+	}
+	instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"] = destroyAfterInactivity
 
 	poweredOffTime, err := time.Parse(time.RFC3339, poweredOffTimeStr)
 	if err != nil {
