@@ -3112,6 +3112,11 @@ export type Spec6 = {
    */
   inactivityTimeout?: Maybe<Scalars['String']['output']>;
   /**
+   * The maximum period of inactivity after which an Instance referencing
+   * the current Template will be automatically destroyed to save resources.
+   */
+  destroyAfterInactivity?: Maybe<Scalars['String']['output']>;
+  /**
    * Labels that are used for the selection of the node.
    * They are given by means of a pointer to check the presence of the field.
    * In case it is present, the labels that are chosen are the ones present on the instance
@@ -3146,6 +3151,11 @@ export type Spec6Input = {
    * save resources.
    */
   inactivityTimeout?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * The maximum period of inactivity after which an Instance referencing
+   * the current Template will be automatically destroyed to save resources.
+   */
+  destroyAfterInactivity?: InputMaybe<Scalars['String']['input']>;
   /**
    * Labels that are used for the selection of the node.
    * They are given by means of a pointer to check the presence of the field.
@@ -3667,12 +3677,13 @@ export type CreateTemplateMutationVariables = Exact<{
   deleteAfter?: InputMaybe<Scalars['String']['input']>;
   descriptionTemplate: Scalars['String']['input'];
   inactivityTimeout?: InputMaybe<Scalars['String']['input']>;
+  destroyAfterInactivity?: InputMaybe<Scalars['String']['input']>;
   allowPublicExposure?: InputMaybe<Scalars['Boolean']['input']>;
   nodeSelector?: InputMaybe<Scalars['JSON']['input']>;
 }>;
 
 
-export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, deleteAfter?: string | null, inactivityTimeout?: string | null, allowPublicExposure?: boolean | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
+export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, deleteAfter?: string | null, inactivityTimeout?: string | null, destroyAfterInactivity?: string | null, allowPublicExposure?: boolean | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
 
 export type CreateWorkspaceMutationVariables = Exact<{
   name: Scalars['String']['input'];
@@ -3774,7 +3785,7 @@ export type WorkspaceTemplatesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, deleteAfter?: string | null, inactivityTimeout?: string | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, mountMyDriveVolume: boolean, image: string, guiEnabled?: boolean | null, disableControls?: boolean | null, rewriteURL?: boolean | null, persistent?: boolean | null, containerStartupOptions?: { __typename?: 'ContainerStartupOptions', sourceArchiveURL?: string | null, contentPath?: string | null, startupArgs?: Array<string | null> | null, enforceWorkdir?: boolean | null } | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', name: string, namespace?: string | null } } | null> | null } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, deleteAfter?: string | null, inactivityTimeout?: string | null, destroyAfterInactivity?: string | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, mountMyDriveVolume: boolean, image: string, guiEnabled?: boolean | null, disableControls?: boolean | null, rewriteURL?: boolean | null, persistent?: boolean | null, containerStartupOptions?: { __typename?: 'ContainerStartupOptions', sourceArchiveURL?: string | null, contentPath?: string | null, startupArgs?: Array<string | null> | null, enforceWorkdir?: boolean | null } | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', name: string, namespace?: string | null } } | null> | null } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -4380,16 +4391,17 @@ export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSh
 export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $environmentList: [EnvironmentListListItemInput!]!, $templateId: String = "template-", $deleteAfter: String, $descriptionTemplate: String!, $inactivityTimeout: String, $allowPublicExposure: Boolean, $nodeSelector: JSON) {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $environmentList: [EnvironmentListListItemInput!]!, $templateId: String = "template-", $deleteAfter: String, $descriptionTemplate: String!, $inactivityTimeout: String, $destroyAfterInactivity: String, $allowPublicExposure: Boolean, $nodeSelector: JSON) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
-    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, deleteAfter: $deleteAfter, inactivityTimeout: $inactivityTimeout, environmentList: $environmentList, allowPublicExposure: $allowPublicExposure, nodeSelector: $nodeSelector, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
+    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, deleteAfter: $deleteAfter, inactivityTimeout: $inactivityTimeout, destroyAfterInactivity: $destroyAfterInactivity, environmentList: $environmentList, allowPublicExposure: $allowPublicExposure, nodeSelector: $nodeSelector, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
   ) {
     spec {
       prettyName
       description
       deleteAfter
       inactivityTimeout
+      destroyAfterInactivity
       allowPublicExposure
       nodeSelector
       environmentList {
@@ -5157,6 +5169,7 @@ export const WorkspaceTemplatesDocument = gql`
         allowPublicExposure
         deleteAfter
         inactivityTimeout
+        destroyAfterInactivity
         nodeSelector
         environmentList {
           name
