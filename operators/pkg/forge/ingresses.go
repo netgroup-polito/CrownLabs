@@ -113,12 +113,10 @@ func HostName(baseHostName string, scope clv1alpha2.EnvironmentScope) string {
 // IngressGUIPath returns the path of the ingress targeting the environment GUI vnc or Standalone.
 func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
-	case clv1alpha2.ClassStandalone:
+	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 		if environment.RewriteURL {
 			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", IngressInstancePrefix, instance.UID, environment.Name)
 		}
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
-	case clv1alpha2.ClassContainer:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", IngressInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")

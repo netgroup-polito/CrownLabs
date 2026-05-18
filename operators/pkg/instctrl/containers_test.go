@@ -106,10 +106,8 @@ var _ = Describe("Generation of the container based instances", func() {
 
 	BeforeEach(func() {
 		containerOpts = forge.ContainerEnvOpts{
-			ImagesTag:            "v1.2.3",
-			XVncImg:              "x-vnc",
-			WebsockifyImg:        "wskfy",
-			ContentDownloaderImg: "archdownloader:v0.1.2",
+			ImagesTag:       "v1.2.3",
+			ContentToolsImg: "archdownloader:v0.1.2",
 		}
 
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())

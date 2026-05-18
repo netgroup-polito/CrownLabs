@@ -60,7 +60,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the backend
 		// (i.e., VMI or Pod) configuration, which nonetheless cannot be changed without a restart.
 		if service.CreationTimestamp.IsZero() {
-			service.Spec = forge.ServiceSpec(instance, environment, template)
+			service.Spec = forge.ServiceSpec(instance, environment)
 		}
 
 		labels := forge.EnvironmentObjectLabels(service.GetLabels(), instance, environment)

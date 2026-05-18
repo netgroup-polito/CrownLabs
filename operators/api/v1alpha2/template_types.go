@@ -40,7 +40,6 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
-
 	// ScopeStandard -> Normal operation (authentication, ssh, files access).
 	ScopeStandard EnvironmentScope = "Standard"
 	// ScopeExam -> Restricted access (no authentication, no mydrive access).

@@ -68,25 +68,8 @@
         "harbor-project": "crownlabs-core"
     },
     {
-        "component": "tigervnc",
-        "context": "./provisioning/containers/gui-common/tigervnc",
-        "harbor-project": "crownlabs-container-envs-tools",
-        "optional": true
-    },
-    {
-        "component": "websockify",
-        "context": "./provisioning/containers/gui-common/websockify",
-        "harbor-project": "crownlabs-container-envs-tools",
-        "optional": true
-    },
-    {
-        "component": "content-downloader",
-        "context": "./provisioning/containers/utils/content-downloader",
-        "harbor-project": "crownlabs-container-envs-tools"
-    },
-    {
-        "component": "content-uploader",
-        "context": "./provisioning/containers/utils/content-uploader",
+        "component": "content-tools",
+        "context": "./provisioning/containers/utils/content-tools",
         "harbor-project": "crownlabs-container-envs-tools"
     },
     {

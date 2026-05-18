@@ -1,0 +1,30 @@
+#!/bin/bash -e
+
+if [ -z "$SOURCE_ARCHIVE" ]; then
+  echo "Missing source env variable SOURCE_ARCHIVE"
+  exit 1
+fi
+
+if [ -z "$DESTINATION_PATH" ]; then
+  echo "Missing destination env variable DESTINATION_PATH"
+  exit 1
+fi
+
+echo "Downloading archive..."
+curl --output /tmp/archive "$SOURCE_ARCHIVE"
+
+echo "Extracting archive..."
+# force-skip: skip existing file
+# no-directory: extract directly in the specified directory
+unar -force-skip -no-directory -output-directory "$DESTINATION_PATH" /tmp/archive
+
+# if there's just ONE file and it's called archive and it's of tar format, unar it again
+if [ "$(ls -1 "$DESTINATION_PATH" | wc -l)" -eq 1 ] && [ "$(ls -1 "$DESTINATION_PATH")" = "archive" ]; then
+  file_type=$(file --brief --mime-type "$DESTINATION_PATH/archive")
+  if [[ "$file_type" == "application/x-tar" ]]; then
+    echo "Extracting nested tar archive..."
+    mv "$DESTINATION_PATH/archive" /tmp/archive.tar
+    unar -force-skip -no-directory -output-directory "$DESTINATION_PATH" "/tmp/archive.tar"
+  fi
+fi
+
