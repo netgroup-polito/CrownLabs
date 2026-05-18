@@ -196,8 +196,8 @@ func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx con
 
 	if isActive {
 		if remainingPauseTime <= 0 {
-			// Email logic to inform the user that the instance will be destroyed
 			if r.EnableInactivityNotifications {
+				// Email logic to inform the user that the instance will be destroyed
 				shouldSendWarning, err := r.ShouldSendDestructionWarningNotification(ctx, instance)
 				if err != nil {
 					log.Error(err, "failed checking if should send destruction warning notification")
@@ -234,22 +234,34 @@ func (r *InstanceInactiveTerminationReconciler) handlePoweredOffInstance(ctx con
 					dbgLog.Info("requeueing paused instance to wait for next destruction notification interval")
 					return ctrl.Result{RequeueAfter: requeueTime}, nil
 				}
+
+				// If all the emails have been sent, we delete the instance
+				log.Info("Deleting paused persistent instance due to prolonged inactivity...")
+				if err := r.DeleteInstance(ctx); err != nil {
+					log.Error(err, "failed to delete inactive instance")
+					return ctrl.Result{}, err
+				}
+				// Send notification for instance deletion
+				if err := r.NotifyInstanceDeletion(ctx); err != nil {
+					log.Error(err, "failed to send deletion notification")
+					return ctrl.Result{}, err
+				}
+				if tracer != nil {
+					tracer.Step("instance deleted")
+				}
+				return ctrl.Result{}, nil
+			} else {
+				// If notifications are disabled, we delete the instance immediately
+				log.Info("Deleting paused persistent instance due to prolonged inactivity...")
+				if err := r.DeleteInstance(ctx); err != nil {
+					log.Error(err, "failed to delete inactive instance")
+					return ctrl.Result{}, err
+				}
+				if tracer != nil {
+					tracer.Step("instance deleted")
+				}
+				return ctrl.Result{}, nil
 			}
-			// If all the emails have been sent (or disabled), we delete the instance
-			log.Info("Deleting paused persistent instance due to prolonged inactivity...")
-			if err := r.DeleteInstance(ctx); err != nil {
-				log.Error(err, "failed to delete inactive instance")
-				return ctrl.Result{}, err
-			}
-			// Send notification for instance deletion
-			if err := r.NotifyInstanceDeletion(ctx); err != nil {
-				log.Error(err, "failed to send deletion notification")
-				return ctrl.Result{}, err
-			}
-			if tracer != nil {
-				tracer.Step("instance deleted")
-			}
-			return ctrl.Result{}, nil
 		}
 
 		// Requeue based on the remaining time for the destruction
