@@ -91,8 +91,6 @@ var _ = Describe("Storage enforcement", func() {
 
 			containerOpts = forge.ContainerEnvOpts{
 				ImagesTag:       "v1.2.3",
-				XVncImg:         "x-vnc",
-				WebsockifyImg:   "wskfy",
 				ContentToolsImg: "archdownloader:v0.1.2",
 			}
 
