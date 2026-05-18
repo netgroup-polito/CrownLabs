@@ -152,7 +152,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 		NamespacedName *types.NamespacedName
 		Object         client.Object
 
-		ExpectedSpecForger func(*clv1alpha2.Instance, *clv1alpha2.Environment, *clv1alpha2.Template) interface{}
+		ExpectedSpecForger func(*clv1alpha2.Instance, *clv1alpha2.Environment) interface{}
 		EmptySpec          interface{}
 
 		InstanceStatusGetter   func(*clv1alpha2.Instance) string
@@ -163,8 +163,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	DescribeBodyParametersService := DescribeBodyParameters{
 		NamespacedName: &serviceName, Object: &service, GroupResource: corev1.Resource("services"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, env *clv1alpha2.Environment, tmp *clv1alpha2.Template) interface{} {
-			svc := forge.ServiceSpec(inst, env, tmp)
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, env *clv1alpha2.Environment) interface{} {
+			svc := forge.ServiceSpec(inst, env)
 			// Normalise empty ports slice to nil to match fake client's representation
 			if len(svc.Ports) == 0 {
 				svc.Ports = nil
@@ -185,7 +185,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	DescribeBodyParametersIngressGUI := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, _ *clv1alpha2.Template) interface{} {
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
@@ -198,7 +198,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	DescribeBodyParametersIngressGUIContainer := DescribeBodyParameters{
 		NamespacedName: &ingressGUIName, Object: &ingress, GroupResource: netv1.Resource("ingresses"),
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment, _ *clv1alpha2.Template) interface{} {
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
 			return forge.IngressSpec(host, forge.IngressGUIPath(inst, &environment),
 				forge.IngressDefaultCertificateName, serviceName.Name, forge.GUIPortName)
 		},
@@ -236,7 +236,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 				It("Should be present and have the expected specs", func() {
 					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.ExpectedSpecForger(&instance, &environment, &template))))
+					Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.ExpectedSpecForger(&instance, &environment))))
 				})
 
 				It("Should fill the correct instance status value", func() {
