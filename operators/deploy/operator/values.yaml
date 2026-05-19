@@ -5,6 +5,10 @@
 replicaCount: 1
 
 configurations:
+  features:
+    pmp: false
+    imageList: true
+
   targetLabel: crownlabs.polito.it/operator-selector=production
   keycloak:
     url: "https://auth.crownlabs.example.com/"
@@ -37,6 +41,34 @@ configurations:
   maxConcurrentShVolReconciles: 1
   sharedVolumeOptions:
     storageClass: rook-nfs
+
+  # Image list configuration
+  imageList:
+    configFile: /etc/config/registries.yaml
+    updateInterval: 600
+    registries:
+        - name: harbor-registry-2-standalone
+          type: harbor
+          url: http://harbor-core.harbor:80
+          advertised: harbor.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-standalone
+          project: crownlabs-standalone
+        - name: harbor-registry-1-containerdisks
+          type: harbor
+          url: http://harbor-core.harbor:80
+          advertised: harbor.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-containerdisks
+          project: crownlabs-containerdisks
+  
+  pvcMirrorProvisioner:  
+    provisionerName: pmp.crownlabs.polito.it
+    storageClass:
+      name: pvc-mirror
+      deploy: false
 
 image:
   repository: crownlabs/tenant-operator

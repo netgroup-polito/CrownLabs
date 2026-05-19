@@ -76,12 +76,16 @@ func main() {
 	var enableWorkspace bool
 	var enableInstance bool
 	var enableSharedVolume bool
+	var enablePmp bool
 	var enableKeycloak bool
+	var enableImageList bool
 	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
 	flag.BoolVar(&enableInstance, "enable-instance", true, "Enable the instance controller.")
 	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", true, "Enable the sharedvolume controller.")
+	flag.BoolVar(&enablePmp, "enable-pmp", true, "Enable the PVC mirror provisioner.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
+	flag.BoolVar(&enableImageList, "enable-imagelist", false, "Enable the image list updater.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
@@ -153,6 +157,21 @@ func main() {
 		err := setupSharedVolume(mgr, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create sharedvolume controller")
+		}
+	}
+
+	if enableImageList {
+		log.Info("Starting the image list updater")
+		err := setupImageList(mgr, log)
+		if err != nil {
+			klog.Fatal(err, "Unable to setup image list updater")
+		}
+	}
+	if enablePmp {
+		log.Info("Starting the PVC mirror provisioner")
+		err := setupPmp(ctx, mgr, log, targetLabel)
+		if err != nil {
+			klog.Fatal(err, "Unable to create PVC mirror provisioner")
 		}
 	}
 

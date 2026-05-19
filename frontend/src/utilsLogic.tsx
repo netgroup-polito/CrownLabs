@@ -991,6 +991,10 @@ export const makeTenantsList = (rawTenantsQuery?: TenantsQuery): Tenant[] => {
       name: user?.spec?.firstName || '',
       surname: user?.spec?.lastName || '',
       email: user?.spec?.email || '',
+      creationDate: user?.metadata?.creationTimestamp || undefined,
+      lastLogin: user?.spec?.lastLogin || undefined,
+      labels: (user?.metadata?.labels as Record<string, string>) || undefined,
+      personalWorkspace: user?.spec?.createPersonalWorkspace || false,
       workspaces:
         user?.spec?.workspaces?.map(workspace => ({
           role: workspace?.role || Role.User,

@@ -148,36 +148,6 @@ var _ = Describe("Ingresses", func() {
 			)
 		})
 
-		When("EnvironmentType is not ClassStandalone", func() {
-			DescribeTable("Correctly populates the annotations set",
-				func(c InstanceGUIAnnotationsCase) {
-					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
-				},
-				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
-					Annotations:    nil,
-					Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
-				}),
-				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
-					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-				}),
-				Entry("When the input labels map contains only part of the expected values", InstanceGUIAnnotationsCase{
-					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassContainer},
-					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-						"user/key": "user/value",
-					}, "3600"),
-				}),
-			)
-		})
 	})
 
 	Describe("The forge.IngressAuthenticationAnnotations function", func() {
@@ -303,17 +273,6 @@ var _ = Describe("Ingresses", func() {
 						It("Should generate a path based on the instance UID", func() {
 							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
 						})
-					})
-				})
-			})
-
-			When("EnvironmentType is not ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassContainer
-				})
-				Context("The instance has no special configurations", func() {
-					It("Should generate a path based on the instance UID", func() {
-						Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
 					})
 				})
 			})

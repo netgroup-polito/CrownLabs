@@ -25,7 +25,7 @@ import (
 	criapi "k8s.io/cri-api/pkg/apis/runtime/v1"
 	"k8s.io/utils/trace"
 
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -81,8 +81,6 @@ type MetricsScraper struct {
 // Start scraping metrics.
 func (ms *MetricsScraper) Start(ctx context.Context) {
 	ms.ignoredContainerNames = []string{
-		forge.XVncName,
-		forge.WebsockifyName,
 		forge.ContentDownloaderName,
 	}
 	ms.oldStats = map[string]*ContainerStats{}
