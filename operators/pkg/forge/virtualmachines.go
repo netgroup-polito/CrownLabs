@@ -266,8 +266,9 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
 		return &cdiv1beta1.DataVolumeSource{
-			HTTP: &cdiv1beta1.DataVolumeSourceHTTP{
-				URL: environment.Image,
+			PVC: &cdiv1beta1.DataVolumeSourcePVC{
+				Namespace: "cldprog-5-block-vms-tests", // Es. "crownlabs-system"
+				Name:      "debian-nginx-raw-block",        // Es. "ubuntu-golden-image"
 			},
 		}
 	}
