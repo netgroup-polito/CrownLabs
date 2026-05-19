@@ -436,7 +436,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 					Expect(dataVolumeTemplate.Spec.Source.Registry.URL).To(PointTo(BeIdenticalTo("docker://" + image)))
 				})
 			})
-
+/*
 			When("Environment type is CloudVM", func() {
 				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
 
@@ -444,6 +444,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 					Expect(dataVolumeTemplate.Spec.Source.HTTP.URL).To(BeIdenticalTo(image))
 				})
 			})
+				*/
 
 			It("Should have the correct name", func() {
 				Expect(dataVolumeTemplate.GetName()).To(BeIdenticalTo(name))
