@@ -60,7 +60,6 @@ ingress:
 httproute:
   gateway:
     name: crownlabs-main
-    # namespace: envoy-gateway-system
   hostname: crownlabs.example.com
   path: /
 
