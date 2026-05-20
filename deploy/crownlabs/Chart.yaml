@@ -50,11 +50,6 @@ dependencies:
   repository: file://../../operators/deploy/bastion-operator
   condition: bastion-operator.enabled
 
-- name: image-list
-  version: "0.1.0"
-  repository: file://../../operators/deploy/image-list
-  condition: image-list.enabled
-
 - name: exam-agent
   version: "0.1.0"
   repository: file://../../operators/deploy/exam-agent

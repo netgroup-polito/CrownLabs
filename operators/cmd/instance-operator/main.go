@@ -65,6 +65,7 @@ func main() {
 	publicExposureIPPoolRaw := ""
 	publicExposureCommonAnnotationRaw := ""
 	publicExposureCommonLabelsRaw := ""
+	mirrorStorageClass := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -81,10 +82,7 @@ func main() {
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
-	flag.StringVar(&containerEnvOpts.XVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
-	flag.StringVar(&containerEnvOpts.WebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
-	flag.StringVar(&containerEnvOpts.ContentDownloaderImg, "container-env-content-downloader-img", "latest", "The image name for the init-container to download and unarchive initial content to the instance volume.")
-	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
+	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
 	flag.StringVar(&containerEnvOpts.InstMetricsEndpoint, "container-env-instmetrics-server-endpoint", "instmetrics:9090", "The endpoint of the InstMetrics gRPC server")
 
 	flag.StringVar(&instSnapOpts.VMRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
@@ -97,6 +95,8 @@ func main() {
 	flag.StringVar(&publicExposureCommonAnnotationRaw, "public-exposure-common-annotations", "", "Comma-separated list of common annotations in format key1=val1,key2=val2")
 	flag.StringVar(&publicExposureCommonLabelsRaw, "public-exposure-common-labels", "", "Comma-separated list of common labels in format key1=val1,key2=val2")
 	flag.StringVar(&publicExposureOpts.LoadBalancerIPsKey, "public-exposure-loadbalancer-ips-key", "metallb.universe.tf/loadBalancerIPs", "Annotation key for specifying LoadBalancer IPs")
+
+	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -169,14 +169,15 @@ func main() {
 	}
 
 	if err = (&instctrl.InstanceReconciler{
-		Client:                mgr.GetClient(),
-		Scheme:                mgr.GetScheme(),
-		EventsRecorder:        mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist:    nsWhitelist,
-		ServiceUrls:           svcUrls,
-		ContainerEnvOpts:      containerEnvOpts,
-		WebSSHMasterPublicKey: pubKeyBytes,
-		PublicExposureOpts:    publicExposureOpts,
+		Client:                    mgr.GetClient(),
+		Scheme:                    mgr.GetScheme(),
+		EventsRecorder:            mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:        nsWhitelist,
+		ServiceUrls:               svcUrls,
+		ContainerEnvOpts:          containerEnvOpts,
+		WebSSHMasterPublicKey:     pubKeyBytes,
+		PublicExposureOpts:        publicExposureOpts,
+		MirrorPVCStorageClassName: mirrorStorageClass,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

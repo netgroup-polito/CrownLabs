@@ -131,8 +131,10 @@ run-operator: generate ## Run the main operator locally
 				--enable-workspace=true\
 				--enable-instance=true\
 				--enable-sharedvolume=true\
+				--enable-pmp=true\
 				--enable-keycloak=true\
-				--enable-webhooks=false
+				--enable-webhooks=false\
+				--enable-image-list=true
 
 .PHONY: install-local
 install-local: manifests ## Install CrownLabs & support CRDs.
