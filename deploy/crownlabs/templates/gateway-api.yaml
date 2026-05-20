@@ -19,4 +19,12 @@ spec:
         certificateRefs:
           - kind: Secret
             name: {{ .Values.gatewayAPI.tls.certificateRefName }}
+      {{- with .Values.gatewayAPI.allowedRouteNamespaces }}
+      allowedRoutes:
+        namespaces:
+          from: Selector
+          selector:
+            matchLabels:
+              {{- toYaml . | nindent 16 }}
+      {{- end }}
 {{- end }}

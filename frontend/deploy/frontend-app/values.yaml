@@ -49,10 +49,7 @@ service:
   type: ClusterIP
   port: 80
 
-
-
 gatewayApiMode: false
-
 ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
@@ -62,7 +59,8 @@ ingress:
 
 httproute:
   gateway:
-    name: crownlabs-gw
+    name: crownlabs-main
+    # namespace: envoy-gateway-system
   hostname: crownlabs.example.com
   path: /
 
