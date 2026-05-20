@@ -69,9 +69,8 @@ var (
 
 // ContainerEnvOpts contains images name and tag for container environment.
 type ContainerEnvOpts struct {
-	ImagesTag           string
-	ContentToolsImg     string
-	InstMetricsEndpoint string
+	ImagesTag       string
+	ContentToolsImg string
 }
 
 // PVCSpec forges a PersistentVolumeClaimSpec with the passed arguments.
