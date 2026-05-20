@@ -182,17 +182,6 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 	}
 }
 
-// ContainersSpec returns the Containers obj based on Environment Type.
-func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, _ *ContainerEnvOpts) []corev1.Container {
-	return []corev1.Container{
-		StandaloneContainer(
-			instance,
-			environment,
-			PersistentMountPath(environment),
-			mountInfos),
-	}
-}
-
 // StandaloneContainer forges the Standalone application container of the environment.
 func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, volumeMountPath string, mountInfos []corev1.VolumeMount) corev1.Container {
 	standaloneContainer := AppContainer(environment, volumeMountPath, mountInfos)
