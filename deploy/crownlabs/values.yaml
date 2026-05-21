@@ -4,6 +4,7 @@
 
 global:
   version: "" # default set while packaging
+  gatewayApiMode: true
 
 createClusterRoles: true
 
