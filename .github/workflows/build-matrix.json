@@ -49,14 +49,6 @@
         "harbor-project": "crownlabs-core"
     },
     {
-        "component": "instmetrics",
-        "context": "./operators",
-        "dockerfile": "./operators/build/golang-common/Dockerfile",
-        "build-args": "COMPONENT=instmetrics",
-        "harbor-project": "crownlabs-core",
-        "optional": true
-    },
-    {
         "component": "frontend-app",
         "context": "./frontend",
         "build-args": "BUILD_TARGET=app\nSUBROUTE=/app/",
