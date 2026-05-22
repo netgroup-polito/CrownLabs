@@ -12,7 +12,9 @@ import {
   Button,
   Select,
   InputNumber,
+  theme,
 } from 'antd';
+import type { FilterDropdownProps } from 'antd/es/table/interface';
 import dayjs from 'dayjs';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import {
@@ -23,39 +25,61 @@ import { makeTenantsList } from '../../../utilsLogic';
 import { multiStringIncludes, type Tenant } from '../../../utils';
 import Box from '../../common/Box';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 
 export default function TenantListPage() {
   const { apolloErrorCatcher } = useContext(ErrorContext);
-  const navigate = useNavigate();
-
-  const [searchText, setSearchText] = useState('');
-  const [registrationDateRange, setRegistrationDateRange] = useState<
-    [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
-  >(null);
-  const [lastLoginDateRange, setLastLoginDateRange] = useState<
-    [dayjs.Dayjs | null, dayjs.Dayjs | null] | null
-  >(null);
-  const [labelKeyFilter, setLabelKeyFilter] = useState('');
-  const [labelValueFilter, setLabelValueFilter] = useState('');
+  const { token } = theme.useToken();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
-  const [selectedOperators, setSelectedOperators] = useState<string[]>([]);
-  const [minWorkspaces, setMinWorkspaces] = useState<number | null>(null);
-  const [maxWorkspaces, setMaxWorkspaces] = useState<number | null>(null);
-  const [personalWorkspaceActive, setPersonalWorkspaceActive] = useState<string | null>(null);
+
+  const searchText = searchParams.get('q') ?? '';
+  const regStart = searchParams.get('regStart');
+  const regEnd = searchParams.get('regEnd');
+  const loginStart = searchParams.get('loginStart');
+  const loginEnd = searchParams.get('loginEnd');
+  const labelKeyFilter = searchParams.get('labelKey') ?? '';
+  const labelValueFilter = searchParams.get('labelVal') ?? '';
+  const selectedOperators = searchParams.getAll('op');
+  const minWorkspaces = searchParams.get('minWs')
+    ? Number(searchParams.get('minWs'))
+    : null;
+  const maxWorkspaces = searchParams.get('maxWs')
+    ? Number(searchParams.get('maxWs'))
+    : null;
+  const personalWorkspaceActive = searchParams.get('pw');
+
+  const registrationDateRange: [dayjs.Dayjs, dayjs.Dayjs] | null =
+    regStart && regEnd ? [dayjs(regStart), dayjs(regEnd)] : null;
+  const lastLoginDateRange: [dayjs.Dayjs, dayjs.Dayjs] | null =
+    loginStart && loginEnd ? [dayjs(loginStart), dayjs(loginEnd)] : null;
+
+  const setParam = (key: string, value: string | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (value !== null && value !== '') next.set(key, value);
+      else next.delete(key);
+      return next;
+    });
+  };
+
+  const setMultiParam = (key: string, values: string[]) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.delete(key);
+      values.forEach(v => next.append(key, v));
+      return next;
+    });
+  };
 
   const { data, loading, error, refetch } = useTenantsQuery({
     onError: apolloErrorCatcher,
     notifyOnNetworkStatusChange: true,
-    variables: {
-      retrieveWorkspaces: true,
-    },
+    variables: { retrieveWorkspaces: true },
   });
 
   const [deleteTenantMutation, { loading: deleteLoading }] =
-    useDeleteTenantMutation({
-      onError: apolloErrorCatcher,
-    });
+    useDeleteTenantMutation({ onError: apolloErrorCatcher });
 
   const handleDeleteTenant = async (name: string) => {
     try {
@@ -88,13 +112,9 @@ export default function TenantListPage() {
     const calculateHeight = () => {
       const el = tableBodyRef.current;
       if (!el) return;
-
       const top = el.getBoundingClientRect().top;
-      const adjustement = 170;
-
-      setTableHeight(window.innerHeight - top - adjustement);
+      setTableHeight(window.innerHeight - top - 170);
     };
-
     calculateHeight();
     window.addEventListener('resize', calculateHeight);
     return () => window.removeEventListener('resize', calculateHeight);
@@ -114,90 +134,68 @@ export default function TenantListPage() {
   const filteredTenants = useMemo(
     () =>
       tenants.filter(tenant => {
-        const searchMatches = multiStringIncludes(
-          searchText,
-          tenant.name,
-          tenant.surname,
-          tenant.userid,
-        );
-
-        let matchesReg = true;
         if (
-          registrationDateRange &&
-          registrationDateRange[0] &&
-          registrationDateRange[1]
-        ) {
-          if (!tenant.creationDate) matchesReg = false;
-          else {
-            const date = dayjs(tenant.creationDate);
-            matchesReg =
-              date.isAfter(registrationDateRange[0].startOf('day')) &&
-              date.isBefore(registrationDateRange[1].endOf('day'));
-          }
+          !multiStringIncludes(searchText, tenant.name, tenant.surname, tenant.userid)
+        )
+          return false;
+
+        if (registrationDateRange) {
+          if (!tenant.creationDate) return false;
+          const date = dayjs(tenant.creationDate);
+          if (
+            !date.isAfter(registrationDateRange[0].startOf('day')) ||
+            !date.isBefore(registrationDateRange[1].endOf('day'))
+          )
+            return false;
         }
 
-        let matchesLogin = true;
-        if (
-          lastLoginDateRange &&
-          lastLoginDateRange[0] &&
-          lastLoginDateRange[1]
-        ) {
-          if (!tenant.lastLogin) matchesLogin = false;
-          else {
-            const date = dayjs(tenant.lastLogin);
-            matchesLogin =
-              date.isAfter(lastLoginDateRange[0].startOf('day')) &&
-              date.isBefore(lastLoginDateRange[1].endOf('day'));
-          }
+        if (lastLoginDateRange) {
+          if (!tenant.lastLogin) return false;
+          const date = dayjs(tenant.lastLogin);
+          if (
+            !date.isAfter(lastLoginDateRange[0].startOf('day')) ||
+            !date.isBefore(lastLoginDateRange[1].endOf('day'))
+          )
+            return false;
         }
 
-        let matchesLabel = true;
         if (labelKeyFilter || labelValueFilter) {
-          if (!tenant.labels) {
-            matchesLabel = false;
+          if (!tenant.labels) return false;
+          if (labelKeyFilter && labelValueFilter) {
+            if (
+              tenant.labels[labelKeyFilter] === undefined ||
+              !tenant.labels[labelKeyFilter]
+                .toLowerCase()
+                .includes(labelValueFilter.toLowerCase())
+            )
+              return false;
+          } else if (labelKeyFilter) {
+            if (tenant.labels[labelKeyFilter] === undefined) return false;
           } else {
-            if (labelKeyFilter && labelValueFilter) {
-              matchesLabel =
-                tenant.labels[labelKeyFilter] !== undefined &&
-                tenant.labels[labelKeyFilter]
-                  .toLowerCase()
-                  .includes(labelValueFilter.toLowerCase());
-            } else if (labelKeyFilter) {
-              matchesLabel = tenant.labels[labelKeyFilter] !== undefined;
-            } else if (labelValueFilter) {
-              matchesLabel = Object.values(tenant.labels).some(v =>
+            if (
+              !Object.values(tenant.labels).some(v =>
                 v.toLowerCase().includes(labelValueFilter.toLowerCase()),
-              );
-            }
+              )
+            )
+              return false;
           }
         }
 
-        let matchesOperator = true;
         if (selectedOperators.length > 0) {
           const val = tenant.labels?.['crownlabsPolitoItOperatorSelector'];
-          if (!val || !selectedOperators.includes(val)) {
-            matchesOperator = false;
-          }
+          if (!val || !selectedOperators.includes(val)) return false;
         }
 
-        let matchesWorkspaces = true;
-        const wsCount = tenant.workspaces?.length || 0;
-        if (minWorkspaces !== null && wsCount < minWorkspaces) matchesWorkspaces = false;
-        if (maxWorkspaces !== null && wsCount > maxWorkspaces) matchesWorkspaces = false;
+        const wsCount = tenant.workspaces?.length ?? 0;
+        if (minWorkspaces !== null && wsCount < minWorkspaces) return false;
+        if (maxWorkspaces !== null && wsCount > maxWorkspaces) return false;
 
-        let matchesPW = true;
-        if (personalWorkspaceActive === 'yes' && !tenant.personalWorkspace) matchesPW = false;
-        if (personalWorkspaceActive === 'no' && tenant.personalWorkspace) matchesPW = false;
+        if (personalWorkspaceActive === 'yes' && !tenant.personalWorkspace)
+          return false;
+        if (personalWorkspaceActive === 'no' && tenant.personalWorkspace)
+          return false;
 
-        return (
-          searchMatches &&
-          matchesReg &&
-          matchesLogin &&
-          matchesLabel &&
-          matchesOperator &&
-          matchesWorkspaces &&
-          matchesPW
-        );
+        return true;
       }),
     [
       tenants,
@@ -213,9 +211,119 @@ export default function TenantListPage() {
     ],
   );
 
-  const handleSearch = (value: string) => {
-    setSearchText(value.toLowerCase());
-  };
+  const dateRangeDropdown =
+    (
+      value: [dayjs.Dayjs, dayjs.Dayjs] | null,
+      startKey: string,
+      endKey: string,
+    ) =>
+    ({ confirm }: FilterDropdownProps) =>
+      (
+        <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <DatePicker.RangePicker
+            value={value}
+            onChange={dates => {
+              setSearchParams(prev => {
+                const next = new URLSearchParams(prev);
+                if (dates?.[0]) next.set(startKey, dates[0].toISOString());
+                else next.delete(startKey);
+                if (dates?.[1]) next.set(endKey, dates[1].toISOString());
+                else next.delete(endKey);
+                return next;
+              });
+            }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+            <Button
+              size="small"
+              onClick={() => {
+                setSearchParams(prev => {
+                  const next = new URLSearchParams(prev);
+                  next.delete(startKey);
+                  next.delete(endKey);
+                  return next;
+                });
+                confirm();
+              }}
+            >
+              Reset
+            </Button>
+            <Button type="primary" size="small" onClick={() => confirm()}>
+              OK
+            </Button>
+          </div>
+        </div>
+      );
+
+  const workspacesDropdown = ({ confirm }: FilterDropdownProps) => (
+    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <Space.Compact>
+        <InputNumber
+          placeholder="Min"
+          value={minWorkspaces}
+          onChange={v => setParam('minWs', v !== null ? String(v) : null)}
+          min={0}
+          style={{ width: 100 }}
+        />
+        <InputNumber
+          placeholder="Max"
+          value={maxWorkspaces}
+          onChange={v => setParam('maxWs', v !== null ? String(v) : null)}
+          min={0}
+          style={{ width: 100 }}
+        />
+      </Space.Compact>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <Button
+          size="small"
+          onClick={() => {
+            setSearchParams(prev => {
+              const next = new URLSearchParams(prev);
+              next.delete('minWs');
+              next.delete('maxWs');
+              return next;
+            });
+            confirm();
+          }}
+        >
+          Reset
+        </Button>
+        <Button type="primary" size="small" onClick={() => confirm()}>
+          OK
+        </Button>
+      </div>
+    </div>
+  );
+
+  const personalWorkspaceDropdown = ({ confirm }: FilterDropdownProps) => (
+    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <Select
+        allowClear
+        placeholder="Any"
+        style={{ width: 140 }}
+        value={personalWorkspaceActive}
+        onChange={v => setParam('pw', v ?? null)}
+        options={[
+          { label: 'Yes', value: 'yes' },
+          { label: 'No', value: 'no' },
+        ]}
+      />
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+        <Button
+          size="small"
+          onClick={() => {
+            setParam('pw', null);
+            confirm();
+          }}
+        >
+          Reset
+        </Button>
+        <Button type="primary" size="small" onClick={() => confirm()}>
+          OK
+        </Button>
+      </div>
+    </div>
+  );
 
   return (
     <Col span={24} lg={22} xxl={20} className="h-full">
@@ -223,24 +331,33 @@ export default function TenantListPage() {
         header={{
           className: 'py-4 md:py-6 h-auto',
           center: (
-            <div className="flex flex-col justify-center items-center gap-4 w-full px-2 sm:px-4">
+            <div className="flex flex-col items-center gap-4 w-full px-2 sm:px-4">
               <p className="md:text-2xl text-lg text-center mb-0">
                 <b>Manage users</b>
               </p>
 
-              <div className="flex flex-col w-full items-center gap-4">
-                <Input.Search
-                  placeholder="Search users"
-                  className="w-full max-w-xs"
-                  onSearch={handleSearch}
-                  enterButton
-                  allowClear={true}
-                />
-
-                <div className="flex flex-wrap justify-center gap-3 w-full">
+              <div
+                className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-3 w-full p-3"
+                style={{
+                  background: token.colorFillAlter,
+                  border: `1px solid ${token.colorBorderSecondary}`,
+                  borderRadius: token.borderRadiusLG,
+                }}
+              >
+                {/* Search + delete button — full width */}
+                <div className="col-span-1 sm:col-span-3 flex flex-wrap items-center gap-2">
+                  <Input.Search
+                    placeholder="Search by name, surname, user ID"
+                    className="flex-1 min-w-48"
+                    value={searchText}
+                    onSearch={v => setParam('q', v)}
+                    onChange={e => setParam('q', e.target.value)}
+                    enterButton
+                    allowClear
+                  />
                   {selectedRowKeys.length > 0 && (
                     <Popconfirm
-                      title={`You are going to delete ${selectedRowKeys.length} users. Are you sure?`}
+                      title={`Delete ${selectedRowKeys.length} users?`}
                       onConfirm={handleDeleteMultipleTenants}
                       okText="Yes"
                       cancelText="No"
@@ -251,74 +368,57 @@ export default function TenantListPage() {
                         icon={<DeleteOutlined />}
                         loading={deleteLoading}
                       >
-                        Delete Selected ({selectedRowKeys.length})
+                        Delete ({selectedRowKeys.length})
                       </Button>
                     </Popconfirm>
                   )}
-                  <DatePicker.RangePicker
-                    className="w-full sm:w-auto"
-                    placeholder={['Reg. Start', 'Reg. End']}
-                    onChange={dates => setRegistrationDateRange(dates)}
-                    allowClear
-                  />
-                  <DatePicker.RangePicker
-                    className="w-full sm:w-auto"
-                    placeholder={['Login Start', 'Login End']}
-                    onChange={dates => setLastLoginDateRange(dates)}
-                    allowClear
-                  />
-                  <Space.Compact className="w-full sm:w-auto flex">
-                    <Input
-                      placeholder="Label Key"
-                      onChange={e => setLabelKeyFilter(e.target.value)}
-                      allowClear
-                      style={{ width: '40%' }}
-                    />
-                    <Input
-                      placeholder="Label Value"
-                      onChange={e => setLabelValueFilter(e.target.value)}
-                      allowClear
-                      style={{ width: '60%' }}
-                    />
-                  </Space.Compact>
+                </div>
+
+                <div>
+                  <span
+                    className="text-xs font-medium block mb-1"
+                    style={{ color: token.colorTextSecondary }}
+                  >
+                    Operator
+                  </span>
                   <Select
                     mode="multiple"
                     allowClear
-                    placeholder="Filter by Operator"
-                    className="w-full sm:w-auto"
-                    style={{ minWidth: 200 }}
+                    placeholder="Any"
+                    className="w-full"
                     value={selectedOperators}
-                    onChange={setSelectedOperators}
-                    options={operatorSelectorValues.map(v => ({
-                      label: v,
-                      value: v,
-                    }))}
+                    onChange={vals => setMultiParam('op', vals)}
+                    options={operatorSelectorValues.map(v => ({ label: v, value: v }))}
                   />
-                  <Space.Compact className="w-full sm:w-auto flex">
-                    <InputNumber
-                      placeholder="Min Workspaces"
-                      value={minWorkspaces}
-                      onChange={setMinWorkspaces}
-                      style={{ width: '50%' }}
-                    />
-                    <InputNumber
-                      placeholder="Max Workspaces"
-                      value={maxWorkspaces}
-                      onChange={setMaxWorkspaces}
-                      style={{ width: '50%' }}
-                    />
-                  </Space.Compact>
-                  <Select
+                </div>
+
+                <div>
+                  <span
+                    className="text-xs font-medium block mb-1"
+                    style={{ color: token.colorTextSecondary }}
+                  >
+                    Label Key
+                  </span>
+                  <Input
+                    placeholder="e.g. crownlabs.polito.it/role"
+                    value={labelKeyFilter}
+                    onChange={e => setParam('labelKey', e.target.value)}
                     allowClear
-                    placeholder="Personal Workspace"
-                    className="w-full sm:w-auto"
-                    style={{ minWidth: 180 }}
-                    value={personalWorkspaceActive}
-                    onChange={setPersonalWorkspaceActive}
-                    options={[
-                      { label: 'Yes', value: 'yes' },
-                      { label: 'No', value: 'no' },
-                    ]}
+                  />
+                </div>
+
+                <div>
+                  <span
+                    className="text-xs font-medium block mb-1"
+                    style={{ color: token.colorTextSecondary }}
+                  >
+                    Label Value
+                  </span>
+                  <Input
+                    placeholder="e.g. admin"
+                    value={labelValueFilter}
+                    onChange={e => setParam('labelVal', e.target.value)}
+                    allowClear
                   />
                 </div>
               </div>
@@ -327,9 +427,13 @@ export default function TenantListPage() {
         }}
       >
         <Spin spinning={loading || error != null}>
-          <div ref={tableBodyRef} style={{ height: "100%"}}>
+          <div ref={tableBodyRef} style={{ height: '100%' }}>
             <Table
-              pagination={{ defaultPageSize: 10, pageSizeOptions: ['10', '20', '50', '100', Infinity], showSizeChanger: true }}
+              pagination={{
+                defaultPageSize: 10,
+                pageSizeOptions: ['10', '20', '50', '100'],
+                showSizeChanger: true,
+              }}
               dataSource={filteredTenants}
               size="small"
               rowKey="userid"
@@ -338,16 +442,14 @@ export default function TenantListPage() {
                 onChange: setSelectedRowKeys,
               }}
               scroll={{ y: tableHeight }}
-              style={{ height: "100%" }}
+              style={{ height: '100%' }}
             >
               <Table.Column
                 title="User ID"
                 dataIndex="userid"
-                sorter={(a: Tenant, b: Tenant) =>
-                  a.userid.localeCompare(b.userid)
-                }
+                sorter={(a: Tenant, b: Tenant) => a.userid.localeCompare(b.userid)}
                 key="userid"
-                width={170}
+                width={100}
               />
               <Table.Column
                 responsive={['md', 'lg']}
@@ -361,9 +463,7 @@ export default function TenantListPage() {
                 responsive={['md', 'lg']}
                 title="Surname"
                 dataIndex="surname"
-                sorter={(a: Tenant, b: Tenant) =>
-                  a.surname.localeCompare(b.surname)
-                }
+                sorter={(a: Tenant, b: Tenant) => a.surname.localeCompare(b.surname)}
                 key="surname"
                 width={120}
               />
@@ -371,7 +471,7 @@ export default function TenantListPage() {
                 responsive={['sm', 'md', 'lg']}
                 title="Email"
                 dataIndex="email"
-                ellipsis={true}
+                ellipsis
                 key="email"
                 width={150}
               />
@@ -383,10 +483,16 @@ export default function TenantListPage() {
                   date ? dayjs(date).format('YYYY-MM-DD') : 'N/A'
                 }
                 sorter={(a: Tenant, b: Tenant) =>
-                  (a.creationDate || '').localeCompare(b.creationDate || '')
+                  (a.creationDate ?? '').localeCompare(b.creationDate ?? '')
                 }
                 key="creationDate"
-                width={140}
+                width={160}
+                filterDropdown={dateRangeDropdown(
+                  registrationDateRange,
+                  'regStart',
+                  'regEnd',
+                )}
+                filteredValue={registrationDateRange ? ['active'] : []}
               />
               <Table.Column
                 responsive={['lg']}
@@ -396,10 +502,16 @@ export default function TenantListPage() {
                   date ? dayjs(date).format('YYYY-MM-DD HH:mm') : 'N/A'
                 }
                 sorter={(a: Tenant, b: Tenant) =>
-                  (a.lastLogin || '').localeCompare(b.lastLogin || '')
+                  (a.lastLogin ?? '').localeCompare(b.lastLogin ?? '')
                 }
                 key="lastLogin"
-                width={150}
+                width={170}
+                filterDropdown={dateRangeDropdown(
+                  lastLoginDateRange,
+                  'loginStart',
+                  'loginEnd',
+                )}
+                filteredValue={lastLoginDateRange ? ['active'] : []}
               />
               <Table.Column
                 responsive={['sm', 'md', 'lg']}
@@ -409,22 +521,31 @@ export default function TenantListPage() {
                   workspaces ? workspaces.length : 0
                 }
                 sorter={(a: Tenant, b: Tenant) =>
-                  (a.workspaces ? a.workspaces.length : 0) -
-                  (b.workspaces ? b.workspaces.length : 0)
+                  (a.workspaces?.length ?? 0) - (b.workspaces?.length ?? 0)
                 }
                 key="workspaces"
-                width={120}
+                width={130}
+                filterDropdown={workspacesDropdown}
+                filteredValue={
+                  minWorkspaces !== null || maxWorkspaces !== null ? ['active'] : []
+                }
               />
               <Table.Column
                 responsive={['sm', 'md', 'lg']}
-                title="Personal Workspace"
+                title="P. Workspace"
                 dataIndex="personalWorkspace"
                 render={(active: boolean) => (active ? 'Yes' : 'No')}
                 sorter={(a: Tenant, b: Tenant) =>
-                  (a.personalWorkspace === b.personalWorkspace) ? 0 : a.personalWorkspace ? -1 : 1
+                  a.personalWorkspace === b.personalWorkspace
+                    ? 0
+                    : a.personalWorkspace
+                    ? -1
+                    : 1
                 }
                 key="personalWorkspace"
-                width={140}
+                width={160}
+                filterDropdown={personalWorkspaceDropdown}
+                filteredValue={personalWorkspaceActive ? ['active'] : []}
               />
               <Table.Column
                 title="Actions"
@@ -436,12 +557,14 @@ export default function TenantListPage() {
                       <Button
                         type="text"
                         icon={<EditOutlined />}
-                        onClick={() => navigate('/tenants/' + tenant.userid)}
+                        onClick={() =>
+                          window.open('/tenants/' + tenant.userid, '_blank')
+                        }
                       />
                     </Tooltip>
                     <Tooltip title="Delete tenant">
                       <Popconfirm
-                        title="You are going to delete this user. Are you sure?"
+                        title="Delete this user?"
                         onConfirm={() => handleDeleteTenant(tenant.userid)}
                         okText="Yes"
                         cancelText="No"
