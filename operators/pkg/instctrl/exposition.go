@@ -99,6 +99,11 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
 
+		// Add authentication annotations only if enabled.
+		if r.EnableIngressAuthentication {
+			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
+		}
+
 		return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
 	})
 
