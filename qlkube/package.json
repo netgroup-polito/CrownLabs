@@ -55,7 +55,7 @@
     "graphql-ws": "^5.16.0",
     "openapi-to-graphql": "^3.0.7",
     "pino": "^9.5.0",
-    "ws": "^8.17.1"
+    "ws": "^8.20.1"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx,json,css}": "eslint"
