@@ -2,7 +2,8 @@ import { EnvironmentType, type ImagesQuery } from '../../../generated-types';
 import type { Template } from './ModalCreateTemplate';
 import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
 
-export const internalRegistry = 'registry.internal.crownlabs.polito.it';
+// change it with harbor and differs projects for the different env types
+export const internalRegistry = 'registry.internal.crownlabs.polito.it'; 
 
 export const formItemLayout = {
   labelcol: { span: 5 },
