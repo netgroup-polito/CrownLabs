@@ -276,15 +276,14 @@ bastion-operator:
 # Gateway API core resources are rendered when gatewayAPI.enabled=true.
 # Application migration (Ingress vs HTTPRoute) remains controlled per app.
 gatewayAPI:
-  enabled: true
   name: crownlabs-main
-  class: envoy
+  class: envoy-public
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
   listenerName: https
   hostname: crownlabs.example.com
   tls:
-    certificateRefName: crownlabs-certificate
+    certificateRefName: crownlabs-main-gw-cert
   allowedRouteNamespaces:
     crownlabs.polito.it/type: tenant
 

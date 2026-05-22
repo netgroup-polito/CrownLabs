@@ -7,7 +7,9 @@ metadata:
     {{- include "frontend-app.labels" . | nindent 4 }}
 spec:
   parentRefs:
-    - name: {{ .Values.httproute.gateway.name }}
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.httproute.gateway.name }}
 {{- if .Values.httproute.gateway.namespace }}
       namespace: {{ .Values.httproute.gateway.namespace }}
 {{- end }}
@@ -17,6 +19,9 @@ spec:
             type: PathPrefix
             value: {{ .Values.httproute.path }}
       backendRefs:
-        - name: {{ include "frontend-app.fullname" . }}
+        - group: ""
+          kind: Service
+          name: {{ include "frontend-app.fullname" . }}
           port: {{ .Values.service.port }}
+          weight: 1
 {{- end }}
