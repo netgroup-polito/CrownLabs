@@ -67,15 +67,32 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Temp
 // object representing the definition of the VMI corresponding to a non-persistent CrownLabs Environment.
 func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.VirtualMachineInstanceSpec {
 	return virtv1.VirtualMachineInstanceSpec{
-		Domain: VirtualMachineDomain(environment, mountInfos),
-		Volumes: append(
-			[]virtv1.Volume{VolumeRootDisk(instance, environment)},
-			AttachableVolumes(mountInfos)...,
-		),
+		Domain:                        VirtualMachineDomain(environment, mountInfos),
+		Volumes:                       Volumes(instance, environment, mountInfos),
 		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
 		TerminationGracePeriodSeconds: ptr.To[int64](terminationGracePeriod),
 		NodeSelector:                  NodeSelectorLabels(instance, template),
+	}
+}
+
+// Volumes forges the array of volumes to be mounted onto the VMI specification.
+func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) []virtv1.Volume {
+	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
+	volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
+	volumes = append(volumes, AttachableVolumes(mountInfos)...)
+	return volumes
+}
+
+// VolumeCloudInit forges the specification of a volume mapping to a secret containing the cloud-init configuration.
+func VolumeCloudInit(secretName string) virtv1.Volume {
+	return virtv1.Volume{
+		Name: volumeCloudInitName,
+		VolumeSource: virtv1.VolumeSource{
+			CloudInitNoCloud: &virtv1.CloudInitNoCloudSource{
+				UserDataSecretRef: &corev1.LocalObjectReference{Name: secretName},
+			},
+		},
 	}
 }
 
@@ -87,7 +104,7 @@ func VirtualMachineDomain(environment *clv1alpha2.Environment, mountInfos []core
 		Memory:    &virtv1.Memory{Guest: &environment.Resources.Memory},
 		Resources: VirtualMachineResources(environment),
 		Devices: virtv1.Devices{
-			Disks:       []virtv1.Disk{VolumeDiskTarget(volumeRootName)},
+			Disks:       VolumeDiskTargets(environment),
 			Filesystems: VirtualMachineFilesystems(mountInfos),
 			Interfaces:  []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
 		},
@@ -151,6 +168,13 @@ func VolumeContainerDisk(image string) virtv1.Volume {
 			},
 		},
 	}
+}
+
+// VolumeDiskTargets forges the array of disks to be attached to the VM Domain.
+func VolumeDiskTargets(_ *clv1alpha2.Environment) []virtv1.Disk {
+	disks := []virtv1.Disk{VolumeDiskTarget(volumeRootName)}
+	disks = append(disks, VolumeDiskTarget(volumeCloudInitName))
+	return disks
 }
 
 // VolumeDiskTarget forges the specification of a KVM disk attached to volume.

@@ -112,6 +112,9 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Should set the correct domain", func() {
 			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, mountInfos)))
 		})
+		It("Should set the cloud-init volumes", func() {
+			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.CanonicalName(instance.GetName()))))
+		})
 		It("Should set the external volumes", func() {
 			Expect(spec.Volumes).To(ContainElements(forge.AttachableVolumes(mountInfos)))
 		})
@@ -158,21 +161,22 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 		It("Should set the correct devices", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
+			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
 			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
 		})
 	})
 
-	// The volumes array is now checked inline in VirtualMachineInstanceSpec
-	Describe("The volumes array in VirtualMachineInstanceSpec", func() {
+	Describe("The forge.Volumes function", func() {
 		It("Correctly returns the expected volumes array", func() {
-			spec := forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)
+			actual := forge.Volumes(&instance, &environment, mountInfos)
 			expected := []virtv1.Volume{
+				forge.VolumeCloudInit(forge.CanonicalName(instance.GetName())),
 				forge.VolumeRootDisk(&instance, &environment),
 				forge.VirtPVCVolume(&mountInfoMyDrive),
 				forge.VirtPVCVolume(&mountInfoShVol),
 			}
-			Expect(spec.Volumes).To(ConsistOf(expected))
+			Expect(actual).To(ConsistOf(expected))
 		})
 	})
 
@@ -225,14 +229,29 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Should set the correct volume image pull policy", func() { Expect(volume.ContainerDisk.ImagePullPolicy).To(BeIdenticalTo(corev1.PullIfNotPresent)) })
 	})
 
-	// The disks array is now only root, checked inline in domain spec
-	Describe("The disks array in VirtualMachineDomain", func() {
+	Describe("The forge.VolumeCloudInit function", func() {
+		var volume virtv1.Volume
+		const name = "cloud-init-secret"
+
+		JustBeforeEach(func() {
+			volume = forge.VolumeCloudInit(name)
+		})
+
+		It("Should set the correct volume name", func() { Expect(volume.Name).To(BeIdenticalTo("cloud-init")) })
+		It("Should set the correct volume type", func() { Expect(volume.CloudInitNoCloud).ToNot(BeNil()) })
+		It("Should set the correct volume secret reference", func() {
+			Expect(volume.CloudInitNoCloud.UserDataSecretRef.Name).To(BeIdenticalTo(name))
+		})
+	})
+
+	Describe("The forge.VolumeDiskTargets function", func() {
 		It("Correctly returns the expected disks array", func() {
-			domain := forge.VirtualMachineDomain(&environment, mountInfos)
+			actual := forge.VolumeDiskTargets(&environment)
 			expected := []virtv1.Disk{
 				forge.VolumeDiskTarget("root"),
+				forge.VolumeDiskTarget("cloud-init"),
 			}
-			Expect(domain.Devices.Disks).To(ConsistOf(expected))
+			Expect(actual).To(ConsistOf(expected))
 		})
 	})
 

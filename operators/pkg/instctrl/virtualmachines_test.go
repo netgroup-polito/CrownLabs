@@ -51,8 +51,10 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		index       int
 		mountInfos  []corev1.VolumeMount
 
+		objectName    types.NamespacedName
 		objectNameEnv types.NamespacedName
 		svc           corev1.Service
+		secret        corev1.Secret
 		vm            virtv1.VirtualMachine
 		vmi           virtv1.VirtualMachineInstance
 
@@ -142,9 +144,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			},
 		}
 
+		objectName = forge.NamespacedName(&instance)
 		objectNameEnv = forge.NamespacedNameWithSuffix(&instance, environmentName)
 
 		svc = corev1.Service{}
+		secret = corev1.Secret{}
 		vm = virtv1.VirtualMachine{}
 		vmi = virtv1.VirtualMachineInstance{}
 
@@ -171,6 +175,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
+	It("Should enforce the cloud-init secret", func() {
+		// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
+		Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
+	})
+
 	It("Should enforce the environment exposition objects", func() {
 		// Here, we only check the service presence to assert the function execution, leaving the other assertions to the proper tests.
 		Expect(reconciler.Get(ctx, objectNameEnv, &svc)).To(Succeed())
@@ -192,8 +201,8 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					It("The VMI should have the expected volume mounts", func() {
 						Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
 						Expect(vmi.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
-						Expect(vmi.Spec.Volumes).To(HaveLen(len(mounts) + 1))
-						// + 1 since there is the "root" (ContainerDisk) Volume.
+						Expect(vmi.Spec.Volumes).To(HaveLen(len(mounts) + 2))
+						// + 2 since there are the "root" (ContainerDisk) and "cloud-init" Volumes.
 
 						// The exact values in Filesystems and Volumes are checked in forge.
 					})
@@ -207,8 +216,8 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					It("The VM should have the expected volume mounts", func() {
 						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
 						Expect(vm.Spec.Template.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
-						Expect(vm.Spec.Template.Spec.Volumes).To(HaveLen(len(mounts) + 1))
-						// + 1 since there is the "root" (Persistent) Volume.
+						Expect(vm.Spec.Template.Spec.Volumes).To(HaveLen(len(mounts) + 2))
+						// + 2 since there are the "root" (Persistent) and "cloud-init" Volumes.
 
 						// The exact values in Filesystems and Volumes are checked in forge.
 					})

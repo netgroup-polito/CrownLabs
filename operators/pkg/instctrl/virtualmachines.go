@@ -35,6 +35,11 @@ func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
+	if err := r.EnforceCloudInitSecret(ctx); err != nil {
+		log.Error(err, "failed to enforce the cloud-init secret existence")
+		return err
+	}
+
 	// Enforce the service and the ingress to expose the environment.
 	err := r.EnforceInstanceExposition(ctx)
 	if err != nil {
