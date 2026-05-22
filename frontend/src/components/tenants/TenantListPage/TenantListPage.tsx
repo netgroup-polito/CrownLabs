@@ -1,4 +1,4 @@
-import React, { useContext, useMemo, useState } from 'react';
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Table,
   Input,
@@ -81,6 +81,24 @@ export default function TenantListPage() {
       console.error(e);
     }
   };
+
+  const tableBodyRef = useRef<HTMLDivElement>(null);
+  const [tableHeight, setTableHeight] = useState(400);
+  useEffect(() => {
+    const calculateHeight = () => {
+      const el = tableBodyRef.current;
+      if (!el) return;
+
+      const top = el.getBoundingClientRect().top;
+      const adjustement = 170;
+
+      setTableHeight(window.innerHeight - top - adjustement);
+    };
+
+    calculateHeight();
+    window.addEventListener('resize', calculateHeight);
+    return () => window.removeEventListener('resize', calculateHeight);
+  }, []);
 
   const tenants = useMemo(() => makeTenantsList(data), [data]);
 
@@ -309,129 +327,133 @@ export default function TenantListPage() {
         }}
       >
         <Spin spinning={loading || error != null}>
-          <Table
-            pagination={{ defaultPageSize: 10 }}
-            dataSource={filteredTenants}
-            size="small"
-            rowKey="userid"
-            rowSelection={{
-              selectedRowKeys,
-              onChange: setSelectedRowKeys,
-            }}
-          >
-            <Table.Column
-              title="User ID"
-              dataIndex="userid"
-              sorter={(a: Tenant, b: Tenant) =>
-                a.userid.localeCompare(b.userid)
-              }
-              key="userid"
-              width={170}
-            />
-            <Table.Column
-              responsive={['md', 'lg']}
-              title="Name"
-              dataIndex="name"
-              sorter={(a: Tenant, b: Tenant) => a.name.localeCompare(b.name)}
-              key="name"
-              width={120}
-            />
-            <Table.Column
-              responsive={['md', 'lg']}
-              title="Surname"
-              dataIndex="surname"
-              sorter={(a: Tenant, b: Tenant) =>
-                a.surname.localeCompare(b.surname)
-              }
-              key="surname"
-              width={120}
-            />
-            <Table.Column
-              responsive={['sm', 'md', 'lg']}
-              title="Email"
-              dataIndex="email"
-              ellipsis={true}
-              key="email"
-              width={150}
-            />
-            <Table.Column
-              responsive={['md', 'lg']}
-              title="Creation date"
-              dataIndex="creationDate"
-              render={(date: string) =>
-                date ? dayjs(date).format('YYYY-MM-DD') : 'N/A'
-              }
-              sorter={(a: Tenant, b: Tenant) =>
-                (a.creationDate || '').localeCompare(b.creationDate || '')
-              }
-              key="creationDate"
-              width={140}
-            />
-            <Table.Column
-              responsive={['lg']}
-              title="Last login"
-              dataIndex="lastLogin"
-              render={(date: string) =>
-                date ? dayjs(date).format('YYYY-MM-DD HH:mm') : 'N/A'
-              }
-              sorter={(a: Tenant, b: Tenant) =>
-                (a.lastLogin || '').localeCompare(b.lastLogin || '')
-              }
-              key="lastLogin"
-              width={150}
-            />
-            <Table.Column
-              responsive={['sm', 'md', 'lg']}
-              title="Workspaces"
-              dataIndex="workspaces"
-              render={(workspaces: Tenant['workspaces']) =>
-                workspaces ? workspaces.length : 0
-              }
-              sorter={(a: Tenant, b: Tenant) =>
-                (a.workspaces ? a.workspaces.length : 0) -
-                (b.workspaces ? b.workspaces.length : 0)
-              }
-              key="workspaces"
-              width={120}
-            />
-            <Table.Column
-              responsive={['sm', 'md', 'lg']}
-              title="Personal Workspace"
-              dataIndex="personalWorkspace"
-              render={(active: boolean) => (active ? 'Yes' : 'No')}
-              sorter={(a: Tenant, b: Tenant) =>
-                (a.personalWorkspace === b.personalWorkspace) ? 0 : a.personalWorkspace ? -1 : 1
-              }
-              key="personalWorkspace"
-              width={140}
-            />
-            <Table.Column
-              title="Actions"
-              key="actions"
-              width={100}
-              render={(tenant: Tenant) => (
-                <Space>
-                  <Tooltip title="Edit tenant">
-                    <Button
-                      type="text"
-                      icon={<EditOutlined />}
-                      onClick={() => navigate('/tenants/' + tenant.userid)}
-                    />
-                  </Tooltip>
-                  <Tooltip title="Delete tenant">
-                    <Popconfirm
-                      title="You are going to delete this user. Are you sure?"
-                      onConfirm={() => handleDeleteTenant(tenant.userid)}
-                      okText="Yes"
-                      cancelText="No"
-                    >
-                      <Button type="text" danger icon={<DeleteOutlined />} />
-                    </Popconfirm>
-                  </Tooltip>
-                </Space>
-              )}
-            />
-          </Table>
+          <div ref={tableBodyRef} style={{ height: "100%"}}>
+            <Table
+              pagination={{ defaultPageSize: 10, pageSizeOptions: ['10', '20', '50', '100', Infinity], showSizeChanger: true }}
+              dataSource={filteredTenants}
+              size="small"
+              rowKey="userid"
+              rowSelection={{
+                selectedRowKeys,
+                onChange: setSelectedRowKeys,
+              }}
+              scroll={{ y: tableHeight }}
+              style={{ height: "100%" }}
+            >
+              <Table.Column
+                title="User ID"
+                dataIndex="userid"
+                sorter={(a: Tenant, b: Tenant) =>
+                  a.userid.localeCompare(b.userid)
+                }
+                key="userid"
+                width={170}
+              />
+              <Table.Column
+                responsive={['md', 'lg']}
+                title="Name"
+                dataIndex="name"
+                sorter={(a: Tenant, b: Tenant) => a.name.localeCompare(b.name)}
+                key="name"
+                width={120}
+              />
+              <Table.Column
+                responsive={['md', 'lg']}
+                title="Surname"
+                dataIndex="surname"
+                sorter={(a: Tenant, b: Tenant) =>
+                  a.surname.localeCompare(b.surname)
+                }
+                key="surname"
+                width={120}
+              />
+              <Table.Column
+                responsive={['sm', 'md', 'lg']}
+                title="Email"
+                dataIndex="email"
+                ellipsis={true}
+                key="email"
+                width={150}
+              />
+              <Table.Column
+                responsive={['md', 'lg']}
+                title="Creation date"
+                dataIndex="creationDate"
+                render={(date: string) =>
+                  date ? dayjs(date).format('YYYY-MM-DD') : 'N/A'
+                }
+                sorter={(a: Tenant, b: Tenant) =>
+                  (a.creationDate || '').localeCompare(b.creationDate || '')
+                }
+                key="creationDate"
+                width={140}
+              />
+              <Table.Column
+                responsive={['lg']}
+                title="Last login"
+                dataIndex="lastLogin"
+                render={(date: string) =>
+                  date ? dayjs(date).format('YYYY-MM-DD HH:mm') : 'N/A'
+                }
+                sorter={(a: Tenant, b: Tenant) =>
+                  (a.lastLogin || '').localeCompare(b.lastLogin || '')
+                }
+                key="lastLogin"
+                width={150}
+              />
+              <Table.Column
+                responsive={['sm', 'md', 'lg']}
+                title="Workspaces"
+                dataIndex="workspaces"
+                render={(workspaces: Tenant['workspaces']) =>
+                  workspaces ? workspaces.length : 0
+                }
+                sorter={(a: Tenant, b: Tenant) =>
+                  (a.workspaces ? a.workspaces.length : 0) -
+                  (b.workspaces ? b.workspaces.length : 0)
+                }
+                key="workspaces"
+                width={120}
+              />
+              <Table.Column
+                responsive={['sm', 'md', 'lg']}
+                title="Personal Workspace"
+                dataIndex="personalWorkspace"
+                render={(active: boolean) => (active ? 'Yes' : 'No')}
+                sorter={(a: Tenant, b: Tenant) =>
+                  (a.personalWorkspace === b.personalWorkspace) ? 0 : a.personalWorkspace ? -1 : 1
+                }
+                key="personalWorkspace"
+                width={140}
+              />
+              <Table.Column
+                title="Actions"
+                key="actions"
+                width={100}
+                render={(tenant: Tenant) => (
+                  <Space>
+                    <Tooltip title="Edit tenant">
+                      <Button
+                        type="text"
+                        icon={<EditOutlined />}
+                        onClick={() => navigate('/tenants/' + tenant.userid)}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Delete tenant">
+                      <Popconfirm
+                        title="You are going to delete this user. Are you sure?"
+                        onConfirm={() => handleDeleteTenant(tenant.userid)}
+                        okText="Yes"
+                        cancelText="No"
+                      >
+                        <Button type="text" danger icon={<DeleteOutlined />} />
+                      </Popconfirm>
+                    </Tooltip>
+                  </Space>
+                )}
+              />
+            </Table>
+          </div>
         </Spin>
       </Box>
     </Col>
