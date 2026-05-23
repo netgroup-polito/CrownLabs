@@ -25,7 +25,7 @@ spec:
         namespaces:
           from: Selector
           selector:
-            matchLabels:
-              {{- toYaml . | nindent 16 }}
+            matchExpressions:
+              {{- toYaml . | nindent 14 }}
       {{- end }}
 {{- end }}

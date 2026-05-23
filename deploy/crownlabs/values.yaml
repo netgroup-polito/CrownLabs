@@ -285,7 +285,10 @@ gatewayAPI:
   tls:
     certificateRefName: crownlabs-main-gw-cert
   allowedRouteNamespaces:
-    crownlabs.polito.it/type: tenant
+    - key: crownlabs.polito.it/gw-access
+      operator: In
+      values:
+        - crownlabs-main-<env-id>
 
 
 exam-agent:

@@ -10,6 +10,7 @@ spec:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: {{ .Values.httproute.gateway.name }}
+      sectionName: {{ .Values.httproute.gateway.sectionName }}
 {{- if .Values.httproute.gateway.namespace }}
       namespace: {{ .Values.httproute.gateway.namespace }}
 {{- end }}
