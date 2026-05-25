@@ -4,7 +4,7 @@
 
 global:
   version: "" # default set while packaging
-  gatewayApiMode: true
+  gatewayApiMode: false
 
 createClusterRoles: true
 
@@ -288,7 +288,7 @@ gatewayAPI:
     - key: crownlabs.polito.it/gw-access
       operator: In
       values:
-        - crownlabs-main-<env-id>
+        - crownlabs-main-production
 
 
 exam-agent:
