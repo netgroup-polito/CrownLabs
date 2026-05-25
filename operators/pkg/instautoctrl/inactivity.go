@@ -129,16 +129,16 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, err
 	}
 
+	// Checks if the instance is running, if not, we start the countdown for destruction for persistent instances.
+	if !instance.Spec.Running {
+		return r.handlePoweredOffInstance(ctx, instance, tracer)
+	}
+
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
 	if inactivityTimeout == NeverTimeoutValue {
 		dbgLog.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
-	}
-
-	// Checks if the instance is running, if not, we start the countdown for destruction for persistent instances.
-	if !instance.Spec.Running {
-		return r.handlePoweredOffInstance(ctx, instance, tracer)
 	}
 
 	inactivityTimeoutDuration, err := ParseDurationWithDays(ctx, inactivityTimeout)
