@@ -335,13 +335,13 @@ var instanceTriggered = predicate.Funcs{
 		return true
 	},
 	UpdateFunc: func(event event.UpdateEvent) bool {
-		// if Running goes from false to true and last-notification-timestamp is updated, we want to trigger the reconciler
+		// if Running state changes (false -> true or true -> false), we want to trigger the reconciler
 		oldInstance, oldOk := event.ObjectOld.(*clv1alpha2.Instance)
 		newInstance, newOk := event.ObjectNew.(*clv1alpha2.Instance)
 		if !oldOk || !newOk {
 			return false
 		}
-		if !oldInstance.Spec.Running && newInstance.Spec.Running {
+		if oldInstance.Spec.Running != newInstance.Spec.Running {
 			return true
 		}
 		return false
