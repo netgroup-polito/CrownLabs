@@ -61,7 +61,6 @@ ingress:
 httproute:
   gateway:
     name: crownlabs-main
-    sectionName: https
   path: /
 
 resources:
