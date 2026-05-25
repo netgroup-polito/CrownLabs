@@ -778,7 +778,11 @@ const makeNotificationContent = (
               <i>
                 {status === Phase2.Ready
                   ? ' running'
-                  : status === Phase2.Off && ' stopped'}
+                  : status === Phase2.Off
+                  ? ' stopped'
+                  : status === 'Deleted'
+                  ? ' deleted'
+                  : ''}
               </i>
             </div>
             {instanceUrl && (
@@ -811,23 +815,31 @@ export const notifyStatus = (
   if (!instance) {
     throw new Error('notifyStatus error: instance parameter is undefined');
   }
-  if (updateType !== UpdateType.Deleted) {
-    const { name, namespace } = instance.metadata ?? {};
-    const { prettyName } = instance.spec ?? {};
-    const { url, environments } = instance.status ?? {};
-    const { prettyName: templateName } =
-      instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-        ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
+  const { name, namespace } = instance.metadata ?? {};
+  const { prettyName } = instance.spec ?? {};
+  const { url, environments } = instance.status ?? {};
+  const { prettyName: templateName } =
+    instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
-    // Only set URL for single-environment instances
-    let iUrl;
-    if (url && environments && environments.length == 1) {
-      const firstEnvName = environments[0]?.name;
-      if (firstEnvName) {
-        const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-        iUrl = `${baseUrl}/${firstEnvName}/`;
-      }
+  if (updateType === UpdateType.Deleted) {
+    notify(
+      'warning',
+      `${namespace}/${name}/deleted`,
+      makeNotificationContent(templateName, prettyName || name, 'Deleted'),
+    );
+    return;
+  }
+
+  // Only set URL for single-environment instances
+  let iUrl;
+  if (url && environments && environments.length == 1) {
+    const firstEnvName = environments[0]?.name;
+    if (firstEnvName) {
+      const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+      iUrl = `${baseUrl}/${firstEnvName}/`;
     }
+  }
 
     switch (status) {
       case Phase2.Off:
@@ -854,7 +866,6 @@ export const notifyStatus = (
         }
         break;
     }
-  }
 };
 
 export const filterUser = (instance: Instance, search: string) => {
