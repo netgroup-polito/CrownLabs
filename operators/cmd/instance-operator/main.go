@@ -97,7 +97,7 @@ func main() {
 
 	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
 
-	enableIngressAuth := flag.Bool("enable-ingress-auth", true, "Enable adding authentication annotations to generated ingresses")
+	enableAuth := flag.Bool("enable-auth", true, "Enable adding authentication on the exposed resources")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -170,16 +170,16 @@ func main() {
 	}
 
 	if err = (&instctrl.InstanceReconciler{
-		Client:                      mgr.GetClient(),
-		Scheme:                      mgr.GetScheme(),
-		EventsRecorder:              mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist:          nsWhitelist,
-		ServiceUrls:                 svcUrls,
-		ContainerEnvOpts:            containerEnvOpts,
-		WebSSHMasterPublicKey:       pubKeyBytes,
-		PublicExposureOpts:          publicExposureOpts,
-		MirrorPVCStorageClassName:   mirrorStorageClass,
-		EnableIngressAuthentication: *enableIngressAuth,
+		Client:                    mgr.GetClient(),
+		Scheme:                    mgr.GetScheme(),
+		EventsRecorder:            mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:        nsWhitelist,
+		ServiceUrls:               svcUrls,
+		ContainerEnvOpts:          containerEnvOpts,
+		WebSSHMasterPublicKey:     pubKeyBytes,
+		PublicExposureOpts:        publicExposureOpts,
+		MirrorPVCStorageClassName: mirrorStorageClass,
+		EnableAuthentication:      *enableAuth,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

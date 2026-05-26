@@ -171,8 +171,8 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Correctly returns the expected volumes array", func() {
 			actual := forge.Volumes(&instance, &environment, mountInfos)
 			expected := []virtv1.Volume{
-				forge.VolumeCloudInit(forge.CanonicalName(instance.GetName())),
 				forge.VolumeRootDisk(&instance, &environment),
+				forge.VolumeCloudInit(forge.CanonicalName(instance.GetName())),
 				forge.VirtPVCVolume(&mountInfoMyDrive),
 				forge.VirtPVCVolume(&mountInfoShVol),
 			}

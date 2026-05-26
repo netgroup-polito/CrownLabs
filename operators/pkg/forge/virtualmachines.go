@@ -78,10 +78,10 @@ func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alp
 
 // Volumes forges the array of volumes to be mounted onto the VMI specification.
 func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) []virtv1.Volume {
-	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
-	volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
-	volumes = append(volumes, AttachableVolumes(mountInfos)...)
-	return volumes
+	return append([]virtv1.Volume{
+		VolumeRootDisk(instance, environment),
+		VolumeCloudInit(CanonicalName(instance.GetName())),
+	}, AttachableVolumes(mountInfos)...)
 }
 
 // VolumeCloudInit forges the specification of a volume mapping to a secret containing the cloud-init configuration.
