@@ -1,0 +1,25 @@
+mutation applyWorkspace(
+  $name: String!
+  $patchJson: String!
+  $manager: String!
+) {
+  applyWorkspace: patchCrownlabsPolitoItV1alpha1WorkspaceJsonPatch(
+    name: $name
+    fieldManager: $manager
+    applicationJsonPatchJsonInput: $patchJson
+  ) {
+    metadata {
+      name
+      namespace
+    }
+    spec {
+      prettyName
+      autoEnroll
+      quota {
+        cpu
+        memory
+        instances
+      }
+    }
+  }
+}

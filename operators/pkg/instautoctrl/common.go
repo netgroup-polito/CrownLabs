@@ -33,7 +33,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -133,7 +133,7 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 		InstanceName:  instance.Name,
 		RemainingTime: remainingTime.String(),
 	}
-	err := mc.SendCrownLabsMail(mailTemplatePath, &ph)
+	err := mc.SendCrownLabsMail(ctx, mailTemplatePath, &ph)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err

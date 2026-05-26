@@ -16,7 +16,6 @@ package instancesnapshot_controller_test
 
 import (
 	"context"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -53,10 +52,7 @@ var _ = BeforeSuite(func() {
 	tests.LogsToGinkgoWriter()
 
 	By("bootstrapping test environment")
-	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "..", "deploy", "crds"),
-			filepath.Join("..", "..", "tests", "crds")},
-	}
+	testEnv = tests.ForgeEnvtestEnv(true)
 	var err error
 	cfg, err = testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())

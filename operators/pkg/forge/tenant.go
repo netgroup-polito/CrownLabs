@@ -45,6 +45,16 @@ func UpdateTenantResourceCommonLabels(labels map[string]string, targetLabel comm
 	return labels
 }
 
+// UpdateMyDrivePVCAnnotations updates the annotations for myDrive PVC.
+func UpdateMyDrivePVCAnnotations(annotations map[string]string, tenantName string) map[string]string {
+	if annotations == nil {
+		annotations = make(map[string]string, 1)
+	}
+	annotations[AuthorizationAnnotationKey] = strings.Replace(MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName, 1)
+
+	return annotations
+}
+
 // CleanTenantName sanitizes a tenant name by replacing spaces with underscores and removing
 // any characters that are not alphanumeric or underscores. It also trims leading
 // and trailing underscores.

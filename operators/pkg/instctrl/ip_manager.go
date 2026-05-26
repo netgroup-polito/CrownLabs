@@ -168,7 +168,7 @@ func UpdateUsedPortsByIP(ctx context.Context, c client.Client, excludeSvcName, e
 	svcList := &v1.ServiceList{}
 
 	// Use a label selector to list only the relevant services.
-	labels := forge.LoadBalancerServiceLabels()
+	labels := forge.LoadBalancerServiceLabels(opts)
 	listOptions := []client.ListOption{
 		client.MatchingLabels(labels),
 	}

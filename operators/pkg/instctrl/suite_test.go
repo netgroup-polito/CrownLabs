@@ -87,16 +87,17 @@ var _ = BeforeSuite(func() {
 			InstancesAuthURL: "fake.com/auth",
 		},
 		ContainerEnvOpts: forge.ContainerEnvOpts{
-			ImagesTag:            "v0.1.2",
-			XVncImg:              "fake-xvnc",
-			WebsockifyImg:        "fake-wskfy",
-			ContentDownloaderImg: "fake-archdl",
+			ImagesTag:       "v0.1.2",
+			ContentToolsImg: "fake-archdl",
 		},
 		PublicExposureOpts: forge.PublicExposureOpts{
 			IPPool: []string{"172.18.0.240", "172.18.0.241", "172.18.0.242", "172.18.0.243"},
 			CommonAnnotations: map[string]string{
 				"metallb.universe.tf/allow-shared-ip": "public-exposure",
 				"metallb.universe.tf/address-pool":    "public",
+			},
+			CommonLabels: map[string]string{
+				"metallb.universe.tf/ip-pool": "public",
 			},
 			LoadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs",
 		},

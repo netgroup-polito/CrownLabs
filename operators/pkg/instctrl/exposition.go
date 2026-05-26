@@ -23,7 +23,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -60,7 +60,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the backend
 		// (i.e., VMI or Pod) configuration, which nonetheless cannot be changed without a restart.
 		if service.CreationTimestamp.IsZero() {
-			service.Spec = forge.ServiceSpec(instance, environment, template)
+			service.Spec = forge.ServiceSpec(instance, environment)
 		}
 
 		labels := forge.EnvironmentObjectLabels(service.GetLabels(), instance, environment)

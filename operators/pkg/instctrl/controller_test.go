@@ -31,6 +31,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
@@ -42,17 +43,18 @@ import (
 var _ = Describe("The instance-controller Reconcile method", func() {
 	ctx := context.Background()
 	var (
-		testName        string
-		prettyName      string
-		runInstance     bool
-		instance        clv1alpha2.Instance
-		pod             corev1.Pod
-		environmentList []clv1alpha2.Environment
-		template        clv1alpha2.Template
-		ingress         netv1.Ingress
-		service         corev1.Service
-		createTenant    bool
-		createTemplate  bool
+		testName         string
+		prettyName       string
+		runInstance      bool
+		instance         clv1alpha2.Instance
+		pod              corev1.Pod
+		environmentList  []clv1alpha2.Environment
+		template         clv1alpha2.Template
+		myDriveMirrorPVC corev1.PersistentVolumeClaim
+		ingress          netv1.Ingress
+		service          corev1.Service
+		createTenant     bool
+		createTemplate   bool
 	)
 
 	const (
@@ -105,12 +107,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 	JustBeforeEach(func() {
 		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: whiteListMap}}
-		tenantPvcSecret := corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: forge.NFSSecretName, Namespace: testName},
-			Data: map[string][]byte{
-				forge.NFSSecretServerNameKey: []byte(testName),
-				forge.NFSSecretPathKey:       []byte(testName),
-			},
+		pns := clv1alpha2.NameCreated{
+			Name:    testName,
+			Created: true,
 		}
 		tenant := clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: testName},
@@ -150,16 +149,36 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				}},
 			},
 		}
+		myDriveMirrorPVC = corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      forge.MyDrivePVCMirrorName(testName),
+				Namespace: testName,
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: *resource.NewScaledQuantity(1, resource.Giga),
+					},
+				},
+			},
+		}
 
 		Expect(k8sClient.Create(ctx, &ns)).To(Succeed())
 		if createTenant {
 			Expect(k8sClient.Create(ctx, &tenant)).To(Succeed())
-			Expect(k8sClient.Create(ctx, &tenantPvcSecret)).To(Succeed())
+			tenant.Status.PersonalNamespace = pns
+			Expect(k8sClient.Status().Update(ctx, &tenant)).To(Succeed())
+			ctx, _ = clctx.TenantInto(ctx, &tenant)
 		}
 		if createTemplate {
 			Expect(k8sClient.Create(ctx, &template)).To(Succeed())
+			ctx, _ = clctx.TemplateInto(ctx, &template)
 		}
 		Expect(k8sClient.Create(ctx, &instance)).To(Succeed())
+		ctx, _ = clctx.InstanceInto(ctx, &instance)
+
+		Expect(k8sClient.Create(ctx, &myDriveMirrorPVC)).To(Succeed())
 	})
 
 	StandaloneContainerIt := func() {
@@ -254,31 +273,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				testName = "test-standalone-not-persistent"
 				for i := range environmentList {
 					environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
-					environmentList[i].Persistent = false
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-	})
-
-	Context("The instance is container based", func() {
-		When("the environment is persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = true
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-		When("the environment is NOT persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-not-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
 					environmentList[i].Persistent = false
 				}
 				runInstance = false
@@ -637,11 +631,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			It("Should create LoadBalancer service for public exposure", func() {
 				Expect(RunReconciler()).To(Succeed())
 
-				By("Asserting the LoadBalancer service has been created", func() {
-					serviceName := testName + "-pe"
-					var lbService corev1.Service
-					Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
+				serviceName := testName + "-pe"
+				var lbService corev1.Service
+				Expect(k8sClient.Get(ctx, types.NamespacedName{Name: serviceName, Namespace: testName}, &lbService)).To(Succeed())
 
+				By("Asserting the LoadBalancer service has been created", func() {
 					// Check service type
 					Expect(lbService.Spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 
@@ -655,12 +649,34 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/address-pool"))
 					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/allow-shared-ip"))
 					Expect(lbService.Annotations).To(HaveKey("metallb.universe.tf/loadBalancerIPs"))
+
+					// Check labels: fixed component label and common labels
+					Expect(lbService.Labels).To(HaveKeyWithValue("crownlabs.polito.it/component", "pe"))
+					Expect(lbService.Labels).To(HaveKeyWithValue("metallb.universe.tf/ip-pool", "public"))
 				})
 
-				By("Asserting the instance status has been updated", func() {
+				By("Asserting the instance status is Provisioning (IP not yet assigned by LB)", func() {
+					Expect(instance.Status.PublicExposure).NotTo(BeNil())
+					Expect(instance.Status.PublicExposure.Phase).To(Equal(clv1alpha2.PublicExposurePhaseProvisioning))
+					Expect(instance.Status.PublicExposure.ExternalIP).To(BeEmpty())
+					Expect(instance.Status.PublicExposure.Ports).To(HaveLen(1))
+				})
+
+				By("Simulating MetalLB assigning an IP to the service", func() {
+					lbService.Status.LoadBalancer = corev1.LoadBalancerStatus{
+						Ingress: []corev1.LoadBalancerIngress{{IP: "172.18.0.240"}},
+					}
+					Expect(k8sClient.Status().Update(ctx, &lbService)).To(Succeed())
+				})
+
+				By("Reconciling again after IP assignment", func() {
+					Expect(RunReconciler()).To(Succeed())
+				})
+
+				By("Asserting the instance status is Ready with the assigned IP", func() {
 					Expect(instance.Status.PublicExposure).NotTo(BeNil())
 					Expect(instance.Status.PublicExposure.Phase).To(Equal(clv1alpha2.PublicExposurePhaseReady))
-					Expect(instance.Status.PublicExposure.ExternalIP).NotTo(BeEmpty())
+					Expect(instance.Status.PublicExposure.ExternalIP).To(Equal("172.18.0.240"))
 					Expect(instance.Status.PublicExposure.Ports).To(HaveLen(1))
 				})
 			})
@@ -757,7 +773,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					{
 						Name:            "app-1",
 						Image:           "some-image:v0",
-						EnvironmentType: clv1alpha2.ClassContainer,
+						EnvironmentType: clv1alpha2.ClassStandalone,
 						Persistent:      false,
 						GuiEnabled:      true,
 						Resources: clv1alpha2.EnvironmentResources{

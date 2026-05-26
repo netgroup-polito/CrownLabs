@@ -84,7 +84,7 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
               wsName: workspaceName,
               wsNs: workspaceNamespace,
               prettyName: name,
-              size: String(size + 'G'),
+              size: String(size + 'Gi'),
             });
             reload();
             setOpen(false);
@@ -117,7 +117,7 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
           label={
             <>
               Size{' '}
-              <Tooltip title="Max size is 20GB, for larger Volumes please reach out to Crownlabs manager.">
+              <Tooltip title="Max size is 20Gi, for larger Volumes please reach out to Crownlabs manager.">
                 <InfoCircleOutlined style={{ marginLeft: '8px' }} />
               </Tooltip>
             </>
@@ -128,7 +128,7 @@ const SharedVolumeForm: FC<ISharedVolumesFormProps> = ({ ...props }) => {
             step={0.5}
             max={20}
             style={{ width: '120px' }}
-            addonAfter="GB"
+            addonAfter="Gi"
           />
         </Form.Item>
       </Form>

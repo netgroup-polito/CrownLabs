@@ -33,7 +33,7 @@ export type TemplateFormEnv = {
   reservedCpu: number;
   disk: number;
   sharedVolumeMounts: TemplateFormEnvShVol[];
-  rewriteUrl: boolean;
+  rewriteUrl?: boolean;
   disableControls?: boolean;
   containerStartupOptions?: ContainerStartupOptionsForm;
   storageClassName?: string;

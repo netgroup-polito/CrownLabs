@@ -55,6 +55,7 @@ type Reconciler struct {
 	MyDrivePVCsSize             resource.Quantity
 	MyDrivePVCsStorageClassName string
 	MyDrivePVCsNamespace        string
+	MirrorPVCStorageClassName   string
 	KeycloakActor               common.KeycloakActorIface
 	WaitUserVerification        bool // If true, the reconciliation will wait for the user to be verified in Keycloak before creating resources.
 	SandboxClusterRole          string
@@ -210,7 +211,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reschedule, fmt.Errorf("error handling personal workspace for tenant %s: %w", tn.Name, err)
 	}
 
-	// esporta/disesporta tutto
 	if err = r.enforceSandboxResources(ctx, &tn); err != nil {
 		log.Error(err, "Failed checking sandbox for tenant", "tenant", tn.Name)
 		tn.Status.SandboxNamespace.Created = false
@@ -218,10 +218,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reschedule, err
 	}
 
-	// mydrive-pvcs-namespace related stuff
-	// created only if the personal namespace has been created
-	// (otherwise the user will not be able to access the PVC)
-	if err := r.enforceMyDrivePVC(ctx, log, &tn); err != nil {
+	// MyDrive & co are created only if the personal namespace has been created
+	if err := r.enforcePersonalStorage(ctx, log, &tn); err != nil {
 		log.Error(err, "Error creating MyDrive PVC for tenant", "tenant", tn.Name)
 		return reschedule, err
 	}

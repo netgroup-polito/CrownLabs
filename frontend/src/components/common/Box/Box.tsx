@@ -30,7 +30,7 @@ const Box: FC<IBoxProps> = ({ ...props }) => {
   return (
     <>
       <Card
-        className="flex-auto flex flex-col shadow-lg rounded-3xl cl-card-box h-full"
+        className="flex-auto flex flex-col shadow-lg rounded-3xl overflow-hidden cl-card-box h-full"
         styles={{
           body: { height: '100%', flexDirection: 'column', display: 'flex' },
         }}

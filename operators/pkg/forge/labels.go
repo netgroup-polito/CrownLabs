@@ -83,6 +83,8 @@ const (
 
 	// VolumeTypeValueShVol -> Value of the label for PVC which has been created by a Shared Volume.
 	VolumeTypeValueShVol = "sharedvolume"
+	// VolumeTypeValueMirror -> Value of the label for PVC which has been created to mirror another PVC.
+	VolumeTypeValueMirror = "mirror"
 
 	labelFirstNameKey = "crownlabs.polito.it/first-name"
 	labelLastNameKey  = "crownlabs.polito.it/last-name"
@@ -109,6 +111,13 @@ const (
 
 	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
 	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
+
+	// AuthorizationAnnotationKey is the key of the annotation that shows which labels are requested on the target namespace to mirror the PVC.
+	AuthorizationAnnotationKey = "pmp.crownlabs.polito.it/required-target-ns-labels"
+	// MyDriveAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a MyDrive PVC.
+	MyDriveAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant,crownlabs.polito.it/name={tenant-id}"
+	// ShVolAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a SharedVolume PVC.
+	ShVolAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,

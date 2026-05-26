@@ -27,6 +27,7 @@ deploymentAnnotations:
   reloader.stakater.com/auto: "true"
 podAnnotations: {}
 serviceAnnotations: {}
+serviceLabels: {}
 
 securityContexts:
   bastion:

@@ -11,7 +11,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -34,5 +34,5 @@ jobs:
         with:
           token: ${{ secrets.CI_TOKEN }}
           comment-id: ${{ github.event.client_payload.github.payload.comment.id }}
-          reactions: '${{ steps.rebase_reaction.outputs.reaction }}'
+          reactions: "${{ steps.rebase_reaction.outputs.reaction }}"
         if: always()

@@ -1,0 +1,10 @@
+query allTemplates {
+  allTemplates: listCrownlabsPolitoItV1alpha2TemplateForAllNamespaces {
+    items {
+      metadata {
+        name
+        namespace
+      }
+    }
+  }
+}

@@ -2,14 +2,18 @@ name: Code testing
 on:
   push:
     branches:
-    - master
+      - master
     tags:
-    - "v*"
+      - "v*"
   pull_request:
     types:
       - opened
       - reopened
       - synchronize
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   configure:
@@ -54,14 +58,14 @@ jobs:
           libpcap-dev
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: "${{ needs.configure.outputs.ref }}"
           repository: "${{ needs.configure.outputs.repo-name }}"
           persist-credentials: false
 
       - name: Check if /operators files changed
-        uses: dorny/paths-filter@v2
+        uses: dorny/paths-filter@v4
         id: pathFilter
         with:
           filters: |
@@ -69,9 +73,10 @@ jobs:
               - 'operators/**'
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
 
       - uses: actions/setup-python@v4
         with:
@@ -79,16 +84,11 @@ jobs:
 
       - name: Install Kubebuilder
         run: |
-          version=4.6.0 # latest stable version
-          kubernetes_version=1.29.0
-          curl -L -O "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
-          curl --fail -sSLo envtest-bins.tar.gz "https://github.com/kubernetes-sigs/controller-tools/releases/download/envtest-v${kubernetes_version}/envtest-v${kubernetes_version}-$(go env GOOS)-$(go env GOARCH).tar.gz"
-          tar -zxvf envtest-bins.tar.gz && rm -f envtest-bins.tar.gz
-          mv controller-tools kubebuilder #rename directories after download source changes
-          mv kubebuilder/envtest kubebuilder/bin
-          mv kubebuilder_linux_$(go env GOARCH) kubebuilder/bin/kubebuilder
-          sudo mv kubebuilder /usr/local/
-          sudo chmod +x /usr/local/kubebuilder/bin/*
+          version=4.6.0
+          curl -L -o kubebuilder "https://github.com/kubernetes-sigs/kubebuilder/releases/download/v${version}/kubebuilder_linux_$(go env GOARCH)"
+          chmod +x kubebuilder
+          sudo mv kubebuilder /usr/local/bin/
+
       - name: Perform the tests
         working-directory: operators/
         run: |
@@ -112,16 +112,17 @@ jobs:
           libpcap-dev
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: "${{ needs.configure.outputs.ref }}"
           repository: "${{ needs.configure.outputs.repo-name }}"
           persist-credentials: false
 
       - name: Setup Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version-file: ./operators/go.mod
+          cache-dependency-path: ./operators/go.sum
 
       - name: Run the automatic generation
         working-directory: operators/
@@ -186,30 +187,27 @@ jobs:
     needs: configure
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: "${{ needs.configure.outputs.ref }}"
           repository: "${{ needs.configure.outputs.repo-name }}"
           persist-credentials: false
 
       - name: Update the Helm chart dependencies
-        uses: WyriHaximus/github-action-helm3@v2
+        uses: WyriHaximus/github-action-helm3@v4
         with:
-          exec:
-            helm dependency update ./deploy/crownlabs
+          exec: helm dependency update ./deploy/crownlabs
 
       - name: Verify that the helm chart is well-formed
-        uses: WyriHaximus/github-action-helm3@v2
+        uses: WyriHaximus/github-action-helm3@v4
         with:
-          exec:
-            helm lint ./deploy/crownlabs --with-subcharts
+          exec: helm lint ./deploy/crownlabs --with-subcharts
 
       - name: Render the yaml manifests
         id: helm-template
-        uses: WyriHaximus/github-action-helm3@v2
+        uses: WyriHaximus/github-action-helm3@v4
         with:
-          exec:
-            helm template crownlabs ./deploy/crownlabs
+          exec: helm template crownlabs ./deploy/crownlabs
             --namespace crownlabs-production
             --set global.version=v0.0.1
 

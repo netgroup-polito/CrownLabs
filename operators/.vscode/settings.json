@@ -1,0 +1,9 @@
+{
+  "go.playground": {
+    "run": false
+  },
+  "go.lintTool": "golangci-lint-v2",
+  "go.alternateTools": {
+    "golangci-lint-v2": "${workspaceFolder}/bin/golangci-lint"
+  }
+}

@@ -10,13 +10,10 @@ configurations:
     whitelistLabels: crownlabs.polito.it/operator-selector=production
     websiteBaseUrl: crownlabs.example.com
     instancesAuthUrl: https://crownlabs.example.com/auth
+    mirrorStorageClass: pvc-mirror
   containerEnvironmentOptions:
     tag: ""
-    websockifyImage: crownlabs/websockify
-    xVncImage: crownlabs/tigervnc
-    contentDownloaderImage: crownlabs/content-downloader
-    contentUploaderImage: crownlabs/content-uploader
-    instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
+    contentToolsImg: crownlabs/content-tools
   containerVmSnapshots:
     kanikoImage: gcr.io/kaniko-project/executor:latest
     exportImage: "crownlabs/img-exporter"
@@ -63,9 +60,12 @@ configurations:
     # Common annotations to be added to all LoadBalancer services
     # Format: "key1=val1,key2=val2"
     commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+    # Common labels to be added to all LoadBalancer services (optional)
+    # Format: "key1=val1,key2=val2"
+    # Example: "metallb.universe.tf/ip-pool=public"
+    commonLabels: ""
     # Annotation key for specifying LoadBalancer IPs
     loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
-      
 
 image:
   repository: crownlabs/instance-operator
@@ -85,7 +85,7 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 20000

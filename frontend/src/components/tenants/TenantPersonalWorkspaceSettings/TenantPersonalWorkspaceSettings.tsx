@@ -1,4 +1,4 @@
-import { Button, Checkbox, Form, InputNumber, Row } from 'antd';
+import { Button, Checkbox, Form, Row } from 'antd';
 import { useContext, useState, type FC } from 'react';
 import {
   TenantDocument,
@@ -6,9 +6,10 @@ import {
   type TenantQuery,
 } from '../../../generated-types';
 import type { RuleRender, RuleObject } from 'antd/es/form';
-import { convertToGB } from '../../../utils';
+import { convertToGiB } from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { CheckOutlined } from '@ant-design/icons';
+import QuotaFields from '../../shared/QuotaFields';
 
 export interface ITenantPersonalWorkspaceSettingsProps {
   tenant: TenantQuery;
@@ -53,7 +54,7 @@ const TenantPersonalWorkspaceSettings: FC<
 
       newQuota = {
         cpu: data.cpu?.toString() ?? '0',
-        memory: `${data.memory?.toString() ?? '0'}G`,
+        memory: `${data.memory?.toString() ?? '0'}Gi`,
         instances: data.instances ?? 0,
       };
     }
@@ -112,7 +113,7 @@ const TenantPersonalWorkspaceSettings: FC<
       initialValues={{
         enabled: tenant.tenant?.spec?.personalWorkspace != null,
         cpu: parseFloat(tenant.tenant?.spec?.personalWorkspace?.cpu ?? '0'),
-        memory: convertToGB(
+        memory: convertToGiB(
           tenant.tenant?.spec?.personalWorkspace?.memory ?? '0GiB',
         ),
         instances: tenant.tenant?.spec?.personalWorkspace?.instances ?? 0,
@@ -127,37 +128,20 @@ const TenantPersonalWorkspaceSettings: FC<
         <Checkbox />
       </Form.Item>
 
-      <Form.Item
-        name="cpu"
-        label="CPU"
+      <QuotaFields
+        disabled={!isEnabled}
         validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
-      </Form.Item>
-
-      <Form.Item
-        name="memory"
-        label="Memory (GB)"
-        validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber
-          min={0}
-          disabled={!isEnabled}
-          className="w-100"
-          addonAfter="GB"
-        />
-      </Form.Item>
-
-      <Form.Item
-        name="instances"
-        label="Instances"
-        validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
-      </Form.Item>
+        rules={{
+          cpu: [numberValidator],
+          memory: [numberValidator],
+          instances: [numberValidator],
+        }}
+        limits={{
+          cpu: { min: 0 },
+          memory: { min: 0 },
+          instances: { min: 0 },
+        }}
+      />
 
       <Row justify="center">
         <Form.Item>

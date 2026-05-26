@@ -14,6 +14,10 @@ on:
     types:
       - deploy-staging-command
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   configure:
     name: Preliminary configuration
@@ -68,7 +72,7 @@ jobs:
             echo "filter-optional-images=true" >> $GITHUB_OUTPUT
 
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: ${{ steps.configure.outputs.ref }}
           persist-credentials: false
@@ -91,36 +95,23 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.configure.outputs.ref }}
           persist-credentials: false
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          # The cache key is composed of the combination of the component name, the hash of the files in the build context and the hash of the commit.
-          # Example: Linux-instance-operator-buildx-78702f5342c365de6dec21db1910023b19d0c56b3e3187ac860131d88ac24498-3e0fbf49898789ec0ff0f78272dd0a7703389810
-          # The hash of the files in the context guarantees that a match is always found if no files of the component are modified, while the commit hash
-          # guarantees uniqueness of the name, to ensure the cache is always updated (i.e. to prevent issues if the base image changes).
-          key: ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-${{ matrix.component }}-buildx-${{ hashFiles(format('{0}/**', matrix.context), matrix.dockerfile) }}-
-            ${{ runner.os }}-${{ matrix.component }}-buildx-
+        uses: docker/setup-buildx-action@v4
 
       - name: Login to DockerHub
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
         if: needs.configure.outputs.repo-push == 'true'
 
       - name: Login to Harbor
-        uses: docker/login-action@v2
+        uses: docker/login-action@v4
         with:
           registry: https://${{ secrets.HARBOR_REGISTRY_URL }}
           username: ${{ secrets.HARBOR_REGISTRY_USERNAME }}
@@ -142,7 +133,7 @@ jobs:
             echo "dockerfile=${{ matrix.context }}/Dockerfile" >> $GITHUB_OUTPUT
 
       - name: Build and Push the ${{ matrix.component }} image
-        uses: docker/build-push-action@v3
+        uses: docker/build-push-action@v7
         with:
           tags: |
             ${{ steps.parameters.outputs.repo-owner }}/${{ steps.parameters.outputs.repo-name }}:${{ needs.configure.outputs.ref }}
@@ -151,8 +142,6 @@ jobs:
           file: ${{ steps.parameters.outputs.dockerfile }}
           context: ${{ matrix.context }}
           build-args: ${{ matrix.build-args }}
-          cache-from: type=gha, scope=${{ github.workflow }}
-          cache-to: type=gha, scope=${{ github.workflow }}
 
   trigger-events-master:
     name: Trigger events upon successful push to master
@@ -176,13 +165,13 @@ jobs:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK }}
         if: always()
 
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
+      - name: Notify Event to OPS
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
+          repository: netgroup-polito/ArgoCD-CrownNG
           event-type: preprod-event
-          client-payload: '{"tag": "${{ needs.configure.outputs.ref }}"}'
+          client-payload: "{\"tag\": \"${{ needs.configure.outputs.ref }}\"}"
 
   trigger-events-deploy-staging:
     name: Trigger events upon /deploy-staging comment
@@ -195,11 +184,11 @@ jobs:
       needs.configure.outputs.repo-push == 'true'
 
     steps:
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
+      - name: Notify Event to OPS
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
+          repository: netgroup-polito/ArgoCD-CrownNG
           event-type: deploy-staging-event
           client-payload: |
             {
@@ -229,7 +218,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.configure.outputs.ref }}
           # The changelog generation requires the entire history
@@ -290,10 +279,10 @@ jobs:
               --pages-index-path index.yaml \
               --push
 
-      - name: Notify Event to CrownOps
-        uses: peter-evans/repository-dispatch@v2
+      - name: Notify Event to OPS
+        uses: peter-evans/repository-dispatch@v4
         with:
           token: ${{ secrets.CI_TOKEN }}
-          repository: netgroup-polito/CrownOps
+          repository: netgroup-polito/ArgoCD-CrownNG
           event-type: release-event
-          client-payload: '{"version": "${{ needs.configure.outputs.version }}"}'
+          client-payload: "{\"version\": \"${{ needs.configure.outputs.version }}\"}"

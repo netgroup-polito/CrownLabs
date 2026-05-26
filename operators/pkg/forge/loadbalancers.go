@@ -30,6 +30,7 @@ import (
 type PublicExposureOpts struct {
 	IPPool             []string          // List of available IPs for assignment
 	CommonAnnotations  map[string]string // Common annotations to add to all LoadBalancer services
+	CommonLabels       map[string]string // Common labels to add to all LoadBalancer services
 	LoadBalancerIPsKey string            // Annotation key for specifying the IP (e.g., "metallb.universe.tf/loadBalancerIPs")
 }
 
@@ -98,9 +99,14 @@ func LoadBalancerServiceAnnotations(externalIP string, opts *PublicExposureOpts)
 }
 
 // LoadBalancerServiceLabels forges the labels for a LoadBalancer service.
-func LoadBalancerServiceLabels() map[string]string {
+// It always includes the component label and merges any common labels from opts.
+func LoadBalancerServiceLabels(opts *PublicExposureOpts) map[string]string {
 	labels := map[string]string{
 		LabelComponentKey: LabelPublicExposureValue,
+	}
+
+	for key, value := range opts.CommonLabels {
+		labels[key] = value
 	}
 
 	return labels

@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
