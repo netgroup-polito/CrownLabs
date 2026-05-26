@@ -27,8 +27,8 @@ configuration:
     templateName: mydrive
     workspaceName: utilities
   imagelist:
-    standalone: https://imagelist-standalone.example.com
-    containerdisks: https://imagelist-containerdisks.example.com
+    standalone: standalone-project-example
+    containerdisks: containerdisks-project-example
     
 imagePullSecrets: []
 nameOverride: ""

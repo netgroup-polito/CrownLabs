@@ -201,24 +201,22 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
     if (envType === EnvironmentType.VirtualMachine) {
-      const harborProjectVM = getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE');
-      // For VMs, use the selected image from internal registry
+      
       const selectedImage = availableImagesVM.find(
         i => getImageNameNoVer(i.name) === image,
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/${harborProjectVM}/${selectedImage.name}`;
+        return `${internalRegistry}/harbor-standalone/${selectedImage.name}`;
       }
     } else if (envType === EnvironmentType.Standalone) {
-      const harborProjectCD = getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS');
-      // For Containers, use the selected image from internal registry
+      
       const selectedImage = availableImagesContainer.find(
         i => getImageNameNoVer(i.name) === image,
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/${harborProjectCD}/${selectedImage.name}`;
+        return `${internalRegistry}/harbor-containerdisks/${selectedImage.name}`;
       }
     }
 
