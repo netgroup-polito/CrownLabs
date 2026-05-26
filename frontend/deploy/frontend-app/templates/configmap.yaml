@@ -16,3 +16,5 @@ data:
     window.VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM="{{ .Values.configuration.oidc.adminClaim }}";
     window.VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL="{{ .Values.configuration.backend.grafana }}";
     window.VITE_APP_CROWNLABS_BASTION_HOST="{{ .Values.configuration.backend.bastion }}";
+    window.VITE_APP_CROWNLABS_IMAGELIST_STANDALONE ="{{ .Values.configuration.imagelist.standalone }}";
+    window.VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS ="{{ .Values.configuration.imagelist.containerdisks }}";

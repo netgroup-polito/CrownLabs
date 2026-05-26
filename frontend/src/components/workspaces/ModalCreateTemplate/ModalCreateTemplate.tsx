@@ -28,6 +28,7 @@ import {
   getImagesFromList,
   internalRegistry,
 } from './utils';
+import { getEnvVar } from '../../../env';
 
 const { Text } = Typography;
 
@@ -166,39 +167,61 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     variables: { workspaceNamespace },
   });
 
-  const [availableImages, setAvailableImages] = useState<Image[]>([]);
+  const [availableImagesVM, setAvailableImagesVM] = useState<Image[]>([]);
+  const [availableImagesContainer, setAvailableImagesContainer] = useState<Image[]>([]);
 
   useEffect(() => {
     if (!dataImages) {
-      setAvailableImages([]);
+      setAvailableImagesVM([]);
+      setAvailableImagesContainer([]);
       return;
     }
 
     const imageLists = getImageLists(dataImages);
-    const internalImages = imageLists.find(
-      list => list.registryName === internalRegistry,
+    const internalImagesVM = imageLists.find(
+      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'),
+    );
+    const internalImagesContainer = imageLists.find(
+      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS'),
     );
 
-    if (!internalImages) {
-      setAvailableImages([]);
+    if (!internalImagesVM) {
+      setAvailableImagesVM([]);
       return;
     }
 
-    setAvailableImages(getImagesFromList(internalImages));
+    if (!internalImagesContainer) {
+      setAvailableImagesContainer([]);
+      return;
+    }
+    setAvailableImagesContainer(getImagesFromList(internalImagesContainer));
+    setAvailableImagesVM(getImagesFromList(internalImagesVM));
   }, [dataImages]);
 
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
     if (envType === EnvironmentType.VirtualMachine) {
+      const harborProjectVM = getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE');
       // For VMs, use the selected image from internal registry
-      const selectedImage = availableImages.find(
+      const selectedImage = availableImagesVM.find(
         i => getImageNameNoVer(i.name) === image,
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/${selectedImage.name}`;
+        return `${internalRegistry}/${harborProjectVM}/${selectedImage.name}`;
+      }
+    } else if (envType === EnvironmentType.Standalone) {
+      const harborProjectCD = getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS');
+      // For Containers, use the selected image from internal registry
+      const selectedImage = availableImagesContainer.find(
+        i => getImageNameNoVer(i.name) === image,
+      );
+
+      if (selectedImage) {
+        return `${internalRegistry}/${harborProjectCD}/${selectedImage.name}`;
       }
     }
+
     // For other types, use the external image
     let finalImage = image;
     // If it doesn't include a registry, default to internal registry
@@ -611,7 +634,8 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
 
   const environmentListForm = <>
   <EnvironmentList
-          availableImages={availableImages}
+          availableImagesVM={availableImagesVM}
+          availableImagesContainer={availableImagesContainer}
           resources={{
             cpu: cpuInterval,
             ram: ramInterval,

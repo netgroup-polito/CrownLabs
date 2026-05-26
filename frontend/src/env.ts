@@ -8,11 +8,13 @@ type envVarNames =
   | 'VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX'
   | 'VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM'
   | 'VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL'
-  | 'VITE_APP_CROWNLABS_BASTION_HOST';
+  | 'VITE_APP_CROWNLABS_BASTION_HOST'
+  | 'VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'
+  | 'VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS';
 
 type envVarObj = { [key in envVarNames]?: string };
 
-const getEnvVar = (envVarName: envVarNames): string => {
+export const getEnvVar = (envVarName: envVarNames): string => {
   const envVar: string =
     import.meta.env[envVarName] ?? (window as envVarObj)[envVarName];
   if (envVar === undefined) {

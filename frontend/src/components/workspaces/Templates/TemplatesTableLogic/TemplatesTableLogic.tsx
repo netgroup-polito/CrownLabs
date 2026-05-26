@@ -416,10 +416,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         ? parseInt(env.resources.disk) / 1000
                         : 0, // convert from Mi to Gi
                       image:
-                        env.environmentType === EnvironmentType.VirtualMachine
+                        env.environmentType === EnvironmentType.VirtualMachine || env.environmentType === EnvironmentType.Standalone
                           ? getImageNameNoVer(env.image)
                               .split('/')
-                              .slice(-2)
+                              .slice(-1)
                               .join('/') ?? ''
                           : env.image,
                       registry:

@@ -30,8 +30,25 @@ const getImageNames = (images: Image[]) => {
   return Array.from(new Set(baseNames)).sort((a, b) => a.localeCompare(b));
 };
 
+const getAvailableImagesForEnvironment = (
+  envType: EnvironmentType | '' | undefined,
+  availableImagesVM: Image[],
+  availableImagesContainer: Image[],
+) => {
+  switch (envType) {
+    case EnvironmentType.Container:
+    case EnvironmentType.Standalone:
+      return availableImagesContainer;
+    case EnvironmentType.VirtualMachine:
+    case EnvironmentType.CloudVm:
+    default:
+      return availableImagesVM;
+  }
+};
+
 type EnvironmentProps = {
-  availableImages: Image[];
+  availableImagesVM: Image[];
+  availableImagesContainer: Image[];
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
@@ -40,7 +57,8 @@ type EnvironmentProps = {
 export const Environment: FC<EnvironmentProps> = ({
   parentFormName: name,
   restField,
-  availableImages,
+  availableImagesVM,
+  availableImagesContainer,
   resources,
   sharedVolumes,
   isPersonal,
@@ -92,6 +110,11 @@ export const Environment: FC<EnvironmentProps> = ({
     if (!environments || !image) return;
 
     // Check if the image is in the list of available images
+    const availableImages = getAvailableImagesForEnvironment(
+      getEnvironmentType(name),
+      availableImagesVM,
+      availableImagesContainer,
+    );
     const found = getImageNames(availableImages).find(
       tmpImage => tmpImage === image,
     );
@@ -102,9 +125,16 @@ export const Environment: FC<EnvironmentProps> = ({
 
   const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>([]);
 
+  const currentEnvironmentType = getEnvironmentType(name);
+  const currentAvailableImages = getAvailableImagesForEnvironment(
+    currentEnvironmentType,
+    availableImagesVM,
+    availableImagesContainer,
+  );
+
   useEffect(() => {
-    setImagesSearchOptions(getImageNames(availableImages));
-  }, [availableImages]);
+    setImagesSearchOptions(getImageNames(currentAvailableImages));
+  }, [currentAvailableImages]);
 
   const isVM = (currIndex: number) => {
     if (!environments) return false;
@@ -114,6 +144,15 @@ export const Environment: FC<EnvironmentProps> = ({
       environments[currIndex].environmentType === EnvironmentType.VirtualMachine
     );
   };
+
+  const isStandalone = (currIndex: number) => {
+    if (!environments) return false;
+    if (!environments[currIndex]) return false;
+
+    return (
+      environments[currIndex].environmentType === EnvironmentType.Standalone
+    );
+  }
 
   const isPersistent = (currIndex: number) => {
     if (!environments) return false;
@@ -154,12 +193,12 @@ export const Environment: FC<EnvironmentProps> = ({
     return '';
   };
 
-  const getEnvironmentType = (currIndex: number) => {
+  function getEnvironmentType(currIndex: number) {
     if (!environments) return '';
     if (!environments[currIndex]) return '';
 
     return environments[currIndex].environmentType;
-  };
+  }
 
   const handleEnvTypeChange = (envIndex: number, envType: EnvironmentType) => {
     if (!environments) return;
@@ -352,7 +391,7 @@ export const Environment: FC<EnvironmentProps> = ({
       </Form.Item>
 
       {/* VM Image Selection - Remove {...fullLayout} */}
-      {isVM(name) ? (
+      {isVM(name) || isStandalone(name) ? (
         <Form.Item
           {...restField}
           label="Image"
@@ -377,11 +416,11 @@ export const Environment: FC<EnvironmentProps> = ({
             }))}
             onFocus={() => {
               if (imagesSearchOptions.length === 0)
-                setImagesSearchOptions(getImageNames(availableImages));
+                setImagesSearchOptions(getImageNames(currentAvailableImages));
             }}
             onChange={(value: string) => {
               setImagesSearchOptions(
-                getImageNames(availableImages).filter(s => s.includes(value)),
+                getImageNames(currentAvailableImages).filter(s => s.includes(value)),
               );
             }}
             placeholder="Select a virtual machine image"
