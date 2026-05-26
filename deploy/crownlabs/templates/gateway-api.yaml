@@ -26,7 +26,7 @@ spec:
         namespaces:
           from: Selector
           selector:
-            matchExpressions:
+            matchLabels:
               - key: {{ .namespaceSelectorKey }}
                 operator: In
                 values:
