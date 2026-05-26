@@ -284,11 +284,9 @@ gatewayAPI:
   hostname: crownlabs.example.com
   tls:
     certificateRefName: crownlabs-main-gw-cert
-  allowedRouteNamespaces:
-    - key: crownlabs.polito.it/gw-access
-      operator: In
-      values:
-        - crownlabs-main-production
+  allowedRoutes:
+    namespaceSelectorKey: "crownlabs.polito.it/gw-access"
+    namespaceSelectorValue: "crownlabs-main-production"
 
 
 exam-agent:

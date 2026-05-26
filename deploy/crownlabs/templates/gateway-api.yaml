@@ -20,12 +20,20 @@ spec:
           - group: ""
             kind: Secret
             name: {{ .Values.gatewayAPI.tls.certificateRefName }}
-      {{- with .Values.gatewayAPI.allowedRouteNamespaces }}
+      {{- with .Values.gatewayAPI.allowedRoutes }}
+      {{- if and .namespaceSelectorKey .namespaceSelectorValue }}
       allowedRoutes:
         namespaces:
           from: Selector
           selector:
             matchExpressions:
-              {{- toYaml . | nindent 14 }}
+              - key: {{ .namespaceSelectorKey }}
+                operator: In
+                values:
+                  - {{ .namespaceSelectorValue }}
+      {{- else }}
+      allowedRoutes:
+        {{- omit . "namespaceSelectorKey" "namespaceSelectorValue" | toYaml | nindent 8 }}
+      {{- end }}
       {{- end }}
 {{- end }}
