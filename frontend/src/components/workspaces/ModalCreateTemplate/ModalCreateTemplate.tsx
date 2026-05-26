@@ -207,7 +207,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/harbor-standalone/${selectedImage.name}`;
+        return `${internalRegistry}/crownlabs-standalone/${selectedImage.name}`;
       }
     } else if (envType === EnvironmentType.Standalone) {
       
@@ -216,7 +216,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/harbor-containerdisks/${selectedImage.name}`;
+        return `${internalRegistry}/crownlabs-containerdisks/${selectedImage.name}`;
       }
     }
 
