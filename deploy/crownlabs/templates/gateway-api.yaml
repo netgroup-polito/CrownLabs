@@ -26,10 +26,7 @@ spec:
           from: Selector
           selector:
             matchLabels:
-              - key: {{ .Values.gatewayAPI.allowedRoutesSimple.key }}
-                operator: In
-                values:
-                  - {{ .Values.gatewayAPI.allowedRoutesSimple.value }}
+              {{ .Values.gatewayAPI.allowedRoutesSimple.key }}: {{ .Values.gatewayAPI.allowedRoutesSimple.value }}
       {{- else if .Values.gatewayAPI.allowedRoutes }}
       allowedRoutes:
         {{- toYaml .Values.gatewayAPI.allowedRoutes | nindent 8 }}
