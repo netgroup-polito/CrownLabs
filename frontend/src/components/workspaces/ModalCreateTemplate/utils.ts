@@ -5,7 +5,9 @@ import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
 
 
 export const internalRegistry = 'harbor.ng.crownlabs.polito.it'; 
-export const projectName = [getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'), getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS')];
+export const imageListContainderDisksDefault = "harbor-containerdisks-pre-production";
+export const imageListStandaloneDefault = "harbor-standalone-pre-production";
+export const projectName = [getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'), getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS'), imageListStandaloneDefault, imageListContainderDisksDefault];
 
 export const formItemLayout = {
   labelcol: { span: 5 },

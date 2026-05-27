@@ -26,6 +26,8 @@ import {
   getImageLists,
   getImageNameNoVer,
   getImagesFromList,
+  imageListContainderDisksDefault,
+  imageListStandaloneDefault,
   internalRegistry,
 } from './utils';
 import { getEnvVar } from '../../../env';
@@ -53,6 +55,7 @@ export interface IModalCreateTemplateProps {
   loading: boolean;
   isPersonal?: boolean;
 }
+
 
 const TimeUnitOptions = [
     { label: 'Minutes', value: 'm' },
@@ -178,12 +181,21 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
 
     const imageLists = getImageLists(dataImages);
-    const internalImagesVM = imageLists.find(
-      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'),
+    let internalImagesVM = imageLists.find(
+      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS')
+    ) || imageLists.find(
+      list => list.name === imageListContainderDisksDefault
     );
-    const internalImagesContainer = imageLists.find(
-      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS'),
+
+    let internalImagesContainer = imageLists.find(
+      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE') 
+    ) || imageLists.find(
+      list => list.name === imageListStandaloneDefault
     );
+      
+    console.log("Using image lists:", { internalImagesVM, internalImagesContainer });
+
+
 
     if (!internalImagesVM) {
       setAvailableImagesVM([]);
@@ -207,7 +219,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/crownlabs-standalone/${selectedImage.name}`;
+        return `${internalRegistry}/crownlabs-containerdisks/${selectedImage.name}`;
       }
     } else if (envType === EnvironmentType.Standalone) {
       
@@ -216,7 +228,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/crownlabs-containerdisks/${selectedImage.name}`;
+        return `${internalRegistry}/crownlabs-standalone/${selectedImage.name}`;
       }
     }
 
