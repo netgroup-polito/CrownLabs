@@ -25,12 +25,6 @@ import (
 // can be instantiated in CrownLabs.
 type EnvironmentType string
 
-// +kubebuilder:validation:Enum="Standard";"Exam";"Exercise"
-
-// EnvironmentScope is an enumeration of the scope in which the environment of the associated instance should be started:
-// each scope consists in presets for exposition and deployment.
-type EnvironmentScope string
-
 const (
 	// ClassContainer -> the environment is constituted by a Docker container exposing a service through a VNC server.
 	ClassContainer EnvironmentType = "Container"
@@ -40,12 +34,6 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
-	// ScopeStandard -> Normal operation (authentication, ssh, files access).
-	ScopeStandard EnvironmentScope = "Standard"
-	// ScopeExam -> Restricted access (no authentication, no mydrive access).
-	ScopeExam EnvironmentScope = "Exam"
-	// ScopeExercise -> Restricted access (no authentication, no mydrive access).
-	ScopeExercise EnvironmentScope = "Exercise"
 )
 
 // TemplateSpec is the specification of the desired state of the Template.
@@ -78,11 +66,6 @@ type TemplateSpec struct {
 	// They are given by means of a pointer to check the presence of the field.
 	// In case it is present, the labels that are chosen are the ones present on the instance
 	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
-
-	// +kubebuilder:default="Standard"
-
-	// The scope associated with the environments belonging to the template (Standard, Exam, Exercise)
-	Scope EnvironmentScope `json:"scope,omitempty"`
 
 	// +kubebuilder:default=false
 	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
@@ -217,7 +200,6 @@ type SharedVolumeMountInfo struct {
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
-// +kubebuilder:printcolumn:name="Scope",type=string,JSONPath=`.spec.environmentList[0].scope`
 // +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`,priority=10
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`,priority=10
 // +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`,priority=10

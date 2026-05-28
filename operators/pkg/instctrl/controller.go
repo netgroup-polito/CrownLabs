@@ -54,6 +54,7 @@ type InstanceReconciler struct {
 	WebSSHMasterPublicKey     []byte
 	PublicExposureOpts        forge.PublicExposureOpts
 	MirrorPVCStorageClassName string
+	EnableAuthentication      bool
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -327,7 +328,8 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	}
 	if urlNeeded {
 		// Enforce the ingress to access the GUI
-		host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+		// Use the configured website base URL
+		host := r.ServiceUrls.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
 		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
