@@ -175,38 +175,9 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
-	Context("The environment mode is Standard", func() {
-		BeforeEach(func() {
-			template.Spec.Scope = clv1alpha2.ScopeStandard
-		})
-		It("Should enforce the cloud-init secret", func() {
-			// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
-		})
-	})
-
-	Context("The environment mode is Exam", func() {
-		BeforeEach(func() {
-			template.Spec.Scope = clv1alpha2.ScopeExam
-		})
-		It("Should not enforce the cloud-init secret", func() {
-			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName, &secret)).To(
-				MatchError(kerrors.NewNotFound(corev1.Resource("secrets"), objectName.Name)),
-			)
-		})
-	})
-
-	Context("The environment mode is Exercise", func() {
-		BeforeEach(func() {
-			template.Spec.Scope = clv1alpha2.ScopeExercise
-		})
-		It("Should not enforce the cloud-init secret", func() {
-			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName, &secret)).To(
-				MatchError(kerrors.NewNotFound(corev1.Resource("secrets"), objectName.Name)),
-			)
-		})
+	It("Should enforce the cloud-init secret", func() {
+		// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
+		Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
 	})
 
 	It("Should enforce the environment exposition objects", func() {
@@ -230,8 +201,8 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					It("The VMI should have the expected volume mounts", func() {
 						Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
 						Expect(vmi.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
-						Expect(vmi.Spec.Volumes).To(HaveLen(len(mounts) + 1))
-						// + 1 since there is the "root" (ContainerDisk) Volume.
+						Expect(vmi.Spec.Volumes).To(HaveLen(len(mounts) + 2))
+						// + 2 since there are the "root" (ContainerDisk) and "cloud-init" Volumes.
 
 						// The exact values in Filesystems and Volumes are checked in forge.
 					})
@@ -245,8 +216,8 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					It("The VM should have the expected volume mounts", func() {
 						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
 						Expect(vm.Spec.Template.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
-						Expect(vm.Spec.Template.Spec.Volumes).To(HaveLen(len(mounts) + 1))
-						// + 1 since there is the "root" (Persistent) Volume.
+						Expect(vm.Spec.Template.Spec.Volumes).To(HaveLen(len(mounts) + 2))
+						// + 2 since there are the "root" (Persistent) and "cloud-init" Volumes.
 
 						// The exact values in Filesystems and Volumes are checked in forge.
 					})

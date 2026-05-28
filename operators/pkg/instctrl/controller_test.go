@@ -122,7 +122,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
-				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -314,11 +313,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 						}
 					})
 
-					By("Asserting the cloudinit secret has been created", func() {
-						var secret corev1.Secret
-						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
-					})
-
 					By("Asserting the exposition resources aren't present", func() {
 						for _, env := range template.Spec.EnvironmentList {
 							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(FailBecauseNotFound())
@@ -405,11 +399,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &vmi)).To(FailBecauseNotFound())
 						}
 					}
-				})
-
-				By("Asserting the cloudinit secret has been created", func() {
-					var secret corev1.Secret
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
 				})
 
 				By("Asserting the exposition resources aren't present", func() {
