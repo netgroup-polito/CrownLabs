@@ -42,7 +42,7 @@ configurations:
   sharedVolumeOptions:
     storageClass: rook-nfs
 
-  # Image list configuration
+  # Image list configuration, uncomment to enable
   # imageList:
   #   configFile: /etc/config/registries.yaml
   #   updateInterval: 600

@@ -23,6 +23,10 @@ frontend-app:
       clientId: <client-id>
       realm: <realm>
       providerUrl: https://auth.example.com/auth/
+    imagelist:
+      standalone: standalone-project-example
+      containerdisks: containerdisks-project-example
+    
 
 qlkube:
   replicaCount: 1
@@ -74,7 +78,7 @@ operator:
       rolesClientId: client-api-server
     maxConcurrentReconciles: 1
     tenantNamespaceKeepAlive: 168h
-    # imagelist disabled in staging
+    # imagelist disabled, uncomment ot enable
     # imageList:
     #   updateInterval: 600
     #   registries:
