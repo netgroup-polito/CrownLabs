@@ -218,35 +218,6 @@ var _ = Describe("Ingresses", func() {
 			environment.Name = environmentName
 		})
 
-		Describe("The forge.HostName function", func() {
-			const baseHost = "crownlabs.it"
-			type HostNameCase struct {
-				Scope          clv1alpha2.EnvironmentScope
-				ExpectedOutput string
-			}
-			DescribeTable("correctly generates the hostname",
-				func(c HostNameCase) {
-					Expect(forge.HostName(baseHost, c.Scope)).To(Equal(c.ExpectedOutput))
-				},
-				Entry("when the mode is Default", HostNameCase{
-					Scope:          clv1alpha2.ScopeStandard,
-					ExpectedOutput: baseHost,
-				}),
-				Entry("when the mode is Exam", HostNameCase{
-					Scope:          clv1alpha2.ScopeExam,
-					ExpectedOutput: "exam." + baseHost,
-				}),
-				Entry("when the mode is Exercise", HostNameCase{
-					Scope:          clv1alpha2.ScopeExercise,
-					ExpectedOutput: "exercise." + baseHost,
-				}),
-				Entry("when the mode is invalid/unset", HostNameCase{
-					Scope:          "",
-					ExpectedOutput: baseHost,
-				}),
-			)
-		})
-
 		Describe("The forge.IngressGUIPath function", func() {
 			JustBeforeEach(func() {
 				path = forge.IngressGUIPath(&instance, &environment)

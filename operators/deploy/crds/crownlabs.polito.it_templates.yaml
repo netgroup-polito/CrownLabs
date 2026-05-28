@@ -20,9 +20,6 @@ spec:
     - jsonPath: .spec.prettyName
       name: Pretty Name
       type: string
-    - jsonPath: .spec.environmentList[0].scope
-      name: Scope
-      type: string
     - jsonPath: .spec.environmentList[0].image
       name: Image
       priority: 10
@@ -283,15 +280,6 @@ spec:
                 type: object
               prettyName:
                 description: The human-readable name of the Template.
-                type: string
-              scope:
-                default: Standard
-                description: The scope associated with the environments belonging
-                  to the template (Standard, Exam, Exercise)
-                enum:
-                - Standard
-                - Exam
-                - Exercise
                 type: string
               workspace.crownlabs.polito.it/WorkspaceRef:
                 description: The reference to the Workspace this Template belongs

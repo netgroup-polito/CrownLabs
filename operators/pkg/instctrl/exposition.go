@@ -46,7 +46,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
-	template := clctx.TemplateFrom(ctx)
 
 	// Check if index is out of range
 	if envIndex >= len(instance.Status.Environments) {
@@ -85,7 +84,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		return nil
 	}
 
-	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+	// Use the configured website base URL
+	host := r.ServiceUrls.WebsiteBaseURL
 
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
@@ -99,7 +99,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
 
-		if template.Spec.Scope == clv1alpha2.ScopeStandard {
+		// Add authentication annotations only if enabled.
+		if r.EnableAuthentication {
 			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
 		}
 
