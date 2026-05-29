@@ -54,8 +54,8 @@ export interface IModalCreateTemplateProps {
 }
 
 const STATUS_ICON_COLORS = {
-  on: '#52c41a', // Green
-  off: '#c1c1c1ff', // Red
+  on: '#52c41a',
+  off: '#c1c1c1ff',
 };
 
 const StatusIcon = ({ active }: { active: boolean }) => (
@@ -318,11 +318,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         destroyAfterInactivity: parseTimeoutString(initial.destroyAfterInactivity),
         deleteAfter: parseTimeoutString(initial.deleteAfter),
       });
-      /*setAutomaticStoppingEnabled(
-        (initial.inactivityTimeout) !== 'never' ||
-        (initial.destroyAfterInactivity) !== 'never' ||
-        (initial.deleteAfter) !== 'never',
-      );*/
       setIsPublicExposureEnabled(initial.allowPublicExposure ?? false);
       // Set node selector mode and labels based on template
       if (template.nodeSelector) {
@@ -361,7 +356,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         destroyAfterInactivity: { value: 0, unit: '' },
         deleteAfter: { value: 0, unit: '' },
       });
-      //setAutomaticStoppingEnabled(false);
       setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
       setSelectedLabels([]);
       setIsPublicExposureEnabled(false);
@@ -380,7 +374,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     'FixedSelection': 'Select specific node labels to constrain where instances can run',
   };
 
-  //const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
   const [nodeSelectorMode, setNodeSelectorMode] = useState<string>(NodeSelectorOptionMap['NodeSelectorDisabled']);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isPublicExposureEnabled, setIsPublicExposureEnabled] = useState(false);
