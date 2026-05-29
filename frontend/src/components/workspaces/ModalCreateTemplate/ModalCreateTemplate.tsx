@@ -53,7 +53,7 @@ export interface IModalCreateTemplateProps {
   isPersonal?: boolean;
 }
 
-export const STATUS_ICON_COLORS = {
+const STATUS_ICON_COLORS = {
   on: '#52c41a', // Green
   off: '#c1c1c1ff', // Red
 };
@@ -531,22 +531,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     return match || null;
   };
 
-  const handleEnablingCleanUp = (enabled: boolean) => {
-    //setAutomaticStoppingEnabled(enabled);
-    if (!enabled) {
-      // If disabling, reset timeouts to 0
-      setTimeouts({
-        inactivityTimeout: { value: 0, unit: '' },
-        destroyAfterInactivity: { value: 0, unit: '' },
-        deleteAfter: { value: 0, unit: '' },
-      });
-      form.setFieldValue('inactivityTimeout', { value: 0, unit: '' });
-      form.setFieldValue('destroyAfterInactivity', { value: 0, unit: '' });
-      form.setFieldValue('deleteAfter', { value: 0, unit: '' });
-      form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
-    }
-  };
-
   const automaticInstanceSavingResource = <>
     <style>{`
       .right-align-error .ant-form-item-explain-error {
@@ -558,7 +542,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         align-items: flex-start !important;
       }
     `}</style>
-    <Typography.Paragraph type="secondary italic" className="mb-4">
+    <Typography.Paragraph type="secondary" italic className="mb-4">
       Set the value to 0 to disable the corresponding feature
     </Typography.Paragraph>
     <Form.Item
