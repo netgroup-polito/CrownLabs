@@ -344,6 +344,21 @@ var instanceTriggered = predicate.Funcs{
 		if oldInstance.Spec.Running != newInstance.Spec.Running {
 			return true
 		}
+		if oldInstance.Spec.Template != newInstance.Spec.Template {
+			return true
+		}
+		oldPoweredOffTimestamp := ""
+		if oldInstance.Annotations != nil {
+			oldPoweredOffTimestamp = oldInstance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+		}
+		newPoweredOffTimestamp := ""
+		if newInstance.Annotations != nil {
+			newPoweredOffTimestamp = newInstance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+		}
+		if oldPoweredOffTimestamp != newPoweredOffTimestamp {
+			return true
+		}
+
 		return false
 	},
 	DeleteFunc: func(_ event.DeleteEvent) bool {
