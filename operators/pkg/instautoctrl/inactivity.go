@@ -71,7 +71,12 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 			builder.WithPredicates(instanceTriggered)).
 		Watches(
 			&clv1alpha2.Template{},
-			createTemplateWatchHandlerWithTimeout(r.Client, func(t *clv1alpha2.Template) string { return t.Spec.InactivityTimeout }),
+			createTemplateWatchHandlerWithTimeout(r.Client, func(t *clv1alpha2.Template) string {
+				if t.Spec.InactivityTimeout != NeverTimeoutValue {
+					return t.Spec.InactivityTimeout
+				}
+				return t.Spec.DestroyAfterInactivity
+			}),
 			builder.WithPredicates(inactivityTimeoutChanged),
 		).
 		Watches(&corev1.Namespace{},

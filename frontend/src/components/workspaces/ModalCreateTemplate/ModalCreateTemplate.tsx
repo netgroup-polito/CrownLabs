@@ -3,7 +3,7 @@ import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, CheckSquareFilled, CloseSquareFilled } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
 import {
   useNodesLabelsQuery,
@@ -53,23 +53,34 @@ export interface IModalCreateTemplateProps {
   isPersonal?: boolean;
 }
 
+export const STATUS_ICON_COLORS = {
+  on: '#52c41a', // Green
+  off: '#c1c1c1ff', // Red
+};
+
+const StatusIcon = ({ active }: { active: boolean }) => (
+  active
+    ? <CheckSquareFilled style={{ color: STATUS_ICON_COLORS.on }} />
+    : <CloseSquareFilled style={{ color: STATUS_ICON_COLORS.off }} />
+);
+
 const TimeUnitOptions = [
-    { label: 'Minutes', value: 'm' },
-    { label: 'Hours', value: 'h' },
-    { label: 'Days', value: 'd' },
-  ];
+  { label: 'Minutes', value: 'm' },
+  { label: 'Hours', value: 'h' },
+  { label: 'Days', value: 'd' },
+];
 
 const parseTimeoutString = (s?: string) => {
-    if (!s || s === 'never') return { value: 0, unit: '' }
-    const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
-    if (!m) return { value: 0, unit: '' }
-    
-    const unitOpt = TimeUnitOptions.find(
-      opt => opt.value === m[2].toLowerCase(),
-    );
+  if (!s || s === 'never') return { value: 0, unit: '' }
+  const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
+  if (!m) return { value: 0, unit: '' }
 
-    return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : ''}
-  };
+  const unitOpt = TimeUnitOptions.find(
+    opt => opt.value === m[2].toLowerCase(),
+  );
+
+  return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : '' }
+};
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
@@ -229,7 +240,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       nodeSelectorObject = null;
     }
 
-    
+
     const parsedTemplate = {
       ...template,
       allowPublicExposure: isPublicExposureEnabled,
@@ -246,7 +257,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     try {
       setShow(false);
       await submitHandler(parsedTemplate);
-      
+
       form.resetFields();
       setTimeouts({
         inactivityTimeout: { value: 0, unit: '' },
@@ -281,38 +292,38 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [timeouts, setTimeouts] = useState(
     {
-    inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
-    destroyAfterInactivity: { value: parseTimeoutString(template?.destroyAfterInactivity).value ?? 0, unit: parseTimeoutString(template?.destroyAfterInactivity).unit ?? '' },
-    deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
-  });
-
-    const {
-      data: labelsData,
-      loading: loadingLabels,
-      error: labelsError,
-    } = useNodesLabelsQuery({ 
-      fetchPolicy: 'cache-first',
-      skip: !show, // Only fetch when modal is open
+      inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
+      destroyAfterInactivity: { value: parseTimeoutString(template?.destroyAfterInactivity).value ?? 0, unit: parseTimeoutString(template?.destroyAfterInactivity).unit ?? '' },
+      deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
     });
+
+  const {
+    data: labelsData,
+    loading: loadingLabels,
+    error: labelsError,
+  } = useNodesLabelsQuery({
+    fetchPolicy: 'cache-first',
+    skip: !show, // Only fetch when modal is open
+  });
 
 
   useEffect(() => {
-  if (!show) return;
+    if (!show) return;
 
-  if (template) {
-    const initial = getInitialValues(template);
-    form.setFieldsValue(initial);
-    setTimeouts({
-      inactivityTimeout: parseTimeoutString(initial.inactivityTimeout),
-      destroyAfterInactivity: parseTimeoutString(initial.destroyAfterInactivity),
-      deleteAfter: parseTimeoutString(initial.deleteAfter),
-    });
-    setAutomaticStoppingEnabled(
-      (initial.inactivityTimeout) !== 'never' ||
+    if (template) {
+      const initial = getInitialValues(template);
+      form.setFieldsValue(initial);
+      setTimeouts({
+        inactivityTimeout: parseTimeoutString(initial.inactivityTimeout),
+        destroyAfterInactivity: parseTimeoutString(initial.destroyAfterInactivity),
+        deleteAfter: parseTimeoutString(initial.deleteAfter),
+      });
+      /*setAutomaticStoppingEnabled(
+        (initial.inactivityTimeout) !== 'never' ||
         (initial.destroyAfterInactivity) !== 'never' ||
         (initial.deleteAfter) !== 'never',
-    );
-    setIsPublicExposureEnabled(initial.allowPublicExposure ?? false);
+      );*/
+      setIsPublicExposureEnabled(initial.allowPublicExposure ?? false);
       // Set node selector mode and labels based on template
       if (template.nodeSelector) {
         if (Object.keys(template.nodeSelector).length === 0) {
@@ -342,21 +353,21 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         setSelectedLabels([]);
       }
 
-  } else {
-    form.resetFields();
-    form.setFieldsValue(getInitialValues(undefined));
-    setTimeouts({
-      inactivityTimeout: { value: 0, unit: '' },
-      destroyAfterInactivity: { value: 0, unit: '' },
-      deleteAfter: { value: 0, unit: '' },
-    });
-    setAutomaticStoppingEnabled(false);
-    setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
-    setSelectedLabels([]);
-    setIsPublicExposureEnabled(false);
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [template, show, form, labelsData]);
+    } else {
+      form.resetFields();
+      form.setFieldsValue(getInitialValues(undefined));
+      setTimeouts({
+        inactivityTimeout: { value: 0, unit: '' },
+        destroyAfterInactivity: { value: 0, unit: '' },
+        deleteAfter: { value: 0, unit: '' },
+      });
+      //setAutomaticStoppingEnabled(false);
+      setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
+      setSelectedLabels([]);
+      setIsPublicExposureEnabled(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [template, show, form, labelsData]);
 
   const NodeSelectorOptionMap: { [key: string]: string } = {
     'NodeSelectorDisabled': 'Automatic',
@@ -369,42 +380,42 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     'FixedSelection': 'Select specific node labels to constrain where instances can run',
   };
 
-  const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
+  //const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
   const [nodeSelectorMode, setNodeSelectorMode] = useState<string>(NodeSelectorOptionMap['NodeSelectorDisabled']);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isPublicExposureEnabled, setIsPublicExposureEnabled] = useState(false);
 
-  
-const handleSelectorLabelChange = useCallback((values: string[]) => {
-  
-  // Filter out duplicate keys - keep only the last selected value for each key
-  const seenKeys = new Map<string, string>();
-  const filteredValues: string[] = [];
-  
-  // Process in reverse to keep the most recent selection for each key
-  for (let i = values.length - 1; i >= 0; i--) {
-    try {
-      const labelPair = JSON.parse(values[i]);
-      const key = Object.keys(labelPair)[0];
-      
-      if (!seenKeys.has(key)) {
-        seenKeys.set(key, values[i]);
-        filteredValues.unshift(values[i]); // Add to beginning to maintain order
-      }
-    } catch (e) {
-      console.error('Error parsing label:', e);
-    }
-  }
-  setSelectedLabels(filteredValues);
-}, []);
 
-const handleNodeSelectorModeChange = useCallback((value: string) => {
-  setNodeSelectorMode(value);
-  if (value === NodeSelectorOptionMap['NodeSelectorDisabled']) {
-    setSelectedLabels([]);
-  }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, []);
+  const handleSelectorLabelChange = useCallback((values: string[]) => {
+
+    // Filter out duplicate keys - keep only the last selected value for each key
+    const seenKeys = new Map<string, string>();
+    const filteredValues: string[] = [];
+
+    // Process in reverse to keep the most recent selection for each key
+    for (let i = values.length - 1; i >= 0; i--) {
+      try {
+        const labelPair = JSON.parse(values[i]);
+        const key = Object.keys(labelPair)[0];
+
+        if (!seenKeys.has(key)) {
+          seenKeys.set(key, values[i]);
+          filteredValues.unshift(values[i]); // Add to beginning to maintain order
+        }
+      } catch (e) {
+        console.error('Error parsing label:', e);
+      }
+    }
+    setSelectedLabels(filteredValues);
+  }, []);
+
+  const handleNodeSelectorModeChange = useCallback((value: string) => {
+    setNodeSelectorMode(value);
+    if (value === NodeSelectorOptionMap['NodeSelectorDisabled']) {
+      setSelectedLabels([]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
     setTimeouts(prevTimeouts => ({
@@ -418,7 +429,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       value,
       unit: timeouts[field].unit,
     });
-    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => {});
+    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
   }
 
   const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
@@ -433,26 +444,26 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       value: timeouts[field].value,
       unit: value,
     });
-    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => {});
+    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
   }
 
   const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
     return timeouts[field].value === 0;
   };
-  
+
   const validateTimeout = async (_: RuleObject, _val: { value: number; unit: string } | undefined) => {
     if (!_val || _val.value === undefined || _val.value === 0) {
-      return true; 
+      return true;
     }
 
     if (TimeUnitOptions.map(option => option.value).includes(_val.unit) === false) {
       throw new Error("Insert a valid time unit");
-    } 
+    }
     return true;
   };
 
-  const validateTimeoutOrder = async (_: RuleObject , _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
-   
+  const validateTimeoutOrder = async (_: RuleObject, _val: { value: number; unit: string } | undefined, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
+
     const toMinutes = (t: { value: number; unit: string } | undefined) => {
       if (!t) return undefined;
       if (t.value === 0) return Infinity;
@@ -460,8 +471,8 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
       const mul = u === 'h' ? 60 : u === 'd' ? 1440 : 1;
       return Number(t.value) * mul;
     };
-    
-    const current =  form.getFieldValue(field);
+
+    const current = form.getFieldValue(field);
     const inactivity = field === 'inactivityTimeout' ? current : form.getFieldValue('inactivityTimeout') as { value: number; unit: string } | undefined;
     const deleteAfter = field === 'deleteAfter' ? current : form.getFieldValue('deleteAfter') as { value: number; unit: string } | undefined;
 
@@ -474,13 +485,13 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
 
     if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return;
 
-    if (inactivityMin >= deleteAfterMin) {
+    if (!isTimeUnitDisabled('inactivityTimeout') && inactivityMin >= deleteAfterMin) {
       throw new Error('Inactivity must be smaller than Expiration');
     }
     return;
   };
 
-  const [infoNumberTemplate, setInfoNumberTemplate] = useState<number>(template?.environments?.length ?? 1 );
+  const [infoNumberTemplate, setInfoNumberTemplate] = useState<number>(template?.environments?.length ?? 1);
 
 
   // Memoize processed labels to avoid recalculating on every render
@@ -494,7 +505,7 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
         },
       ];
     }
-    
+
     return labelsData?.labels?.map(({ key, value }) => ({
       value: JSON.stringify({ [key]: value }),
       label: `${cleanupLabels(key)}=${value}`,
@@ -504,146 +515,159 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
   // Helper function to map camelCase keys back to original format
   const findOriginalLabelKey = (camelCaseKey: string, value: string): { key: string; value: string } | null => {
     if (!labelsData?.labels) return null;
-    
+
     // First, try exact match (in case the key wasn't camelCased)
     const exactMatch = labelsData.labels.find(
       label => label.key === camelCaseKey && label.value === value
     );
     if (exactMatch) return exactMatch;
-    
+
     // Otherwise, find by matching cleaned version
     const cleanedCamelCase = cleanupLabels(camelCaseKey);
     const match = labelsData.labels.find(
       label => cleanupLabels(label.key) === cleanedCamelCase && label.value === value
     );
-    
+
     return match || null;
   };
 
-    const handleEnablingCleanUp = (enabled: boolean) => {
-      setAutomaticStoppingEnabled(enabled);
-      if (!enabled) {
-        // If disabling, reset timeouts to 0
-        setTimeouts({
-          inactivityTimeout: { value: 0, unit: '' },
-          destroyAfterInactivity: { value: 0, unit: '' },
-          deleteAfter: { value: 0, unit: '' },
-        });
-        form.setFieldValue('inactivityTimeout', { value: 0, unit: '' });
-        form.setFieldValue('destroyAfterInactivity', { value: 0, unit: '' });
-        form.setFieldValue('deleteAfter', { value: 0, unit: '' });
-        form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => {});
-      }
-    };
+  const handleEnablingCleanUp = (enabled: boolean) => {
+    //setAutomaticStoppingEnabled(enabled);
+    if (!enabled) {
+      // If disabling, reset timeouts to 0
+      setTimeouts({
+        inactivityTimeout: { value: 0, unit: '' },
+        destroyAfterInactivity: { value: 0, unit: '' },
+        deleteAfter: { value: 0, unit: '' },
+      });
+      form.setFieldValue('inactivityTimeout', { value: 0, unit: '' });
+      form.setFieldValue('destroyAfterInactivity', { value: 0, unit: '' });
+      form.setFieldValue('deleteAfter', { value: 0, unit: '' });
+      form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
+    }
+  };
 
   const automaticInstanceSavingResource = <>
-  <Checkbox className="mb-4" checked={automaticStoppingEnabled} onChange={e => handleEnablingCleanUp(e.target.checked)}>Enable automatic clean-up</Checkbox>
-        
-      <div className="mb-2 ml-2">
-        <Typography.Text strong>Inactivity options:</Typography.Text>
-      </div>
-      <div className="pl-6 border-l-2 border-gray-200 dark:border-zinc-700 ml-3 mb-4 flex flex-col gap-4">
-        <Form.Item
-          label="Time to power off"
-          name="inactivityTimeout"
-          required={isTimeUnitDisabled('inactivityTimeout') ? false : true}
-          validateTrigger="onChange"
-          rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
-          {...formItemLayout}> 
-          
-          <div className="flex gap-4 items-center">
-            <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
-              <InfoCircleOutlined className='ml-2'/>
-            </Tooltip>
-            <InputNumber
-              onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
-              min={0}
-              max={60}
-              defaultValue={timeouts.inactivityTimeout.value }
-              disabled={!automaticStoppingEnabled}
-            >
-            </InputNumber>
+    <style>{`
+      .right-align-error .ant-form-item-explain-error {
+        text-align: right;
+      }
+      .multiline-label .ant-form-item-label > label {
+        height: auto !important;
+        white-space: normal !important;
+        align-items: flex-start !important;
+      }
+    `}</style>
+    <Typography.Paragraph type="secondary italic" className="mb-4">
+      Set the value to 0 to disable the corresponding feature
+    </Typography.Paragraph>
+    <Form.Item
+      className="right-align-error multiline-label"
+      colon={false}
+      label={<div className="flex flex-col text-left"><span>Power off if inactive for:</span><Typography.Text keyboard className="w-max mt-1">Stop</Typography.Text></div>}
+      name="inactivityTimeout"
+      validateTrigger="onChange"
+      rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'inactivityTimeout') }]}
+      {...formItemLayout}>
 
-            <Select
-              onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
-              disabled={isTimeUnitDisabled('inactivityTimeout') || !automaticStoppingEnabled}
-              placeholder="Select Time unit"
-              getPopupContainer={trigger => trigger.parentElement || document.body}
-              defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
-              
-            >
-              {TimeUnitOptions.map(option => (
-                <Select.Option key={option.value} value={option.value}>
-                  {option.label}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-        </Form.Item>
-
-        <Form.Item
-          label="Time to destroy"
-          name="destroyAfterInactivity"
-          required={isTimeUnitDisabled('destroyAfterInactivity') ? false : true}
-          validateTrigger="onChange"
-          rules={[{ validator: validateTimeout }]}
-          {...formItemLayout}> 
-          
-          <div className="flex gap-4 items-center">
-            <Tooltip title={<><p>Instances based on this template are deleted if they're not powered on within this time.</p> <b>Set 0 to disable the feature.</b></>}>
-              <InfoCircleOutlined className='ml-2'/>
-            </Tooltip>
-            <InputNumber
-              onChange={value => handleTimeoutValueChange(value, 'destroyAfterInactivity')}
-              min={0}
-              max={60}
-              defaultValue={timeouts.destroyAfterInactivity.value}
-              disabled={!automaticStoppingEnabled}
-            >
-            </InputNumber>
-
-            <Select
-              onChange={value => handleTimeUnitChange(value, 'destroyAfterInactivity')}
-              disabled={isTimeUnitDisabled('destroyAfterInactivity') || !automaticStoppingEnabled}
-              placeholder="Select Time unit"
-              getPopupContainer={trigger => trigger.parentElement || document.body}
-              defaultValue={parseTimeoutString(template?.destroyAfterInactivity).unit}
-            >
-              {TimeUnitOptions.map(option => (
-                <Select.Option key={option.value} value={option.value}>
-                  {option.label}
-                </Select.Option>
-              ))}
-            </Select>
-          </div>
-        </Form.Item>
-      </div>
-
-      <Form.Item
-        label="Max Lifetime"
-        name="deleteAfter"
-        required={isTimeUnitDisabled('deleteAfter') ? false : true}
-        validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }]}
-        {...formItemLayout}> 
-        
+      <div className="flex flex-1 w-full items-center justify-between">
+        <Tooltip title={<><p>Instances based on this template are stopped / deleted (based on their persistency) if they're not accessed within this time (in certain special cases, activity might not be correctly detected, see <a href='https://github.com/netgroup-polito/CrownLabs/blob/master/operators/pkg/instautoctrl/README.md#instance-inactive-termination-controller'>here</a> for further technical information).</p> <p> <b>Set 0 to disable the feature.</b></p></>}>
+          <InfoCircleOutlined className='ml-2' />
+        </Tooltip>
         <div className="flex gap-4 items-center">
-          <Tooltip title={<><p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p> <p><b>Set 0 to disable the feature.</b></p></>}>
-          
-            <InfoCircleOutlined className='ml-2'/>
-          </Tooltip>
+          <InputNumber
+            onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
+            min={0}
+            max={60}
+            defaultValue={timeouts.inactivityTimeout.value}
+          >
+          </InputNumber>
+
+          <Select
+            style={{ width: 130 }}
+            onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}
+            disabled={isTimeUnitDisabled('inactivityTimeout')}
+            placeholder="Select Time unit"
+            getPopupContainer={trigger => trigger.parentElement || document.body}
+            defaultValue={parseTimeoutString(template?.inactivityTimeout).unit}
+
+          >
+            {TimeUnitOptions.map(option => (
+              <Select.Option key={option.value} value={option.value}>
+                {option.label}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+      </div>
+    </Form.Item>
+
+    <Form.Item
+      className="right-align-error multiline-label"
+      colon={false}
+      label={<div className="flex flex-col text-left"><span>Delete if powered off for:</span><Typography.Text keyboard className="w-max mt-1">Delete</Typography.Text></div>}
+      name="destroyAfterInactivity"
+      validateTrigger="onChange"
+      rules={[{ validator: validateTimeout }]}
+      {...formItemLayout}>
+
+      <div className="flex flex-1 w-full items-center justify-between">
+        <Tooltip title={<><p>Instances based on this template are deleted if they're not powered on within this time.</p> <b>Set 0 to disable the feature.</b></>}>
+          <InfoCircleOutlined className='ml-2' />
+        </Tooltip>
+        <div className="flex gap-4 items-center">
+          <InputNumber
+            onChange={value => handleTimeoutValueChange(value, 'destroyAfterInactivity')}
+            min={0}
+            max={60}
+            defaultValue={timeouts.destroyAfterInactivity.value}
+          >
+          </InputNumber>
+
+          <Select
+            style={{ width: 130 }}
+            onChange={value => handleTimeUnitChange(value, 'destroyAfterInactivity')}
+            disabled={isTimeUnitDisabled('destroyAfterInactivity')}
+            placeholder="Select Time unit"
+            getPopupContainer={trigger => trigger.parentElement || document.body}
+            defaultValue={parseTimeoutString(template?.destroyAfterInactivity).unit}
+          >
+            {TimeUnitOptions.map(option => (
+              <Select.Option key={option.value} value={option.value}>
+                {option.label}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+      </div>
+    </Form.Item>
+    <Form.Item
+      className="right-align-error multiline-label"
+      colon={false}
+      label={<div className="flex flex-col text-left"><span>Delete regardless of activity after:</span><Typography.Text keyboard className="w-max mt-1">Expiration</Typography.Text></div>}
+      name="deleteAfter"
+      validateTrigger="onChange"
+      rules={[{ validator: validateTimeout }]}
+      {...formItemLayout}>
+
+      <div className="flex flex-1 w-full items-center justify-between">
+        <Tooltip title={<><p>Time, since the creation, after which instances based on this template are automatically deleted. Users will be preemptively alerted through email to take actions.</p> <p><b>Set 0 to disable the feature.</b></p></>}>
+
+          <InfoCircleOutlined className='ml-2' />
+        </Tooltip>
+        <div className="flex gap-4 items-center">
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
             min={0}
             max={60}
             defaultValue={timeouts.deleteAfter.value}
-            disabled={!automaticStoppingEnabled}
           >
           </InputNumber>
 
           <Select
+            style={{ width: 130 }}
             onChange={value => handleTimeUnitChange(value, 'deleteAfter')}
-            disabled={isTimeUnitDisabled('deleteAfter') || !automaticStoppingEnabled}
+            disabled={isTimeUnitDisabled('deleteAfter')}
             placeholder="Select Time unit"
             getPopupContainer={trigger => trigger.parentElement || document.body}
             defaultValue={parseTimeoutString(template?.deleteAfter).unit}
@@ -655,85 +679,86 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
             ))}
           </Select>
         </div>
-      </Form.Item>
-      </>
+      </div>
+    </Form.Item>
+  </>
 
   const environmentListForm = <>
-  <EnvironmentList
-          availableImages={availableImages}
-          resources={{
-            cpu: cpuInterval,
-            ram: ramInterval,
-            disk: diskInterval,
-          }}
-          sharedVolumes={sharedVolumes}
-          setInfoNumberTemplate={setInfoNumberTemplate}
-          isPersonal={isPersonal === undefined ? false : isPersonal}
-        /></>
-  
+    <EnvironmentList
+      availableImages={availableImages}
+      resources={{
+        cpu: cpuInterval,
+        ram: ramInterval,
+        disk: diskInterval,
+      }}
+      sharedVolumes={sharedVolumes}
+      setInfoNumberTemplate={setInfoNumberTemplate}
+      isPersonal={isPersonal === undefined ? false : isPersonal}
+    /></>
+
 
 
 
   const advancedFeaturesForm = <>
-    {/* TODO: public exporsure, nodeselector, template description */ }
+    {/* TODO: public exporsure, nodeselector, template description */}
     <Form.Item
       name="description"
       className="mb-4"
       required={false}
       label="Description"
       {...formItemLayout}
-      >
-    <Input.TextArea
-      rows={2}
-      placeholder="Insert template description"
-      maxLength={250}
-    />
+    >
+      <Input.TextArea
+        rows={2}
+        placeholder="Insert template description"
+        maxLength={250}
+      />
     </Form.Item>
-          <Form.Item
-            name="allowPublicExposure"
-            valuePropName="checked"
-            className="gap-6 ">
-              <Checkbox onChange={(e) => setIsPublicExposureEnabled(e.target.checked)} className='ml-4'>
-                Port Exposure / Port Forwarding{' '}
-                <Tooltip title="Allow instances based on this template to be publicly accessible via Public IP">
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </Checkbox>
-          </Form.Item>
-        
-   <Flex justify='space-around' className="mb-0 gap-2"  {...formItemLayout} align="center">
-    <Space direction='vertical' style={{width:"50%"}}>
-      <Typography.Paragraph className="mb-0">Server Type: <Tooltip title="Allow instances based on this template to be scheduled on specific nodes"><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
-      <Select 
-        style={{width:"100%"}} 
-        value={nodeSelectorMode}
-        onChange={handleNodeSelectorModeChange}
+    <Form.Item
+      name="allowPublicExposure"
+      valuePropName="checked"
+      className="gap-6 ">
+      <Checkbox onChange={(e) => setIsPublicExposureEnabled(e.target.checked)} className='ml-4'>
+        Port Exposure / Port Forwarding{' '}
+        <Tooltip title="Allow instances based on this template to be publicly accessible via Public IP">
+          <InfoCircleOutlined />
+        </Tooltip>
+      </Checkbox>
+    </Form.Item>
 
-      >
-        {NodeSelectorOptionMap && Object.entries(NodeSelectorOptionMap).map(([key, label]) => (
-          <Select.Option key={label} value={label}>
-            <Tooltip title={nodeSelectorTooltips[key]} placement="left">
-              <span>{label}</span>
-            </Tooltip>
-          </Select.Option>
-        ))}
-      </Select>
-    </Space>
-    <Space direction='vertical'  style={{width:"50%"}}>
-       {nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && (<>
-      <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed</strong> is selected. For the same tag, only one value can be selected (e.g. nodeSize=big and nodeSize=small cannot be selected simultaneously).</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
-       <Select
-          disabled={nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection']}
-          style={{width:"100%"}}
-          mode="multiple"
-          placeholder="Select"
-          onChange={handleSelectorLabelChange}
-          options={getNodeLabelsOptions}
-          value={selectedLabels}
-          status={nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length === 0 ? 'error' : undefined}
-        />
-      </>)}
-    </Space>
+    <Flex justify='space-around' className="mb-0 gap-2"  {...formItemLayout} align="center">
+      <Space direction='vertical' style={{ width: "50%" }}>
+        <Typography.Paragraph className="mb-0">Server Type: <Tooltip title="Allow instances based on this template to be scheduled on specific nodes"><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
+        <Select
+          style={{ width: "100%" }}
+          value={nodeSelectorMode}
+          onChange={handleNodeSelectorModeChange}
+
+        >
+          {NodeSelectorOptionMap && Object.entries(NodeSelectorOptionMap).map(([key, label]) => (
+            <Select.Option key={label} value={label}>
+              <Tooltip title={nodeSelectorTooltips[key]} placement="left">
+                <span>{label}</span>
+              </Tooltip>
+            </Select.Option>
+          ))}
+        </Select>
+      </Space>
+      <Space direction='vertical' style={{ width: "50%" }}>
+        {nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && (<>
+          <Typography.Paragraph className="mb-0">Labels: <Tooltip title={<span>Select on which node types instances based on this template can be scheduled. This option is enabled only if <strong>Fixed</strong> is selected. For the same tag, only one value can be selected (e.g. nodeSize=big and nodeSize=small cannot be selected simultaneously).</span>}><InfoCircleOutlined className='ml-1' /></Tooltip></Typography.Paragraph>
+          <Select
+            disabled={nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection']}
+            style={{ width: "100%" }}
+            mode="multiple"
+            placeholder="Select"
+            onChange={handleSelectorLabelChange}
+            options={getNodeLabelsOptions}
+            value={selectedLabels}
+            status={nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && selectedLabels.length === 0 ? 'error' : undefined}
+          />
+        </>)}
+      </Space>
     </Flex>
 
   </>
@@ -746,13 +771,13 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
     borderRadius: token.borderRadiusLG,
     border: `1px solid ${token.colorBorderSecondary}`,
     padding: '0px 10px',
-    
+
   };
 
   return (
-    
+
     <Modal
-    
+
       destroyOnHidden={true}
       styles={{ body: { paddingBottom: '5px' } }}
       centered
@@ -785,34 +810,34 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
         >
           <Input placeholder="Insert template name" allowClear />
         </Form.Item>
-        
-          <Collapse size="small" bordered={false} ghost accordion items={[
-   {
-    key: '1',
-    label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
-    children: environmentListForm,
-    style: panelStyle,
-    forceRender: true,
-    extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment' : `${infoNumberTemplate} environments` : 'No environments'}</Text>
-  },
-  {
-    key: '2',
-    label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
-    children: automaticInstanceSavingResource,
-    style: panelStyle,
-    forceRender: true,
-    extra: <><Text keyboard>{automaticStoppingEnabled && (!isTimeUnitDisabled('inactivityTimeout') || !isTimeUnitDisabled('destroyAfterInactivity')) ? 'Inactivity ON' : 'Inactivity OFF'}</Text> <Text keyboard>{automaticStoppingEnabled && !isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
-  },
-  {
-    key: '3',
-    label: <Typography.Text strong>Advanced Features</Typography.Text>,
-    children: advancedFeaturesForm,
-    forceRender: true,
-    style: panelStyle,
-    extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['NodeSelectorDisabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
-  },
-]} defaultActiveKey={['1']}  />
-        
+
+        <Collapse size="small" bordered={false} ghost accordion items={[
+          {
+            key: '1',
+            label: <Typography.Text strong>Virtual Machines / Containers</Typography.Text>,
+            children: environmentListForm,
+            style: panelStyle,
+            forceRender: true,
+            extra: <Text keyboard>{infoNumberTemplate ? infoNumberTemplate == 1 ? '1 environment' : `${infoNumberTemplate} environments` : 'No environments'}</Text>
+          },
+          {
+            key: '2',
+            label: <Typography.Text strong>Automatic Clean-up</Typography.Text>,
+            children: automaticInstanceSavingResource,
+            style: panelStyle,
+            forceRender: true,
+            extra: <><Text keyboard>Stop <StatusIcon active={!isTimeUnitDisabled('inactivityTimeout')} /></Text> <Text keyboard>Delete <StatusIcon active={!isTimeUnitDisabled('destroyAfterInactivity')} /></Text> <Text keyboard>Expiration <StatusIcon active={!isTimeUnitDisabled('deleteAfter')} /></Text></>
+          },
+          {
+            key: '3',
+            label: <Typography.Text strong>Advanced Features</Typography.Text>,
+            children: advancedFeaturesForm,
+            forceRender: true,
+            style: panelStyle,
+            extra: <><Text keyboard>Exposure <StatusIcon active={isPublicExposureEnabled} /></Text> <Text keyboard>Node Selector <StatusIcon active={nodeSelectorMode !== NodeSelectorOptionMap['NodeSelectorDisabled']} /></Text></>
+          },
+        ]} defaultActiveKey={['1']} />
+
 
         <div className="flex justify-end gap-2">
           <Button type="default" onClick={() => closehandler()}>
@@ -831,17 +856,17 @@ const handleNodeSelectorModeChange = useCallback((value: string) => {
               const environments = form.getFieldValue('environments') as TemplateForm['environments'];
 
               const hasTemplateName = templateName && templateName.trim() !== '';
-              
+
               // ALL environments must have all required fields filled
-              const hasValidEnvironments = environments && environments.length > 0 && 
-                environments.every(env => 
+              const hasValidEnvironments = environments && environments.length > 0 &&
+                environments.every(env =>
                   env.name && env.name.trim() !== '' &&
                   env.environmentType &&
                   env.image && env.image.trim() !== ''
                 );
 
               // Node selector validation
-              const nodeSelectorValid = nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection'] || 
+              const nodeSelectorValid = nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection'] ||
                 selectedLabels.length > 0;
 
               const isDisabled = hasErrors || !hasTemplateName || !hasValidEnvironments || !nodeSelectorValid;
