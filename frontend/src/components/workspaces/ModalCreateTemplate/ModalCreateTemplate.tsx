@@ -53,9 +53,9 @@ export interface IModalCreateTemplateProps {
   isPersonal?: boolean;
 }
 
-export const STATUS_ICON_COLORS = {
-  on: '#52c41a', // Green
-  off: '#c1c1c1ff', // Red
+const STATUS_ICON_COLORS = {
+  on: '#52c41a',
+  off: '#c1c1c1ff',
 };
 
 const StatusIcon = ({ active }: { active: boolean }) => (
@@ -318,11 +318,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         destroyAfterInactivity: parseTimeoutString(initial.destroyAfterInactivity),
         deleteAfter: parseTimeoutString(initial.deleteAfter),
       });
-      /*setAutomaticStoppingEnabled(
-        (initial.inactivityTimeout) !== 'never' ||
-        (initial.destroyAfterInactivity) !== 'never' ||
-        (initial.deleteAfter) !== 'never',
-      );*/
       setIsPublicExposureEnabled(initial.allowPublicExposure ?? false);
       // Set node selector mode and labels based on template
       if (template.nodeSelector) {
@@ -361,7 +356,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         destroyAfterInactivity: { value: 0, unit: '' },
         deleteAfter: { value: 0, unit: '' },
       });
-      //setAutomaticStoppingEnabled(false);
       setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
       setSelectedLabels([]);
       setIsPublicExposureEnabled(false);
@@ -380,7 +374,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     'FixedSelection': 'Select specific node labels to constrain where instances can run',
   };
 
-  //const [automaticStoppingEnabled, setAutomaticStoppingEnabled] = useState(false);
   const [nodeSelectorMode, setNodeSelectorMode] = useState<string>(NodeSelectorOptionMap['NodeSelectorDisabled']);
   const [selectedLabels, setSelectedLabels] = useState<string[]>([]);
   const [isPublicExposureEnabled, setIsPublicExposureEnabled] = useState(false);
@@ -531,22 +524,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     return match || null;
   };
 
-  const handleEnablingCleanUp = (enabled: boolean) => {
-    //setAutomaticStoppingEnabled(enabled);
-    if (!enabled) {
-      // If disabling, reset timeouts to 0
-      setTimeouts({
-        inactivityTimeout: { value: 0, unit: '' },
-        destroyAfterInactivity: { value: 0, unit: '' },
-        deleteAfter: { value: 0, unit: '' },
-      });
-      form.setFieldValue('inactivityTimeout', { value: 0, unit: '' });
-      form.setFieldValue('destroyAfterInactivity', { value: 0, unit: '' });
-      form.setFieldValue('deleteAfter', { value: 0, unit: '' });
-      form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
-    }
-  };
-
   const automaticInstanceSavingResource = <>
     <style>{`
       .right-align-error .ant-form-item-explain-error {
@@ -558,7 +535,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         align-items: flex-start !important;
       }
     `}</style>
-    <Typography.Paragraph type="secondary italic" className="mb-4">
+    <Typography.Paragraph type="secondary" italic className="mb-4">
       Set the value to 0 to disable the corresponding feature
     </Typography.Paragraph>
     <Form.Item
