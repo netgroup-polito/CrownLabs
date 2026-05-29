@@ -3,7 +3,7 @@ import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
-import { InfoCircleOutlined } from '@ant-design/icons';
+import { InfoCircleOutlined, CheckSquareFilled, CloseSquareFilled } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
 import {
   useNodesLabelsQuery,
@@ -52,6 +52,17 @@ export interface IModalCreateTemplateProps {
   loading: boolean;
   isPersonal?: boolean;
 }
+
+export const STATUS_ICON_COLORS = {
+  on: '#52c41a', // Green
+  off: '#c1c1c1ff', // Red
+};
+
+const StatusIcon = ({ active }: { active: boolean }) => (
+  active
+    ? <CheckSquareFilled style={{ color: STATUS_ICON_COLORS.on }} />
+    : <CloseSquareFilled style={{ color: STATUS_ICON_COLORS.off }} />
+);
 
 const TimeUnitOptions = [
   { label: 'Minutes', value: 'm' },
@@ -815,7 +826,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             children: automaticInstanceSavingResource,
             style: panelStyle,
             forceRender: true,
-            extra: <><Text keyboard>{!isTimeUnitDisabled('inactivityTimeout') ? 'Stop ON' : 'Stop OFF'}</Text> <Text keyboard>{!isTimeUnitDisabled('destroyAfterInactivity') ? 'Delete ON' : 'Delete OFF'}</Text> <Text keyboard>{!isTimeUnitDisabled('deleteAfter') ? 'Expiration ON' : 'Expiration OFF'}</Text></>
+            extra: <><Text keyboard>Stop <StatusIcon active={!isTimeUnitDisabled('inactivityTimeout')} /></Text> <Text keyboard>Delete <StatusIcon active={!isTimeUnitDisabled('destroyAfterInactivity')} /></Text> <Text keyboard>Expiration <StatusIcon active={!isTimeUnitDisabled('deleteAfter')} /></Text></>
           },
           {
             key: '3',
@@ -823,7 +834,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             children: advancedFeaturesForm,
             forceRender: true,
             style: panelStyle,
-            extra: <><Text keyboard>{isPublicExposureEnabled ? 'Exposure ON' : 'Exposure OFF'}</Text> <Text keyboard>{nodeSelectorMode !== NodeSelectorOptionMap['NodeSelectorDisabled'] ? 'Node Selector ON' : 'Node Selector OFF'}</Text></>
+            extra: <><Text keyboard>Exposure <StatusIcon active={isPublicExposureEnabled} /></Text> <Text keyboard>Node Selector <StatusIcon active={nodeSelectorMode !== NodeSelectorOptionMap['NodeSelectorDisabled']} /></Text></>
           },
         ]} defaultActiveKey={['1']} />
 
