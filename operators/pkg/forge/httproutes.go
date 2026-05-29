@@ -55,7 +55,7 @@ type HTTPRouteSpecParams struct {
 }
 
 // HTTPRouteSpec forges the specification of a Kubernetes HTTPRoute resource.
-func HTTPRouteSpec(params HTTPRouteSpecParams, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
+func HTTPRouteSpec(params *HTTPRouteSpecParams, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
 	parentRef := buildParentReference(params.GatewayName, params.GatewayNamespace, params.GatewaySectionName)
 	rule := buildRouteRule(params.Path, params.ServiceName, servicePort, environment)
 
@@ -95,7 +95,7 @@ func buildRouteRule(path, serviceName string, servicePort int32, environment *cl
 	backendPort := gatewayv1.PortNumber(servicePort)
 	rewrite := RewriteFilterForEnvironment(environment)
 
-	// prepare filters: include rewrite filter only if non-nil
+	// Prepare filters
 	var filters []gatewayv1.HTTPRouteFilter
 	if rewrite != nil {
 		filters = append(filters, *rewrite)
