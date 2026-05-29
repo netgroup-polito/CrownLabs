@@ -45,7 +45,11 @@ spec:
             {{- toYaml .Values.securityContext | nindent 12 }}
           volumeMounts:
           - name: configuration
+            {{- if .Values.global.gatewayApiMode }}
+            mountPath: "{{ .Values.configuration.mountPath }}{{ .Values.httproute.path }}/{{ .Values.configuration.fileName }}"
+            {{- else }}
             mountPath: "{{ .Values.configuration.mountPath }}{{ .Values.ingress.path }}/{{ .Values.configuration.fileName }}"
+            {{- end }}
             subPath: "{{ .Values.configuration.fileName }}"
       volumes:
       - name: configuration
