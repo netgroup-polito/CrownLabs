@@ -72,7 +72,7 @@ var _ = Describe("HTTPRoute helpers (DRY)", func() {
 				GatewayNamespace:   gwNs,
 				GatewaySectionName: gwSection,
 			}
-			spec := forge.HTTPRouteSpec(params, env, svcPort)
+			spec := forge.HTTPRouteSpec(&params, env, svcPort)
 
 			// ParentRef assertions
 			Expect(spec.CommonRouteSpec.ParentRefs).To(HaveLen(1))
