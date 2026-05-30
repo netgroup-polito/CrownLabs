@@ -98,6 +98,7 @@ func main() {
 	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
 
 	enableAuth := flag.Bool("enable-auth", true, "Enable adding authentication on the exposed resources")
+	enableGatewayAPI := flag.Bool("enable-gateway-api", false, "Enable using Gateway API (HTTPRoute) instead of Ingress")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -180,6 +181,7 @@ func main() {
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
 		EnableAuthentication:      *enableAuth,
+		EnableGatewayAPI:          *enableGatewayAPI,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

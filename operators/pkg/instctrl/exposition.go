@@ -21,6 +21,7 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -87,32 +88,60 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	// Use the configured website base URL
 	host := r.ServiceUrls.WebsiteBaseURL
 
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
-	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
-		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
-		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
-		if ingressGUI.CreationTimestamp.IsZero() {
-			ingressGUI.Spec = forge.IngressSpec(host, forge.IngressGUIPath(instance, environment),
-				forge.IngressDefaultCertificateName, service.GetName(), forge.GUIPortName)
+	// Enforce the external exposure presence (HTTProute if Gateway API is enabled, Ingress otherwise)
+	if r.EnableGatewayAPI {
+		httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+		res, err = ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {
+			if httpRoute.CreationTimestamp.IsZero() {
+				params := &forge.HTTPRouteSpecParams{
+					Host:               host,
+					Path:               forge.HTTPRouteGUIPath(instance, environment),
+					ServiceName:        service.GetName(),
+					GatewayName:        "",
+					GatewayNamespace:   "",
+					GatewaySectionName: "",
+				}
+				httpRoute.Spec = forge.HTTPRouteSpec(params, environment, forge.GUIPortNumber)
+			}
+			httpRoute.SetLabels(forge.EnvironmentObjectLabels(httpRoute.GetLabels(), instance, environment))
+
+			return ctrl.SetControllerReference(instance, &httpRoute, r.Scheme)
+		})
+
+		if err != nil {
+			log.Error(err, "failed to create object", "httproute", klog.KObj(&httpRoute))
+			return err
 		}
-		ingressGUI.SetLabels(forge.EnvironmentObjectLabels(ingressGUI.GetLabels(), instance, environment))
 
-		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
+		log.V(utils.FromResult(res)).Info("object enforced", "httproute", klog.KObj(&httpRoute), "result", res)
+	} else {
+		ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+		res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
+			// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
+			// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
+			if ingressGUI.CreationTimestamp.IsZero() {
+				ingressGUI.Spec = forge.IngressSpec(host, forge.IngressGUIPath(instance, environment),
+					forge.IngressDefaultCertificateName, service.GetName(), forge.GUIPortName)
+			}
+			ingressGUI.SetLabels(forge.EnvironmentObjectLabels(ingressGUI.GetLabels(), instance, environment))
 
-		// Add authentication annotations only if enabled.
-		if r.EnableAuthentication {
-			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
+			ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
+
+			// Add authentication annotations only if enabled.
+			if r.EnableAuthentication {
+				ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
+			}
+
+			return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
+		})
+
+		if err != nil {
+			log.Error(err, "failed to create object", "ingress", klog.KObj(&ingressGUI))
+			return err
 		}
 
-		return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
-	})
-
-	if err != nil {
-		log.Error(err, "failed to create object", "ingress", klog.KObj(&ingressGUI))
-		return err
+		log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
 	}
-
-	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
 
 	return nil
 }
@@ -140,9 +169,16 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	}
 
 	// Enforce gui ingress absence
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
-	if err := utils.EnforceObjectAbsence(ctx, r.Client, &ingressGUI, "ingress"); err != nil {
-		return err
+	if r.EnableGatewayAPI {
+		httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+		if err := utils.EnforceObjectAbsence(ctx, r.Client, &httpRoute, "httproute"); err != nil {
+			return err
+		}
+	} else {
+		ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+		if err := utils.EnforceObjectAbsence(ctx, r.Client, &ingressGUI, "ingress"); err != nil {
+			return err
+		}
 	}
 
 	return nil

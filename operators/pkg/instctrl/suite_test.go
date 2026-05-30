@@ -29,6 +29,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -67,6 +68,7 @@ var _ = BeforeSuite(func() {
 
 	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(gatewayv1.Install(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
