@@ -96,20 +96,6 @@ func IngressAuthenticationAnnotations(annotations map[string]string, instancesAu
 	return annotations
 }
 
-// HostName returns the hostname based on the given EnvironmentScope.
-func HostName(baseHostName string, scope clv1alpha2.EnvironmentScope) string {
-	switch scope {
-	case clv1alpha2.ScopeStandard:
-		return baseHostName
-	case clv1alpha2.ScopeExam:
-		return "exam." + baseHostName
-	case clv1alpha2.ScopeExercise:
-		return "exercise." + baseHostName
-	}
-
-	return baseHostName
-}
-
 // IngressGUIPath returns the path of the ingress targeting the environment GUI vnc or Standalone.
 func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {

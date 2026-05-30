@@ -4,6 +4,7 @@
 
 global:
   version: "" # default set while packaging
+  gatewayApiMode: false
 
 createClusterRoles: true
 
@@ -207,7 +208,6 @@ instance-operator:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader
       contentUploaderImage: crownlabs/content-uploader
-      instmetricsServerEndpoint: crownlabs-instmetrics.crownlabs-production:9090
     containerVmSnapshots:
       kanikoImage: gcr.io/kaniko-project/executor
       exportImage: "crownlabs/img-exporter"
@@ -273,6 +273,23 @@ bastion-operator:
       path: /webssh
       pathType: Prefix
 
+# Gateway API core resources are rendered when gatewayAPI.enabled=true.
+# Application migration (Ingress vs HTTPRoute) remains controlled per app.
+gatewayAPI:
+  name: crownlabs-main
+  class: envoy-public
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production
+  listenerName: https
+  hostname: crownlabs.example.com
+  tls:
+    certificateRefName: crownlabs-main-gw-cert
+  allowedRoutesSimple:
+    key: "crownlabs.polito.it/gw-access"
+    value: "crownlabs-main-production"
+  # allowedRoutes: {}
+
+
 exam-agent:
   replicaCount: 1
   configurations:
@@ -284,17 +301,6 @@ exam-agent:
   image:
     repository: crownlabs/exam-agent
     pullPolicy: IfNotPresent
-
-instmetrics:
-  image:
-    repository: crownlabs/instmetrics
-  configurations:
-    runtimeEndpoint: unix:///run/dockershim.sock
-    containerRuntime: /run/dockershim.sock
-    dockerSocket: /var/run/docker.sock
-    connectionTimeout:  10s
-    updatePeriod: 4s
-    grpcPort: 9090
 
 policies:
   ingressHostnamePattern: s??????.sandbox.crownlabs.polito.it

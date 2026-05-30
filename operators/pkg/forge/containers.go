@@ -19,7 +19,6 @@ package forge
 import (
 	"fmt"
 	"strconv"
-	"strings"
 
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -70,9 +69,8 @@ var (
 
 // ContainerEnvOpts contains images name and tag for container environment.
 type ContainerEnvOpts struct {
-	ImagesTag           string
-	ContentToolsImg     string
-	InstMetricsEndpoint string
+	ImagesTag       string
+	ContentToolsImg string
 }
 
 // PVCSpec forges a PersistentVolumeClaimSpec with the passed arguments.
@@ -154,14 +152,13 @@ func DeploymentSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template
 // PodSpec forges the pod specification for X-VNC based container instance.
 func PodSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, opts *ContainerEnvOpts) corev1.PodSpec {
 	return corev1.PodSpec{
-		Containers:                    ContainersSpec(instance, environment, mountInfos, opts),
+		Containers:                    []corev1.Container{StandaloneContainer(instance, environment, PersistentMountPath(environment), mountInfos)},
 		Volumes:                       ContainerVolumes(instance, environment, mountInfos),
 		SecurityContext:               PodSecurityContext(),
 		AutomountServiceAccountToken:  ptr.To(false),
 		TerminationGracePeriodSeconds: ptr.To[int64](containersTerminationGracePeriod),
 		InitContainers:                InitContainers(instance, environment, opts),
 		EnableServiceLinks:            ptr.To(false),
-		Hostname:                      InstanceHostname(template),
 		NodeSelector:                  NodeSelectorLabels(instance, template),
 	}
 }
@@ -182,17 +179,6 @@ func SubmissionJobSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 				RestartPolicy:                corev1.RestartPolicyOnFailure,
 			},
 		},
-	}
-}
-
-// ContainersSpec returns the Containers obj based on Environment Type.
-func ContainersSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, _ *ContainerEnvOpts) []corev1.Container {
-	return []corev1.Container{
-		StandaloneContainer(
-			instance,
-			environment,
-			PersistentMountPath(environment),
-			mountInfos),
 	}
 }
 
@@ -475,15 +461,6 @@ func PersistentMountPath(environment *clv1alpha2.Environment) string {
 	}
 
 	return PersistentDefaultMountPath
-}
-
-// InstanceHostname forges the hostname of the instance:
-// empty for standard mode (will use pod name) or the lowercase mode otherwise.
-func InstanceHostname(template *clv1alpha2.Template) string {
-	if template.Spec.Scope != clv1alpha2.ScopeStandard {
-		return strings.ToLower(string(template.Spec.Scope))
-	}
-	return ""
 }
 
 // NodeSelectorLabels returns the node selector labels chosen
