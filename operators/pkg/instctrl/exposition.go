@@ -17,7 +17,7 @@ package instctrl
 import (
 	"context"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -53,7 +53,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	// Enforce the service presence
-	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+	service := corev1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
 		// Service specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the backend
@@ -134,7 +134,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	instance.Status.Environments[envIndex].IP = ""
 
 	// Enforce service absence
-	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+	service := corev1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &service, "service"); err != nil {
 		return err
 	}

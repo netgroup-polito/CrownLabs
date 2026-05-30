@@ -21,7 +21,7 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -151,7 +151,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha1.Workspace{}, builder.WithPredicates(pred)).
-		Owns(&v1.Namespace{}).
+		Owns(&corev1.Namespace{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.RoleBinding{}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Workspace")).

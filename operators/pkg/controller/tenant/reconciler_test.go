@@ -20,7 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -71,13 +71,13 @@ var _ = Describe("TenantReconciler", func() {
 		})
 
 		It("Should not create any resources", func() {
-			ns := &v1.Namespace{}
+			ns := &corev1.Namespace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, ns, BeFalse(), timeout, interval)
 		})
 
 		Context("When there are resources associated with the tenant", func() {
-			namespaceResource := &v1.Namespace{
+			namespaceResource := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "tenant-" + tnName,
 					Labels: map[string]string{
@@ -95,7 +95,7 @@ var _ = Describe("TenantReconciler", func() {
 			})
 
 			It("Should not delete the resources", func() {
-				ns := &v1.Namespace{}
+				ns := &corev1.Namespace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, ns, BeTrue(), timeout, interval)
 

@@ -20,7 +20,7 @@ import (
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -29,7 +29,7 @@ import (
 )
 
 // NFSDriveProvisioning enforces a job to provision the passed PVC, changing its owner and adding it a label when done.
-func NFSDriveProvisioning(ctx context.Context, log logr.Logger, c client.Client, pvc *v1.PersistentVolumeClaim, owner metav1.Object) (bool, error) {
+func NFSDriveProvisioning(ctx context.Context, log logr.Logger, c client.Client, pvc *corev1.PersistentVolumeClaim, owner metav1.Object) (bool, error) {
 	log = log.WithName("provisioning-job")
 
 	val, found := pvc.Labels[forge.ProvisionJobLabel]

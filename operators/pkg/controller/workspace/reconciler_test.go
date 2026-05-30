@@ -20,7 +20,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
@@ -69,7 +69,7 @@ var _ = Describe("WorkspaceReconciler", func() {
 		})
 
 		It("Should not create any resources", func() {
-			ns := &v1.Namespace{}
+			ns := &corev1.Namespace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "workspace-" + wsName}, ns, BeFalse(), timeout, interval)
 		})
@@ -86,7 +86,7 @@ var _ = Describe("WorkspaceReconciler", func() {
 			})
 
 			It("Should not delete the resources", func() {
-				ns := &v1.Namespace{}
+				ns := &corev1.Namespace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "workspace-" + wsName}, ns, BeTrue(), timeout, interval)
 

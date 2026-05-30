@@ -19,7 +19,7 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -33,7 +33,7 @@ func (r *Reconciler) enforceNamespace(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
-	ns := &v1.Namespace{
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetWorkspaceNamespaceName(ws),
 		},
@@ -62,7 +62,7 @@ func (r *Reconciler) enforceNamespaceAbsence(
 	ctx context.Context,
 	ws *v1alpha1.Workspace,
 ) error {
-	ns := &v1.Namespace{
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetWorkspaceNamespaceName(ws),
 		},

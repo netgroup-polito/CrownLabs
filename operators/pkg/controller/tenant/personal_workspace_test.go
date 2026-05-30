@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,7 +36,7 @@ import (
 var _ = Describe("Personal workspace handling", func() {
 	When("Tenant namespace exists", func() {
 		JustBeforeEach(func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeTrue(), timeout, interval)
 		})
 		When("Personal workspace is enabled", func() {
@@ -121,7 +121,7 @@ var _ = Describe("Personal workspace handling", func() {
 			tnResource.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second))))
 		})
 		JustBeforeEach(func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeFalse(), timeout, interval)
 		})
 		When("Personal workspace is enabled", func() {

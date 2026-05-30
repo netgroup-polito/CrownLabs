@@ -22,8 +22,8 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	batch "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +47,7 @@ var _ = Describe("InstancesnapshotController", func() {
 	)
 
 	var (
-		workingNs = v1.Namespace{
+		workingNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: WorkingNamespace,
@@ -55,8 +55,8 @@ var _ = Describe("InstancesnapshotController", func() {
 					"test-suite": "true",
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
 		templateEnvironment = crownlabsv1alpha2.TemplateSpec{
 			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
@@ -141,7 +141,7 @@ var _ = Describe("InstancesnapshotController", func() {
 		}
 
 		By("By checking that the namespace has been created")
-		createdNs := &v1.Namespace{}
+		createdNs := &corev1.Namespace{}
 
 		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
 		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval)
@@ -173,11 +173,11 @@ var _ = Describe("InstancesnapshotController", func() {
 
 			By("Changing the job status to completed and set Job start and end time")
 			jobLookupKey := types.NamespacedName{Name: newInstanceSnapshot.Name, Namespace: WorkingNamespace}
-			snapjob := &batch.Job{}
+			snapjob := &batchv1.Job{}
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
-			snapjob.Status.Conditions = []batch.JobCondition{
-				{Type: batch.JobComplete, Status: v1.ConditionTrue},
-				{Type: batch.JobSuccessCriteriaMet, Status: v1.ConditionTrue},
+			snapjob.Status.Conditions = []batchv1.JobCondition{
+				{Type: batchv1.JobComplete, Status: corev1.ConditionTrue},
+				{Type: batchv1.JobSuccessCriteriaMet, Status: corev1.ConditionTrue},
 			}
 			snapjob.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 			snapjob.Status.StartTime = &metav1.Time{Time: time.Now().Add(-4 * time.Minute)}
@@ -195,11 +195,11 @@ var _ = Describe("InstancesnapshotController", func() {
 
 			By("Changing the job status to completed without setting Job start and end time")
 			jobLookupKey := types.NamespacedName{Name: newInstanceSnapshot.Name, Namespace: WorkingNamespace}
-			snapjob := &batch.Job{}
+			snapjob := &batchv1.Job{}
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
-			snapjob.Status.Conditions = []batch.JobCondition{
-				{Type: batch.JobComplete, Status: v1.ConditionTrue},
-				{Type: batch.JobSuccessCriteriaMet, Status: v1.ConditionTrue},
+			snapjob.Status.Conditions = []batchv1.JobCondition{
+				{Type: batchv1.JobComplete, Status: corev1.ConditionTrue},
+				{Type: batchv1.JobSuccessCriteriaMet, Status: corev1.ConditionTrue},
 			}
 			snapjob.Status.StartTime = &metav1.Time{Time: time.Now()}
 			snapjob.Status.CompletionTime = &metav1.Time{Time: time.Now()}
@@ -288,11 +288,11 @@ var _ = Describe("InstancesnapshotController", func() {
 
 			By("Changing the job status to failed")
 			jobLookupKey := types.NamespacedName{Name: newInstanceSnapshot.Name, Namespace: WorkingNamespace}
-			snapjob := &batch.Job{}
+			snapjob := &batchv1.Job{}
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
-			snapjob.Status.Conditions = []batch.JobCondition{
-				{Type: batch.JobFailed, Status: v1.ConditionTrue},
-				{Type: batch.JobFailureTarget, Status: v1.ConditionTrue},
+			snapjob.Status.Conditions = []batchv1.JobCondition{
+				{Type: batchv1.JobFailed, Status: corev1.ConditionTrue},
+				{Type: batchv1.JobFailureTarget, Status: corev1.ConditionTrue},
 			}
 			snapjob.Status.StartTime = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Status().Update(ctx, snapjob)).Should(Succeed())
@@ -327,7 +327,7 @@ func checkIsnapSuccessfulCreation(ctx context.Context, isnap *crownlabsv1alpha2.
 
 	By("Checking if the job for the creation of the snapshot has been created")
 	jobLookupKey := types.NamespacedName{Name: isnap.Name, Namespace: workingNamespace}
-	createdJob := &batch.Job{}
+	createdJob := &batchv1.Job{}
 
 	doesEventuallyExists(ctx, jobLookupKey, createdJob, BeTrue(), timeout, interval)
 

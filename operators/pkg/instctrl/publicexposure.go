@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
@@ -42,7 +42,7 @@ func (r *InstanceReconciler) EnforcePublicExposure(ctx context.Context) error {
 		if hasOnlyOneEnvironment {
 			return r.enforcePublicExposurePresence(ctx)
 		}
-		r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvPublicExposureMultiEnv, EvPublicExposureMultiEnvMsg)
+		r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvPublicExposureMultiEnv, EvPublicExposureMultiEnvMsg)
 	}
 	return r.enforcePublicExposureAbsence(ctx)
 }
@@ -68,7 +68,7 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 		return err
 	}
 
-	service := &v1.Service{
+	service := &corev1.Service{
 		ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.LabelPublicExposureValue),
 	}
 
@@ -194,7 +194,7 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 // enforcePublicExposureAbsence ensures the absence of the LoadBalancer service.
 func (r *InstanceReconciler) enforcePublicExposureAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
-	service := &v1.Service{
+	service := &corev1.Service{
 		ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.LabelPublicExposureValue),
 	}
 
@@ -243,7 +243,7 @@ func needsServiceUpdate(specPorts, statusPorts, svcPorts []clv1alpha2.PublicServ
 	type portKey struct {
 		Name     string
 		Target   int32
-		Protocol v1.Protocol
+		Protocol corev1.Protocol
 	}
 
 	// Build set of keys from spec

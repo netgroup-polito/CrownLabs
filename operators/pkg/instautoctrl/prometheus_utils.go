@@ -21,7 +21,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/api"
-	v1 "github.com/prometheus/client_golang/api/prometheus/v1"
+	prometheusv1 "github.com/prometheus/client_golang/api/prometheus/v1"
 	"github.com/prometheus/common/model"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -38,7 +38,7 @@ type Prometheus struct {
 	queryBastionSSHData      string
 	queryWebSSHData          string
 	queryStep                time.Duration
-	client                   v1.API
+	client                   prometheusv1.API
 }
 
 // NewPrometheusObj creates a new Prometheus client with the given configuration.
@@ -54,7 +54,7 @@ func NewPrometheusObj(
 		return nil, err
 	}
 
-	v1api := v1.NewAPI(client)
+	v1api := prometheusv1.NewAPI(client)
 
 	return &Prometheus{
 		address:                  address,
@@ -140,7 +140,7 @@ func (p *Prometheus) GetLastActivityTime(query string, interval time.Duration) (
 	end := time.Now()
 	start := end.Add(-interval)
 
-	r := v1.Range{
+	r := prometheusv1.Range{
 		Start: start,
 		End:   end,
 		Step:  p.queryStep,

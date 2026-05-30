@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -113,7 +113,7 @@ func (r *Reconciler) enforcePersonalNamespace(
 	ctx context.Context,
 	tn *v1alpha2.Tenant,
 ) error {
-	ns := v1.Namespace{
+	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetTenantNamespaceName(tn),
 		},
@@ -140,7 +140,7 @@ func (r *Reconciler) enforcePersonalNamespaceAbsence(
 	log logr.Logger,
 	tn *v1alpha2.Tenant,
 ) error {
-	ns := v1.Namespace{
+	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetTenantNamespaceName(tn),
 		},
@@ -224,7 +224,7 @@ func (r *Reconciler) enforceResourceQuota(
 
 	// update or create the resource quota
 	nsName := forge.GetTenantNamespaceName(tn)
-	rq := v1.ResourceQuota{
+	rq := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-resource-quota",
 			Namespace: nsName,
@@ -248,7 +248,7 @@ func (r *Reconciler) enforceResourceQuotaAbsence(
 	tn *v1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
-	rq := v1.ResourceQuota{
+	rq := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-resource-quota",
 			Namespace: nsName,

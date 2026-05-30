@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -51,7 +51,7 @@ func init() {
 var _ = Describe("Namespace management", func() {
 	Context("When tenant needs namespace resources", func() {
 		It("Should create the personal namespace", func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
@@ -63,7 +63,7 @@ var _ = Describe("Namespace management", func() {
 		})
 
 		It("Should create the resource quota", func() {
-			rq := &v1.ResourceQuota{}
+			rq := &corev1.ResourceQuota{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{
 				Name:      "crownlabs-resource-quota",
 				Namespace: "tenant-" + tnName,
@@ -124,7 +124,7 @@ var _ = Describe("Namespace management", func() {
 
 	Context("When tenant namespace should be deleted", func() {
 		JustBeforeEach(func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
@@ -145,13 +145,13 @@ var _ = Describe("Namespace management", func() {
 		})
 
 		It("Should delete the namespace resources", func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeFalse(), 10*time.Second, 250*time.Millisecond)
 		})
 
 		It("Should delete the resource quota", func() {
-			rq := &v1.ResourceQuota{}
+			rq := &corev1.ResourceQuota{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{
 				Name:      "crownlabs-resource-quota",
 				Namespace: "tenant-" + tnName,
@@ -185,7 +185,7 @@ var _ = Describe("Namespace management", func() {
 
 	Context("When tenant has instances running", func() {
 		JustBeforeEach(func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
@@ -222,13 +222,13 @@ var _ = Describe("Namespace management", func() {
 		})
 
 		It("Should keep the namespace when instances are running", func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 		})
 
 		It("Should keep the resource quota when instances are running", func() {
-			rq := &v1.ResourceQuota{}
+			rq := &corev1.ResourceQuota{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{
 				Name:      "crownlabs-resource-quota",
 				Namespace: "tenant-" + tnName,
@@ -276,7 +276,7 @@ var _ = Describe("Namespace management", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			Consistently(func() error {
 				return cl.Get(ctx, client.ObjectKey{Name: "tenant-" + tnName}, namespace)
 			}, 2*time.Second, 250*time.Millisecond).Should(HaveOccurred())
@@ -306,7 +306,7 @@ var _ = Describe("Namespace management", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-test-tenant-with-dots"},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
@@ -351,7 +351,7 @@ var _ = Describe("Namespace management", func() {
 				WithObjects(tnResource).
 				WithInterceptorFuncs(interceptor.Funcs{
 					Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
-						if _, ok := obj.(*v1.Namespace); ok {
+						if _, ok := obj.(*corev1.Namespace); ok {
 							return fmt.Errorf("simulated delete error for Namespace")
 						}
 						return client.Delete(ctx, obj, opts...)
@@ -405,7 +405,7 @@ var _ = Describe("Namespace management", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 		})
@@ -424,7 +424,7 @@ var _ = Describe("Namespace management", func() {
 			})
 			Expect(err).ToNot(HaveOccurred())
 
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 		})
@@ -435,13 +435,13 @@ var _ = Describe("Namespace management", func() {
 				WithObjects().
 				WithInterceptorFuncs(interceptor.Funcs{
 					Create: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
-						if _, ok := obj.(*v1.ResourceQuota); ok {
+						if _, ok := obj.(*corev1.ResourceQuota); ok {
 							return fmt.Errorf("simulated create error for ResourceQuota")
 						}
 						return client.Create(ctx, obj, opts...)
 					},
 					Update: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
-						if _, ok := obj.(*v1.ResourceQuota); ok {
+						if _, ok := obj.(*corev1.ResourceQuota); ok {
 							return fmt.Errorf("simulated update error for ResourceQuota")
 						}
 						return client.Update(ctx, obj, opts...)
@@ -565,13 +565,13 @@ var _ = Describe("Namespace management", func() {
 				WithObjects().
 				WithInterceptorFuncs(interceptor.Funcs{
 					Create: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
-						if _, ok := obj.(*v1.Namespace); ok {
+						if _, ok := obj.(*corev1.Namespace); ok {
 							return fmt.Errorf("simulated create error for Namespace")
 						}
 						return client.Create(ctx, obj, opts...)
 					},
 					Update: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
-						if _, ok := obj.(*v1.Namespace); ok {
+						if _, ok := obj.(*corev1.Namespace); ok {
 							return fmt.Errorf("simulated update error for Namespace")
 						}
 						return client.Update(ctx, obj, opts...)
@@ -833,7 +833,7 @@ var _ = Describe("Namespace management", func() {
 				WithObjects(tnResource).
 				WithInterceptorFuncs(interceptor.Funcs{
 					Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
-						if _, ok := obj.(*v1.ResourceQuota); ok {
+						if _, ok := obj.(*corev1.ResourceQuota); ok {
 							return fmt.Errorf("simulated delete error for ResourceQuota")
 						}
 						return client.Delete(ctx, obj, opts...)
@@ -860,11 +860,11 @@ var _ = Describe("Namespace management", func() {
 
 	})
 	When("Namespace is absent", func() {
-		var testNamespace *v1.Namespace
+		var testNamespace *corev1.Namespace
 		BeforeEach(func() {
 			tnResource.Status.PersonalNamespace.Created = true
 			tnResource.Status.PersonalNamespace.Name = tnPersonalNamespace
-			testNamespace = &v1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tnPersonalNamespace}}
+			testNamespace = &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: tnPersonalNamespace}}
 			addObjToObjectsList(testNamespace)
 			tnResource.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second))))
 		})
@@ -894,13 +894,13 @@ var _ = Describe("Namespace management", func() {
 					removeObjFromObjectsList(testTemplate)
 				})
 				It("Should keep the namespace", func() {
-					ns := &v1.Namespace{}
+					ns := &corev1.Namespace{}
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
 				})
 			})
 			When("Personal workspace does not have templates", func() {
 				It("Should delete the namespace", func() {
-					ns := &v1.Namespace{}
+					ns := &corev1.Namespace{}
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeFalse(), timeout, interval)
 				})
 			})
@@ -917,7 +917,7 @@ var _ = Describe("Namespace management", func() {
 					tnReconcileErrExpected = HaveOccurred()
 				})
 				It("Should keep the namespace", func() {
-					ns := &v1.Namespace{}
+					ns := &corev1.Namespace{}
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
 				})
 			})
@@ -927,7 +927,7 @@ var _ = Describe("Namespace management", func() {
 				tnResource.Spec.PersonalWorkspace = nil
 			})
 			It("Should delete the namespace", func() {
-				ns := &v1.Namespace{}
+				ns := &corev1.Namespace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeFalse(), timeout, interval)
 			})
 		})
@@ -942,7 +942,7 @@ var _ = Describe("Namespace management", func() {
 				}
 			})
 			It("Should keep the namespace", func() {
-				ns := &v1.Namespace{}
+				ns := &corev1.Namespace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
 			})
 		})
@@ -951,7 +951,7 @@ var _ = Describe("Namespace management", func() {
 				tnResource.Spec.PersonalWorkspace = nil
 			})
 			It("Should keep the namespace", func() {
-				ns := &v1.Namespace{}
+				ns := &corev1.Namespace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, ns, BeTrue(), timeout, interval)
 			})
 		})

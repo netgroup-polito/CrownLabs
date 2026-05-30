@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -75,7 +75,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.SharedVolume{}).
-		Owns(&v1.PersistentVolumeClaim{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&batchv1.Job{}).
 		Watches(&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(r.getDeletingSharedVolumes)).
@@ -166,7 +166,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
 
 	// Create or Update the PVC, reconciling it with the SharedVolume spec.
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
+	pvc := corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
 		Name:      forge.ShVolPVCName(shvolume.GetName()),
 		Namespace: shvolume.GetNamespace(),
 	}}
@@ -188,14 +188,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 		// Set Error phase if ShVol size is forbidden (less than previous)
 		if sizeDiff := shvolume.Spec.Size.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
-			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: shvolume.Spec.Size}
+			pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: shvolume.Spec.Size}
 
 			log.V(utils.LogDebugLevel).Info("Size updated",
 				"previous", oldSize, "current", shvolume.Spec.Size)
 		} else if sizeDiff < 0 {
 			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
 			log.Error(fmt.Errorf("forbidden: size smaller than previous"), "Phase transitioned to Error")
-			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVCSmaller, EvPVCSmallerMsg)
+			r.EventsRecorder.Eventf(&shvolume, corev1.EventTypeWarning, EvPVCSmaller, EvPVCSmallerMsg)
 
 			// Must return now (do not add code below or add return here).
 		}
@@ -206,7 +206,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		if isResourceQuotaExceeded(err) {
 			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseResourceQuotaExceeded
 			log.Error(fmt.Errorf("forbidden: resource quota exceeded"), "Phase transitioned to ResourceQuotaExceeded")
-			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVCResQuotaExceeded, EvPVCResQuotaExceededMsg)
+			r.EventsRecorder.Eventf(&shvolume, corev1.EventTypeWarning, EvPVCResQuotaExceeded, EvPVCResQuotaExceededMsg)
 			err = nil
 		} else {
 			log.Error(err, "Unable to create or update PVC")
@@ -222,8 +222,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// Update SharedVolume Status and start provisioning if PVC is Bound
-	if pvc.Status.Phase == v1.ClaimBound {
-		pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
+	if pvc.Status.Phase == corev1.ClaimBound {
+		pv := corev1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
 		if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
 			log.Error(err, "Unable to get PV")
 			return ctrl.Result{}, err
@@ -282,7 +282,7 @@ func (r *Reconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol 
 	}
 
 	if found {
-		r.EventsRecorder.Eventf(shvol, v1.EventTypeWarning, EvDeletionBlocked, EvDeletionBlockedMsg, mountedList)
+		r.EventsRecorder.Eventf(shvol, corev1.EventTypeWarning, EvDeletionBlocked, EvDeletionBlockedMsg, mountedList)
 		log.Info("blocked deletion, shvol is mounted on some templates")
 	} else {
 		ctrlUtil.RemoveFinalizer(shvol, clv1alpha2.ShVolCtrlFinalizerName)

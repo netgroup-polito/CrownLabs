@@ -21,7 +21,7 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,7 +55,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 	)
 
 	var (
-		workingNs = v1.Namespace{
+		workingNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: WorkingNamespace,
@@ -63,10 +63,10 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/operator-selector": "test-suite",
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
-		tenantNs = v1.Namespace{
+		tenantNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: TenantName,
@@ -75,8 +75,8 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/tenant":            TenantName,
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
 		templatePersistentEnvironment = crownlabsv1alpha2.TemplateSpec{
 			WorkspaceRef: crownlabsv1alpha2.GenericRef{},

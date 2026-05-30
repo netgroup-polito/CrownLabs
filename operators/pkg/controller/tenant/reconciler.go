@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -239,10 +239,10 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&v1alpha2.Tenant{}, builder.WithPredicates(pred)).
-		Owns(&v1.Secret{}).
-		Owns(&v1.PersistentVolumeClaim{}).
-		Owns(&v1.Namespace{}).
-		Owns(&v1.ResourceQuota{}).
+		Owns(&corev1.Secret{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&corev1.Namespace{}).
+		Owns(&corev1.ResourceQuota{}).
 		Owns(&rbacv1.RoleBinding{}).
 		Owns(&rbacv1.ClusterRole{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
