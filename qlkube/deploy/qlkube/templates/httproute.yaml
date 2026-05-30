@@ -14,8 +14,6 @@ spec:
 {{- if .Values.httproute.gateway.namespace }}
       namespace: {{ .Values.httproute.gateway.namespace }}
 {{- end }}
-  hostnames:
-    - {{ .Values.httproute.hostname }}
   rules:
     - matches:
         - path:

@@ -32,11 +32,6 @@ qlkube:
   rbacResourcesName: crownlabs-qlkube
   ingress:
     hostname: qlkube.crownlabs.example.com
-  httproute:
-    gateway:
-      # name: crownlabs-gw
-      # namespace: envoy-gateway-system
-    hostname: qlkube.crownlabs.example.com
   harborToken: {}
   configuration:
     exposedAPIs:

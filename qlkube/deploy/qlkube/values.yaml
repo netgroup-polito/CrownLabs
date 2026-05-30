@@ -78,6 +78,8 @@ service:
   type: ClusterIP
   port: 8080
 
+global: {}
+
 ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
@@ -92,7 +94,6 @@ ingress:
 httproute:
   gateway:
     name: crownlabs-main
-  hostname: qlkube.crownlabs.example.com
   path: /graph
 
 resources:
