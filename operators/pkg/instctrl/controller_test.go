@@ -64,12 +64,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 	RunReconciler := func() error {
 		_, err := instanceReconciler.Reconcile(ctx, reconcile.Request{
-			NamespacedName: forge.NamespacedName(&instance),
+			NamespacedName: forge.NamespacedNameFromObject(&instance),
 		})
 		if err != nil {
 			return err
 		}
-		return k8sClient.Get(ctx, forge.NamespacedName(&instance), &instance)
+		return k8sClient.Get(ctx, forge.NamespacedNameFromObject(&instance), &instance)
 	}
 
 	BeforeEach(func() {

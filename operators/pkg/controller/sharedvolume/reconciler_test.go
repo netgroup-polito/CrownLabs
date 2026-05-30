@@ -55,12 +55,12 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 
 	RunReconciler := func() error {
 		_, err := shvolReconciler.Reconcile(ctx, reconcile.Request{
-			NamespacedName: forge.NamespacedNameFromSharedVolume(&shvol),
+			NamespacedName: forge.NamespacedNameFromObject(&shvol),
 		})
 		if err != nil {
 			return err
 		}
-		return k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)
+		return k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)
 	}
 
 	PVCNamespacedName := func(shvol *clv1alpha2.SharedVolume) types.NamespacedName {
@@ -252,7 +252,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 						})
 
 						It("Should smoothly delete the shared volume", func() {
-							err := k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)
+							err := k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)
 							Expect(kerrors.IsNotFound(err)).To(BeTrue())
 						})
 
@@ -278,7 +278,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 						})
 
 						It("Should not delete the shared volume and transition to Deleting", func() {
-							err := k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)
+							err := k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(shvol.Status.Phase).To(Equal(clv1alpha2.SharedVolumePhaseDeleting))
 						})
@@ -317,7 +317,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 						})
 
 						It("Should transition to phase Error", func() {
-							Expect(k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)).To(Succeed())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)).To(Succeed())
 							Expect(shvol.Status.Phase).To(Equal(clv1alpha2.SharedVolumePhaseError))
 
 							Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)).To(Succeed())
