@@ -79,12 +79,12 @@ func main() {
 	var enablePmp bool
 	var enableKeycloak bool
 	var enableImageList bool
-	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
-	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
-	flag.BoolVar(&enableInstance, "enable-instance", true, "Enable the instance controller.")
-	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", true, "Enable the sharedvolume controller.")
-	flag.BoolVar(&enablePmp, "enable-pmp", true, "Enable the PVC mirror provisioner.")
-	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
+	flag.BoolVar(&enableTenant, "enable-tenant", false, "Enable the tenant controller.")
+	flag.BoolVar(&enableWorkspace, "enable-workspace", false, "Enable the workspace controller.")
+	flag.BoolVar(&enableInstance, "enable-instance", false, "Enable the instance controller.")
+	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", false, "Enable the sharedvolume controller.")
+	flag.BoolVar(&enablePmp, "enable-pmp", false, "Enable the PVC mirror provisioner.")
+	flag.BoolVar(&enableKeycloak, "enable-keycloak", false, "Enable the Keycloak integration.")
 	flag.BoolVar(&enableImageList, "enable-imagelist", false, "Enable the image list updater.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
