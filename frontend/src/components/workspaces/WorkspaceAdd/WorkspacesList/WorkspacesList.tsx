@@ -30,6 +30,7 @@ const WorkspacesList: FC<IWorkspaceListProps> = ({ ...args }) => {
         columns={columns}
         dataSource={workspacesAvailable}
         pagination={false}
+        className="w-full"
       />
     </div>
   ) : (
