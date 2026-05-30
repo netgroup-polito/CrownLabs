@@ -52,7 +52,7 @@ func CheckLabels(ns *corev1.Namespace, matchLabels map[string]string) bool {
 // TODO: Delete this and CheckLabels when the instctrl and instautoctrl will be converted to a KVLabel selector.
 func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceName string, matchLabels map[string]string) (bool, error) {
 	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
-	ns := corev1.Namespace{}
+	var ns corev1.Namespace
 
 	// It performs reconciliation only if the resource belongs to whitelisted namespaces
 	// by checking the existence of keys in the namespace of the resource.
@@ -72,7 +72,7 @@ func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceN
 // CheckNamespaceTargetLabel checks if the given namespace has the specified target label where to perform reconciliation.
 func CheckNamespaceTargetLabel(ctx context.Context, k8sClient client.Client, namespaceName string, targetLabel common.KVLabel) (bool, error) {
 	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
-	ns := corev1.Namespace{}
+	var ns corev1.Namespace
 
 	if err := k8sClient.Get(ctx, namespaceLookupKey, &ns); err != nil {
 		return false, fmt.Errorf("error when retrieving namespace %q: %w", namespaceName, err)
@@ -85,7 +85,7 @@ func CheckNamespaceTargetLabel(ctx context.Context, k8sClient client.Client, nam
 // (which supports both equality and set-based requirements, i.e. =, !=, in, notin, exists).
 func CheckNamespaceWithSelector(ctx context.Context, k8sClient client.Client, namespaceName, selectorString string) (bool, error) {
 	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
-	ns := corev1.Namespace{}
+	var ns corev1.Namespace
 
 	if err := k8sClient.Get(ctx, namespaceLookupKey, &ns); err != nil {
 		return false, fmt.Errorf("error when retrieving namespace %q: %w", namespaceName, err)

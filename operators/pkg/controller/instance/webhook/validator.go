@@ -48,7 +48,7 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 
 	// Get the instance's template
 	instanceTemplate := &v1alpha2.Template{}
-	if err := cl.Get(ctx, types.NamespacedName{Name: instance.Spec.Template.Name, Namespace: instance.Spec.Template.Namespace}, instanceTemplate); err != nil {
+	if err := cl.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), instanceTemplate); err != nil {
 		return warnings, fmt.Errorf("failed to get instance template: %w", err)
 	}
 

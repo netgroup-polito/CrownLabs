@@ -91,7 +91,7 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 	inst := ih.EmptyInstanceFromRequest(r)
 	log = log.WithValues("instance", inst.Name)
 
-	if err := ih.Client.Get(r.Context(), forge.NamespacedName(inst), inst); err != nil {
+	if err := ih.Client.Get(r.Context(), forge.NamespacedNameFromObject(inst), inst); err != nil {
 		if errors.IsNotFound(err) {
 			log.Error(err, "instance not found")
 			WriteError(w, r, log, http.StatusNotFound, "The requested Instance does not exist.")
