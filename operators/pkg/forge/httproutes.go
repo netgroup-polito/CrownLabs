@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO not here
-//   - TLS: configure on the Gateway;
-//   - Auth (auth-url/auth-signin): use SecurityPolicy;
-
 package forge
 
 import (
