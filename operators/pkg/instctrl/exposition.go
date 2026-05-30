@@ -89,9 +89,11 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	host := r.ServiceUrls.WebsiteBaseURL
 
 	// Enforce the external exposure presence (HTTProute if Gateway API is enabled, Ingress otherwise)
-	if r.EnableGatewayAPI {
+	if r.GatewayAPIMode {
 		httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 		res, err = ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {
+			// HTTPRoute specifications are forged only at creation time, to prevent issues in case of updates.
+			// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 			if httpRoute.CreationTimestamp.IsZero() {
 				params := &forge.HTTPRouteSpecParams{
 					Host:               host,
@@ -168,8 +170,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 		return err
 	}
 
-	// Enforce gui ingress absence
-	if r.EnableGatewayAPI {
+	// Enforce the external exposure absence (HTTPRoute if Gateway API is enabled, Ingress otherwise)
+	if r.GatewayAPIMode {
 		httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 		if err := utils.EnforceObjectAbsence(ctx, r.Client, &httpRoute, "httproute"); err != nil {
 			return err
