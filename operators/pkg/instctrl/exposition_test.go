@@ -153,7 +153,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 			ServiceUrls:          instctrl.ServiceUrls{WebsiteBaseURL: host, InstancesAuthURL: instancesAuthURL},
 			EventsRecorder:       record.NewFakeRecorder(1024),
 			EnableAuthentication: enableAuth,
-			EnableGatewayAPI:     enableGateway,
+			GatewayAPIMode:       enableGateway,
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
