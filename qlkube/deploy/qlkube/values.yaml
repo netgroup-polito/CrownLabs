@@ -86,8 +86,14 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 
   hostname: qlkube.crownlabs.example.com
-  path: /
+  path: /graph
   secret: qlkube-certificate
+
+httproute:
+  gateway:
+    name: crownlabs-main
+  hostname: qlkube.crownlabs.example.com
+  path: /graph
 
 resources:
   limits:
