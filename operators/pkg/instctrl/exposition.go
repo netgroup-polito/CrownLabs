@@ -116,6 +116,14 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		}
 
 		log.V(utils.FromResult(res)).Info("object enforced", "httproute", klog.KObj(&httpRoute), "result", res)
+
+		// TODO HTTPROUTE: it makes sense to enforce the absence of the Ingress resource even in Gateway API mode, to prevent conflicts in case of a live flag change?
+		// // If an Ingress with the same ObjectMeta exists (e.g. flag changed live), remove it.
+		// ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+		// if err := utils.EnforceObjectAbsence(ctx, r.Client, &ingressGUI, "ingress"); err != nil {
+		// 	log.Error(err, "failed to delete conflicting ingress", "ingress", klog.KObj(&ingressGUI))
+		// 	return err
+		// }
 	} else {
 		ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 		res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
@@ -143,6 +151,14 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		}
 
 		log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
+
+		// TODO HTTPROUTE: it makes sense to enforce the absence of the HTTPRoute resource even in non-Gateway API mode, to prevent conflicts in case of a live flag change?
+		// // If an HTTPRoute with the same ObjectMeta exists (e.g. flag changed live), remove it.
+		// httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+		// if err := utils.EnforceObjectAbsence(ctx, r.Client, &httpRoute, "httproute"); err != nil {
+		// 	log.Error(err, "failed to delete conflicting httproute", "httproute", klog.KObj(&httpRoute))
+		// 	return err
+		// }
 	}
 
 	return nil
