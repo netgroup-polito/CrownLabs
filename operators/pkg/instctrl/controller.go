@@ -55,6 +55,7 @@ type InstanceReconciler struct {
 	PublicExposureOpts        forge.PublicExposureOpts
 	MirrorPVCStorageClassName string
 	EnableAuthentication      bool
+	EnableGatewayAPI          bool
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,

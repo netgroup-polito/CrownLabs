@@ -34,6 +34,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -74,9 +75,14 @@ var _ = Describe("Generation of the exposition environment", func() {
 		ingressGUIName types.NamespacedName
 		ingress        netv1.Ingress
 
+		httpRouteName types.NamespacedName
+		httpRoute     gatewayv1.HTTPRoute
+
 		ownerRef metav1.OwnerReference
 
 		err error
+
+		enableGateway bool
 	)
 
 	const (
@@ -120,6 +126,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		serviceName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
 		ingressGUIName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
+		httpRouteName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
 
 		service = corev1.Service{}
 		ingress = netv1.Ingress{}
@@ -135,6 +142,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		enableAuth = false
 		instancesAuthURL = ""
+		enableGateway = false
 	})
 
 	JustBeforeEach(func() {
@@ -145,6 +153,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 			ServiceUrls:          instctrl.ServiceUrls{WebsiteBaseURL: host, InstancesAuthURL: instancesAuthURL},
 			EventsRecorder:       record.NewFakeRecorder(1024),
 			EnableAuthentication: enableAuth,
+			EnableGatewayAPI:     enableGateway,
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -215,6 +224,17 @@ var _ = Describe("Generation of the exposition environment", func() {
 		InstanceStatusExpected: "",
 	}
 
+	DescribeBodyParametersHTTPRoute := DescribeBodyParameters{
+		NamespacedName: &httpRouteName, Object: &httpRoute, GroupResource: schema.GroupResource{Group: gatewayv1.GroupVersion.Group, Resource: "httproutes"},
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
+			params := &forge.HTTPRouteSpecParams{Host: host, Path: forge.HTTPRouteGUIPath(inst, &environment), ServiceName: serviceName.Name}
+			return forge.HTTPRouteSpec(params, &environment, forge.GUIPortNumber)
+		},
+		EmptySpec:              gatewayv1.HTTPRouteSpec{},
+		InstanceStatusGetter:   func(_ *clv1alpha2.Instance) string { return "" },
+		InstanceStatusExpected: "",
+	}
+
 	Context("The instance is running", func() {
 		BeforeEach(func() { instance.Spec.Running = true })
 
@@ -223,6 +243,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 				return svc.Spec
 			} else if ing, ok := obj.(*netv1.Ingress); ok {
 				return ing.Spec
+			} else if hr, ok := obj.(*gatewayv1.HTTPRoute); ok {
+				return hr.Spec
 			}
 			Fail("Unexpected resource type " + reflect.TypeOf(obj).String())
 			return nil
@@ -301,14 +323,27 @@ var _ = Describe("Generation of the exposition environment", func() {
 			When("it is already present", func() {
 				BeforeEach(func() {
 					svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
-					ingGUI := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressGUIName)}
-
 					svc.SetCreationTimestamp(metav1.NewTime(time.Now()))
-					ingGUI.SetCreationTimestamp(metav1.NewTime(time.Now()))
-
 					svc.Spec.ClusterIP = clusterIP
 
-					clientBuilder.WithObjects(&svc, &ingGUI)
+					// prepare objects to pre-seed in the fake client depending on the resource under test
+					objs := []client.Object{&svc}
+
+					// if testing ingresses, pre-seed the ingress object
+					if p.GroupResource.Resource == "ingresses" {
+						ingGUI := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressGUIName)}
+						ingGUI.SetCreationTimestamp(metav1.NewTime(time.Now()))
+						objs = append(objs, &ingGUI)
+					}
+
+					// if testing httproutes, pre-seed the HTTPRoute object
+					if p.GroupResource.Resource == "httproutes" {
+						hr := gatewayv1.HTTPRoute{ObjectMeta: forge.NamespacedNameToObjectMeta(*p.NamespacedName)}
+						hr.SetCreationTimestamp(metav1.NewTime(time.Now()))
+						objs = append(objs, &hr)
+					}
+
+					clientBuilder.WithObjects(objs...)
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
@@ -396,6 +431,17 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 			Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 			Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUIContainer) })
+
+			Context("When Gateway API is enabled", func() {
+				BeforeEach(func() { enableGateway = true })
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassContainer
+					environment.GuiEnabled = true
+				})
+
+				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+				Describe("Assessing the GUI HTTPRoute presence", func() { DescribeBodyPresent(DescribeBodyParametersHTTPRoute) })
+			})
 		})
 
 		Context("The instance is multi-environment", func() {
@@ -456,5 +502,25 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		Describe("Assessing the service deletion", func() { DescribeBody(DescribeBodyParametersService) })
 		Describe("Assessing the GUI ingress deletion", func() { DescribeBody(DescribeBodyParametersIngressGUI) })
+
+		Context("When Gateway API is enabled for deletion", func() {
+			BeforeEach(func() { enableGateway = true })
+
+			BeforeEach(func() {
+				// prepare objects: service and HTTPRoute
+				svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
+				hr := gatewayv1.HTTPRoute{ObjectMeta: forge.NamespacedNameToObjectMeta(httpRouteName)}
+				svc.SetCreationTimestamp(metav1.NewTime(time.Now()))
+				hr.SetCreationTimestamp(metav1.NewTime(time.Now()))
+				clientBuilder.WithObjects(&svc, &hr)
+			})
+
+			It("Should delete the HTTPRoute and clear status", func() {
+				Expect(err).ToNot(HaveOccurred())
+				notFoundError := kerrors.NewNotFound(schema.GroupResource{Group: gatewayv1.GroupVersion.Group, Resource: "httproutes"}, httpRouteName.Name)
+				Expect(reconciler.Get(ctx, httpRouteName, &httpRoute)).To(MatchError(notFoundError))
+				Expect(instance.Status.Environments[0].IP).To(BeIdenticalTo(""))
+			})
+		})
 	})
 })
