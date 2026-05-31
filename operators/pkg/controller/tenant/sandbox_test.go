@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Sandbox", func() {
@@ -84,7 +84,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -110,7 +110,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -136,7 +136,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -162,7 +162,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -241,7 +241,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())

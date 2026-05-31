@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -115,11 +115,11 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 		return fmt.Errorf("mail client is not configured")
 	}
 
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
-	tenant := pkgcontext.TenantFrom(ctx)
+	tenant := clctx.TenantFrom(ctx)
 	if tenant == nil {
 		return fmt.Errorf("tenant not found in context")
 	}
@@ -145,7 +145,7 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.
 func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return nil, fmt.Errorf("instance not found in context")
 	}

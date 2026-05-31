@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -48,7 +48,7 @@ var _ = Describe("MyDrive management", func() {
 
 	BeforeEach(func() {
 		// Set namespace status to created
-		tnResource.Status.PersonalNamespace = v1alpha2.NameCreated{
+		tnResource.Status.PersonalNamespace = clv1alpha2.NameCreated{
 			Name:    "tenant-" + tnName,
 			Created: true,
 		}
@@ -334,7 +334,7 @@ var _ = Describe("MyDrive management", func() {
 	Context("When tenant namespace does not exist", func() {
 		BeforeEach(func() {
 			// Set namespace status to not created
-			tnResource.Status.PersonalNamespace = v1alpha2.NameCreated{
+			tnResource.Status.PersonalNamespace = clv1alpha2.NameCreated{
 				Created: false,
 			}
 			tnResource.Spec.LastLogin = timePtr(metav1.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC))

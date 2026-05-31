@@ -28,7 +28,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -226,7 +226,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 
 					// Labels and Finalizers on ShVol
 					Expect(shvol.Labels[forge.LabelManagedByKey]).To(Equal("sharedvolume"))
-					Expect(ctrlUtil.ContainsFinalizer(&shvol, clv1alpha2.ShVolCtrlFinalizerName))
+					Expect(ctrlutil.ContainsFinalizer(&shvol, clv1alpha2.ShVolCtrlFinalizerName))
 				})
 
 				Context("The shared volume deletion should be handled correctly", func() {
@@ -329,7 +329,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 
 			AfterEach(func() {
 				Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pv)).To(Succeed())
-				ctrlUtil.RemoveFinalizer(&pv, "kubernetes.io/pv-protection")
+				ctrlutil.RemoveFinalizer(&pv, "kubernetes.io/pv-protection")
 				_ = k8sClient.Update(ctx, &pv)
 				_ = k8sClient.Delete(ctx, &pv)
 			})
@@ -337,7 +337,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 
 		AfterEach(func() {
 			Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)).To(Succeed())
-			ctrlUtil.RemoveFinalizer(&pvc, "kubernetes.io/pvc-protection")
+			ctrlutil.RemoveFinalizer(&pvc, "kubernetes.io/pvc-protection")
 			_ = k8sClient.Update(ctx, &pvc)
 			_ = k8sClient.Delete(ctx, &pvc)
 		})

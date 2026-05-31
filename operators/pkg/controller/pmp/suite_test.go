@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/pmp"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
@@ -70,7 +70,7 @@ var _ = BeforeSuite(func() {
 		Client:                k8sClient,
 		Config:                cfg,
 		Logger:                logger,
-		TargetLabel:           common.NewLabel("crownlabs.polito.it/operator-selector", "local"),
+		TargetLabel:           ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "local"),
 		MirrorStorageClass:    mirrorStorageClassName,
 		MirrorProvisionerName: mirrorProvisionerName,
 	}

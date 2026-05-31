@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var namespaceResource = &corev1.Namespace{
@@ -53,7 +53,7 @@ var _ = Describe("Namespace", func() {
 		})
 
 		It("Should update the workspace status with the namespace name", func() {
-			ws := &v1alpha1.Workspace{}
+			ws := &clv1alpha1.Workspace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -80,7 +80,7 @@ var _ = Describe("Namespace", func() {
 			})
 
 			It("Should set the namespace status in the workspace to not created", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -88,7 +88,7 @@ var _ = Describe("Namespace", func() {
 			})
 
 			It("Should set the workspace status to not ready", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -104,7 +104,7 @@ var _ = Describe("Namespace", func() {
 
 		Context("When the namespace exists", func() {
 			BeforeEach(func() {
-				wsResource.Status.Namespace = v1alpha2.NameCreated{
+				wsResource.Status.Namespace = clv1alpha2.NameCreated{
 					Created: true,
 					Name:    "workspace-" + wsName,
 				}
@@ -138,13 +138,13 @@ var _ = Describe("Namespace", func() {
 				})
 
 				It("Should prevent the workspace from being deleted", func() {
-					ws := &v1alpha1.Workspace{}
+					ws := &clv1alpha1.Workspace{}
 
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 				})
 
 				It("Should not remove the namespace from the workspace status", func() {
-					ws := &v1alpha1.Workspace{}
+					ws := &clv1alpha1.Workspace{}
 
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -153,7 +153,7 @@ var _ = Describe("Namespace", func() {
 				})
 
 				It("Should set the workspace status to not ready", func() {
-					ws := &v1alpha1.Workspace{}
+					ws := &clv1alpha1.Workspace{}
 
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 

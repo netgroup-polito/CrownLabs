@@ -35,7 +35,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -62,7 +62,7 @@ type PvcMirrorProvisioner struct {
 	Client                client.Client
 	Config                *rest.Config
 	Logger                logr.Logger
-	TargetLabel           common.KVLabel
+	TargetLabel           ctrlcommon.KVLabel
 	MirrorStorageClass    string
 	MirrorProvisionerName string
 }

@@ -20,23 +20,23 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var _ = Describe("Namespace forging", func() {
 	var (
-		workspace *v1alpha1.Workspace
+		workspace *clv1alpha1.Workspace
 		labels    map[string]string
 	)
 
 	BeforeEach(func() {
-		workspace = &v1alpha1.Workspace{
+		workspace = &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-workspace",
 			},
-			Spec: v1alpha1.WorkspaceSpec{
+			Spec: clv1alpha1.WorkspaceSpec{
 				PrettyName: "Test Workspace",
 			},
 		}
@@ -105,7 +105,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("GetTenantNamespaceName", func() {
 		It("Should format namespace name correctly for simple tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -116,7 +116,7 @@ var _ = Describe("Namespace forging", func() {
 		})
 
 		It("Should replace dots with dashes in tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "s123456.student",
 				},
@@ -129,7 +129,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("ConfigureTenantNamespace", func() {
 		It("Should initialize labels if nil and set required labels", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -150,7 +150,7 @@ var _ = Describe("Namespace forging", func() {
 		})
 
 		It("Should preserve existing labels and add new ones", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -181,7 +181,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("GetTenantNamespaceName", func() {
 		It("Should format namespace name correctly for simple tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -192,7 +192,7 @@ var _ = Describe("Namespace forging", func() {
 		})
 
 		It("Should replace dots with dashes in tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "s123456.student",
 				},
@@ -205,7 +205,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("ConfigureTenantNamespace", func() {
 		It("Should initialize labels if nil and set required labels", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -226,7 +226,7 @@ var _ = Describe("Namespace forging", func() {
 		})
 
 		It("Should preserve existing labels and add new ones", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},

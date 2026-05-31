@@ -29,14 +29,14 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var (
@@ -44,8 +44,8 @@ var (
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(testScheme))
-	utilruntime.Must(v1alpha2.AddToScheme(testScheme))
+	utilruntime.Must(scheme.AddToScheme(testScheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(testScheme))
 }
 
 var _ = Describe("Namespace management", func() {
@@ -128,7 +128,7 @@ var _ = Describe("Namespace management", func() {
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -189,7 +189,7 @@ var _ = Describe("Namespace management", func() {
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName},
 				namespace, BeTrue(), 10*time.Second, 250*time.Millisecond)
 
-			instance := &v1alpha2.Instance{
+			instance := &clv1alpha2.Instance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-instance",
 					Namespace: "tenant-" + tnName,
@@ -197,7 +197,7 @@ var _ = Describe("Namespace management", func() {
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.InstanceSpec{
+				Spec: clv1alpha2.InstanceSpec{
 					Running: true,
 				},
 			}
@@ -205,7 +205,7 @@ var _ = Describe("Namespace management", func() {
 			err := cl.Create(ctx, instance)
 			Expect(err).ToNot(HaveOccurred())
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err = cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -263,7 +263,7 @@ var _ = Describe("Namespace management", func() {
 	Context("When testing edge cases and error scenarios", func() {
 		It("Should handle tenant with LastLogin field unset correctly", func() {
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -283,14 +283,14 @@ var _ = Describe("Namespace management", func() {
 		})
 
 		It("Should handle namespace with dots in tenant name", func() {
-			tenantWithDots := &v1alpha2.Tenant{
+			tenantWithDots := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "test.tenant.with.dots",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.TenantSpec{
+				Spec: clv1alpha2.TenantSpec{
 					FirstName: "Test",
 					LastName:  "TenantDots",
 					Email:     "test.dots@tenant.example",
@@ -320,7 +320,7 @@ var _ = Describe("Namespace management", func() {
 				WithObjects(tnResource).
 				WithInterceptorFuncs(interceptor.Funcs{
 					List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-						if _, ok := list.(*v1alpha2.InstanceList); ok {
+						if _, ok := list.(*clv1alpha2.InstanceList); ok {
 							return fmt.Errorf("simulated list error")
 						}
 						return client.List(ctx, list, opts...)
@@ -328,7 +328,7 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err := interceptorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -359,7 +359,7 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err := errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -377,12 +377,12 @@ var _ = Describe("Namespace management", func() {
 		})
 
 		It("Should handle multiple instances in namespace", func() {
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
 			for i := 0; i < 3; i++ {
-				instance := &v1alpha2.Instance{
+				instance := &clv1alpha2.Instance{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      fmt.Sprintf("test-instance-%d", i),
 						Namespace: "tenant-" + tnName,
@@ -390,7 +390,7 @@ var _ = Describe("Namespace management", func() {
 							"crownlabs.polito.it/operator-selector": "test",
 						},
 					},
-					Spec: v1alpha2.InstanceSpec{Running: true},
+					Spec: clv1alpha2.InstanceSpec{Running: true},
 				}
 				err := cl.Create(ctx, instance)
 				Expect(err).ToNot(HaveOccurred())
@@ -411,7 +411,7 @@ var _ = Describe("Namespace management", func() {
 		})
 
 		It("Should test recent login time", func() {
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -449,14 +449,14 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			tenantForError := &v1alpha2.Tenant{
+			tenantForError := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "error-tenant",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.TenantSpec{
+				Spec: clv1alpha2.TenantSpec{
 					FirstName: "Error",
 					LastName:  "Tenant",
 					Email:     "error@tenant.example",
@@ -495,7 +495,7 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -532,14 +532,14 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			tenantForNetpolError := &v1alpha2.Tenant{
+			tenantForNetpolError := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "netpol-error-tenant",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.TenantSpec{
+				Spec: clv1alpha2.TenantSpec{
 					FirstName: "NetPol",
 					LastName:  "Error",
 					Email:     "netpol@error.example",
@@ -579,14 +579,14 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			tenantForNsError := &v1alpha2.Tenant{
+			tenantForNsError := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "ns-error-tenant",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.TenantSpec{
+				Spec: clv1alpha2.TenantSpec{
 					FirstName: "Namespace",
 					LastName:  "Error",
 					Email:     "ns@error.example",
@@ -626,14 +626,14 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			tenantForRbError := &v1alpha2.Tenant{
+			tenantForRbError := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "rb-error-tenant",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.TenantSpec{
+				Spec: clv1alpha2.TenantSpec{
 					FirstName: "RoleBinding",
 					LastName:  "Error",
 					Email:     "rb@error.example",
@@ -673,14 +673,14 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			tenantForDenyError := &v1alpha2.Tenant{
+			tenantForDenyError := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "deny-error-tenant",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.TenantSpec{
+				Spec: clv1alpha2.TenantSpec{
 					FirstName: "Deny",
 					LastName:  "Error",
 					Email:     "deny@error.example",
@@ -720,14 +720,14 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			tenantForAllowError := &v1alpha2.Tenant{
+			tenantForAllowError := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "allow-error-tenant",
 					Labels: map[string]string{
 						"crownlabs.polito.it/operator-selector": "test",
 					},
 				},
-				Spec: v1alpha2.TenantSpec{
+				Spec: clv1alpha2.TenantSpec{
 					FirstName: "Allow",
 					LastName:  "Error",
 					Email:     "allow@error.example",
@@ -767,7 +767,7 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -804,7 +804,7 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -841,7 +841,7 @@ var _ = Describe("Namespace management", func() {
 				}).
 				Build()
 
-			updatedTenant := &v1alpha2.Tenant{}
+			updatedTenant := &clv1alpha2.Tenant{}
 			err = errorClient.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 			Expect(err).ToNot(HaveOccurred())
 
@@ -873,16 +873,16 @@ var _ = Describe("Namespace management", func() {
 		})
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+				tnResource.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),
 				}
 			})
 			When("Personal workspace has templates", func() {
-				var testTemplate *v1alpha2.Template
+				var testTemplate *clv1alpha2.Template
 				BeforeEach(func() {
-					testTemplate = &v1alpha2.Template{
+					testTemplate = &clv1alpha2.Template{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test-template",
 							Namespace: tnPersonalNamespace,
@@ -908,7 +908,7 @@ var _ = Describe("Namespace management", func() {
 				BeforeEach(func() {
 					builder = *builder.WithInterceptorFuncs(interceptor.Funcs{
 						List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-							if _, ok := list.(*v1alpha2.TemplateList); ok {
+							if _, ok := list.(*clv1alpha2.TemplateList); ok {
 								return fmt.Errorf("simulated error on template list")
 							}
 							return client.List(ctx, list, opts...)
@@ -935,7 +935,7 @@ var _ = Describe("Namespace management", func() {
 	When("Namespace is present", func() {
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+				tnResource.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),

@@ -32,11 +32,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -48,7 +48,7 @@ const (
 // Reconciler reconciles a SharedVolume object.
 type Reconciler struct {
 	client.Client
-	TargetLabel     common.KVLabel
+	TargetLabel     ctrlcommon.KVLabel
 	EventsRecorder  record.EventRecorder
 	PVCStorageClass string
 
@@ -140,7 +140,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		log.Info("Processing delete request")
 		shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseDeleting
 
-		if ctrlUtil.ContainsFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName) {
+		if ctrlutil.ContainsFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName) {
 			if err := r.handleDeletion(ctx, log, &shvolume); err != nil {
 				log.Error(err, "failed handling deletion request")
 				return ctrl.Result{}, err
@@ -237,7 +237,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			return ctrl.Result{}, err
 		} else if done {
 			original := shvolume.DeepCopy()
-			ctrlUtil.AddFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName)
+			ctrlutil.AddFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName)
 			if err := r.Patch(ctx, &shvolume, client.MergeFrom(original)); err != nil {
 				log.Error(err, "failed adding finalizer")
 				return ctrl.Result{}, err
@@ -285,7 +285,7 @@ func (r *Reconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol 
 		r.EventsRecorder.Eventf(shvol, corev1.EventTypeWarning, EvDeletionBlocked, EvDeletionBlockedMsg, mountedList)
 		log.Info("blocked deletion, shvol is mounted on some templates")
 	} else {
-		ctrlUtil.RemoveFinalizer(shvol, clv1alpha2.ShVolCtrlFinalizerName)
+		ctrlutil.RemoveFinalizer(shvol, clv1alpha2.ShVolCtrlFinalizerName)
 		if err := r.Update(ctx, shvol); err != nil {
 			log.Error(err, "failed removing finalizer")
 			return err

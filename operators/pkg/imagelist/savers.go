@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -70,7 +70,7 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 	key := types.NamespacedName{Name: s.name}
 	err := s.client.Get(s.ctx, key, imageList)
 	if err != nil {
-		if errors.IsNotFound(err) {
+		if kerrors.IsNotFound(err) {
 			// Create new ImageList
 			newList := &clv1alpha1.ImageList{
 				ObjectMeta: metav1.ObjectMeta{

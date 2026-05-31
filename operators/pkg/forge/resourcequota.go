@@ -18,7 +18,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
@@ -48,8 +48,8 @@ var (
 )
 
 // TenantResourceList forges the WorkspaceResourceQuota as the sum of all quota for each workspace plus the personal workspace quota.
-func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuota *common.WorkspaceResourceQuota) common.WorkspaceResourceQuota {
-	var quota common.WorkspaceResourceQuota
+func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuota *apicommon.WorkspaceResourceQuota) apicommon.WorkspaceResourceQuota {
+	var quota apicommon.WorkspaceResourceQuota
 
 	// sum all quota for each existing workspace
 	for i := range workspaces {
@@ -80,7 +80,7 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuot
 }
 
 // TenantResourceQuotaSpec converts a WorkspaceResourceQuota to a ResourceQuota's resource list.
-func TenantResourceQuotaSpec(quota *common.WorkspaceResourceQuota) corev1.ResourceList {
+func TenantResourceQuotaSpec(quota *apicommon.WorkspaceResourceQuota) corev1.ResourceList {
 	return corev1.ResourceList{
 		corev1.ResourceLimitsCPU:      quota.CPU,
 		corev1.ResourceLimitsMemory:   quota.Memory,

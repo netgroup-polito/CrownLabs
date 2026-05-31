@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 var _ = Describe("WorkspaceReconciler", func() {
@@ -49,7 +49,7 @@ var _ = Describe("WorkspaceReconciler", func() {
 
 	Context("When the resource is not found in the cluster", func() {
 		BeforeEach(func() {
-			wsResource = &v1alpha1.Workspace{}
+			wsResource = &clv1alpha1.Workspace{}
 		})
 
 		It("Should not return an error", func() {
@@ -96,7 +96,7 @@ var _ = Describe("WorkspaceReconciler", func() {
 	})
 
 	It("Should add the finalizer to the workspace resource", func() {
-		ws := &v1alpha1.Workspace{}
+		ws := &clv1alpha1.Workspace{}
 
 		DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -107,7 +107,7 @@ var _ = Describe("WorkspaceReconciler", func() {
 		BeforeEach(func() {
 			builder.WithInterceptorFuncs(interceptor.Funcs{
 				Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-					if ws, ok := obj.(*v1alpha1.Workspace); ok && ws.Name == wsName {
+					if ws, ok := obj.(*clv1alpha1.Workspace); ok && ws.Name == wsName {
 						return fmt.Errorf("failed to add finalizer")
 					}
 					return nil
@@ -131,7 +131,7 @@ var _ = Describe("WorkspaceReconciler", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-						if ws, ok := obj.(*v1alpha1.Workspace); ok && ws.Name == wsName {
+						if ws, ok := obj.(*clv1alpha1.Workspace); ok && ws.Name == wsName {
 							return fmt.Errorf("failed to remove finalizer")
 						}
 						return nil
@@ -146,7 +146,7 @@ var _ = Describe("WorkspaceReconciler", func() {
 			})
 
 			It("Should prevent the deletion of the workspace resource", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 			})

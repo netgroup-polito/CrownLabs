@@ -20,7 +20,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -72,9 +72,9 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 		ObjectMeta: forge.ObjectMetaWithSuffix(instance, forge.LabelPublicExposureValue),
 	}
 
-	op, err := controllerutil.CreateOrUpdate(ctx, r.Client, service, func() error {
+	op, err := ctrlutil.CreateOrUpdate(ctx, r.Client, service, func() error {
 		// Set owner reference
-		if err := controllerutil.SetControllerReference(instance, service, r.Scheme); err != nil {
+		if err := ctrlutil.SetControllerReference(instance, service, r.Scheme); err != nil {
 			return err
 		}
 
