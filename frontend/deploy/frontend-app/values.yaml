@@ -49,12 +49,19 @@ service:
   type: ClusterIP
   port: 80
 
+global: {}
+
 ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
   hostname: crownlabs.example.com
   path: /
   secret: frontend-app-certificate
+
+httproute:
+  gateway:
+    name: crownlabs-main
+  path: /
 
 resources:
   limits:

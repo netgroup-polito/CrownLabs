@@ -33,11 +33,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+)
+
+const (
+	phaseFieldIndex = "phase"
 )
 
 // Reconciler reconciles a SharedVolume object.
@@ -55,11 +60,25 @@ type Reconciler struct {
 
 // SetupWithManager registers a new controller for SharedVolume resources.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
+	// Register index to filter by phase
+	if err := mgr.GetFieldIndexer().IndexField(
+		context.Background(),
+		&clv1alpha2.SharedVolume{},
+		phaseFieldIndex,
+		func(obj client.Object) []string {
+			shvol := obj.(*clv1alpha2.SharedVolume)
+			return []string{string(shvol.Status.Phase)}
+		},
+	); err != nil {
+		return err
+	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.SharedVolume{}).
 		Owns(&v1.PersistentVolumeClaim{}).
 		Owns(&batchv1.Job{}).
-		//FIXME: Should also Watch for Templates in case it's in Deleting phase
+		Watches(&clv1alpha2.Template{},
+			handler.EnqueueRequestsFromMapFunc(r.getDeletingSharedVolumes)).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}).
@@ -275,4 +294,35 @@ func (r *Reconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol 
 	}
 
 	return nil
+}
+
+// getDeletingSharedVolumes returns reconciliation requests for SharedVolumes in Deleting phase so they can be reenqueued,
+// since the SharedVolumes cannot be deleted until all Templates have removed their mounts.
+func (r *Reconciler) getDeletingSharedVolumes(ctx context.Context, obj client.Object) []ctrl.Request {
+	var enqueues []ctrl.Request
+	var shvols clv1alpha2.SharedVolumeList
+
+	log := ctrl.LoggerFrom(ctx, "woken-by-template", types.NamespacedName{
+		Namespace: obj.GetNamespace(),
+		Name:      obj.GetName(),
+	})
+
+	filter := client.MatchingFields{
+		phaseFieldIndex: string(clv1alpha2.SharedVolumePhaseDeleting),
+	}
+	if err := r.List(ctx, &shvols, filter); err != nil {
+		log.Error(err, "could not retrieve SharedVolumes in Deleting phase")
+		return nil
+	}
+
+	for i := range shvols.Items {
+		enqueues = append(enqueues, ctrl.Request{
+			NamespacedName: forge.NamespacedNameFromSharedVolume(&shvols.Items[i]),
+		})
+	}
+
+	if len(enqueues) > 0 {
+		log.Info("enqueuing requests for sharedvolumes in deleting phase", "requests", enqueues)
+	}
+	return enqueues
 }

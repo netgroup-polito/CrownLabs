@@ -60,6 +60,9 @@ var _ = Describe("Generation of the exposition environment", func() {
 		clientBuilder fake.ClientBuilder
 		reconciler    instctrl.InstanceReconciler
 
+		enableAuth       bool
+		instancesAuthURL string
+
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
 		template    clv1alpha2.Template
@@ -97,7 +100,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: templateName},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
-				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -130,15 +132,19 @@ var _ = Describe("Generation of the exposition environment", func() {
 			BlockOwnerDeletion: ptr.To(true),
 			Controller:         ptr.To(true),
 		}
+
+		enableAuth = false
+		instancesAuthURL = ""
 	})
 
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
 		reconciler = instctrl.InstanceReconciler{
-			Client:         client,
-			Scheme:         scheme.Scheme,
-			ServiceUrls:    instctrl.ServiceUrls{WebsiteBaseURL: host},
-			EventsRecorder: record.NewFakeRecorder(1024),
+			Client:               client,
+			Scheme:               scheme.Scheme,
+			ServiceUrls:          instctrl.ServiceUrls{WebsiteBaseURL: host, InstancesAuthURL: instancesAuthURL},
+			EventsRecorder:       record.NewFakeRecorder(1024),
+			EnableAuthentication: enableAuth,
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -221,6 +227,54 @@ var _ = Describe("Generation of the exposition environment", func() {
 			Fail("Unexpected resource type " + reflect.TypeOf(obj).String())
 			return nil
 		}
+
+		Describe("Authentication annotations", func() {
+			Context("when authentication is enabled and InstancesAuthURL is set", func() {
+				BeforeEach(func() {
+					enableAuth = true
+					instancesAuthURL = "https://auth.example.com"
+				})
+
+				It("adds auth annotations to the GUI ingress", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
+					ann := ingress.GetAnnotations()
+					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-url", "https://auth.example.com/auth"))
+					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-signin", "https://auth.example.com/start?rd=$escaped_request_uri"))
+					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/proxy-read-timeout", "3600"))
+				})
+			})
+
+			Context("when authentication is enabled and InstancesAuthURL is empty", func() {
+				BeforeEach(func() {
+					enableAuth = true
+					instancesAuthURL = ""
+				})
+
+				It("adds relative auth annotations to the GUI ingress", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
+					ann := ingress.GetAnnotations()
+					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-url", "/auth"))
+					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-signin", "/start?rd=$escaped_request_uri"))
+				})
+			})
+
+			Context("when authentication is disabled", func() {
+				BeforeEach(func() {
+					enableAuth = false
+					instancesAuthURL = "https://auth.example.com"
+				})
+
+				It("does not add auth annotations to the GUI ingress", func() {
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
+					ann := ingress.GetAnnotations()
+					Expect(ann).ToNot(HaveKey("nginx.ingress.kubernetes.io/auth-url"))
+					Expect(ann).ToNot(HaveKey("nginx.ingress.kubernetes.io/auth-signin"))
+				})
+			})
+		})
 
 		DescribeBodyPresent := func(p DescribeBodyParameters) {
 			When("it is not yet present", func() {
