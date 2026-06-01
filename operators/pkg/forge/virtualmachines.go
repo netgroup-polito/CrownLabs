@@ -29,6 +29,9 @@ import (
 const (
 	urlDockerPrefix = "docker://"
 
+	cloudVMSourcePVCNamespace = "cldprog-5-block-vms-tests"
+	cloudVMSourcePVCName      = "debian-nginx-raw-block"
+
 	//nolint:gosec // The constant refers to the name of a secret, and it is not a secret itself.
 	registryCredentialsSecretName = "registry-credentials"
 	//nolint:gosec // The constant refers to the name of a secret, and it is not a secret itself.
@@ -265,12 +268,7 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 // DataVolumeSourceForge forges the DataVolumeSource for DataVolumeTemplate.
 func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
-		return &cdiv1beta1.DataVolumeSource{
-			PVC: &cdiv1beta1.DataVolumeSourcePVC{
-				Namespace: "cldprog-5-block-vms-tests", // Es. "crownlabs-system"
-				Name:      "debian-nginx-raw-block",    // Es. "ubuntu-golden-image"
-			},
-		}
+		return nil
 	}
 	return &cdiv1beta1.DataVolumeSource{
 		Registry: &cdiv1beta1.DataVolumeSourceRegistry{
@@ -282,21 +280,34 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 
 // DataVolumeTemplate forges the DataVolume template associated with a given environment.
 func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1.DataVolumeTemplateSpec {
-	return virtv1.DataVolumeTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec: cdiv1beta1.DataVolumeSpec{
-			Source: DataVolumeSourceForge(environment),
-			PVC: &corev1.PersistentVolumeClaimSpec{
-				VolumeMode:       ptr.To(corev1.PersistentVolumeBlock),
-				AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
-				StorageClassName: VMDataVolumeStorageClassName(environment),
-				Resources: corev1.VolumeResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: environment.Resources.Disk,
-					},
-				},
+	pvcSpec := &corev1.PersistentVolumeClaimSpec{
+		VolumeMode:       ptr.To(corev1.PersistentVolumeBlock),
+		AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+		StorageClassName: VMDataVolumeStorageClassName(environment),
+		Resources: corev1.VolumeResourceRequirements{
+			Requests: corev1.ResourceList{
+				corev1.ResourceStorage: environment.Resources.Disk,
 			},
 		},
+	}
+
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
+		pvcSpec.DataSourceRef = &corev1.TypedObjectReference{
+			APIGroup:  nil,
+			Kind:      "PersistentVolumeClaim",
+			Namespace: ptr.To(cloudVMSourcePVCNamespace),
+			Name:      cloudVMSourcePVCName,
+		}
+	}
+
+	spec := cdiv1beta1.DataVolumeSpec{PVC: pvcSpec}
+	if environment.EnvironmentType != clv1alpha2.ClassCloudVM {
+		spec.Source = DataVolumeSourceForge(environment)
+	}
+
+	return virtv1.DataVolumeTemplateSpec{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec:       spec,
 	}
 }
 
