@@ -87,14 +87,14 @@ ingress:
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 
-  hostname: qlkube.crownlabs.example.com
+  # Note: this hostname is not used in Gateway API mode
+  hostname: crownlabs.example.com
   path: /graph
-  secret: qlkube-certificate
+  secret: frontend-app-certificate
 
 httproute:
   gateway:
     name: crownlabs-main
-  path: /graph
 
 resources:
   limits:

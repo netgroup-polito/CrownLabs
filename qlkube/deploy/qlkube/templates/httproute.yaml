@@ -18,7 +18,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ .Values.httproute.path }}
+            value: {{ .Values.ingress.path }}
       backendRefs:
         - group: ""
           kind: Service

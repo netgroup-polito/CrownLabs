@@ -9,6 +9,7 @@ const { printSchema } = require('graphql');
 const { createServer } = require('http');
 const { WebSocketServer } = require('ws');
 const { useServer } = require('graphql-ws/lib/use/ws');
+const cors = require('cors');
 const repl = require('repl');
 const { setupSubscriptions } = require('./decorateSubscription');
 const { getOpenApiSpec } = require('./oas');
@@ -182,6 +183,7 @@ async function main() {
 
   app.use(
     basePath,
+    cors(),
     express.json(),
     expressMiddleware(server, {
       context: async ({ req }) => {

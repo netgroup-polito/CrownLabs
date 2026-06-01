@@ -31,7 +31,7 @@ qlkube:
     repository: crownlabs/qlkube
   rbacResourcesName: crownlabs-qlkube
   ingress:
-    hostname: qlkube.crownlabs.example.com
+    hostname: crownlabs.example.com
   harborToken: {}
   configuration:
     exposedAPIs:
