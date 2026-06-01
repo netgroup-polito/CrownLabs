@@ -71,6 +71,7 @@ const (
 	labelManagedByWorkspaceValue = "workspace"
 	labelManagedByShVolValue     = "sharedvolume"
 	labelTypeWorkspaceValue      = "workspace"
+	labelTypeTenantValue         = "tenant"
 	labelTypeSandboxValue        = "sandbox"
 
 	labelAllowInstanceAccessKey   = "crownlabs.polito.it/allow-instance-access"
@@ -264,6 +265,22 @@ func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLab
 	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
 	labels[labelFirstNameKey] = CleanTenantName(tenant.Spec.FirstName)
 	labels[labelLastNameKey] = CleanTenantName(tenant.Spec.LastName)
+
+	return labels
+}
+
+// TenantNamespaceLabels receives in input a set of labels and returns the updated set for a tenant namespace.
+func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel, allowedRoutesLabel common.KVLabel) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
+	labels[LabelTypeKey] = labelTypeTenantValue
+	labels[LabelTenantKey] = tenant.Name
+	if allowedRoutesLabel.GetKey() != "" {
+		labels[allowedRoutesLabel.GetKey()] = allowedRoutesLabel.GetValue()
+	}
+	labels["crownlabs.polito.it/name"] = tenant.Name
+	labels["crownlabs.polito.it/instance-resources-replication"] = "true"
 
 	return labels
 }

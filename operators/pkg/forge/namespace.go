@@ -56,11 +56,6 @@ func ConfigureTenantNamespace(ns *corev1.Namespace, tn *clv1alpha2.Tenant, label
 		ns.Labels = make(map[string]string)
 	}
 
-	// Copy the provided labels
+	// Copy the provided labels (already composed by caller)
 	maps.Copy(ns.Labels, labels)
-
-	// Set tenant-specific labels
-	ns.Labels["crownlabs.polito.it/type"] = "tenant"
-	ns.Labels["crownlabs.polito.it/name"] = tn.Name
-	ns.Labels["crownlabs.polito.it/instance-resources-replication"] = "true"
 }

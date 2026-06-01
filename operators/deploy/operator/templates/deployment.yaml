@@ -35,6 +35,7 @@ spec:
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
             - "--target-label={{ .Values.configurations.targetLabel }}"
+            - "--allowed-routes-label={{ .Values.configurations.allowedRoutesLabel }}"
             - "--keycloak-url={{ .Values.configurations.keycloak.url }}"
             - "--keycloak-realm={{ .Values.configurations.keycloak.realm }}"
             - "--keycloak-client-id=$(KEYCLOAK_TENANT_OPERATOR_CLIENT_ID)"

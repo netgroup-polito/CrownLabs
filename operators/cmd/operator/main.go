@@ -56,12 +56,14 @@ func main() {
 	var healthProbeAddr string
 	var enableLeaderElection bool
 	var targetLabelStr string
+	var allowedRoutesLabelStr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&targetLabelStr, "target-label", "", "The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value")
+	flag.StringVar(&allowedRoutesLabelStr, "allowed-routes-label", "", "The key=value pair label that tenant namespaces must expose to be selected by Gateway allowedRoutes. A single pair in the format key=value")
 	flag.DurationVar(&reschedule.RequeueAfterMin, "reschedule-min", reschedule.RequeueAfterMin,
 		"Minimum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
@@ -115,6 +117,10 @@ func main() {
 	if err != nil {
 		klog.Fatal(err, "Unable to parse target label")
 	}
+	allowedRoutesLabel, err := common.ParseLabel(allowedRoutesLabelStr)
+	if err != nil {
+		klog.Fatal(err, "Unable to parse allowed routes label")
+	}
 	log.Info("Selecting resources with label", "label", targetLabelStr)
 
 	// enabling Keycloak if modules that needs it are enabled
@@ -130,7 +136,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setupTenant(mgr, log, targetLabel)
+		err := setupTenant(mgr, log, targetLabel, allowedRoutesLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}

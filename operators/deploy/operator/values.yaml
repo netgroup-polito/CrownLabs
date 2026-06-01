@@ -16,6 +16,8 @@ configurations:
     imageList: true
 
   targetLabel: crownlabs.polito.it/operator-selector=production
+  # This label is also applied to tenant namespaces so Gateway allowedRoutes can select them.
+  allowedRoutesLabel: crownlabs.polito.it/gw-access=crownlabs-main-production
   keycloak:
     url: "https://auth.crownlabs.example.com/"
     realm: crownlabs
