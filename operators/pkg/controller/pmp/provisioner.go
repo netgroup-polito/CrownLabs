@@ -166,7 +166,7 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 	}
 
 	// Compare actual and requested VolumeMode
-	if *originPV.Spec.VolumeMode != *mirrorPVC.Spec.VolumeMode {
+	if ptr.Deref(originPV.Spec.VolumeMode, corev1.PersistentVolumeFilesystem) != ptr.Deref(mirrorPVC.Spec.VolumeMode, corev1.PersistentVolumeFilesystem) {
 		p.Logger.Info("Warning: VolumeMode requested differs from the actual in the origin.")
 	}
 
