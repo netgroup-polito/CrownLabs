@@ -59,7 +59,7 @@ spec:
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
             - "--enable-imagelist={{ .Values.configurations.features.imageList }}"
-            {{- if .Values.configurations.features.imageList }}
+            {{- if .Values.configurations.features.imageList == true }}
             - "--image-list-config-file={{ .Values.configurations.imageList.configFile }}"
             - "--image-list-update-interval={{ .Values.configurations.imageList.updateInterval }}"
             {{- end }}

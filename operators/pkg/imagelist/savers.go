@@ -57,11 +57,11 @@ func NewDefaultImageListSaver(ctx context.Context, name string, k8sClient client
 
 // CreateOrUpdateImageList creates a new ImageList or updates an existing one with the provided images.
 func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName, projectBaseName string, images []clv1alpha1.ImageListItem) error {
-	s.log.V(1).Info("creating or updating ImageList", "registryName", registryName, "imageCount", len(images))
+	s.log.V(1).Info("creating or updating ImageList", "registryName", registryName, "projectBaseName", projectBaseName, "imageCount", len(images))
 
 	persistedImages := images
 	if len(images) == 0 {
-		s.log.Info("no images found; persisting empty ImageList", "name", s.name, "registryName", registryName)
+		s.log.Info("no images found; persisting empty ImageList", "name", s.name, "registryName", registryName, "projectBaseName", projectBaseName)
 		persistedImages = []clv1alpha1.ImageListItem{}
 	}
 
@@ -88,7 +88,7 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName, projectBas
 				return fmt.Errorf("failed to create ImageList: %w", err)
 			}
 
-			s.log.Info("ImageList created successfully", "name", s.name, "registryName", registryName, "imageCount", len(images))
+			s.log.Info("ImageList created successfully", "name", s.name, "registryName", registryName, "projectBaseName", projectBaseName, "imageCount", len(images))
 			return nil
 		}
 
@@ -108,6 +108,6 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName, projectBas
 		return fmt.Errorf("failed to update ImageList: %w", err)
 	}
 
-	s.log.Info("ImageList updated successfully", "name", s.name, "registryName", registryName, "imageCount", len(images))
+	s.log.Info("ImageList updated successfully", "name", s.name, "registryName", registryName, "projectBaseName", projectBaseName, "imageCount", len(images))
 	return nil
 }
