@@ -14,6 +14,8 @@ import {
   type EnvironmentListListItemInput,
   type SharedVolumeMountsListItemInput,
   useApplyTemplateJsonPatchMutation,
+  useImagesQuery,
+  type ImagesQuery,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
@@ -28,9 +30,10 @@ import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import ModalCreateTemplate from '../../ModalCreateTemplate';
-import type { TemplateForm } from '../../ModalCreateTemplate/types';
-import { getImageNameNoVer } from '../../ModalCreateTemplate/utils';
+import type { TemplateForm} from '../../ModalCreateTemplate/types';
+import { getImageNameNoVer, useImageLists } from '../../ModalCreateTemplate/utils';
 import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
+
 
 export interface ITemplateTableLogicProps {
   tenantNamespace: string;
@@ -231,6 +234,33 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const [usedTemplate, setUsedTemplate] = useState<Template | null>(null)
 
+  const { data: dataImages } = useImagesQuery({
+        variables: {},
+        onError: apolloErrorCatcher,
+      });
+
+  const { 
+    availableImagesVM, 
+    availableImagesContainer, 
+  } = useImageLists(dataImages?? {} as ImagesQuery);
+  
+
+     const isInImageList = (image: string, envType: string): boolean => {
+       const parsedImge = getImageNameNoVer(image).split('/').slice(-1).join('/');
+      if(envType === EnvironmentType.VirtualMachine) {
+        return availableImagesVM.some(img => {
+          const imgNameNoVer = getImageNameNoVer(img.name).split('/').slice(-1).join('/');
+          return imgNameNoVer === parsedImge;
+        });
+      } else if (envType === EnvironmentType.Standalone) {
+      return availableImagesContainer.some(img => {
+        const imgNameNoVer = getImageNameNoVer(img.name).split('/').slice(-1).join('/');
+        return imgNameNoVer === parsedImge;
+      });
+    };
+    return false;
+  }
+
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
       const environmentList = t.environments.map(
@@ -383,11 +413,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         : 0,
                       image:
                         env.environmentType === EnvironmentType.VirtualMachine || env.environmentType === EnvironmentType.Standalone
-                          ? getImageNameNoVer(env.image)
-                              .split('/')
-                              .slice(-1)
-                              .join('/') ?? ''
-                          : env.image,
+                          ? isInImageList(env.image, env.environmentType) ? getImageNameNoVer(env.image).split('/').slice(-1).join('/') ?? '': env.image : env.image,
                       registry:
                         env.environmentType !== EnvironmentType.CloudVm ? getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '' : '',
                       sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({

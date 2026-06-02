@@ -2,6 +2,7 @@ import { getEnvVar } from '../../../env';
 import { EnvironmentType, type ImagesQuery } from '../../../generated-types';
 import type { Template } from './ModalCreateTemplate';
 import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
+import { useEffect, useState } from 'react';
 
 
 export const internalRegistry = 'harbor.ng.crownlabs.polito.it'; 
@@ -94,3 +95,51 @@ export const getImageLists = (data: ImagesQuery): ImageList[] => {
         })),
     }));
 };
+
+
+export const useImageLists = (dataImages: ImagesQuery) => {
+  const [availableImagesVM, setAvailableImagesVM] = useState<Image[]>([]);
+    const [availableImagesContainer, setAvailableImagesContainer] = useState<Image[]>([]);
+    const [projectBaseNameVM, setProjectBaseNameVM] = useState<string>("");
+    const [projectBaseNameContainer, setProjectBaseNameContainer] = useState<string>("");
+  
+      useEffect(() => {
+          if (!dataImages) {
+            setAvailableImagesVM([]);
+            setAvailableImagesContainer([]);
+            return;
+          }
+      
+          const imageLists = getImageLists(dataImages);
+          const internalImagesVM = imageLists.find(
+            list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS')
+          ) || imageLists.find(
+            list => list.name === imageListContainderDisksDefault
+          );
+          setProjectBaseNameVM(internalImagesVM?.projectBaseName || defaultProjectNameVM); 
+      
+          const internalImagesContainer = imageLists.find(
+            list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE') 
+          ) || imageLists.find(
+            list => list.name === imageListStandaloneDefault
+          );
+      
+          setProjectBaseNameContainer(internalImagesContainer?.projectBaseName || defaultProjectNameContainer);
+            
+      
+      
+          if (!internalImagesVM) {
+            setAvailableImagesVM([]);
+            return;
+          }
+      
+          if (!internalImagesContainer) {
+            setAvailableImagesContainer([]);
+            return;
+          }
+          setAvailableImagesContainer(getImagesFromList(internalImagesContainer));
+          setAvailableImagesVM(getImagesFromList(internalImagesVM));
+        }, [dataImages]);
+
+  return { availableImagesVM, availableImagesContainer, projectBaseNameVM, projectBaseNameContainer };
+}

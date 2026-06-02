@@ -106,10 +106,10 @@ export const Environment: FC<EnvironmentProps> = ({
     });
   };
 
-  const validateVMImageName = async (_: unknown, image: string) => {
+  const validateImageName = async (_: unknown, image: string) => {
     if (!environments || !image) return;
 
-    // Check if the image is in the list of available images
+    // 1. Check if the image is in the list of available images (Local Registry)
     const availableImages = getAvailableImagesForEnvironment(
       getEnvironmentType(name),
       availableImagesVM,
@@ -118,9 +118,18 @@ export const Environment: FC<EnvironmentProps> = ({
     const found = getImageNames(availableImages).find(
       tmpImage => tmpImage === image,
     );
-    if (found) return;
+    if (found) return; // Passa il controllo se trovata localmente
 
-    throw new Error(`Image "${image}" is not found from registry`);
+    // 2. Check if it's a valid external registry URL
+    // Questa regex valida formati come: harbor.prova.it/test/vscode-latex:latest o docker.io/library/ubuntu:22.04
+    const externalRegistryRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/[a-zA-Z0-9._-]+)+(:[a-zA-Z0-9._-]+)?$/;
+    
+    if (externalRegistryRegex.test(image)) {
+      return; // Passa il controllo se è un URL esterno valido
+    }
+
+    // Se falliscono entrambi i controlli, lancia l'errore
+    throw new Error(`Image "${image}" is not found from local registry and is not a valid external registry URL`);
   };
 
   const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>([]);
@@ -404,7 +413,7 @@ export const Environment: FC<EnvironmentProps> = ({
               message: 'Select a virtual machine image',
             },
             {
-              validator: validateVMImageName,
+              validator: validateImageName,
             },
           ]}
           validateDebounce={500}

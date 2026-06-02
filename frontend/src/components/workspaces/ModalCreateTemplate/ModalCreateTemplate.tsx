@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
-import type { CreateTemplateMutation } from '../../../generated-types';
+import type { CreateTemplateMutation, ImagesQuery } from '../../../generated-types';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
 import {
@@ -19,20 +19,15 @@ import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { makeGuiSharedVolume } from '../../../utilsLogic';
 import { cleanupLabels, type SharedVolume } from '../../../utils';
 import { EnvironmentList } from './EnvironmentList';
-import type { Image, Interval, TemplateForm } from './types';
+import type { Interval, TemplateForm } from './types';
 import {
-  defaultProjectNameContainer,
-  defaultProjectNameVM,
+
   formItemLayout,
   getDefaultTemplate,
-  getImageLists,
   getImageNameNoVer,
-  getImagesFromList,
-  imageListContainderDisksDefault,
-  imageListStandaloneDefault,
   internalRegistry,
+  useImageLists,
 } from './utils';
-import { getEnvVar } from '../../../env';
 
 const { Text } = Typography;
 
@@ -123,6 +118,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     fetchPolicy: 'network-only',
     skip: !shouldFetchSharedVolumes,
   });
+  
 
   const validateName = async (_: unknown, name: string) => {
     if (template) { // we are editing an existing template, not creating a new one
@@ -172,50 +168,14 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     variables: { workspaceNamespace },
   });
 
-  const [availableImagesVM, setAvailableImagesVM] = useState<Image[]>([]);
-  const [availableImagesContainer, setAvailableImagesContainer] = useState<Image[]>([]);
-  const [projectBaseNameVM, setProjectBaseNameVM] = useState<string>("");
-  const [projectBaseNameContainer, setProjectBaseNameContainer] = useState<string>("");
-  useEffect(() => {
-    if (!dataImages) {
-      setAvailableImagesVM([]);
-      setAvailableImagesContainer([]);
-      return;
-    }
+  
+    const { 
+      availableImagesVM, 
+      availableImagesContainer, 
+      projectBaseNameVM,
+      projectBaseNameContainer
+    } = useImageLists(dataImages?? {} as ImagesQuery);
 
-    const imageLists = getImageLists(dataImages);
-    const internalImagesVM = imageLists.find(
-      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS')
-    ) || imageLists.find(
-      list => list.name === imageListContainderDisksDefault
-    );
-    setProjectBaseNameVM(internalImagesVM?.projectBaseName || defaultProjectNameVM); 
-
-    const internalImagesContainer = imageLists.find(
-      list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE') 
-    ) || imageLists.find(
-      list => list.name === imageListStandaloneDefault
-    );
-
-    setProjectBaseNameContainer(internalImagesContainer?.projectBaseName || defaultProjectNameContainer);
-      
-    console.log("Using image lists:", { internalImagesVM, internalImagesContainer });
-
-
-    if (!internalImagesVM) {
-      setAvailableImagesVM([]);
-      return;
-    }
-
-    if (!internalImagesContainer) {
-      setAvailableImagesContainer([]);
-      return;
-    }
-    setAvailableImagesContainer(getImagesFromList(internalImagesContainer));
-    setAvailableImagesVM(getImagesFromList(internalImagesVM));
-  }, [dataImages]);
-
-      console.log("Project base names:", { projectBaseNameVM: projectBaseNameVM, projectBaseNameContainer: projectBaseNameContainer });
 
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
