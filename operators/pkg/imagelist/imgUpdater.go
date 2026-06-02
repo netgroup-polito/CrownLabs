@@ -35,7 +35,7 @@ type Updater struct {
 }
 
 // NewUpdater creates a new Updater instance.
-func NewUpdater(requestor []Requestor, imageListBase string, projectBaseName string, imageListSaver Saver, registryAdv string, log logr.Logger) *Updater {
+func NewUpdater(requestor []Requestor, imageListBase, projectBaseName string, imageListSaver Saver, registryAdv string, log logr.Logger) *Updater {
 	return &Updater{
 		Requestor:         requestor,
 		ImageListBaseName: imageListBase,
