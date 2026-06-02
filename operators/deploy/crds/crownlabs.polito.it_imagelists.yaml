@@ -63,6 +63,10 @@ spec:
                   - versions
                   type: object
                 type: array
+              projectBaseName:
+                description: The base name of the project in which the images are
+                  stored.
+                type: string
               registryName:
                 description: The host name that can be used to access the registry.
                 type: string

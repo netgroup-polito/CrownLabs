@@ -5,6 +5,7 @@ query images {
         name
       }
       spec {
+        projectBaseName
         registryName
         images {
           name

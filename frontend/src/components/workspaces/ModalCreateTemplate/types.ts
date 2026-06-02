@@ -66,6 +66,7 @@ export type Image = {
 };
 
 export type ImageList = {
+  projectBaseName?: string;
   name: string;
   registryName: string;
   images: Array<{

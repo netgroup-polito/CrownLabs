@@ -334,6 +334,8 @@ export type IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput = {
   dryRun?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The duration in seconds before the object should be deleted. Value must be non-negative integer. The value zero indicates delete immediately. If this value is nil, the default grace period for the specified type will be used. Defaults to a per object value if not specified. zero means delete immediately. */
   gracePeriodSeconds?: InputMaybe<Scalars['BigInt']['input']>;
+  /** if set to true, it will trigger an unsafe deletion of the resource in case the normal deletion flow fails with a corrupt object error. A resource is considered corrupt if it can not be retrieved from the underlying storage successfully because of a) its data can not be transformed e.g. decryption failure, or b) it fails to decode into an object. NOTE: unsafe deletion ignores finalizer constraints, skips precondition checks, and removes the object from the storage. WARNING: This may potentially break the cluster if the workload associated with the resource being unsafe-deleted relies on normal deletion flow. Use only if you REALLY know what you are doing. The default value is false, and the user must opt in to enable it */
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
   kind?: InputMaybe<Scalars['String']['input']>;
   /** Deprecated: please use the PropagationPolicy, this field will be deprecated in 1.7. Should the dependent objects be orphaned. If true/false, the "orphan" finalizer will be added to/removed from the object's finalizers list. Either this field or PropagationPolicy may be set, but not both. */
@@ -1475,6 +1477,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha1CollectionWorkspaceArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha1ImageListArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1486,6 +1489,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha1ImageListArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha1WorkspaceArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1576,6 +1580,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionTenantArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1588,6 +1593,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1600,6 +1606,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArg
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1612,6 +1619,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedSharedVolumeArgs = 
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   namespace: Scalars['String']['input'];
@@ -1624,6 +1632,7 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedTemplateArgs = {
 export type MutationDeleteCrownlabsPolitoItV1alpha2TenantArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
+  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
   ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
   name: Scalars['String']['input'];
   orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
@@ -2089,7 +2098,12 @@ export type MutationReplaceCrownlabsPolitoItV1alpha2TenantStatusArgs = {
   pretty?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Workspace.
+ * This is the namespace that groups multiple related templates, together
+ * with all the accessory resources (e.g. RBACs) created by the tenant
+ * operator.
+ */
 export type Namespace = {
   __typename?: 'Namespace';
   /** Whether the creation succeeded or not. */
@@ -2098,7 +2112,12 @@ export type Namespace = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Workspace.
+ * This is the namespace that groups multiple related templates, together
+ * with all the accessory resources (e.g. RBACs) created by the tenant
+ * operator.
+ */
 export type NamespaceInput = {
   /** Whether the creation succeeded or not. */
   created: Scalars['Boolean']['input'];
@@ -2106,7 +2125,12 @@ export type NamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Tenant.
+ * This is the namespace that groups his/her own Instances, together with
+ * all the accessory resources (e.g. RBACs, resource quota, network policies,
+ * ...) created by the tenant-operator.
+ */
 export type PersonalNamespace = {
   __typename?: 'PersonalNamespace';
   /** Whether the creation succeeded or not. */
@@ -2115,7 +2139,12 @@ export type PersonalNamespace = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
-/** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+/**
+ * The namespace containing all CrownLabs related objects of the Tenant.
+ * This is the namespace that groups his/her own Instances, together with
+ * all the accessory resources (e.g. RBACs, resource quota, network policies,
+ * ...) created by the tenant-operator.
+ */
 export type PersonalNamespaceInput = {
   /** Whether the creation succeeded or not. */
   created: Scalars['Boolean']['input'];
@@ -2123,7 +2152,10 @@ export type PersonalNamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+/**
+ * The amount of resources associated with the Tenant's
+ * personal workspace. If defined, the personal workspace is enabled.
+ */
 export type PersonalWorkspace = {
   __typename?: 'PersonalWorkspace';
   /** The maximum amount of CPU required by this Workspace. */
@@ -2134,7 +2166,10 @@ export type PersonalWorkspace = {
   memory: Scalars['JSON']['output'];
 };
 
-/** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+/**
+ * The amount of resources associated with the Tenant's
+ * personal workspace. If defined, the personal workspace is enabled.
+ */
 export type PersonalWorkspaceInput = {
   /** The maximum amount of CPU required by this Workspace. */
   cpu: Scalars['JSON']['input'];
@@ -2863,7 +2898,10 @@ export enum Role {
   User = 'user'
 }
 
-/** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+/**
+ * The namespace that can be freely used by the Tenant to play with Kubernetes.
+ * This namespace is created only if the .spec.CreateSandbox flag is true.
+ */
 export type SandboxNamespace = {
   __typename?: 'SandboxNamespace';
   /** Whether the creation succeeded or not. */
@@ -2872,7 +2910,10 @@ export type SandboxNamespace = {
   name?: Maybe<Scalars['String']['output']>;
 };
 
-/** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+/**
+ * The namespace that can be freely used by the Tenant to play with Kubernetes.
+ * This namespace is created only if the .spec.CreateSandbox flag is true.
+ */
 export type SandboxNamespaceInput = {
   /** Whether the creation succeeded or not. */
   created: Scalars['Boolean']['input'];
@@ -2929,6 +2970,8 @@ export type Spec = {
   __typename?: 'Spec';
   /** The list of VM images currently available in CrownLabs. */
   images: Array<Maybe<ImagesListItem>>;
+  /** The base name of the project in which the images are stored. */
+  projectBaseName?: Maybe<Scalars['String']['output']>;
   /** The host name that can be used to access the registry. */
   registryName: Scalars['String']['output'];
 };
@@ -3097,6 +3140,11 @@ export type Spec6 = {
   deleteAfter?: Maybe<Scalars['String']['output']>;
   /** A textual description of the Template. */
   description: Scalars['String']['output'];
+  /**
+   * The maximum period of time a persistent instance can remain powered off
+   * after being stopped for inactivity, before being completely deleted.
+   */
+  destroyAfterInactivity?: Maybe<Scalars['String']['output']>;
   /** The list of environments (i.e. VMs or containers) that compose the Template. */
   environmentList: Array<Maybe<EnvironmentListListItem>>;
   /**
@@ -3130,6 +3178,11 @@ export type Spec6Input = {
   deleteAfter?: InputMaybe<Scalars['String']['input']>;
   /** A textual description of the Template. */
   description: Scalars['String']['input'];
+  /**
+   * The maximum period of time a persistent instance can remain powered off
+   * after being stopped for inactivity, before being completely deleted.
+   */
+  destroyAfterInactivity?: InputMaybe<Scalars['String']['input']>;
   /** The list of environments (i.e. VMs or containers) that compose the Template. */
   environmentList: Array<InputMaybe<EnvironmentListListItemInput>>;
   /**
@@ -3155,9 +3208,15 @@ export type Spec7 = {
   __typename?: 'Spec7';
   /** Whether a personal workspace should be created for the tenant */
   createPersonalWorkspace?: Maybe<Scalars['Boolean']['output']>;
-  /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
+  /**
+   * Whether a sandbox namespace should be created to allow the Tenant play
+   * with Kubernetes.
+   */
   createSandbox?: Maybe<Scalars['Boolean']['output']>;
-  /** The email associated with the Tenant, which will be used to log-in into the system. */
+  /**
+   * The email associated with the Tenant, which will be used to log-in
+   * into the system.
+   */
   email: Scalars['String']['output'];
   /** The first name of the Tenant. */
   firstName: Scalars['String']['output'];
@@ -3165,13 +3224,22 @@ export type Spec7 = {
   lastLogin?: Maybe<Scalars['String']['output']>;
   /** The last name of the Tenant. */
   lastName: Scalars['String']['output'];
-  /** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+  /**
+   * The amount of resources associated with the Tenant's
+   * personal workspace. If defined, the personal workspace is enabled.
+   */
   personalWorkspace?: Maybe<PersonalWorkspace>;
-  /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
+  /**
+   * The list of the SSH public keys associated with the Tenant. These will be
+   * used to enable to access the remote environments through the SSH protocol.
+   */
   publicKeys?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
   quota?: Maybe<Quota2>;
-  /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
+  /**
+   * The list of the Workspaces the Tenant is subscribed to, along with his/her
+   * role in each of them.
+   */
   workspaces?: Maybe<Array<Maybe<WorkspacesListItem>>>;
 };
 
@@ -3179,9 +3247,15 @@ export type Spec7 = {
 export type Spec7Input = {
   /** Whether a personal workspace should be created for the tenant */
   createPersonalWorkspace?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Whether a sandbox namespace should be created to allow the Tenant play with Kubernetes. */
+  /**
+   * Whether a sandbox namespace should be created to allow the Tenant play
+   * with Kubernetes.
+   */
   createSandbox?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The email associated with the Tenant, which will be used to log-in into the system. */
+  /**
+   * The email associated with the Tenant, which will be used to log-in
+   * into the system.
+   */
   email: Scalars['String']['input'];
   /** The first name of the Tenant. */
   firstName: Scalars['String']['input'];
@@ -3189,13 +3263,22 @@ export type Spec7Input = {
   lastLogin?: InputMaybe<Scalars['String']['input']>;
   /** The last name of the Tenant. */
   lastName: Scalars['String']['input'];
-  /** The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled. */
+  /**
+   * The amount of resources associated with the Tenant's
+   * personal workspace. If defined, the personal workspace is enabled.
+   */
   personalWorkspace?: InputMaybe<PersonalWorkspaceInput>;
-  /** The list of the SSH public keys associated with the Tenant. These will be used to enable to access the remote environments through the SSH protocol. */
+  /**
+   * The list of the SSH public keys associated with the Tenant. These will be
+   * used to enable to access the remote environments through the SSH protocol.
+   */
   publicKeys?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The amount of resources associated with this Tenant, if defined it overrides the one computed from the workspaces the tenant is enrolled in. */
   quota?: InputMaybe<Quota2Input>;
-  /** The list of the Workspaces the Tenant is subscribed to, along with his/her role in each of them. */
+  /**
+   * The list of the Workspaces the Tenant is subscribed to, along with his/her
+   * role in each of them.
+   */
   workspaces?: InputMaybe<Array<InputMaybe<WorkspacesListItemInput>>>;
 };
 
@@ -3203,6 +3286,8 @@ export type Spec7Input = {
 export type SpecInput = {
   /** The list of VM images currently available in CrownLabs. */
   images: Array<InputMaybe<ImagesListItemInput>>;
+  /** The base name of the project in which the images are stored. */
+  projectBaseName?: InputMaybe<Scalars['String']['input']>;
   /** The host name that can be used to access the registry. */
   registryName: Scalars['String']['input'];
 };
@@ -3210,21 +3295,47 @@ export type SpecInput = {
 /** WorkspaceStatus reflects the most recently observed status of the Workspace. */
 export type Status2 = {
   __typename?: 'Status2';
-  /** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Workspace.
+   * This is the namespace that groups multiple related templates, together
+   * with all the accessory resources (e.g. RBACs) created by the tenant
+   * operator.
+   */
   namespace?: Maybe<Namespace>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   */
   ready?: Maybe<Scalars['Boolean']['output']>;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
   subscription?: Maybe<Scalars['JSON']['output']>;
 };
 
 /** WorkspaceStatus reflects the most recently observed status of the Workspace. */
 export type Status2Input = {
-  /** The namespace containing all CrownLabs related objects of the Workspace. This is the namespace that groups multiple related templates, together with all the accessory resources (e.g. RBACs) created by the tenant operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Workspace.
+   * This is the namespace that groups multiple related templates, together
+   * with all the accessory resources (e.g. RBACs) created by the tenant
+   * operator.
+   */
   namespace?: InputMaybe<NamespaceInput>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   */
   ready?: InputMaybe<Scalars['Boolean']['input']>;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
   subscription?: InputMaybe<Scalars['JSON']['input']>;
 };
 
@@ -3336,42 +3447,84 @@ export type Status5Input = {
 /** TenantStatus reflects the most recently observed status of the Tenant. */
 export type Status7 = {
   __typename?: 'Status7';
-  /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
+  /**
+   * The list of Workspaces that are throwing errors during subscription.
+   * This mainly happens if .spec.Workspaces contains references to Workspaces
+   * which do not exist.
+   */
   failingWorkspaces?: Maybe<Array<Maybe<Scalars['String']['output']>>>;
   /** The status of Keycloak authentication flow */
   keycloak?: Maybe<Keycloak>;
-  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Tenant.
+   * This is the namespace that groups his/her own Instances, together with
+   * all the accessory resources (e.g. RBACs, resource quota, network policies,
+   * ...) created by the tenant-operator.
+   */
   personalNamespace: PersonalNamespace;
   /** Whether a personal workspace has been created for the tenant. */
   personalWorkspaceCreated?: Maybe<Scalars['Boolean']['output']>;
   /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
   quota?: Maybe<Quota3>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. Will be set to true even when personal workspace is intentionally deleted. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   * Will be set to true even when personal workspace is intentionally deleted.
+   */
   ready: Scalars['Boolean']['output'];
-  /** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+  /**
+   * The namespace that can be freely used by the Tenant to play with Kubernetes.
+   * This namespace is created only if the .spec.CreateSandbox flag is true.
+   */
   sandboxNamespace: SandboxNamespace;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
-  subscriptions: Scalars['JSON']['output'];
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
+  subscriptions?: Maybe<Scalars['JSON']['output']>;
 };
 
 /** TenantStatus reflects the most recently observed status of the Tenant. */
 export type Status7Input = {
-  /** The list of Workspaces that are throwing errors during subscription. This mainly happens if .spec.Workspaces contains references to Workspaces which do not exist. */
+  /**
+   * The list of Workspaces that are throwing errors during subscription.
+   * This mainly happens if .spec.Workspaces contains references to Workspaces
+   * which do not exist.
+   */
   failingWorkspaces?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   /** The status of Keycloak authentication flow */
   keycloak?: InputMaybe<KeycloakInput>;
-  /** The namespace containing all CrownLabs related objects of the Tenant. This is the namespace that groups his/her own Instances, together with all the accessory resources (e.g. RBACs, resource quota, network policies, ...) created by the tenant-operator. */
+  /**
+   * The namespace containing all CrownLabs related objects of the Tenant.
+   * This is the namespace that groups his/her own Instances, together with
+   * all the accessory resources (e.g. RBACs, resource quota, network policies,
+   * ...) created by the tenant-operator.
+   */
   personalNamespace: PersonalNamespaceInput;
   /** Whether a personal workspace has been created for the tenant. */
   personalWorkspaceCreated?: InputMaybe<Scalars['Boolean']['input']>;
   /** The amount of resources associated with this Tenant, either inherited from the Workspaces in which he/she is enrolled, or manually overridden. */
   quota?: InputMaybe<Quota3Input>;
-  /** Whether all subscriptions and resource creations succeeded or an error occurred. In case of errors, the other status fields provide additional information about which problem occurred. Will be set to true even when personal workspace is intentionally deleted. */
+  /**
+   * Whether all subscriptions and resource creations succeeded or an error
+   * occurred. In case of errors, the other status fields provide additional
+   * information about which problem occurred.
+   * Will be set to true even when personal workspace is intentionally deleted.
+   */
   ready: Scalars['Boolean']['input'];
-  /** The namespace that can be freely used by the Tenant to play with Kubernetes. This namespace is created only if the .spec.CreateSandbox flag is true. */
+  /**
+   * The namespace that can be freely used by the Tenant to play with Kubernetes.
+   * This namespace is created only if the .spec.CreateSandbox flag is true.
+   */
   sandboxNamespace: SandboxNamespaceInput;
-  /** The list of the subscriptions to external services (e.g. Keycloak, ...), indicating for each one whether it succeeded or an error occurred. */
-  subscriptions: Scalars['JSON']['input'];
+  /**
+   * The list of the subscriptions to external services (e.g. Keycloak,
+   * ...), indicating for each one whether it succeeded or an error
+   * occurred.
+   */
+  subscriptions?: InputMaybe<Scalars['JSON']['input']>;
 };
 
 export type Subscription = {
@@ -3541,7 +3694,10 @@ export type WorkspaceWrapperTenantV1alpha2 = {
   itPolitoCrownlabsV1alpha1Workspace?: Maybe<ItPolitoCrownlabsV1alpha1Workspace>;
 };
 
-/** TenantWorkspaceEntry contains the information regarding one of the Workspaces the Tenant is subscribed to, including his/her role. */
+/**
+ * TenantWorkspaceEntry contains the information regarding one of the Workspaces
+ * the Tenant is subscribed to, including his/her role.
+ */
 export type WorkspacesListItem = {
   __typename?: 'WorkspacesListItem';
   /** The Workspace the Tenant is subscribed to. */
@@ -3551,7 +3707,10 @@ export type WorkspacesListItem = {
   workspaceWrapperTenantV1alpha2?: Maybe<WorkspaceWrapperTenantV1alpha2>;
 };
 
-/** TenantWorkspaceEntry contains the information regarding one of the Workspaces the Tenant is subscribed to, including his/her role. */
+/**
+ * TenantWorkspaceEntry contains the information regarding one of the Workspaces
+ * the Tenant is subscribed to, including his/her role.
+ */
 export type WorkspacesListItemInput = {
   /** The Workspace the Tenant is subscribed to. */
   name: Scalars['String']['input'];
@@ -3731,7 +3890,7 @@ export type AllTemplatesQuery = { __typename?: 'Query', allTemplates?: { __typen
 export type ImagesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type ImagesQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha1ImageListList', images: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha1ImageList', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec', registryName: string, images: Array<{ __typename?: 'ImagesListItem', name: string, versions: Array<string | null> } | null> } | null } | null> } | null };
+export type ImagesQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha1ImageListList', images: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha1ImageList', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec', projectBaseName?: string | null, registryName: string, images: Array<{ __typename?: 'ImagesListItem', name: string, versions: Array<string | null> } | null> } | null } | null> } | null };
 
 export type OwnedInstancesQueryVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
@@ -4758,6 +4917,7 @@ export const ImagesDocument = gql`
         name
       }
       spec {
+        projectBaseName
         registryName
         images {
           name

@@ -8,7 +8,8 @@ export const internalRegistry = 'harbor.ng.crownlabs.polito.it';
 export const imageListContainderDisksDefault = "harbor-containerdisks-pre-production";
 export const imageListStandaloneDefault = "harbor-standalone-pre-production";
 export const projectName = [getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'), getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS'), imageListStandaloneDefault, imageListContainderDisksDefault];
-
+export const defaultProjectNameVM = "crownlabs-containerdisks";
+export const defaultProjectNameContainer = "crownlabs-standalone";
 export const formItemLayout = {
   labelcol: { span: 5 },
   wrappercol: { span: 18 },
@@ -84,6 +85,7 @@ export const getImageLists = (data: ImagesQuery): ImageList[] => {
     .map(img => ({
       name: img!.metadata?.name || 'Unnamed List',
       registryName: img!.spec!.registryName,
+      projectBaseName: img!.spec!.projectBaseName || undefined,
       images: img!
         .spec!.images.filter(i => i?.name && i?.versions)
         .map(i => ({

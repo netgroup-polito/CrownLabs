@@ -21,6 +21,8 @@ import { cleanupLabels, type SharedVolume } from '../../../utils';
 import { EnvironmentList } from './EnvironmentList';
 import type { Image, Interval, TemplateForm } from './types';
 import {
+  defaultProjectNameContainer,
+  defaultProjectNameVM,
   formItemLayout,
   getDefaultTemplate,
   getImageLists,
@@ -172,7 +174,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [availableImagesVM, setAvailableImagesVM] = useState<Image[]>([]);
   const [availableImagesContainer, setAvailableImagesContainer] = useState<Image[]>([]);
-
+  const [projectBaseNameVM, setProjectBaseNameVM] = useState<string>("");
+  const [projectBaseNameContainer, setProjectBaseNameContainer] = useState<string>("");
   useEffect(() => {
     if (!dataImages) {
       setAvailableImagesVM([]);
@@ -181,20 +184,22 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     }
 
     const imageLists = getImageLists(dataImages);
-    let internalImagesVM = imageLists.find(
+    const internalImagesVM = imageLists.find(
       list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS')
     ) || imageLists.find(
       list => list.name === imageListContainderDisksDefault
     );
+    setProjectBaseNameVM(internalImagesVM?.projectBaseName || defaultProjectNameVM); 
 
-    let internalImagesContainer = imageLists.find(
+    const internalImagesContainer = imageLists.find(
       list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE') 
     ) || imageLists.find(
       list => list.name === imageListStandaloneDefault
     );
+
+    setProjectBaseNameContainer(internalImagesContainer?.projectBaseName || defaultProjectNameContainer);
       
     console.log("Using image lists:", { internalImagesVM, internalImagesContainer });
-
 
 
     if (!internalImagesVM) {
@@ -210,6 +215,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     setAvailableImagesVM(getImagesFromList(internalImagesVM));
   }, [dataImages]);
 
+      console.log("Project base names:", { projectBaseNameVM: projectBaseNameVM, projectBaseNameContainer: projectBaseNameContainer });
+
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
     if (envType === EnvironmentType.VirtualMachine) {
@@ -218,8 +225,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         i => getImageNameNoVer(i.name) === image,
       );
 
+      
       if (selectedImage) {
-        return `${internalRegistry}/crownlabs-containerdisks/${selectedImage.name}`;
+        return `${internalRegistry}/${projectBaseNameVM}/${selectedImage.name}`;
       }
     } else if (envType === EnvironmentType.Standalone) {
       
@@ -228,9 +236,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/crownlabs-standalone/${selectedImage.name}`;
+        return `${internalRegistry}/${projectBaseNameContainer}/${selectedImage.name}`;
       }
     }
+
+    
 
     // For other types, use the external image
     let finalImage = image;
