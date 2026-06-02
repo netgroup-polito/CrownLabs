@@ -98,16 +98,19 @@ linters:
       - pkg: k8s.io/apimachinery/pkg/api/errors
         alias: kerrors
       - pkg: k8s.io/apimachinery/pkg/runtime
+        alias: ""
         
       # Controller Runtime
       - pkg: sigs.k8s.io/controller-runtime
         alias: ctrl
       - pkg: sigs.k8s.io/controller-runtime/pkg/client
+        alias: ""
       - pkg: sigs.k8s.io/controller-runtime/pkg/controller/controllerutil
         alias: ctrlutil
       
       # Kubernetes Client
       - pkg: k8s.io/client-go/kubernetes/scheme
+        alias: ""
       
       # KubeVirt
       - pkg: kubevirt.io/api/core/v1
@@ -115,7 +118,9 @@ linters:
       
       # Mocking
       - pkg: github.com/golang/mock/gomock
+        alias: ""
       - pkg: go.uber.org/mock/gomock
+        alias: ""
 
       # Keycloak
       - pkg: github.com/Nerzal/gocloak/v7
@@ -125,9 +130,13 @@ linters:
       
       # Standard Library (no aliases)
       - pkg: context
+        alias: ""
       - pkg: time
+        alias: ""
       - pkg: io
+        alias: ""
       - pkg: reflect
+        alias: ""
     misspell:
       locale: US
     nolintlint:
