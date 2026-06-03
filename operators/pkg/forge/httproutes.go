@@ -181,7 +181,3 @@ func ExposeGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) stri
 	return fmt.Sprintf("https://%v%v/%v/", host, ExpositionInstancePrefix, instance.UID)
 }
 
-// // ExposeGuiStatusFromRootURL returns the path of the route targeting the environment given the root url (url of the instance).
-// func ExposeGuiStatusFromRootURL(rootURL string, environment *clv1alpha2.Environment) string {
-// 	return rootURL + fmt.Sprintf("%v/", environment.Name)
-// }
