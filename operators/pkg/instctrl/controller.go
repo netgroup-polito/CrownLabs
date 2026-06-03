@@ -56,7 +56,7 @@ type InstanceReconciler struct {
 	MirrorPVCStorageClassName string
 	EnableAuthentication      bool
 	GatewayAPIMode            bool
-	GatewayRefsValues         string
+	GatewayAPIRefsValues      string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,

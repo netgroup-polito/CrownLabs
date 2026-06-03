@@ -83,8 +83,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		err error
 
-		enableGateway     bool
-		gatewayRefsValues string
+		enableGateway        bool
+		gatewayAPIRefsValues string
 	)
 
 	const (
@@ -145,7 +145,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 		enableAuth = false
 		instancesAuthURL = ""
 		enableGateway = false
-		gatewayRefsValues = ""
+		gatewayAPIRefsValues = ""
 	})
 
 	JustBeforeEach(func() {
@@ -157,7 +157,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 			EventsRecorder:       record.NewFakeRecorder(1024),
 			EnableAuthentication: enableAuth,
 			GatewayAPIMode:       enableGateway,
-			GatewayRefsValues:    gatewayRefsValues,
+			GatewayAPIRefsValues: gatewayAPIRefsValues,
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -232,8 +232,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 		NamespacedName: &httpRouteName, Object: &httpRoute, GroupResource: schema.GroupResource{Group: gatewayv1.GroupVersion.Group, Resource: "httproutes"},
 		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
 			params := &forge.HTTPRouteSpecParams{Host: host, Path: forge.ExposeGUIPath(inst, &environment), ServiceName: serviceName.Name}
-			if gatewayRefsValues != "" {
-				ns, name, section := utils.ParseGatewayParent(gatewayRefsValues)
+			if gatewayAPIRefsValues != "" {
+				ns, name, section := utils.ParseGatewayParent(gatewayAPIRefsValues)
 				params.GatewayNamespace = ns
 				params.GatewayName = name
 				params.GatewaySectionName = section
@@ -444,14 +444,14 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 			Context("When Gateway API is enabled", func() {
 				BeforeEach(func() { enableGateway = true })
-				BeforeEach(func() { gatewayRefsValues = "" })
+				BeforeEach(func() { gatewayAPIRefsValues = "" })
 				BeforeEach(func() {
 					environment.EnvironmentType = clv1alpha2.ClassContainer
 					environment.GuiEnabled = true
 				})
 
 				BeforeEach(func() {
-					gatewayRefsValues = templateNamespace + "/test-gateway/section"
+					gatewayAPIRefsValues = templateNamespace + "/test-gateway/section"
 				})
 
 				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })

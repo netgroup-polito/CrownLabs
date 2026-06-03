@@ -95,7 +95,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 			// HTTPRoute specifications are forged only at creation time, to prevent issues in case of updates.
 			// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 			if httpRoute.CreationTimestamp.IsZero() {
-				gwNs, gwName, gwSection := utils.ParseGatewayParent(r.GatewayRefsValues)
+				gwNs, gwName, gwSection := utils.ParseGatewayParent(r.GatewayAPIRefsValues)
 				params := &forge.HTTPRouteSpecParams{
 					Host:               host,
 					Path:               forge.ExposeGUIPath(instance, environment),
