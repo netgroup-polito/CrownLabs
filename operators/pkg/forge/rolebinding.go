@@ -20,8 +20,8 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 )
 
 // ConfigureWorkspaceUserViewTemplatesBinding configures a RoleBinding for a workspace user to view templates.
-func ConfigureWorkspaceUserViewTemplatesBinding(ws *v1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
+func ConfigureWorkspaceUserViewTemplatesBinding(ws *clv1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
 	// Set labels
 	if rb.Labels == nil {
 		rb.Labels = make(map[string]string)
@@ -54,14 +54,14 @@ func ConfigureWorkspaceUserViewTemplatesBinding(ws *v1alpha1.Workspace, rb *rbac
 	rb.Subjects = []rbacv1.Subject{
 		{
 			Kind:     rbacv1.GroupKind,
-			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, v1alpha2.User)),
+			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, clv1alpha2.User)),
 			APIGroup: rbacv1.GroupName,
 		},
 	}
 }
 
 // ConfigureWorkspaceManagerManageTemplatesBinding configures a RoleBinding for a workspace manager to manage templates.
-func ConfigureWorkspaceManagerManageTemplatesBinding(ws *v1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
+func ConfigureWorkspaceManagerManageTemplatesBinding(ws *clv1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
 	// Set labels
 	if rb.Labels == nil {
 		rb.Labels = make(map[string]string)
@@ -81,14 +81,14 @@ func ConfigureWorkspaceManagerManageTemplatesBinding(ws *v1alpha1.Workspace, rb 
 	rb.Subjects = []rbacv1.Subject{
 		{
 			Kind:     rbacv1.GroupKind,
-			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, v1alpha2.Manager)),
+			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, clv1alpha2.Manager)),
 			APIGroup: rbacv1.GroupName,
 		},
 	}
 }
 
 // ConfigureWorkspaceManagerManageSharedVolumesBinding configures a RoleBinding for a workspace manager to manage shared volumes.
-func ConfigureWorkspaceManagerManageSharedVolumesBinding(ws *v1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
+func ConfigureWorkspaceManagerManageSharedVolumesBinding(ws *clv1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
 	// Set labels
 	if rb.Labels == nil {
 		rb.Labels = make(map[string]string)
@@ -106,14 +106,14 @@ func ConfigureWorkspaceManagerManageSharedVolumesBinding(ws *v1alpha1.Workspace,
 	rb.Subjects = []rbacv1.Subject{
 		{
 			Kind:     rbacv1.GroupKind,
-			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, v1alpha2.Manager)),
+			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, clv1alpha2.Manager)),
 			APIGroup: rbacv1.GroupName,
 		},
 	}
 }
 
 // ConfigurePersonalWorkspaceManageTemplatesBinding configures a RoleBinding for a tenant to manage templates.
-func ConfigurePersonalWorkspaceManageTemplatesBinding(tn *v1alpha2.Tenant, rb *rbacv1.RoleBinding, labels map[string]string) {
+func ConfigurePersonalWorkspaceManageTemplatesBinding(tn *clv1alpha2.Tenant, rb *rbacv1.RoleBinding, labels map[string]string) {
 	// Set the labels
 	if rb.Labels == nil {
 		rb.Labels = make(map[string]string)

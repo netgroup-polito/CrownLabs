@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -62,22 +62,22 @@ func ConfigureLoadBalancerAnnotationKeys(raw string) (s, ip string, err error) {
 }
 
 // LoadBalancerServiceSpec forges the spec for a LoadBalancer service for public exposure.
-func LoadBalancerServiceSpec(instance *clv1alpha2.Instance, ports []clv1alpha2.PublicServicePort) v1.ServiceSpec {
-	svcPorts := make([]v1.ServicePort, len(ports))
+func LoadBalancerServiceSpec(instance *clv1alpha2.Instance, ports []clv1alpha2.PublicServicePort) corev1.ServiceSpec {
+	svcPorts := make([]corev1.ServicePort, len(ports))
 	for i, p := range ports {
 		protocol := p.Protocol
 		if protocol == "" {
-			protocol = v1.ProtocolTCP
+			protocol = corev1.ProtocolTCP
 		}
-		svcPorts[i] = v1.ServicePort{
+		svcPorts[i] = corev1.ServicePort{
 			Name:       p.Name,
 			Port:       p.Port,
 			TargetPort: intstr.FromInt32(p.TargetPort),
 			Protocol:   protocol,
 		}
 	}
-	return v1.ServiceSpec{
-		Type:     v1.ServiceTypeLoadBalancer,
+	return corev1.ServiceSpec{
+		Type:     corev1.ServiceTypeLoadBalancer,
 		Selector: InstanceSelectorLabels(instance),
 		Ports:    svcPorts,
 	}

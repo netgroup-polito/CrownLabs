@@ -20,17 +20,17 @@ import (
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // enforcePersonalStorage creates the MyDrive PVC (and connected resources) for tenant's personal storage in cross-namespace.
-func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
+func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger, tn *clv1alpha2.Tenant) error {
 	// If the personal namespace does not exist, skip the PVC creation
 	if !tn.Status.PersonalNamespace.Created {
 		log.Info("Tenant namespace does not exist, skipping PVC creation")
@@ -46,7 +46,7 @@ func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger
 	log.Info("PVC created/updated")
 
 	switch pvc.Status.Phase {
-	case v1.ClaimBound:
+	case corev1.ClaimBound:
 		// Authorize the user to access the PVC by creating a Mirror inside their namespace
 		if created, err := r.enforceMyDrivePVCMirror(ctx, tn, pvc); err != nil {
 			log.Error(err, "Unable to create or update PVC Mirror for tenant")
@@ -65,7 +65,7 @@ func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger
 				return err
 			}
 		}
-	case v1.ClaimPending:
+	case corev1.ClaimPending:
 		log.Info("PVC pending for tenant")
 	default:
 		log.Info("PVC for tenant is in unexpected phase", "phase", pvc.Status.Phase)
@@ -75,8 +75,8 @@ func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger
 }
 
 // enforceMyDrivePVCAbsence deletes the PVC for tenant's personal storage.
-func (r *Reconciler) enforceMyDrivePVCAbsence(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) error {
-	pvc := v1.PersistentVolumeClaim{
+func (r *Reconciler) enforceMyDrivePVCAbsence(ctx context.Context, log logr.Logger, tn *clv1alpha2.Tenant) error {
+	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      forge.MyDrivePVCName(tn.Name),
 			Namespace: r.MyDrivePVCsNamespace,
@@ -94,16 +94,16 @@ func (r *Reconciler) enforceMyDrivePVCAbsence(ctx context.Context, log logr.Logg
 
 func (r *Reconciler) enforceMyDrivePVC(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
-) (*v1.PersistentVolumeClaim, error) {
-	pvc := v1.PersistentVolumeClaim{
+	tn *clv1alpha2.Tenant,
+) (*corev1.PersistentVolumeClaim, error) {
+	pvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      forge.MyDrivePVCName(tn.Name),
 			Namespace: r.MyDrivePVCsNamespace,
 		},
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// Configure the PVC
 		if pvc.CreationTimestamp.IsZero() {
 			pvc.Spec = forge.MyDrivePVCSpec(r.MyDrivePVCsStorageClassName, r.MyDrivePVCsSize)
@@ -114,10 +114,10 @@ func (r *Reconciler) enforceMyDrivePVC(
 		// Update size only if it needs to be bigger
 		oldSize := *pvc.Spec.Resources.Requests.Storage()
 		if sizeDiff := r.MyDrivePVCsSize.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
-			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: r.MyDrivePVCsSize}
+			pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: r.MyDrivePVCsSize}
 		}
 
-		return controllerutil.SetControllerReference(tn, &pvc, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &pvc, r.Scheme)
 	})
 
 	if err != nil {
@@ -129,28 +129,28 @@ func (r *Reconciler) enforceMyDrivePVC(
 
 func (r *Reconciler) enforceMyDrivePVCMirror(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
-	pvc *v1.PersistentVolumeClaim,
+	tn *clv1alpha2.Tenant,
+	pvc *corev1.PersistentVolumeClaim,
 ) (bool, error) {
 	// if the personal namespace does not exist, skip the secret creation
 	if !tn.Status.PersonalNamespace.Created {
 		return false, nil
 	}
 
-	mirrPvc := v1.PersistentVolumeClaim{
+	mirrPvc := corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      forge.MyDrivePVCMirrorName(tn.Name),
 			Namespace: tn.Status.PersonalNamespace.Name,
 		},
 	}
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mirrPvc, func() error {
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &mirrPvc, func() error {
 		// Configure the mirror PVC
 		if mirrPvc.CreationTimestamp.IsZero() {
 			mirrPvc.Spec = forge.MirrorPVCSpec(pvc, r.MirrorPVCStorageClassName)
 		}
 		mirrPvc.SetLabels(forge.UpdateMyDriveMirrorPVCLabels(mirrPvc.Labels, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, &mirrPvc, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &mirrPvc, r.Scheme)
 	})
 	if err != nil {
 		return false, fmt.Errorf("unable to create or update mirror PVC for tenant %s: %w", tn.Name, err)
@@ -162,8 +162,8 @@ func (r *Reconciler) enforceMyDrivePVCMirror(
 func (r *Reconciler) launchPVCProvisionJob(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
-	pvc *v1.PersistentVolumeClaim,
+	tn *clv1alpha2.Tenant,
+	pvc *corev1.PersistentVolumeClaim,
 ) error {
 	chownJob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
@@ -173,7 +173,7 @@ func (r *Reconciler) launchPVCProvisionJob(
 	}
 	labelToSet := forge.ProvisionJobValuePending
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
 		if chownJob.CreationTimestamp.IsZero() {
 			log.Info("PVC Provisioning Job created for tenant")
 			// Configure the provisioning job
@@ -187,7 +187,7 @@ func (r *Reconciler) launchPVCProvisionJob(
 			}
 		}
 
-		return controllerutil.SetControllerReference(tn, &chownJob, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &chownJob, r.Scheme)
 	})
 	if err != nil {
 		return fmt.Errorf("unable to create or update PVC Provisioning Job: %w", err)
@@ -195,7 +195,7 @@ func (r *Reconciler) launchPVCProvisionJob(
 	log.Info("PVC Provisioning Job launched")
 
 	// Update the PVC label
-	if err := utils.PatchObject(ctx, r.Client, pvc, func(p *v1.PersistentVolumeClaim) *v1.PersistentVolumeClaim {
+	if err := utils.PatchObject(ctx, r.Client, pvc, func(p *corev1.PersistentVolumeClaim) *corev1.PersistentVolumeClaim {
 		forge.UpdatePVCProvisioningJobLabel(p, labelToSet)
 		return p
 	}); err != nil {

@@ -26,7 +26,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // CheckKeycloakUserVerified checks if the Tenant has already been created in Keycloak
@@ -36,7 +36,7 @@ import (
 func (r *Reconciler) CheckKeycloakUserVerified(
 	ctx context.Context,
 	log logr.Logger,
-	tenant *v1alpha2.Tenant,
+	tenant *clv1alpha2.Tenant,
 ) (bool, error) {
 	if !r.KeycloakActor.IsInitialized() {
 		log.Info("Keycloak actor not initialized, skipping Keycloak status check")
@@ -71,7 +71,7 @@ func (r *Reconciler) CheckKeycloakUserVerified(
 	} else if tenant.Status.Keycloak.UserCreated.Name != *user.ID {
 		log.Info("Tenant exists in Keycloak but with a different ID, updating status", "id", *user.ID)
 		// Update the tenant status in the cluster
-		tenant.Status.Keycloak.UserCreated = v1alpha2.NameCreated{
+		tenant.Status.Keycloak.UserCreated = clv1alpha2.NameCreated{
 			Name:    *user.ID,
 			Created: true,
 		}
@@ -90,7 +90,7 @@ func (r *Reconciler) CheckKeycloakUserVerified(
 func (r *Reconciler) createTenantInKeycloak(
 	ctx context.Context,
 	log logr.Logger,
-	tenant *v1alpha2.Tenant,
+	tenant *clv1alpha2.Tenant,
 ) error {
 	if !r.KeycloakActor.IsInitialized() {
 		log.Info("Keycloak actor not initialized, skipping Keycloak creation")
@@ -110,8 +110,8 @@ func (r *Reconciler) createTenantInKeycloak(
 		return err
 	}
 
-	tenant.Status.Keycloak = v1alpha2.KeycloakStatus{
-		UserCreated: v1alpha2.NameCreated{
+	tenant.Status.Keycloak = clv1alpha2.KeycloakStatus{
+		UserCreated: clv1alpha2.NameCreated{
 			Name:    userID,
 			Created: true,
 		},
@@ -124,7 +124,7 @@ func (r *Reconciler) createTenantInKeycloak(
 func (r *Reconciler) deleteTenantInKeycloak(
 	ctx context.Context,
 	log logr.Logger,
-	tenant *v1alpha2.Tenant,
+	tenant *clv1alpha2.Tenant,
 ) error {
 	if !r.KeycloakActor.IsInitialized() {
 		log.Info("Keycloak actor not initialized, skipping Keycloak deletion")
@@ -144,8 +144,8 @@ func (r *Reconciler) deleteTenantInKeycloak(
 	log.Info("Tenant deleted in Keycloak")
 
 	// Reset the Keycloak status in the tenant
-	tenant.Status.Keycloak = v1alpha2.KeycloakStatus{
-		UserCreated: v1alpha2.NameCreated{
+	tenant.Status.Keycloak = clv1alpha2.KeycloakStatus{
+		UserCreated: clv1alpha2.NameCreated{
 			Name:    "",
 			Created: false,
 		},
@@ -180,7 +180,7 @@ func (r *Reconciler) KeycloakEventHandler(
 	}
 
 	r.TriggerReconcileChannel <- event.GenericEvent{
-		Object: &v1alpha2.Tenant{
+		Object: &clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: username,
 			},

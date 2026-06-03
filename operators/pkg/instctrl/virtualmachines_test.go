@@ -144,7 +144,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			},
 		}
 
-		objectName = forge.NamespacedName(&instance)
+		objectName = forge.NamespacedNameFromObject(&instance)
 		objectNameEnv = forge.NamespacedNameWithSuffix(&instance, environmentName)
 
 		svc = corev1.Service{}

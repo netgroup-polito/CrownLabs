@@ -206,10 +206,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	}(instance.DeepCopy(), &instance)
 
 	// Retrieve the template associated with the current instance.
-	templateName := types.NamespacedName{
-		Namespace: instance.Spec.Template.Namespace,
-		Name:      instance.Spec.Template.Name,
-	}
+	templateName := forge.NamespacedNameFromGenericRef(instance.Spec.Template)
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, templateName, &template); err != nil {
 		log.Error(err, "failed retrieving the instance template", "template", templateName)
@@ -221,7 +218,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	log.Info("successfully retrieved the instance template")
 
 	// Retrieve the tenant associated with the current instance.
-	tenantName := types.NamespacedName{Name: instance.Spec.Tenant.Name}
+	tenantName := forge.NamespacedNameFromGenericRef(instance.Spec.Tenant)
 	var tenant clv1alpha2.Tenant
 	if err := r.Get(ctx, tenantName, &tenant); err != nil {
 		log.Error(err, "failed retrieving the instance tenant", "tenant", tenantName)

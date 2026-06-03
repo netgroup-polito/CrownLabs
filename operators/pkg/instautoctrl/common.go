@@ -24,7 +24,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -33,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -116,11 +115,11 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 		return fmt.Errorf("mail client is not configured")
 	}
 
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
-	tenant := pkgcontext.TenantFrom(ctx)
+	tenant := clctx.TenantFrom(ctx)
 	if tenant == nil {
 		return fmt.Errorf("tenant not found in context")
 	}
@@ -146,7 +145,7 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.
 func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return nil, fmt.Errorf("instance not found in context")
 	}
@@ -171,10 +170,7 @@ func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Te
 func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) ([]*clv1alpha2.Environment, error) {
 	log := ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel)
 
-	templateName := types.NamespacedName{
-		Namespace: instance.Spec.Template.Namespace,
-		Name:      instance.Spec.Template.Name,
-	}
+	templateName := forge.NamespacedNameFromGenericRef(instance.Spec.Template)
 
 	var template clv1alpha2.Template
 	if err := c.Get(ctx, templateName, &template); err != nil {
@@ -219,10 +215,7 @@ func getTemplateInstanceRequests(ctx context.Context, c client.Client, template 
 	for i := range instances.Items {
 		instance := &instances.Items[i]
 		requests = append(requests, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      instance.Name,
-				Namespace: instance.Namespace,
-			},
+			NamespacedName: forge.NamespacedNameFromObject(instance),
 		})
 	}
 
@@ -339,20 +332,14 @@ func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, c client.C
 	}
 
 	var template clv1alpha2.Template
-	if err := c.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, &template); err != nil {
+	if err := c.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), &template); err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
 		return nil, nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
 			instance.Spec.Template.Namespace, instance.Spec.Template.Name, err)
 	}
 
 	var tenant clv1alpha2.Tenant
-	if err := c.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Namespace,
-	}, &tenant); err != nil {
+	if err := c.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Tenant), &tenant); err != nil {
 		log.Error(err, "Unable to fetch the instance tenant.")
 		return nil, nil, nil, fmt.Errorf("failed to fetch instance tenant %s/%s: %w",
 			instance.Namespace, instance.Spec.Tenant.Name, err)
@@ -378,10 +365,7 @@ func createNamespaceWatchHandlerWithIgnore(c client.Client, ignoreLabel string) 
 		for i := range instances.Items {
 			instance := &instances.Items[i]
 			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-				},
+				NamespacedName: forge.NamespacedNameFromObject(instance),
 			})
 		}
 		return requests

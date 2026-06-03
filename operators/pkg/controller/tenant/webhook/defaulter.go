@@ -21,13 +21,13 @@ import (
 	"strings"
 
 	admissionv1 "k8s.io/api/admission/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -37,7 +37,7 @@ type TenantDefaulter struct {
 	TenantWebhook
 
 	Decoder         admission.Decoder
-	OpSelectorLabel common.KVLabel
+	OpSelectorLabel ctrlcommon.KVLabel
 	BaseWorkspaces  []string
 }
 
@@ -54,9 +54,9 @@ func (tm *TenantDefaulter) Default(ctx context.Context, obj runtime.Object) erro
 
 	log.V(utils.LogDebugLevel).Info("processing mutation request", "groups", strings.Join(req.UserInfo.Groups, ","))
 
-	tenant, ok := obj.(*v1alpha2.Tenant)
+	tenant, ok := obj.(*clv1alpha2.Tenant)
 	if !ok {
-		err := errors.NewBadRequest("expected a Tenant object")
+		err := kerrors.NewBadRequest("expected a Tenant object")
 		log.Error(err, "object is not a Tenant")
 	}
 
@@ -74,11 +74,11 @@ func (tm *TenantDefaulter) Default(ctx context.Context, obj runtime.Object) erro
 }
 
 // DecodeTenant decodes the tenant from the incoming request.
-func (tm *TenantDefaulter) DecodeTenant(obj runtime.RawExtension) (tenant *v1alpha2.Tenant, err error) {
+func (tm *TenantDefaulter) DecodeTenant(obj runtime.RawExtension) (tenant *clv1alpha2.Tenant, err error) {
 	if tm.Decoder == nil {
-		return nil, errors.NewInternalError(fmt.Errorf("decoder is not set"))
+		return nil, kerrors.NewInternalError(fmt.Errorf("decoder is not set"))
 	}
-	tenant = &v1alpha2.Tenant{}
+	tenant = &clv1alpha2.Tenant{}
 	err = tm.Decoder.DecodeRaw(obj, tenant)
 	return
 }
@@ -94,7 +94,7 @@ func (tm *TenantDefaulter) EnforceTenantLabels(ctx context.Context, req *admissi
 	}
 
 	// enforce empty operator on svc tenant
-	if req.Name == v1alpha2.SVCTenantName {
+	if req.Name == clv1alpha2.SVCTenantName {
 		if !tm.OpSelectorLabel.IsIncluded(labels) {
 			labels[tm.OpSelectorLabel.GetKey()] = ""
 			log.Info("attempted adding operator selector labels to svc tenant")
@@ -144,7 +144,7 @@ func (tm *TenantDefaulter) EnforceTenantLabels(ctx context.Context, req *admissi
 }
 
 // EnforceTenantBaseWorkspaces ensure base workspaces are present in the given tenant.
-func (tm *TenantDefaulter) EnforceTenantBaseWorkspaces(ctx context.Context, tenant *v1alpha2.Tenant) {
+func (tm *TenantDefaulter) EnforceTenantBaseWorkspaces(ctx context.Context, tenant *clv1alpha2.Tenant) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("enforcing base workspaces")
 
@@ -157,9 +157,9 @@ func (tm *TenantDefaulter) EnforceTenantBaseWorkspaces(ctx context.Context, tena
 			}
 		}
 		if !found {
-			tenant.Spec.Workspaces = append(tenant.Spec.Workspaces, v1alpha2.TenantWorkspaceEntry{
+			tenant.Spec.Workspaces = append(tenant.Spec.Workspaces, clv1alpha2.TenantWorkspaceEntry{
 				Name: baseWs,
-				Role: v1alpha2.User,
+				Role: clv1alpha2.User,
 			})
 			log.Info("base workspace added", "workspace", baseWs)
 		}

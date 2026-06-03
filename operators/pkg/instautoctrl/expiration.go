@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -111,9 +111,9 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	// Get lifespan from template's deleteAfter field
 	deleteAfter := template.Spec.DeleteAfter
 
-	ctx, _ = pkgcontext.TemplateInto(ctx, template)
-	ctx, _ = pkgcontext.InstanceInto(ctx, instance)
-	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
+	ctx, _ = clctx.TemplateInto(ctx, template)
+	ctx, _ = clctx.InstanceInto(ctx, instance)
+	ctx, _ = clctx.TenantInto(ctx, tenant)
 
 	// If the template's deleteAfter field is set to neverTimeoutValue , never delete
 	if deleteAfter == NeverTimeoutValue {
@@ -129,7 +129,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 	tracer.Step("expiration checked")
 	if remainingTime <= 0 {
-		tenant := pkgcontext.TenantFrom(ctx)
+		tenant := clctx.TenantFrom(ctx)
 		if tenant == nil {
 			return ctrl.Result{}, fmt.Errorf("tenant not found in context")
 		}
@@ -188,7 +188,7 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 
 // ShouldTerminateInstance checks if the instance should be terminated.
 func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Context) (bool, time.Duration, error) {
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return false, r.NotificationInterval, fmt.Errorf("instance not found in context")
 	}
@@ -221,7 +221,7 @@ func (r *InstanceExpirationReconciler) ShouldTerminateInstance(ctx context.Conte
 // CheckInstanceExpiration returns the remaining time before expiration as a time.Duration.
 func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Context, deleteAfter string) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-remaining-time")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return 0, fmt.Errorf("instance not found in context")
 	}
@@ -245,7 +245,7 @@ func (r *InstanceExpirationReconciler) CheckInstanceExpiration(ctx context.Conte
 // DeleteInstance attempts to delete the instance.
 func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
@@ -265,12 +265,12 @@ func (r *InstanceExpirationReconciler) DeleteInstance(ctx context.Context) error
 // NotifyInstanceDeletion handles sending notification emails when an instance is deleted.
 func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("notify-instance-deletion")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
 
-	tenant := pkgcontext.TenantFrom(ctx)
+	tenant := clctx.TenantFrom(ctx)
 	if tenant == nil {
 		return fmt.Errorf("tenant not found in context")
 	}
@@ -290,7 +290,7 @@ func (r *InstanceExpirationReconciler) NotifyInstanceDeletion(ctx context.Contex
 
 // ShouldSendWarningNotification checks if a warning notification should be sent for an expiring instance.
 func (r *InstanceExpirationReconciler) ShouldSendWarningNotification(ctx context.Context) (bool, error) {
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return false, fmt.Errorf("instance not found in context")
 	}

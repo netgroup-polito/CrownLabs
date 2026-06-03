@@ -22,18 +22,18 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 func (r *Reconciler) createKeycloakRoles(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	log logr.Logger,
 ) error {
 	if !r.KeycloakActor.IsInitialized() {
-		ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
+		ws.Status.Subscriptions["keycloak"] = clv1alpha2.SubscrFailed
 		log.Info("Keycloak actor is not initialized, skipping role creation for workspace", "workspace", ws.Name)
 		return nil
 	}
@@ -42,7 +42,7 @@ func (r *Reconciler) createKeycloakRoles(
 	managerRoleName := forge.GetWorkspaceManagerRoleName(ws)
 	managerRoleDesc := forge.GetWorkspaceManagerRoleDescription(ws)
 	if err := r.createKeycloakRole(ctx, ws, managerRoleName, managerRoleDesc, log); err != nil {
-		ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
+		ws.Status.Subscriptions["keycloak"] = clv1alpha2.SubscrFailed
 		log.Error(err, "Error when creating Keycloak manager role", "role", managerRoleName, "workspace", ws.Name)
 		return err
 	}
@@ -51,19 +51,19 @@ func (r *Reconciler) createKeycloakRoles(
 	userRoleName := forge.GetWorkspaceUserRoleName(ws)
 	userRoleDesc := forge.GetWorkspaceUserRoleDescription(ws)
 	if err := r.createKeycloakRole(ctx, ws, userRoleName, userRoleDesc, log); err != nil {
-		ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrFailed
+		ws.Status.Subscriptions["keycloak"] = clv1alpha2.SubscrFailed
 		log.Error(err, "Error when creating Keycloak user role", "role", userRoleName, "workspace", ws.Name)
 		return err
 	}
 
-	ws.Status.Subscriptions["keycloak"] = v1alpha2.SubscrOk
+	ws.Status.Subscriptions["keycloak"] = clv1alpha2.SubscrOk
 
 	return nil
 }
 
 func (r *Reconciler) createKeycloakRole(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	roleName string,
 	roleDescription string,
 	log logr.Logger,
@@ -92,7 +92,7 @@ func (r *Reconciler) createKeycloakRole(
 
 func (r *Reconciler) deleteKeycloakRoles(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	log logr.Logger,
 ) error {
 	if !r.KeycloakActor.IsInitialized() {
@@ -119,7 +119,7 @@ func (r *Reconciler) deleteKeycloakRoles(
 
 func (r *Reconciler) deleteKeycloakRole(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	roleName string,
 	log logr.Logger,
 ) error {
