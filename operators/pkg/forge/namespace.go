@@ -21,12 +21,12 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // GetWorkspaceNamespaceName returns the name of the namespace for a workspace.
-func GetWorkspaceNamespaceName(ws *v1alpha1.Workspace) string {
+func GetWorkspaceNamespaceName(ws *clv1alpha1.Workspace) string {
 	return fmt.Sprintf("workspace-%s", ws.Name)
 }
 
@@ -45,12 +45,12 @@ func ConfigureWorkspaceNamespace(ns *corev1.Namespace, labels map[string]string)
 }
 
 // GetTenantNamespaceName returns the name of the namespace for a tenant.
-func GetTenantNamespaceName(tn *v1alpha2.Tenant) string {
+func GetTenantNamespaceName(tn *clv1alpha2.Tenant) string {
 	return fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 }
 
 // ConfigureTenantNamespace configures a namespace for a tenant.
-func ConfigureTenantNamespace(ns *corev1.Namespace, tn *v1alpha2.Tenant, labels map[string]string) {
+func ConfigureTenantNamespace(ns *corev1.Namespace, tn *clv1alpha2.Tenant, labels map[string]string) {
 	// Set the labels for the namespace
 	if ns.Labels == nil {
 		ns.Labels = make(map[string]string)

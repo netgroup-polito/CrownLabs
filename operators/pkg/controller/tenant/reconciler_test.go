@@ -20,13 +20,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("TenantReconciler", func() {
@@ -51,7 +51,7 @@ var _ = Describe("TenantReconciler", func() {
 
 	Context("When the resource is not found in the cluster", func() {
 		BeforeEach(func() {
-			tnResource = &v1alpha2.Tenant{}
+			tnResource = &clv1alpha2.Tenant{}
 		})
 
 		It("Should not return an error", func() {
@@ -71,13 +71,13 @@ var _ = Describe("TenantReconciler", func() {
 		})
 
 		It("Should not create any resources", func() {
-			ns := &v1.Namespace{}
+			ns := &corev1.Namespace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, ns, BeFalse(), timeout, interval)
 		})
 
 		Context("When there are resources associated with the tenant", func() {
-			namespaceResource := &v1.Namespace{
+			namespaceResource := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "tenant-" + tnName,
 					Labels: map[string]string{
@@ -95,7 +95,7 @@ var _ = Describe("TenantReconciler", func() {
 			})
 
 			It("Should not delete the resources", func() {
-				ns := &v1.Namespace{}
+				ns := &corev1.Namespace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "tenant-" + tnName}, ns, BeTrue(), timeout, interval)
 
@@ -105,7 +105,7 @@ var _ = Describe("TenantReconciler", func() {
 	})
 
 	It("Should add the finalizer to the tenant resource", func() {
-		tn := &v1alpha2.Tenant{}
+		tn := &clv1alpha2.Tenant{}
 
 		DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
@@ -116,7 +116,7 @@ var _ = Describe("TenantReconciler", func() {
 		BeforeEach(func() {
 			builder.WithInterceptorFuncs(interceptor.Funcs{
 				Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-					if tn, ok := obj.(*v1alpha2.Tenant); ok && tn.Name == tnName {
+					if tn, ok := obj.(*clv1alpha2.Tenant); ok && tn.Name == tnName {
 						return fmt.Errorf("failed to add finalizer")
 					}
 					return nil
@@ -140,7 +140,7 @@ var _ = Describe("TenantReconciler", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-						if tn, ok := obj.(*v1alpha2.Tenant); ok && tn.Name == tnName {
+						if tn, ok := obj.(*clv1alpha2.Tenant); ok && tn.Name == tnName {
 							return fmt.Errorf("failed to remove finalizer")
 						}
 						return nil
@@ -155,7 +155,7 @@ var _ = Describe("TenantReconciler", func() {
 			})
 
 			It("Should prevent the deletion of the tenant resource", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 			})
@@ -165,14 +165,14 @@ var _ = Describe("TenantReconciler", func() {
 	Context("Testing WorkspaceToEnrolledTenants functionality", func() {
 		var (
 			workspaceName      string
-			workspace          *v1alpha1.Workspace
-			enrolledTenants    []*v1alpha2.Tenant
-			notEnrolledTenants []*v1alpha2.Tenant
+			workspace          *clv1alpha1.Workspace
+			enrolledTenants    []*clv1alpha2.Tenant
+			notEnrolledTenants []*clv1alpha2.Tenant
 		)
 
 		workspaceName = "test-workspace"
 
-		workspace = &v1alpha1.Workspace{
+		workspace = &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: workspaceName,
 				Labels: map[string]string{
@@ -182,12 +182,12 @@ var _ = Describe("TenantReconciler", func() {
 		}
 
 		// Create enrolled tenants
-		enrolledTenants = []*v1alpha2.Tenant{
+		enrolledTenants = []*clv1alpha2.Tenant{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "enrolled-tenant-1",
 					Labels: map[string]string{
-						fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, workspaceName): "true",
+						fmt.Sprintf("%s%s", clv1alpha2.WorkspaceLabelPrefix, workspaceName): "true",
 					},
 				},
 			},
@@ -195,14 +195,14 @@ var _ = Describe("TenantReconciler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "enrolled-tenant-2",
 					Labels: map[string]string{
-						fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, workspaceName): "true",
+						fmt.Sprintf("%s%s", clv1alpha2.WorkspaceLabelPrefix, workspaceName): "true",
 					},
 				},
 			},
 		}
 
 		// Create not enrolled tenants
-		notEnrolledTenants = []*v1alpha2.Tenant{
+		notEnrolledTenants = []*clv1alpha2.Tenant{
 			{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:   "not-enrolled-tenant-1",
@@ -213,7 +213,7 @@ var _ = Describe("TenantReconciler", func() {
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "not-enrolled-tenant-2",
 					Labels: map[string]string{
-						fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, "other-workspace"): "true",
+						fmt.Sprintf("%s%s", clv1alpha2.WorkspaceLabelPrefix, "other-workspace"): "true",
 					},
 				},
 			},
@@ -264,7 +264,7 @@ var _ = Describe("TenantReconciler", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					List: func(_ context.Context, _ client.WithWatch, list client.ObjectList, _ ...client.ListOption) error {
-						if _, ok := list.(*v1alpha2.TenantList); ok {
+						if _, ok := list.(*clv1alpha2.TenantList); ok {
 							return fmt.Errorf("error listing tenants")
 						}
 						return nil

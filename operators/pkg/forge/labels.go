@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
@@ -249,7 +249,7 @@ func SharedVolumeObjectLabels(labels map[string]string) map[string]string {
 }
 
 // TenantLabels receives in input a set of labels and returns the updated set depending on the specified tenant.
-func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel common.KVLabel) map[string]string {
+func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel ctrlcommon.KVLabel) map[string]string {
 	labels = deepCopyLabels(labels)
 
 	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
@@ -304,7 +304,7 @@ func InstanceNameFromLabels(labels map[string]string) (string, bool) {
 }
 
 // UpdateWorkspaceResourceCommonLabels updates the common labels for resources managed by the workspace controller.
-func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel ctrlcommon.KVLabel) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)
 	}

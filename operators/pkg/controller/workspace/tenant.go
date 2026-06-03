@@ -21,18 +21,18 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 func (r *Reconciler) handleTenantWorkspaceDeletion(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	log logr.Logger,
 ) error {
-	var tenantsToUpdate v1alpha2.TenantList
+	var tenantsToUpdate clv1alpha2.TenantList
 	targetLabel := forge.GetWorkspaceTargetLabel(ws.Name)
 
 	if err := r.List(ctx, &tenantsToUpdate, &client.HasLabels{targetLabel}); err != nil {
@@ -42,7 +42,7 @@ func (r *Reconciler) handleTenantWorkspaceDeletion(
 
 	for i := range tenantsToUpdate.Items {
 		tn := &tenantsToUpdate.Items[i]
-		if err := utils.PatchObject(ctx, r.Client, tn, func(t *v1alpha2.Tenant) *v1alpha2.Tenant {
+		if err := utils.PatchObject(ctx, r.Client, tn, func(t *clv1alpha2.Tenant) *clv1alpha2.Tenant {
 			removeWorkspaceFromTenant(&t.Spec.Workspaces, ws.Name)
 			return t
 		}); err != nil {
@@ -55,7 +55,7 @@ func (r *Reconciler) handleTenantWorkspaceDeletion(
 }
 
 func removeWorkspaceFromTenant(
-	workspaces *[]v1alpha2.TenantWorkspaceEntry,
+	workspaces *[]clv1alpha2.TenantWorkspaceEntry,
 	wsToRemove string,
 ) {
 	idxToRemove := -1

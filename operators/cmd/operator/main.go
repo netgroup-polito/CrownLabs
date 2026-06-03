@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -29,25 +29,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 var (
-	scheme         = runtime.NewScheme()
+	rscheme        = runtime.NewScheme()
 	enableWebhooks bool
-	reschedule     = common.Rescheduler{
+	reschedule     = ctrlcommon.Rescheduler{
 		RequeueAfterMin: 1 * 24 * time.Hour,
 		RequeueAfterMax: 7 * 24 * time.Hour,
 	}
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(scheme.AddToScheme(rscheme))
 
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	utilruntime.Must(v1alpha2.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 }
 
 func main() {
@@ -99,7 +99,7 @@ func main() {
 	log := ctrl.Log.WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 rscheme,
 		Metrics:                server.Options{BindAddress: metricsAddr},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		LeaderElection:         enableLeaderElection,
@@ -111,7 +111,7 @@ func main() {
 		klog.Fatal(err, "Unable to create manager")
 	}
 
-	targetLabel, err := common.ParseLabel(targetLabelStr)
+	targetLabel, err := ctrlcommon.ParseLabel(targetLabelStr)
 	if err != nil {
 		klog.Fatal(err, "Unable to parse target label")
 	}

@@ -23,13 +23,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // EnforceSandboxResources ensures the presence/absence of a sandbox.
-func (r *Reconciler) enforceSandboxResources(ctx context.Context, tenant *v1alpha2.Tenant) error {
+func (r *Reconciler) enforceSandboxResources(ctx context.Context, tenant *clv1alpha2.Tenant) error {
 	if tenant.Spec.CreateSandbox {
 		return r.enforceSandboxResourcesPresence(ctx, tenant)
 	}
@@ -37,7 +37,7 @@ func (r *Reconciler) enforceSandboxResources(ctx context.Context, tenant *v1alph
 }
 
 // enforceSandboxResourcesPresence ensures the presence of a sandbox.
-func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant *v1alpha2.Tenant) error {
+func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant *clv1alpha2.Tenant) error {
 	sandboxnsName := forge.CanonicalSandboxName(tenant.Name)
 	log := ctrl.LoggerFrom(ctx, "environment", "sandbox")
 
@@ -119,7 +119,7 @@ func (r *Reconciler) enforceSandboxResourcesPresence(ctx context.Context, tenant
 }
 
 // enforceInstanceExpositionAbsence ensures the sandbox's absence.
-func (r *Reconciler) enforceSandboxResourcesAbsence(ctx context.Context, tenant *v1alpha2.Tenant) error {
+func (r *Reconciler) enforceSandboxResourcesAbsence(ctx context.Context, tenant *clv1alpha2.Tenant) error {
 	sandboxnsName := forge.CanonicalSandboxName(tenant.Name)
 
 	// Enforce namespace absence

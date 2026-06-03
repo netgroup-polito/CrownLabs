@@ -21,17 +21,17 @@ import (
 	"reflect"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -39,9 +39,9 @@ import (
 type Reconciler struct {
 	client.Client
 	Scheme        *runtime.Scheme
-	TargetLabel   common.KVLabel
-	KeycloakActor common.KeycloakActorIface
-	Reschedule    common.Rescheduler
+	TargetLabel   ctrlcommon.KVLabel
+	KeycloakActor ctrlcommon.KeycloakActorIface
+	Reschedule    ctrlcommon.Rescheduler
 }
 
 // Reconcile reconciles the state of a Workspace resource.
@@ -51,7 +51,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 	log.Info("Reconciling workspace")
 
-	var ws v1alpha1.Workspace
+	var ws clv1alpha1.Workspace
 	if err := r.Get(ctx, req.NamespacedName, &ws); client.IgnoreNotFound(err) != nil {
 		log.Error(err, "Error when getting workspace before starting reconcile", "workspace", req.Name)
 		return ctrl.Result{}, err
@@ -67,7 +67,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	avoidStatusUpdate := false
-	defer func(original, updated *v1alpha1.Workspace) {
+	defer func(original, updated *clv1alpha1.Workspace) {
 		if avoidStatusUpdate {
 			return
 		}
@@ -98,9 +98,9 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	}
 
 	// add the finalizer if not already present
-	if !controllerutil.ContainsFinalizer(&ws, v1alpha2.TnOperatorFinalizerName) {
-		if err := r.enforcePreservingStatus(ctx, log, &ws, func(workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
-			controllerutil.AddFinalizer(workspace, v1alpha2.TnOperatorFinalizerName)
+	if !ctrlutil.ContainsFinalizer(&ws, clv1alpha2.TnOperatorFinalizerName) {
+		if err := r.enforcePreservingStatus(ctx, log, &ws, func(workspace *clv1alpha1.Workspace) *clv1alpha1.Workspace {
+			ctrlutil.AddFinalizer(workspace, clv1alpha2.TnOperatorFinalizerName)
 			return workspace
 		}); err != nil {
 			log.Error(err, "Error adding finalizer to workspace")
@@ -125,7 +125,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log.Info("AutoEnrollment enforced for workspace")
 
 	if ws.Status.Subscriptions == nil {
-		ws.Status.Subscriptions = make(map[string]v1alpha2.SubscriptionStatus)
+		ws.Status.Subscriptions = make(map[string]clv1alpha2.SubscriptionStatus)
 	}
 
 	// setup roles in Keycloak
@@ -150,8 +150,8 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&v1alpha1.Workspace{}, builder.WithPredicates(pred)).
-		Owns(&v1.Namespace{}).
+		For(&clv1alpha1.Workspace{}, builder.WithPredicates(pred)).
+		Owns(&corev1.Namespace{}).
 		Owns(&rbacv1.ClusterRoleBinding{}).
 		Owns(&rbacv1.RoleBinding{}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Workspace")).
@@ -161,7 +161,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
 func (r *Reconciler) enforceWorkspaceAbsence(
 	ctx context.Context,
 	log logr.Logger,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// remove the Workspace from Tenants
 	if err := r.handleTenantWorkspaceDeletion(ctx, ws, log); err != nil {
@@ -182,9 +182,9 @@ func (r *Reconciler) enforceWorkspaceAbsence(
 	log.Info("Subresources deleted for workspace")
 
 	// delete finalizer
-	if controllerutil.ContainsFinalizer(ws, v1alpha2.TnOperatorFinalizerName) {
-		if err := r.enforcePreservingStatus(ctx, log, ws, func(workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
-			controllerutil.RemoveFinalizer(workspace, v1alpha2.TnOperatorFinalizerName)
+	if ctrlutil.ContainsFinalizer(ws, clv1alpha2.TnOperatorFinalizerName) {
+		if err := r.enforcePreservingStatus(ctx, log, ws, func(workspace *clv1alpha1.Workspace) *clv1alpha1.Workspace {
+			ctrlutil.RemoveFinalizer(workspace, clv1alpha2.TnOperatorFinalizerName)
 			return workspace
 		}); err != nil {
 			return fmt.Errorf("error removing finalizer from workspace %s: %w", ws.Name, err)
@@ -198,7 +198,7 @@ func (r *Reconciler) enforceWorkspaceAbsence(
 func (r *Reconciler) enforceSubresources(
 	ctx context.Context,
 	log logr.Logger,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Enforce the Namespace for the Workspace
 	if err := r.enforceNamespace(ctx, ws); err != nil {
@@ -224,7 +224,7 @@ func (r *Reconciler) enforceSubresources(
 func (r *Reconciler) enforceSubresourcesAbsence(
 	ctx context.Context,
 	log logr.Logger,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Delete the RoleBindings for the Workspace
 	if err := r.enforceRoleBindingsAbsence(ctx, ws); err != nil {

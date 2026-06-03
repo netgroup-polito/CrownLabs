@@ -21,9 +21,9 @@ import (
 
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -31,7 +31,7 @@ import (
 // enforceClusterRoleBindings ensures that all necessary ClusterRoleBindings exist for the workspace.
 func (r *Reconciler) enforceClusterRoleBindings(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Create or update the ClusterRoleBinding for managing instances
 	if err := r.enforceInstancesManagerBinding(ctx, ws); err != nil {
@@ -49,7 +49,7 @@ func (r *Reconciler) enforceClusterRoleBindings(
 // enforceInstancesManagerBinding ensures that the ClusterRoleBinding for managing instances exists.
 func (r *Reconciler) enforceInstancesManagerBinding(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Create only the skeleton of the ClusterRoleBinding with immutable information
 	name := forge.GetWorkspaceInstancesManagerBindingName(ws)
@@ -60,14 +60,14 @@ func (r *Reconciler) enforceInstancesManagerBinding(
 	}
 
 	// Update or create the resource, setting all mutable values in the callback
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, crb, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, crb, func() error {
 		// Update labels
 		crb.Labels = forge.UpdateWorkspaceResourceCommonLabels(crb.Labels, r.TargetLabel)
 
 		// Configure subjects and roleRef
 		forge.ConfigureWorkspaceInstancesManagerBinding(ws, crb)
 
-		return controllerutil.SetControllerReference(ws, crb, r.Scheme)
+		return ctrlutil.SetControllerReference(ws, crb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating instances ClusterRoleBinding for workspace %s: %w",
 			ws.Name, err)
@@ -79,7 +79,7 @@ func (r *Reconciler) enforceInstancesManagerBinding(
 // enforceTenantsManagerBinding ensures that the ClusterRoleBinding for managing tenants exists.
 func (r *Reconciler) enforceTenantsManagerBinding(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Create only the skeleton of the ClusterRoleBinding with immutable information
 	name := forge.GetWorkspaceTenantsManagerBindingName(ws)
@@ -90,14 +90,14 @@ func (r *Reconciler) enforceTenantsManagerBinding(
 	}
 
 	// Update or create the resource, setting all mutable values in the callback
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, crb, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, crb, func() error {
 		// Update labels
 		crb.Labels = forge.UpdateWorkspaceResourceCommonLabels(crb.Labels, r.TargetLabel)
 
 		// Configure subjects and roleRef
 		forge.ConfigureWorkspaceTenantsManagerBinding(ws, crb)
 
-		return controllerutil.SetControllerReference(ws, crb, r.Scheme)
+		return ctrlutil.SetControllerReference(ws, crb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating tenants ClusterRoleBinding for workspace %s: %w",
 			ws.Name, err)
@@ -109,7 +109,7 @@ func (r *Reconciler) enforceTenantsManagerBinding(
 // deleteClusterRoleBindings deletes all ClusterRoleBindings associated with the Workspace.
 func (r *Reconciler) enforceClusterRoleBindingsAbsence(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Delete the ClusterRoleBinding for managing instances
 	if err := r.enforceInstancesManagerBindingAbsence(ctx, ws); err != nil {
@@ -127,7 +127,7 @@ func (r *Reconciler) enforceClusterRoleBindingsAbsence(
 // deleteInstancesManagerBinding deletes the ClusterRoleBinding for managing instances.
 func (r *Reconciler) enforceInstancesManagerBindingAbsence(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Create only the skeleton of the ClusterRoleBinding needed for deletion
 	name := forge.GetWorkspaceInstancesManagerBindingName(ws)
@@ -147,7 +147,7 @@ func (r *Reconciler) enforceInstancesManagerBindingAbsence(
 // deleteTenantsManagerBinding deletes the ClusterRoleBinding for managing tenants.
 func (r *Reconciler) enforceTenantsManagerBindingAbsence(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	// Create only the skeleton of the ClusterRoleBinding needed for deletion
 	name := forge.GetWorkspaceTenantsManagerBindingName(ws)

@@ -21,15 +21,15 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
@@ -54,7 +54,7 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 	)
 
 	var (
-		workingNs = v1.Namespace{
+		workingNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: WorkingNamespace,
@@ -62,10 +62,10 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					"crownlabs.polito.it/operator-selector": "test-suite",
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
-		tenantNs = v1.Namespace{
+		tenantNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: TenantName,
@@ -74,42 +74,42 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					"crownlabs.polito.it/tenant":            TenantName,
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
-		templatePersistentEnvironment = crownlabsv1alpha2.TemplateSpec{
-			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
+		templatePersistentEnvironment = clv1alpha2.TemplateSpec{
+			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
-			EnvironmentList: []crownlabsv1alpha2.Environment{
+			EnvironmentList: []clv1alpha2.Environment{
 				{
 					Name:       "env-1",
 					GuiEnabled: true,
-					Resources: crownlabsv1alpha2.EnvironmentResources{
+					Resources: clv1alpha2.EnvironmentResources{
 						CPU:                   1,
 						ReservedCPUPercentage: 1,
 						Memory:                resource.MustParse("1024M"),
 					},
-					EnvironmentType: crownlabsv1alpha2.ClassVM,
+					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      true,
 					Image:           "crownlabs/vm",
 				},
 			},
 		}
-		templateNonPersistentEnvironment = crownlabsv1alpha2.TemplateSpec{
-			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
+		templateNonPersistentEnvironment = clv1alpha2.TemplateSpec{
+			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
-			EnvironmentList: []crownlabsv1alpha2.Environment{
+			EnvironmentList: []clv1alpha2.Environment{
 				{
 					Name:       "env-1",
 					GuiEnabled: true,
-					Resources: crownlabsv1alpha2.EnvironmentResources{
+					Resources: clv1alpha2.EnvironmentResources{
 						CPU:                   1,
 						ReservedCPUPercentage: 1,
 						Memory:                resource.MustParse("1024M"),
 					},
-					EnvironmentType: crownlabsv1alpha2.ClassVM,
+					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      false,
 					Image:           "crownlabs/vm",
 				},
@@ -118,26 +118,26 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 			InactivityTimeout: CustomInactivityTimeout2,
 		}
 
-		persistentTemplate = crownlabsv1alpha2.Template{
+		persistentTemplate = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      persistentTemplateName,
 				Namespace: WorkingNamespace,
 			},
 			Spec:   templatePersistentEnvironment,
-			Status: crownlabsv1alpha2.TemplateStatus{},
+			Status: clv1alpha2.TemplateStatus{},
 		}
-		nonPersistentTemplate = crownlabsv1alpha2.Template{
+		nonPersistentTemplate = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      nonPersistentTemplateName,
 				Namespace: WorkingNamespace,
 			},
 			Spec:   templateNonPersistentEnvironment,
-			Status: crownlabsv1alpha2.TemplateStatus{},
+			Status: clv1alpha2.TemplateStatus{},
 		}
 
-		persistentInstance = crownlabsv1alpha2.Instance{
+		persistentInstance = clv1alpha2.Instance{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PersistentInstanceName,
@@ -150,20 +150,20 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					"crownlabs.polito.it/instance-type":     "non-persistent",
 				},
 			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
+			Spec: clv1alpha2.InstanceSpec{
 				Running: true,
-				Template: crownlabsv1alpha2.GenericRef{
+				Template: clv1alpha2.GenericRef{
 					Name:      persistentTemplateName,
 					Namespace: WorkingNamespace,
 				},
-				Tenant: crownlabsv1alpha2.GenericRef{
+				Tenant: clv1alpha2.GenericRef{
 					Name:      TenantName,
 					Namespace: tenantNs.Name,
 				},
 			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
+			Status: clv1alpha2.InstanceStatus{},
 		}
-		nonPersistentInstance = crownlabsv1alpha2.Instance{
+		nonPersistentInstance = clv1alpha2.Instance{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      NonPersistentInstanceName,
@@ -176,21 +176,21 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					"crownlabs.polito.it/instance-type":     "non-persistent",
 				},
 			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
+			Spec: clv1alpha2.InstanceSpec{
 				Running: true,
-				Template: crownlabsv1alpha2.GenericRef{
+				Template: clv1alpha2.GenericRef{
 					Name:      nonPersistentTemplateName,
 					Namespace: WorkingNamespace,
 				},
-				Tenant: crownlabsv1alpha2.GenericRef{
+				Tenant: clv1alpha2.GenericRef{
 					Name:      TenantName,
 					Namespace: tenantNs.Name,
 				},
 			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
+			Status: clv1alpha2.InstanceStatus{},
 		}
 
-		tenant = crownlabsv1alpha2.Tenant{
+		tenant = clv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      TenantName,
@@ -199,11 +199,11 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					"crownlabs.polito.it/operator-selector": "test-suite",
 				},
 			},
-			Spec: crownlabsv1alpha2.TenantSpec{
+			Spec: clv1alpha2.TenantSpec{
 				FirstName: "John",
 				LastName:  "Doe",
 				Email:     "john@gmail.com",
-				Workspaces: []crownlabsv1alpha2.TenantWorkspaceEntry{
+				Workspaces: []clv1alpha2.TenantWorkspaceEntry{
 					{Name: workingNs.Name,
 						Role: "user"},
 				},
@@ -234,15 +234,15 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		By("Creating the namespace where to create instance and template")
 		err1 := k8sClient.Create(ctx, newTenantNs)
 		err2 := k8sClient.Create(ctx, newWorkingNs)
-		if (err1 != nil || err2 != nil) && (errors.IsAlreadyExists(err1) || errors.IsAlreadyExists(err2)) {
+		if (err1 != nil || err2 != nil) && (kerrors.IsAlreadyExists(err1) || kerrors.IsAlreadyExists(err2)) {
 			cleanupEnvironment()
 		} else if err1 != nil || err2 != nil {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s %s", err1, err2))
 		}
 
 		By("By checking that the namespace has been created")
-		createdNs := &v1.Namespace{}
-		tenantNs := &v1.Namespace{}
+		createdNs := &corev1.Namespace{}
+		tenantNs := &corev1.Namespace{}
 
 		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
 		Expect(k8sClient.Get(ctx, nsLookupKey, createdNs)).To(Succeed())
@@ -259,8 +259,8 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		By("By checking that the template has been created")
 		persistentTemplateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
 		nonPersistentTemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		createdPersitentTemplate := &crownlabsv1alpha2.Template{}
-		createdNonPersitentTemplate := &crownlabsv1alpha2.Template{}
+		createdPersitentTemplate := &clv1alpha2.Template{}
+		createdNonPersitentTemplate := &clv1alpha2.Template{}
 
 		Expect(k8sClient.Get(ctx, persistentTemplateLookupKey, createdPersitentTemplate)).To(Succeed())
 		Expect(k8sClient.Get(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate)).To(Succeed())
@@ -272,8 +272,8 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		By("Checking that the instances has been created")
 		persistanteInstanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Name}
 		nonPersistentInstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Name}
-		createdPersistentInstance := &crownlabsv1alpha2.Instance{}
-		createdNonPersistentInstance := &crownlabsv1alpha2.Instance{}
+		createdPersistentInstance := &clv1alpha2.Instance{}
+		createdNonPersistentInstance := &clv1alpha2.Instance{}
 
 		Expect(k8sClient.Get(ctx, persistanteInstanceLookupKey, createdPersistentInstance)).To(Succeed())
 		Expect(k8sClient.Get(ctx, nonPersistentInstanceLookupKey, createdNonPersistentInstance)).To(Succeed())
@@ -286,18 +286,18 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		}
 		By("Checking that the instance is running")
 		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
-		currentInstance := &crownlabsv1alpha2.Instance{}
+		currentInstance := &clv1alpha2.Instance{}
 		Expect(k8sClient.Get(ctx, InstanceLookupKey, currentInstance)).To(Succeed())
 		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		currentTemplate := &crownlabsv1alpha2.Template{}
+		currentTemplate := &clv1alpha2.Template{}
 		Expect(k8sClient.Get(ctx, TemplateLookupKey, currentTemplate)).To(Succeed())
 		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
-		currentTenant := &crownlabsv1alpha2.Tenant{}
+		currentTenant := &clv1alpha2.Tenant{}
 		Expect(k8sClient.Get(ctx, tenantLookupKey, currentTenant)).To(Succeed())
 		ctx := context.Background()
-		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
-		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
-		ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+		ctx, _ = clctx.InstanceInto(ctx, currentInstance)
+		ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
+		ctx, _ = clctx.TenantInto(ctx, currentTenant)
 		remainingTime, err := r.CheckInstanceExpiration(ctx, currentTemplate.Spec.InactivityTimeout)
 		Expect(err).ToNot(HaveOccurred())
 		deleteAfterDuration, err := time.ParseDuration(CustomDeleteAfter2)
@@ -311,18 +311,18 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		}
 		By("Checking that the instance is running")
 		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
-		currentInstance := &crownlabsv1alpha2.Instance{}
+		currentInstance := &clv1alpha2.Instance{}
 		Expect(k8sClient.Get(ctx, InstanceLookupKey, currentInstance)).To(Succeed())
 		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		currentTemplate := &crownlabsv1alpha2.Template{}
+		currentTemplate := &clv1alpha2.Template{}
 		Expect(k8sClient.Get(ctx, TemplateLookupKey, currentTemplate)).To(Succeed())
 		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
-		currentTenant := &crownlabsv1alpha2.Tenant{}
+		currentTenant := &clv1alpha2.Tenant{}
 		Expect(k8sClient.Get(ctx, tenantLookupKey, currentTenant)).To(Succeed())
 		ctx := context.Background()
-		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
-		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
-		ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+		ctx, _ = clctx.InstanceInto(ctx, currentInstance)
+		ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
+		ctx, _ = clctx.TenantInto(ctx, currentTenant)
 		By("Calling deleteInstance function")
 		err := r.DeleteInstance(ctx)
 		Expect(err).ToNot(HaveOccurred())
@@ -335,18 +335,18 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		}
 		By("Checking that the instance is running")
 		InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
-		currentInstance := &crownlabsv1alpha2.Instance{}
+		currentInstance := &clv1alpha2.Instance{}
 		Expect(k8sClient.Get(ctx, InstanceLookupKey, currentInstance)).To(Succeed())
 		TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		currentTemplate := &crownlabsv1alpha2.Template{}
+		currentTemplate := &clv1alpha2.Template{}
 		Expect(k8sClient.Get(ctx, TemplateLookupKey, currentTemplate)).To(Succeed())
 		tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
-		currentTenant := &crownlabsv1alpha2.Tenant{}
+		currentTenant := &clv1alpha2.Tenant{}
 		Expect(k8sClient.Get(ctx, tenantLookupKey, currentTenant)).To(Succeed())
 		ctx := context.Background()
-		ctx, _ = pkgcontext.InstanceInto(ctx, currentInstance)
-		ctx, _ = pkgcontext.TemplateInto(ctx, currentTemplate)
-		ctx, _ = pkgcontext.TenantInto(ctx, currentTenant)
+		ctx, _ = clctx.InstanceInto(ctx, currentInstance)
+		ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
+		ctx, _ = clctx.TenantInto(ctx, currentTenant)
 
 		By("Calling ShouldSendWarningNotification function")
 		shouldSend, err := r.ShouldSendWarningNotification(ctx)

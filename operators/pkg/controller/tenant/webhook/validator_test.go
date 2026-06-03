@@ -30,25 +30,25 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
 )
 
 var _ = Describe("Validator webhook", func() {
-	forgeTenantWithWorkspace := func(ws v1alpha2.TenantWorkspaceEntry) *v1alpha2.Tenant {
-		return &v1alpha2.Tenant{
-			Spec: v1alpha2.TenantSpec{
-				Workspaces: []v1alpha2.TenantWorkspaceEntry{ws},
+	forgeTenantWithWorkspace := func(ws clv1alpha2.TenantWorkspaceEntry) *clv1alpha2.Tenant {
+		return &clv1alpha2.Tenant{
+			Spec: clv1alpha2.TenantSpec{
+				Workspaces: []clv1alpha2.TenantWorkspaceEntry{ws},
 			},
 		}
 	}
 
-	forgeTenantWithWorkspaceUser := func(wsName string) *v1alpha2.Tenant {
-		return forgeTenantWithWorkspace(v1alpha2.TenantWorkspaceEntry{
+	forgeTenantWithWorkspaceUser := func(wsName string) *clv1alpha2.Tenant {
+		return forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
 			Name: wsName,
-			Role: v1alpha2.User,
+			Role: clv1alpha2.User,
 		})
 	}
 
@@ -57,62 +57,62 @@ var _ = Describe("Validator webhook", func() {
 		tnWebhook   *admission.Webhook
 		request     admission.Request
 		response    admission.Response
-		manager     *v1alpha2.Tenant
-		fakeManager *v1alpha2.Tenant
+		manager     *clv1alpha2.Tenant
+		fakeManager *clv1alpha2.Tenant
 
-		workspaceWA     *v1alpha1.Workspace
+		workspaceWA     *clv1alpha1.Workspace
 		workspaceWAName = "test-workspace-withApproval"
-		workspaceNA     *v1alpha1.Workspace
+		workspaceNA     *clv1alpha1.Workspace
 		workspaceNAName = "test-workspace-noAutoenroll"
-		workspaceIM     *v1alpha1.Workspace
+		workspaceIM     *clv1alpha1.Workspace
 		workspaceIMName = "test-workspace-immediate"
 	)
 
 	BeforeEach(func() {
 
-		manager = &v1alpha2.Tenant{
+		manager = &clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: "some-manager"},
-			Spec: v1alpha2.TenantSpec{
-				Workspaces: []v1alpha2.TenantWorkspaceEntry{{
+			Spec: clv1alpha2.TenantSpec{
+				Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
 					Name: testWorkspace,
-					Role: v1alpha2.Manager,
+					Role: clv1alpha2.Manager,
 				}},
 			},
 		}
 
-		fakeManager = &v1alpha2.Tenant{
+		fakeManager = &clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: "some-fake-manager"},
 		}
 
-		workspaceWA = &v1alpha1.Workspace{
+		workspaceWA = &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: workspaceWAName},
-			Spec: v1alpha1.WorkspaceSpec{
+			Spec: clv1alpha1.WorkspaceSpec{
 				PrettyName: "test-workspace",
-				Quota: common.WorkspaceResourceQuota{
+				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 1,
 				},
-				AutoEnroll: v1alpha1.AutoenrollWithApproval,
+				AutoEnroll: clv1alpha1.AutoenrollWithApproval,
 			},
 		}
 
-		workspaceNA = &v1alpha1.Workspace{
+		workspaceNA = &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: workspaceNAName},
-			Spec: v1alpha1.WorkspaceSpec{
+			Spec: clv1alpha1.WorkspaceSpec{
 				PrettyName: "test-workspace",
-				Quota: common.WorkspaceResourceQuota{
+				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 1,
 				},
 			},
 		}
 
-		workspaceIM = &v1alpha1.Workspace{
+		workspaceIM = &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: workspaceIMName},
-			Spec: v1alpha1.WorkspaceSpec{
+			Spec: clv1alpha1.WorkspaceSpec{
 				PrettyName: "test-workspace",
-				Quota: common.WorkspaceResourceQuota{
+				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 1,
 				},
-				AutoEnroll: v1alpha1.AutoenrollImmediate,
+				AutoEnroll: clv1alpha1.AutoenrollImmediate,
 			},
 		}
 
@@ -132,7 +132,7 @@ var _ = Describe("Validator webhook", func() {
 
 		tnWebhook = admission.WithCustomValidator(
 			scheme,
-			&v1alpha2.Tenant{},
+			&clv1alpha2.Tenant{},
 			tnValidator,
 		)
 	})
@@ -144,7 +144,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("the user is an admin/operator", func() {
 			BeforeEach(func() {
-				request = forgeRequest(admissionv1.Create, &v1alpha2.Tenant{}, nil)
+				request = forgeRequest(admissionv1.Create, &clv1alpha2.Tenant{}, nil)
 				request.UserInfo.Groups = bypassGroups
 			})
 			It("Should admit the request", func() {
@@ -165,7 +165,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("the old tenant is invalid", func() {
 			BeforeEach(func() {
-				request = forgeRequest(admissionv1.Update, &v1alpha2.Tenant{}, nil)
+				request = forgeRequest(admissionv1.Update, &clv1alpha2.Tenant{}, nil)
 			})
 			It("Should return an error response", func() {
 				Expect(response.Allowed).To(BeFalse())
@@ -176,7 +176,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("Tenant is being edited by a non-existent user", func() {
 			BeforeEach(func() {
-				request = forgeRequest(admissionv1.Update, &v1alpha2.Tenant{}, &v1alpha2.Tenant{})
+				request = forgeRequest(admissionv1.Update, &clv1alpha2.Tenant{}, &clv1alpha2.Tenant{})
 				request.UserInfo.Username = "invalid-manager"
 			})
 			It("Should return an error response", func() {
@@ -188,13 +188,13 @@ var _ = Describe("Validator webhook", func() {
 
 		When("Tenant is being edited by a non-manager user", func() {
 			BeforeEach(func() {
-				request = forgeRequest(admissionv1.Update, &v1alpha2.Tenant{
-					Spec: v1alpha2.TenantSpec{
-						Workspaces: []v1alpha2.TenantWorkspaceEntry{{
+				request = forgeRequest(admissionv1.Update, &clv1alpha2.Tenant{
+					Spec: clv1alpha2.TenantSpec{
+						Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
 							Name: testWorkspace,
-							Role: v1alpha2.User,
+							Role: clv1alpha2.User,
 						}},
-					}}, &v1alpha2.Tenant{})
+					}}, &clv1alpha2.Tenant{})
 				request.UserInfo.Username = fakeManager.Name
 				request.UserInfo.Groups = []string{"other-group"}
 			})
@@ -208,15 +208,15 @@ var _ = Describe("Validator webhook", func() {
 	})
 
 	Describe("The TenantValidator.HandleSelfEdit method", func() {
-		var newTenant, oldTenant *v1alpha2.Tenant
+		var newTenant, oldTenant *clv1alpha2.Tenant
 		JustBeforeEach(func() {
 			response = forgeResponse(tnValidator.HandleSelfEdit(ctx, newTenant, oldTenant))
 		})
 
 		When("only public keys are changed", func() {
 			BeforeEach(func() {
-				oldTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{PublicKeys: []string{"some-key"}}}
-				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{PublicKeys: []string{"other-key"}}}
+				oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{PublicKeys: []string{"some-key"}}}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{PublicKeys: []string{"other-key"}}}
 			})
 			It("should allow the change", func() {
 				Expect(response.Allowed).To(BeTrue())
@@ -225,7 +225,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("lastLogin is changed within the LastLoginToleration", func() {
 			BeforeEach(func() {
-				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{
 					LastLogin: &metav1.Time{
 						Time: time.Now().Add(webhook.LastLoginToleration / 2),
 					},
@@ -238,7 +238,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("lastLogin too far from now (abs(lastLogin-now)) > LastLoginToleration)", func() {
 			BeforeEach(func() {
-				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{
 					LastLogin: &metav1.Time{
 						Time: time.Now().Add(webhook.LastLoginToleration + time.Millisecond),
 					},
@@ -252,10 +252,10 @@ var _ = Describe("Validator webhook", func() {
 		})
 
 		Describe("a workspace is added", func() {
-			WhenBody := func(nt *v1alpha2.Tenant, shouldSucceed bool) func() {
+			WhenBody := func(nt *clv1alpha2.Tenant, shouldSucceed bool) func() {
 				return func() {
 					BeforeEach(func() {
-						oldTenant = &v1alpha2.Tenant{}
+						oldTenant = &clv1alpha2.Tenant{}
 						newTenant = nt
 					})
 
@@ -279,9 +279,9 @@ var _ = Describe("Validator webhook", func() {
 			))
 
 			When("no autoenroll and candidate role", WhenBody(
-				forgeTenantWithWorkspace(v1alpha2.TenantWorkspaceEntry{
+				forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
 					Name: workspaceNAName,
-					Role: v1alpha2.Candidate,
+					Role: clv1alpha2.Candidate,
 				}),
 				false,
 			))
@@ -292,9 +292,9 @@ var _ = Describe("Validator webhook", func() {
 			))
 
 			When("autoenroll withApproval and candidate role", WhenBody(
-				forgeTenantWithWorkspace(v1alpha2.TenantWorkspaceEntry{
+				forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
 					Name: workspaceWAName,
-					Role: v1alpha2.Candidate,
+					Role: clv1alpha2.Candidate,
 				}),
 				true,
 			))
@@ -305,9 +305,9 @@ var _ = Describe("Validator webhook", func() {
 			))
 
 			When("autoenroll immediate and candidate role", WhenBody(
-				forgeTenantWithWorkspace(v1alpha2.TenantWorkspaceEntry{
+				forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
 					Name: workspaceIMName,
-					Role: v1alpha2.Candidate,
+					Role: clv1alpha2.Candidate,
 				}),
 				false,
 			))
@@ -315,8 +315,8 @@ var _ = Describe("Validator webhook", func() {
 
 		When("other fields are changed", func() {
 			BeforeEach(func() {
-				oldTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{LastName: "test"}}
-				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{Email: "other"}}
+				oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{LastName: "test"}}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Email: "other"}}
 			})
 			It("should deny the change", func() {
 				Expect(response.Allowed).To(BeFalse())
@@ -327,7 +327,7 @@ var _ = Describe("Validator webhook", func() {
 	})
 
 	Describe("The TenantValidator.HandleWorkspaceEdit", func() {
-		var newTenant, oldTenant *v1alpha2.Tenant
+		var newTenant, oldTenant *clv1alpha2.Tenant
 		var operation admissionv1.Operation
 		JustBeforeEach(func() {
 			response = forgeResponse(tnValidator.HandleWorkspaceEdit(ctx, newTenant, oldTenant, manager, operation))
@@ -335,7 +335,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("manager adds a workspace he manages", func() {
 			BeforeEach(func() {
-				oldTenant = &v1alpha2.Tenant{}
+				oldTenant = &clv1alpha2.Tenant{}
 				newTenant = forgeTenantWithWorkspaceUser(testWorkspace)
 				operation = admissionv1.Update
 			})
@@ -346,7 +346,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("manager removes a workspace he manages", func() {
 			BeforeEach(func() {
-				newTenant = &v1alpha2.Tenant{}
+				newTenant = &clv1alpha2.Tenant{}
 				oldTenant = forgeTenantWithWorkspaceUser(testWorkspace)
 				operation = admissionv1.Update
 			})
@@ -357,7 +357,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("manager adds a workspace he doesn't manage", func() {
 			BeforeEach(func() {
-				oldTenant = &v1alpha2.Tenant{}
+				oldTenant = &clv1alpha2.Tenant{}
 				newTenant = forgeTenantWithWorkspaceUser("invalid-workspace")
 				operation = admissionv1.Update
 			})
@@ -370,7 +370,7 @@ var _ = Describe("Validator webhook", func() {
 
 		When("manager remvoes a workspace he doesn't manage", func() {
 			BeforeEach(func() {
-				newTenant = &v1alpha2.Tenant{}
+				newTenant = &clv1alpha2.Tenant{}
 				oldTenant = forgeTenantWithWorkspaceUser("invalid-workspace")
 				operation = admissionv1.Update
 			})
@@ -383,8 +383,8 @@ var _ = Describe("Validator webhook", func() {
 
 		When("other fields are changed", func() {
 			BeforeEach(func() {
-				oldTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{LastName: "test"}}
-				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{Email: "other"}}
+				oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{LastName: "test"}}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Email: "other"}}
 				operation = admissionv1.Update
 			})
 			It("should deny the change", func() {
@@ -396,8 +396,8 @@ var _ = Describe("Validator webhook", func() {
 
 		When("a new user is created", func() {
 			BeforeEach(func() {
-				oldTenant = &v1alpha2.Tenant{}
-				newTenant = &v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{Email: "other"}}
+				oldTenant = &clv1alpha2.Tenant{}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Email: "other"}}
 				operation = admissionv1.Create
 			})
 			It("should allow the change", func() {
@@ -408,15 +408,15 @@ var _ = Describe("Validator webhook", func() {
 
 	Describe("The CalculateWorkspacesDiff function", func() {
 		type CalcWsDiffCase struct {
-			a, b            []v1alpha2.TenantWorkspaceEntry
+			a, b            []clv1alpha2.TenantWorkspaceEntry
 			expectedChanges []string
 		}
 		WhenBody := func(cwdc CalcWsDiffCase) func() {
 			return func() {
 				var actuals []string
 				result := webhook.CalculateWorkspacesDiff(
-					&v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{Workspaces: cwdc.a}},
-					&v1alpha2.Tenant{Spec: v1alpha2.TenantSpec{Workspaces: cwdc.b}},
+					&clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: cwdc.a}},
+					&clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: cwdc.b}},
 				)
 				for k, v := range result {
 					if v {
@@ -428,39 +428,39 @@ var _ = Describe("Validator webhook", func() {
 				})
 			}
 		}
-		makeWs := func(name string, role v1alpha2.WorkspaceUserRole) v1alpha2.TenantWorkspaceEntry {
-			return v1alpha2.TenantWorkspaceEntry{Name: name, Role: role}
+		makeWs := func(name string, role clv1alpha2.WorkspaceUserRole) clv1alpha2.TenantWorkspaceEntry {
+			return clv1alpha2.TenantWorkspaceEntry{Name: name, Role: role}
 		}
 
 		When("The two tenants have no different workspaces", WhenBody(CalcWsDiffCase{
-			a:               []v1alpha2.TenantWorkspaceEntry{makeWs("test-a", v1alpha2.Manager)},
-			b:               []v1alpha2.TenantWorkspaceEntry{makeWs("test-a", v1alpha2.Manager)},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
 			expectedChanges: nil,
 		}))
 
 		When("The first tenant has one more workspace", WhenBody(CalcWsDiffCase{
-			a:               []v1alpha2.TenantWorkspaceEntry{makeWs("test-a", v1alpha2.Manager)},
-			b:               []v1alpha2.TenantWorkspaceEntry{},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{},
 			expectedChanges: []string{"test-a"},
 		}))
 
 		When("The second tenant has one more workspace", WhenBody(CalcWsDiffCase{
-			a:               []v1alpha2.TenantWorkspaceEntry{makeWs("test-a", v1alpha2.Manager)},
-			b:               []v1alpha2.TenantWorkspaceEntry{makeWs("test-a", v1alpha2.Manager), makeWs("test-b", v1alpha2.User)},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager), makeWs("test-b", clv1alpha2.User)},
 			expectedChanges: []string{"test-b"},
 		}))
 
 		When("There is a difference in roles", WhenBody(CalcWsDiffCase{
-			a:               []v1alpha2.TenantWorkspaceEntry{makeWs("test-a", v1alpha2.User)},
-			b:               []v1alpha2.TenantWorkspaceEntry{makeWs("test-a", v1alpha2.Manager)},
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.User)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
 			expectedChanges: []string{"test-a"},
 		}))
 
 	})
 	When("Modifying the createPersonalWorkspace spec", func() {
-		var oldTenant, newTenant *v1alpha2.Tenant
+		var oldTenant, newTenant *clv1alpha2.Tenant
 		BeforeEach(func() {
-			oldTenant = &v1alpha2.Tenant{}
+			oldTenant = &clv1alpha2.Tenant{}
 			newTenant = oldTenant.DeepCopy()
 		})
 		When("The user is in bypass group", func() {
@@ -471,7 +471,7 @@ var _ = Describe("Validator webhook", func() {
 			})
 			When("The personal workspace is being enabled", func() {
 				BeforeEach(func() {
-					newTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+					newTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 						Instances: 2,
 						CPU:       resource.MustParse("4"),
 						Memory:    resource.MustParse("8Gi"),
@@ -487,7 +487,7 @@ var _ = Describe("Validator webhook", func() {
 				})
 				When("It was enabled before", func() {
 					BeforeEach(func() {
-						oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+						oldTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 							Instances: 2,
 							CPU:       resource.MustParse("4"),
 							Memory:    resource.MustParse("8Gi"),
@@ -512,7 +512,7 @@ var _ = Describe("Validator webhook", func() {
 				})
 				When("It was enabled before", func() {
 					BeforeEach(func() {
-						oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+						oldTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 							Instances: 2,
 							CPU:       resource.MustParse("4"),
 							Memory:    resource.MustParse("8Gi"),
@@ -522,13 +522,13 @@ var _ = Describe("Validator webhook", func() {
 					})
 					When("The personal workspace has active instances", func() {
 						BeforeEach(func() {
-							instance := &v1alpha2.Instance{
+							instance := &clv1alpha2.Instance{
 								ObjectMeta: metav1.ObjectMeta{
 									Name:      "test-instance",
 									Namespace: testTenantPersonalNamespace,
 								},
-								Spec: v1alpha2.InstanceSpec{
-									Template: v1alpha2.GenericRef{
+								Spec: clv1alpha2.InstanceSpec{
+									Template: clv1alpha2.GenericRef{
 										Name:      "test-template",
 										Namespace: testTenantPersonalNamespace,
 									},
@@ -569,7 +569,7 @@ var _ = Describe("Validator webhook", func() {
 								workspaceIM,
 							).WithInterceptorFuncs(interceptor.Funcs{
 								List: func(ctx context.Context, client client.WithWatch, list client.ObjectList, opts ...client.ListOption) error {
-									if _, ok := list.(*v1alpha2.InstanceList); ok {
+									if _, ok := list.(*clv1alpha2.InstanceList); ok {
 										return fmt.Errorf("error listing templates")
 									}
 									return client.List(ctx, list, opts...)
@@ -594,7 +594,7 @@ var _ = Describe("Validator webhook", func() {
 			When("The personal workspace is being enabled", func() {
 				BeforeEach(func() {
 					oldTenant.Spec.PersonalWorkspace = nil
-					newTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+					newTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 						Instances: 2,
 						CPU:       resource.MustParse("4"),
 						Memory:    resource.MustParse("8Gi"),
@@ -608,7 +608,7 @@ var _ = Describe("Validator webhook", func() {
 			})
 			When("The personal workspace is being disabled", func() {
 				BeforeEach(func() {
-					oldTenant.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+					oldTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 						Instances: 2,
 						CPU:       resource.MustParse("4"),
 						Memory:    resource.MustParse("8Gi"),

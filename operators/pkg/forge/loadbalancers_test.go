@@ -17,7 +17,7 @@ package forge_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
@@ -56,7 +56,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 	Describe("The forge.LoadBalancerServiceSpec function", func() {
 		var (
-			spec  v1.ServiceSpec
+			spec  corev1.ServiceSpec
 			ports []clv1alpha2.PublicServicePort
 		)
 
@@ -76,7 +76,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("Forging the LoadBalancer service spec", func() {
 			It("Should set the correct service type", func() {
-				Expect(spec.Type).To(Equal(v1.ServiceTypeLoadBalancer))
+				Expect(spec.Type).To(Equal(corev1.ServiceTypeLoadBalancer))
 			})
 
 			It("Should configure the correct selector", func() {
@@ -90,11 +90,11 @@ var _ = Describe("LoadBalancers forging", func() {
 
 			It("Should configure the correct port details", func() {
 				actual := spec.Ports[0]
-				expectedPort := v1.ServicePort{
+				expectedPort := corev1.ServicePort{
 					Name:       portName,
 					Port:       port,
 					TargetPort: intstr.FromInt32(targetPort),
-					Protocol:   v1.ProtocolTCP,
+					Protocol:   corev1.ProtocolTCP,
 				}
 				if actual.Protocol == "" {
 					expectedPort.Protocol = ""
@@ -103,21 +103,21 @@ var _ = Describe("LoadBalancers forging", func() {
 			})
 
 			It("Should configure explicit TCP protocol", func() {
-				ports[0].Protocol = v1.ProtocolTCP
+				ports[0].Protocol = corev1.ProtocolTCP
 				spec = forge.LoadBalancerServiceSpec(&instance, ports)
-				Expect(spec.Ports[0].Protocol).To(Equal(v1.ProtocolTCP))
+				Expect(spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 			})
 
 			It("Should configure explicit UDP protocol", func() {
-				ports[0].Protocol = v1.ProtocolUDP
+				ports[0].Protocol = corev1.ProtocolUDP
 				spec = forge.LoadBalancerServiceSpec(&instance, ports)
-				Expect(spec.Ports[0].Protocol).To(Equal(v1.ProtocolUDP))
+				Expect(spec.Ports[0].Protocol).To(Equal(corev1.ProtocolUDP))
 			})
 
 			It("Should default to TCP when protocol is empty", func() {
 				ports[0].Protocol = ""
 				spec = forge.LoadBalancerServiceSpec(&instance, ports)
-				Expect(spec.Ports[0].Protocol).To(Equal(v1.ProtocolTCP))
+				Expect(spec.Ports[0].Protocol).To(Equal(corev1.ProtocolTCP))
 			})
 		})
 
@@ -141,11 +141,11 @@ var _ = Describe("LoadBalancers forging", func() {
 				Expect(spec.Ports).To(HaveLen(2))
 
 				actual0 := spec.Ports[0]
-				expectedPort0 := v1.ServicePort{
+				expectedPort0 := corev1.ServicePort{
 					Name:       "http",
 					Port:       8080,
 					TargetPort: intstr.FromInt32(80),
-					Protocol:   v1.ProtocolTCP,
+					Protocol:   corev1.ProtocolTCP,
 				}
 				if actual0.Protocol == "" {
 					expectedPort0.Protocol = ""
@@ -153,11 +153,11 @@ var _ = Describe("LoadBalancers forging", func() {
 				Expect(actual0).To(Equal(expectedPort0))
 
 				actual1 := spec.Ports[1]
-				expectedPort1 := v1.ServicePort{
+				expectedPort1 := corev1.ServicePort{
 					Name:       "https",
 					Port:       8443,
 					TargetPort: intstr.FromInt32(443),
-					Protocol:   v1.ProtocolTCP,
+					Protocol:   corev1.ProtocolTCP,
 				}
 				if actual1.Protocol == "" {
 					expectedPort1.Protocol = ""

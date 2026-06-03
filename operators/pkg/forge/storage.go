@@ -29,7 +29,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
@@ -92,7 +92,7 @@ func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]corev
 	for _, mount := range env.SharedVolumeMounts {
 		// Check existence before mounting
 		var shvol clv1alpha2.SharedVolume
-		if err := c.Get(ctx, NamespacedNameFromMount(mount), &shvol); err != nil {
+		if err := c.Get(ctx, NamespacedNameFromGenericRef(mount.SharedVolumeRef), &shvol); err != nil {
 			return nil, fmt.Sprintf(
 				"unable to retrieve SharedVolume %q in namespace %q to mount for environment %%s",
 				mount.SharedVolumeRef.Name,
@@ -227,7 +227,7 @@ func MirrorPVCSpec(origin *corev1.PersistentVolumeClaim, mirrorStorageClassName 
 }
 
 // UpdateMyDriveMirrorPVCLabels updates the labels for a Mirror PVC of a MyDrive.
-func UpdateMyDriveMirrorPVCLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+func UpdateMyDriveMirrorPVCLabels(labels map[string]string, targetLabel ctrlcommon.KVLabel) map[string]string {
 	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
 	labels[LabelVolumeTypeKey] = VolumeTypeValueMirror
 
