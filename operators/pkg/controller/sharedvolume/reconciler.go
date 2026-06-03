@@ -38,6 +38,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/storage"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -232,7 +233,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		shvolume.Status.PVName = pv.Name
 		shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseProvisioning
 
-		done, err := utils.NFSDriveProvisioning(ctx, log, r.Client, &pvc, &shvolume)
+		done, err := storage.RunPVCProvisioning(ctx, log, r.Client, &pvc, &shvolume)
 		if err != nil {
 			return ctrl.Result{}, err
 		} else if done {

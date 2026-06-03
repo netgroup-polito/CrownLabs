@@ -19,13 +19,13 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/storage"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -43,7 +43,7 @@ func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger
 		log.Error(err, "Unable to create or update PVC for tenant")
 		return err
 	}
-	log.Info("PVC created/updated")
+	log.Info("PVC enforced")
 
 	switch pvc.Status.Phase {
 	case corev1.ClaimBound:
@@ -52,18 +52,13 @@ func (r *Reconciler) enforcePersonalStorage(ctx context.Context, log logr.Logger
 			log.Error(err, "Unable to create or update PVC Mirror for tenant")
 			return err
 		} else if created {
-			log.Info("PVC Mirror created/updated")
+			log.Info("PVC Mirror enforced")
 		} else {
 			log.Info("Tenant namespace does not exist, skipping PVC Mirror creation")
 		}
 
-		val, found := pvc.Labels[forge.ProvisionJobLabel]
-		if !found || val != forge.ProvisionJobValueOk {
-			err = r.launchPVCProvisionJob(ctx, log, tn, pvc)
-			if err != nil {
-				log.Error(err, "Unable to manage PVC Provisioning Job for tenant")
-				return err
-			}
+		if _, err := storage.RunPVCProvisioning(ctx, log, r.Client, pvc, tn); err != nil {
+			return err
 		}
 	case corev1.ClaimPending:
 		log.Info("PVC pending for tenant")
@@ -157,50 +152,4 @@ func (r *Reconciler) enforceMyDrivePVCMirror(
 	}
 
 	return true, nil
-}
-
-func (r *Reconciler) launchPVCProvisionJob(
-	ctx context.Context,
-	log logr.Logger,
-	tn *clv1alpha2.Tenant,
-	pvc *corev1.PersistentVolumeClaim,
-) error {
-	chownJob := batchv1.Job{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      pvc.Name + "-provision",
-			Namespace: pvc.Namespace,
-		},
-	}
-	labelToSet := forge.ProvisionJobValuePending
-
-	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &chownJob, func() error {
-		if chownJob.CreationTimestamp.IsZero() {
-			log.Info("PVC Provisioning Job created for tenant")
-			// Configure the provisioning job
-			forge.ConfigureMyDriveProvisioningJob(&chownJob, pvc)
-		} else if chownJob.Labels[forge.ProvisionJobLabel] == forge.ProvisionJobValuePending {
-			if chownJob.Status.Succeeded == 1 {
-				labelToSet = forge.ProvisionJobValueOk
-				log.Info("PVC Provisioning Job completed for tenant")
-			} else if chownJob.Status.Failed == 1 {
-				log.Info("PVC Provisioning Job failed for tenant")
-			}
-		}
-
-		return ctrlutil.SetControllerReference(tn, &chownJob, r.Scheme)
-	})
-	if err != nil {
-		return fmt.Errorf("unable to create or update PVC Provisioning Job: %w", err)
-	}
-	log.Info("PVC Provisioning Job launched")
-
-	// Update the PVC label
-	if err := utils.PatchObject(ctx, r.Client, pvc, func(p *corev1.PersistentVolumeClaim) *corev1.PersistentVolumeClaim {
-		forge.UpdatePVCProvisioningJobLabel(p, labelToSet)
-		return p
-	}); err != nil {
-		return fmt.Errorf("unable to update PVC Provisioning Job label: %w", err)
-	}
-
-	return nil
 }
