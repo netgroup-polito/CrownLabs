@@ -56,6 +56,7 @@ type InstanceReconciler struct {
 	MirrorPVCStorageClassName string
 	EnableAuthentication      bool
 	GatewayAPIMode            bool
+	GatewayAPIRefsValues      string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -330,7 +331,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		host := r.ServiceUrls.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
-		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
+		instance.Status.URL = forge.ExposeGuiStatusInstanceURL(host, instance)
 	} else {
 		instance.Status.URL = ""
 	}

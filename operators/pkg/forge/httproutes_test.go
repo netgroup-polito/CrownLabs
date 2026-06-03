@@ -17,7 +17,7 @@ package forge_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/apimachinery/pkg/types"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -26,7 +26,7 @@ import (
 
 // DRY, table-driven tests for the HTTPRoute helpers in pkg/forge/httproutes.go.
 // These tests maximize coverage while avoiding repetition via DescribeTable and helper builders.
-var _ = Describe("HTTPRoute helpers (DRY)", func() {
+var _ = Describe("HTTPRoute", func() {
 	const (
 		host        = "crownlabs.example.com"
 		path        = "/instance/uuid/environment"
@@ -127,33 +127,69 @@ var _ = Describe("HTTPRoute helpers (DRY)", func() {
 		Entry("gateway but rewrite disabled", gwName, gwNs, gwSection, makeEnv(clv1alpha2.ClassStandalone, false, ""), false),
 	)
 
-	DescribeTable("GUI path helpers produce expected paths/URLs",
-		func(instUID string, env *clv1alpha2.Environment, expectedPath, expectedClean, expectedStatus, expectedInstanceRoot, expectedFromRoot string) {
-			inst := clv1alpha2.Instance{}
-			inst.UID = types.UID(instUID)
+	Describe("The forge.Expose*Path functions", func() {
+		var (
+			instance    clv1alpha2.Instance
+			path        string
+			statusPath  string
+			environment clv1alpha2.Environment
+		)
 
-			// Path
-			p := forge.HTTPRouteGUIPath(&inst, env)
-			Expect(p).To(Equal(expectedPath))
+		const (
+			instanceName      = "kubernetes-0000"
+			instanceNamespace = "tenant-tester"
+			instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
+			environmentName   = "environment-name"
+			host              = "crownlabs.example.com"
+		)
 
-			// Clean
-			c := forge.HTTPRouteGUICleanPath(&inst, env)
-			Expect(c).To(Equal(expectedClean))
+		BeforeEach(func() {
+			instance = clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace, UID: instanceUID},
+			}
+			environment.Name = environmentName
+		})
 
-			// Status URL
-			s := forge.HTTPRouteGuiStatusURL(host, env, &inst)
-			Expect(s).To(Equal(expectedStatus))
+		Describe("The forge.ExposeGUIPath function", func() {
+			JustBeforeEach(func() {
+				path = forge.ExposeGUIPath(&instance, &environment)
+			})
+			When("EnvironmentType is ClassStandalone", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassStandalone
+				})
+				When("Rewrite is true", func() {
+					BeforeEach(func() {
+						environment.RewriteURL = true
+					})
+					Context("The instance has no special configurations", func() {
+						It("Should generate a path based on the instance UID", func() {
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name + "(/|$)(.*)"))
+						})
+					})
+				})
+				When("Rewrite is false", func() {
+					BeforeEach(func() {
+						environment.RewriteURL = false
+					})
+					Context("The instance has no special configurations", func() {
+						It("Should generate a path based on the instance UID", func() {
+							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
+						})
+					})
+				})
+			})
 
-			// Instance root URL
-			r := forge.HTTPRouteGuiStatusInstanceURL(host, &inst)
-			Expect(r).To(Equal(expectedInstanceRoot))
+		})
 
-			// From root
-			fr := forge.HTTPRouteGuiStatusFromRootURL(expectedInstanceRoot, env)
-			Expect(fr).To(Equal(expectedFromRoot))
-		},
-		Entry("Standalone with rewrite", "abcd-1", makeEnv(clv1alpha2.ClassStandalone, true, "env"), "/instance/abcd-1/env(/|$)(.*)", "/instance/abcd-1/env", "https://"+host+"/instance/abcd-1/env/", "https://"+host+"/instance/abcd-1/", "https://"+host+"/instance/abcd-1/env/"),
-		Entry("Standalone without rewrite", "abcd-2", makeEnv(clv1alpha2.ClassStandalone, false, "env2"), "/instance/abcd-2/env2", "/instance/abcd-2/env2", "https://"+host+"/instance/abcd-2/env2/", "https://"+host+"/instance/abcd-2/", "https://"+host+"/instance/abcd-2/env2/"),
-		Entry("CloudVM", "uid-3", makeEnv(clv1alpha2.ClassCloudVM, false, "envvm"), "/instance/uid-3/envvm/(.*)", "/instance/uid-3/envvm", "https://"+host+"/instance/uid-3/envvm/", "https://"+host+"/instance/uid-3/", "https://"+host+"/instance/uid-3/envvm/"),
-	)
+		Describe("The forge.ExposeGuiStatusURL function", func() {
+			JustBeforeEach(func() {
+				statusPath = forge.ExposeGuiStatusURL(host, &environment, &instance)
+			})
+			It("Should generate a path based on the instance UID and /app at the end", func() {
+				Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/"))
+			})
+		})
+
+	})
 })

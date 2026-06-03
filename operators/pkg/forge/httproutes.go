@@ -12,10 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO not here
-//   - TLS: configure on the Gateway;
-//   - Auth (auth-url/auth-signin): use SecurityPolicy;
-
 package forge
 
 import (
@@ -28,20 +24,20 @@ import (
 )
 
 const (
-	// HTTPRouteInstancePrefix -> the prefix prepended to the path of any HTTPRoute
+	// ExpositionInstancePrefix -> the prefix prepended to the path of any HTTPRoute
 	// targeting the instance or its subresources.
-	HTTPRouteInstancePrefix = "/instance"
+	ExpositionInstancePrefix = "/instance"
 
 	// DefaultTimeoutSeconds -> the default timeout as a Gateway API Duration string (GEP-2257 format).
 	DefaultTimeoutSeconds = "3600s"
 
-	// StandaloneRewriteEndpointHTTPRoute -> the endpoint used to rewrite standalone GUI URLs.
+	// StandaloneRewriteEndpoint -> the endpoint used to rewrite standalone GUI URLs.
 	// TODO: change name.
-	StandaloneRewriteEndpointHTTPRoute = "/"
+	StandaloneRewriteEndpoint = "/"
 
-	// GUIRewriteEndpointHTTPRoute -> the endpoint used to rewrite CloudVM/VM GUI URLs.
+	// GUIRewriteEndpoint -> the endpoint used to rewrite CloudVM/VM GUI URLs.
 	// TODO: change name.
-	GUIRewriteEndpointHTTPRoute = "/gui/"
+	GUIRewriteEndpoint = "/gui/"
 )
 
 // HTTPRouteSpecParams groups the string parameters required to forge an HTTPRouteSpec.
@@ -56,8 +52,8 @@ type HTTPRouteSpecParams struct {
 
 // HTTPRouteSpec forges the specification of a Kubernetes HTTPRoute resource.
 func HTTPRouteSpec(params *HTTPRouteSpecParams, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
-	parentRef := buildParentReference(params.GatewayName, params.GatewayNamespace, params.GatewaySectionName)
-	rule := buildRouteRule(params.Path, params.ServiceName, servicePort, environment)
+	parentRef := BuildParentReference(params.GatewayName, params.GatewayNamespace, params.GatewaySectionName)
+	rule := BuildRouteRule(params.Path, params.ServiceName, servicePort, environment)
 
 	spec := gatewayv1.HTTPRouteSpec{
 		Hostnames: []gatewayv1.Hostname{gatewayv1.Hostname(params.Host)},
@@ -70,8 +66,8 @@ func HTTPRouteSpec(params *HTTPRouteSpecParams, environment *clv1alpha2.Environm
 	return spec
 }
 
-// buildParentReference creates the appropriate ParentReference for the provided gateway.
-func buildParentReference(gatewayName, gatewayNamespace, gatewaySectionName string) gatewayv1.ParentReference {
+// BuildParentReference creates the appropriate ParentReference for the provided gateway.
+func BuildParentReference(gatewayName, gatewayNamespace, gatewaySectionName string) gatewayv1.ParentReference {
 	if gatewayName != "" {
 		parent := gatewayv1.ParentReference{Name: gatewayv1.ObjectName(gatewayName)}
 		if gatewayNamespace != "" {
@@ -88,8 +84,8 @@ func buildParentReference(gatewayName, gatewayNamespace, gatewaySectionName stri
 	return gatewayv1.ParentReference{}
 }
 
-// buildRouteRule constructs a complete HTTPRouteRule including match, backend reference and timeout filters.
-func buildRouteRule(path, serviceName string, servicePort int32, environment *clv1alpha2.Environment) gatewayv1.HTTPRouteRule {
+// BuildRouteRule constructs a complete HTTPRouteRule including match, backend reference and timeout filters.
+func BuildRouteRule(path, serviceName string, servicePort int32, environment *clv1alpha2.Environment) gatewayv1.HTTPRouteRule {
 	pathMatchType := gatewayv1.PathMatchPathPrefix
 	pathValue := path
 	backendPort := gatewayv1.PortNumber(servicePort)
@@ -135,9 +131,9 @@ func RewriteFilterForEnvironment(environment *clv1alpha2.Environment) *gatewayv1
 	var target string
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		target = StandaloneRewriteEndpointHTTPRoute
+		target = StandaloneRewriteEndpoint
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
-		target = GUIRewriteEndpointHTTPRoute
+		target = GUIRewriteEndpoint
 	}
 
 	rewriteType := gatewayv1.PrefixMatchHTTPPathModifier
@@ -152,36 +148,35 @@ func RewriteFilterForEnvironment(environment *clv1alpha2.Environment) *gatewayv1
 	}
 }
 
-// HTTPRouteGUIPath returns the path of the route targeting the environment GUI vnc or Standalone.
-func HTTPRouteGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
+// GUI Path helpers for the environment GUI exposure.
+// These functions below are used both for forging the HTTPRoute spec and for setting environment
+// variables in the containers, to ensure consistency between the two.
+
+// ExposeGUIPath returns the path of the route targeting the environment GUI vnc or Standalone.
+func ExposeGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 		if environment.RewriteURL {
-			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", HTTPRouteInstancePrefix, instance.UID, environment.Name)
+			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", ExpositionInstancePrefix, instance.UID, environment.Name)
 		}
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", HTTPRouteInstancePrefix, instance.UID, environment.Name), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", ExpositionInstancePrefix, instance.UID, environment.Name), "/")
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", HTTPRouteInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
+		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", ExpositionInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
 	}
 	return ""
 }
 
-// HTTPRouteGUICleanPath returns the path of the route targeting the environment GUI vnc or Standalone, without regex.
-func HTTPRouteGUICleanPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
-	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", HTTPRouteInstancePrefix, instance.UID, environment.Name), "/")
+// ExposeGUICleanPath returns the path of the route targeting the environment GUI vnc or Standalone, without regex.
+func ExposeGUICleanPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
+	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", ExpositionInstancePrefix, instance.UID, environment.Name), "/")
 }
 
-// HTTPRouteGuiStatusURL returns the path of the route targeting the environment.
-func HTTPRouteGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
-	return fmt.Sprintf("https://%v%v/%v/%v/", host, HTTPRouteInstancePrefix, instance.UID, environment.Name)
+// ExposeGuiStatusURL returns the path of the route targeting the environment.
+func ExposeGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
+	return fmt.Sprintf("https://%v%v/%v/%v/", host, ExpositionInstancePrefix, instance.UID, environment.Name)
 }
 
-// HTTPRouteGuiStatusInstanceURL returns the root of the route url targeting an environment within the instance.
-func HTTPRouteGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) string {
-	return fmt.Sprintf("https://%v%v/%v/", host, HTTPRouteInstancePrefix, instance.UID)
-}
-
-// HTTPRouteGuiStatusFromRootURL returns the path of the route targeting the environment given the root url (url of the instance).
-func HTTPRouteGuiStatusFromRootURL(rootURL string, environment *clv1alpha2.Environment) string {
-	return rootURL + fmt.Sprintf("%v/", environment.Name)
+// ExposeGuiStatusInstanceURL returns the root of the route url targeting an environment within the instance.
+func ExposeGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) string {
+	return fmt.Sprintf("https://%v%v/%v/", host, ExpositionInstancePrefix, instance.UID)
 }
