@@ -32,6 +32,8 @@ import (
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
+// (removed dns1123/allowed regexps: simplified parsing below)
+
 // ParseDockerDirectory returns a valid Docker image directory.
 func ParseDockerDirectory(name string) string {
 	reg := regexp.MustCompile("[^a-zA-Z0-9]+")
@@ -119,4 +121,21 @@ func CheckSingleLabel(obj client.Object, label, value string) bool {
 func AutoEnrollEnabled(autoEnroll clv1alpha1.WorkspaceAutoenroll) bool {
 	return autoEnroll == clv1alpha1.AutoenrollImmediate ||
 		autoEnroll == clv1alpha1.AutoenrollWithApproval
+}
+
+// ParseGatewayParent parses a gateway parent reference of the form
+// "namespace/name/sectionname" and returns the three components. Missing
+// parts return empty strings.
+func ParseGatewayParent(raw string) (namespace, name, section string) {
+	raw = strings.TrimSpace(raw)
+	parts := strings.Split(raw, "/")
+	if len(parts) != 3 {
+		return "", "", ""
+	}
+	trim := strings.TrimSpace
+	namespace, name, section = trim(parts[0]), trim(parts[1]), trim(parts[2])
+	if namespace == "" || name == "" || section == "" {
+		return "", "", ""
+	}
+	return
 }
