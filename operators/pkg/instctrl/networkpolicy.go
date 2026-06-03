@@ -21,7 +21,7 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -47,7 +47,7 @@ func (r *InstanceReconciler) enforcePublicExposureNetworkPolicyPresence(ctx cont
 	}
 
 	// The instance is running and public exposure is ready, so create or update the policy.
-	res, err := controllerutil.CreateOrUpdate(ctx, r.Client, &netPol, func() error {
+	res, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &netPol, func() error {
 		forge.PublicExposureNetworkPolicy(instance, &netPol)
 		return ctrl.SetControllerReference(instance, &netPol, r.Scheme)
 	})

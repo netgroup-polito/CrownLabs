@@ -53,14 +53,6 @@ func ObjectMetaWithSuffix(instance *clv1alpha2.Instance, suffix string) metav1.O
 	}
 }
 
-// NamespacedName returns the namespace/name pair given an instance object.
-func NamespacedName(instance *clv1alpha2.Instance) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      CanonicalName(instance.GetName()),
-		Namespace: instance.GetNamespace(),
-	}
-}
-
 // NamespacedNameWithSuffix returns the namespace/name pair given an instance object and a name suffix.
 func NamespacedNameWithSuffix(instance *clv1alpha2.Instance, suffix string) types.NamespacedName {
 	return types.NamespacedName{
@@ -77,19 +69,22 @@ func NamespacedNameToObjectMeta(namespacedName types.NamespacedName) metav1.Obje
 	}
 }
 
-// NamespacedNameFromSharedVolume returns the namespace/name pair of the passed SharedVolume.
-func NamespacedNameFromSharedVolume(shvol *clv1alpha2.SharedVolume) types.NamespacedName {
+// NamespacedNameFromObject returns the namespace/name pair of the passed Kubernetes object.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func NamespacedNameFromObject(obj metav1.Object) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      shvol.Name,
-		Namespace: shvol.Namespace,
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
 	}
 }
 
-// NamespacedNameFromMount returns the namespace/name pair of the SharedVolume contained in the passed SharedVolumeMountInfo.
-func NamespacedNameFromMount(mountInfo clv1alpha2.SharedVolumeMountInfo) types.NamespacedName {
+// NamespacedNameFromGenericRef returns the namespace/name pair of the passed reference.
+func NamespacedNameFromGenericRef(ref clv1alpha2.GenericRef) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      mountInfo.SharedVolumeRef.Name,
-		Namespace: mountInfo.SharedVolumeRef.Namespace,
+		Name:      ref.Name,
+		Namespace: ref.Namespace,
 	}
 }
 

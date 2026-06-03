@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"strconv"
 
-	batch "k8s.io/api/batch/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -52,7 +52,7 @@ type InstanceSubmissionReconciler struct {
 func (r *InstanceSubmissionReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
-		Owns(&batch.Job{}).
+		Owns(&batchv1.Job{}).
 		Named("instance-submission").
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
@@ -157,10 +157,10 @@ func (r *InstanceSubmissionReconciler) Reconcile(ctx context.Context, req ctrl.R
 }
 
 // EnforceInstanceSubmissionJob ensures that the submission job for the given instance is present.
-func (r *InstanceSubmissionReconciler) EnforceInstanceSubmissionJob(ctx context.Context, instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (jobStatus *batch.JobStatus, err error) {
+func (r *InstanceSubmissionReconciler) EnforceInstanceSubmissionJob(ctx context.Context, instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) (jobStatus *batchv1.JobStatus, err error) {
 	// Get the submission job.
 	submitterName := "submitter"
-	job := batch.Job{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+submitterName)}
+	job := batchv1.Job{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-"+submitterName)}
 
 	jobSpec := forge.SubmissionJobSpec(instance, environment, &r.ContainerEnvOpts)
 

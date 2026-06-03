@@ -22,15 +22,15 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
-	batch "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("InstancesnapshotController", func() {
@@ -47,7 +47,7 @@ var _ = Describe("InstancesnapshotController", func() {
 	)
 
 	var (
-		workingNs = v1.Namespace{
+		workingNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: WorkingNamespace,
@@ -55,23 +55,23 @@ var _ = Describe("InstancesnapshotController", func() {
 					"test-suite": "true",
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
-		templateEnvironment = crownlabsv1alpha2.TemplateSpec{
-			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
+		templateEnvironment = clv1alpha2.TemplateSpec{
+			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
-			EnvironmentList: []crownlabsv1alpha2.Environment{
+			EnvironmentList: []clv1alpha2.Environment{
 				{
 					Name:       "env-1",
 					GuiEnabled: true,
-					Resources: crownlabsv1alpha2.EnvironmentResources{
+					Resources: clv1alpha2.EnvironmentResources{
 						CPU:                   1,
 						ReservedCPUPercentage: 1,
 						Memory:                resource.MustParse("1024M"),
 					},
-					EnvironmentType: crownlabsv1alpha2.ClassVM,
+					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      true,
 					Image:           "crownlabs/vm",
 				},
@@ -79,42 +79,42 @@ var _ = Describe("InstancesnapshotController", func() {
 			DeleteAfter:       "",
 			InactivityTimeout: "",
 		}
-		template = crownlabsv1alpha2.Template{
+		template = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      TemplateName,
 				Namespace: WorkingNamespace,
 			},
 			Spec:   templateEnvironment,
-			Status: crownlabsv1alpha2.TemplateStatus{},
+			Status: clv1alpha2.TemplateStatus{},
 		}
-		instance = crownlabsv1alpha2.Instance{
+		instance = clv1alpha2.Instance{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      InstanceName,
 				Namespace: WorkingNamespace,
 			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
+			Spec: clv1alpha2.InstanceSpec{
 				Running: false,
-				Template: crownlabsv1alpha2.GenericRef{
+				Template: clv1alpha2.GenericRef{
 					Name:      TemplateName,
 					Namespace: WorkingNamespace,
 				},
-				Tenant: crownlabsv1alpha2.GenericRef{
+				Tenant: clv1alpha2.GenericRef{
 					Name: TenantName,
 				},
 			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
+			Status: clv1alpha2.InstanceStatus{},
 		}
 
-		instanceSnapshot = crownlabsv1alpha2.InstanceSnapshot{
+		instanceSnapshot = clv1alpha2.InstanceSnapshot{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      InstanceSnapshotName,
 				Namespace: WorkingNamespace,
 			},
-			Spec: crownlabsv1alpha2.InstanceSnapshotSpec{
-				Instance: crownlabsv1alpha2.GenericRef{
+			Spec: clv1alpha2.InstanceSnapshotSpec{
+				Instance: clv1alpha2.GenericRef{
 					Name:      InstanceName,
 					Namespace: WorkingNamespace,
 				},
@@ -130,7 +130,7 @@ var _ = Describe("InstancesnapshotController", func() {
 		newInstance := instance.DeepCopy()
 		By("Creating the namespace where to create instance and template")
 		err := k8sClient.Create(ctx, newNs)
-		if err != nil && errors.IsAlreadyExists(err) {
+		if err != nil && kerrors.IsAlreadyExists(err) {
 			By("Cleaning up the environment")
 			By("Deleting template")
 			Expect(k8sClient.Delete(ctx, &template)).Should(Succeed())
@@ -141,7 +141,7 @@ var _ = Describe("InstancesnapshotController", func() {
 		}
 
 		By("By checking that the namespace has been created")
-		createdNs := &v1.Namespace{}
+		createdNs := &corev1.Namespace{}
 
 		nsLookupKey := types.NamespacedName{Name: WorkingNamespace}
 		doesEventuallyExists(ctx, nsLookupKey, createdNs, BeTrue(), timeout, interval)
@@ -151,7 +151,7 @@ var _ = Describe("InstancesnapshotController", func() {
 
 		By("By checking that the template has been created")
 		templateLookupKey := types.NamespacedName{Name: TemplateName, Namespace: WorkingNamespace}
-		createdTemplate := &crownlabsv1alpha2.Template{}
+		createdTemplate := &clv1alpha2.Template{}
 
 		doesEventuallyExists(ctx, templateLookupKey, createdTemplate, BeTrue(), timeout, interval)
 
@@ -160,7 +160,7 @@ var _ = Describe("InstancesnapshotController", func() {
 
 		By("Checking that the instance has been created")
 		instanceLookupKey := types.NamespacedName{Name: InstanceName, Namespace: WorkingNamespace}
-		createdInstance := &crownlabsv1alpha2.Instance{}
+		createdInstance := &clv1alpha2.Instance{}
 
 		doesEventuallyExists(ctx, instanceLookupKey, createdInstance, BeTrue(), timeout, interval)
 	})
@@ -173,18 +173,18 @@ var _ = Describe("InstancesnapshotController", func() {
 
 			By("Changing the job status to completed and set Job start and end time")
 			jobLookupKey := types.NamespacedName{Name: newInstanceSnapshot.Name, Namespace: WorkingNamespace}
-			snapjob := &batch.Job{}
+			snapjob := &batchv1.Job{}
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
-			snapjob.Status.Conditions = []batch.JobCondition{
-				{Type: batch.JobComplete, Status: v1.ConditionTrue},
-				{Type: batch.JobSuccessCriteriaMet, Status: v1.ConditionTrue},
+			snapjob.Status.Conditions = []batchv1.JobCondition{
+				{Type: batchv1.JobComplete, Status: corev1.ConditionTrue},
+				{Type: batchv1.JobSuccessCriteriaMet, Status: corev1.ConditionTrue},
 			}
 			snapjob.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 			snapjob.Status.StartTime = &metav1.Time{Time: time.Now().Add(-4 * time.Minute)}
 			Expect(k8sClient.Status().Update(ctx, snapjob)).Should(Succeed())
 
 			By("Checking if the InstanceSnapshot status is Completed")
-			checkIsnapStatus(ctx, newInstanceSnapshot.Name, WorkingNamespace, crownlabsv1alpha2.Completed, timeout, interval)
+			checkIsnapStatus(ctx, newInstanceSnapshot.Name, WorkingNamespace, clv1alpha2.Completed, timeout, interval)
 		})
 
 		It("Should start snapshot creation given an environment name", func() {
@@ -195,25 +195,25 @@ var _ = Describe("InstancesnapshotController", func() {
 
 			By("Changing the job status to completed without setting Job start and end time")
 			jobLookupKey := types.NamespacedName{Name: newInstanceSnapshot.Name, Namespace: WorkingNamespace}
-			snapjob := &batch.Job{}
+			snapjob := &batchv1.Job{}
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
-			snapjob.Status.Conditions = []batch.JobCondition{
-				{Type: batch.JobComplete, Status: v1.ConditionTrue},
-				{Type: batch.JobSuccessCriteriaMet, Status: v1.ConditionTrue},
+			snapjob.Status.Conditions = []batchv1.JobCondition{
+				{Type: batchv1.JobComplete, Status: corev1.ConditionTrue},
+				{Type: batchv1.JobSuccessCriteriaMet, Status: corev1.ConditionTrue},
 			}
 			snapjob.Status.StartTime = &metav1.Time{Time: time.Now()}
 			snapjob.Status.CompletionTime = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Status().Update(ctx, snapjob)).Should(Succeed())
 
 			By("Checking if the InstanceSnapshot status is Completed")
-			checkIsnapStatus(ctx, newInstanceSnapshot.Name, WorkingNamespace, crownlabsv1alpha2.Completed, timeout, interval)
+			checkIsnapStatus(ctx, newInstanceSnapshot.Name, WorkingNamespace, clv1alpha2.Completed, timeout, interval)
 		})
 	})
 
 	Context("Testing incorrect environment configurations", func() {
 		It("Should fail: the VM is running", func() {
 			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
+			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: InstanceName, Namespace: WorkingNamespace}
 			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
 
@@ -228,7 +228,7 @@ var _ = Describe("InstancesnapshotController", func() {
 
 		It("Should fail: vm is not persistent", func() {
 			By("Getting current Template")
-			currentTemplate := &crownlabsv1alpha2.Template{}
+			currentTemplate := &clv1alpha2.Template{}
 			templateLookupKey := types.NamespacedName{Name: TemplateName, Namespace: WorkingNamespace}
 			Expect(k8sClient.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
 
@@ -243,12 +243,12 @@ var _ = Describe("InstancesnapshotController", func() {
 
 		It("Should fail: environment is a standalone", func() {
 			By("Getting current Template")
-			currentTemplate := &crownlabsv1alpha2.Template{}
+			currentTemplate := &clv1alpha2.Template{}
 			templateLookupKey := types.NamespacedName{Name: TemplateName, Namespace: WorkingNamespace}
 			Expect(k8sClient.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
 
 			By("Setting environment as Standalone")
-			currentTemplate.Spec.EnvironmentList[0].EnvironmentType = crownlabsv1alpha2.ClassStandalone
+			currentTemplate.Spec.EnvironmentList[0].EnvironmentType = clv1alpha2.ClassStandalone
 			Expect(k8sClient.Update(ctx, currentTemplate)).Should(Succeed())
 
 			newInstanceSnapshot := instanceSnapshot.DeepCopy()
@@ -258,7 +258,7 @@ var _ = Describe("InstancesnapshotController", func() {
 
 		It("Should fail: template does not exist", func() {
 			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
+			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: InstanceName, Namespace: WorkingNamespace}
 			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
 
@@ -288,25 +288,25 @@ var _ = Describe("InstancesnapshotController", func() {
 
 			By("Changing the job status to failed")
 			jobLookupKey := types.NamespacedName{Name: newInstanceSnapshot.Name, Namespace: WorkingNamespace}
-			snapjob := &batch.Job{}
+			snapjob := &batchv1.Job{}
 			Expect(k8sClient.Get(ctx, jobLookupKey, snapjob)).Should(Succeed())
-			snapjob.Status.Conditions = []batch.JobCondition{
-				{Type: batch.JobFailed, Status: v1.ConditionTrue},
-				{Type: batch.JobFailureTarget, Status: v1.ConditionTrue},
+			snapjob.Status.Conditions = []batchv1.JobCondition{
+				{Type: batchv1.JobFailed, Status: corev1.ConditionTrue},
+				{Type: batchv1.JobFailureTarget, Status: corev1.ConditionTrue},
 			}
 			snapjob.Status.StartTime = &metav1.Time{Time: time.Now()}
 			Expect(k8sClient.Status().Update(ctx, snapjob)).Should(Succeed())
 
 			By("Checking if the InstanceSnapshot status is Failed")
-			checkIsnapStatus(ctx, newInstanceSnapshot.Name, WorkingNamespace, crownlabsv1alpha2.Failed, timeout, interval)
+			checkIsnapStatus(ctx, newInstanceSnapshot.Name, WorkingNamespace, clv1alpha2.Failed, timeout, interval)
 		})
 	})
 })
 
-func checkIsnapStatus(ctx context.Context, isnapName, workingNamespace string, desiredStatus crownlabsv1alpha2.SnapshotStatus, timeout, interval time.Duration) {
+func checkIsnapStatus(ctx context.Context, isnapName, workingNamespace string, desiredStatus clv1alpha2.SnapshotStatus, timeout, interval time.Duration) {
 	isnapLookupKey := types.NamespacedName{Name: isnapName, Namespace: workingNamespace}
-	retrievedIsnap := &crownlabsv1alpha2.InstanceSnapshot{}
-	Eventually(func() crownlabsv1alpha2.SnapshotStatus {
+	retrievedIsnap := &clv1alpha2.InstanceSnapshot{}
+	Eventually(func() clv1alpha2.SnapshotStatus {
 		err := k8sClient.Get(ctx, isnapLookupKey, retrievedIsnap)
 		if err != nil {
 			return ""
@@ -315,19 +315,19 @@ func checkIsnapStatus(ctx context.Context, isnapName, workingNamespace string, d
 	}, timeout, interval).Should(Equal(desiredStatus))
 }
 
-func checkIsnapSuccessfulCreation(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot, workingNamespace string, timeout, interval time.Duration) {
+func checkIsnapSuccessfulCreation(ctx context.Context, isnap *clv1alpha2.InstanceSnapshot, workingNamespace string, timeout, interval time.Duration) {
 	By("Creating the InstanceSnapshot resource")
 	Expect(k8sClient.Create(ctx, isnap)).Should(Succeed())
 
 	By("Checking that the instance snapshot has been created")
 	instanceSnapshotLookupKey := types.NamespacedName{Name: isnap.Name, Namespace: workingNamespace}
-	createdInstanceSnapshot := &crownlabsv1alpha2.InstanceSnapshot{}
+	createdInstanceSnapshot := &clv1alpha2.InstanceSnapshot{}
 
 	doesEventuallyExists(ctx, instanceSnapshotLookupKey, createdInstanceSnapshot, BeTrue(), timeout, interval)
 
 	By("Checking if the job for the creation of the snapshot has been created")
 	jobLookupKey := types.NamespacedName{Name: isnap.Name, Namespace: workingNamespace}
-	createdJob := &batch.Job{}
+	createdJob := &batchv1.Job{}
 
 	doesEventuallyExists(ctx, jobLookupKey, createdJob, BeTrue(), timeout, interval)
 
@@ -337,16 +337,16 @@ func checkIsnapSuccessfulCreation(ctx context.Context, isnap *crownlabsv1alpha2.
 	})))
 }
 
-func checkIsnapCreationFailure(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot, workingNamespace string, timeout, interval time.Duration) {
+func checkIsnapCreationFailure(ctx context.Context, isnap *clv1alpha2.InstanceSnapshot, workingNamespace string, timeout, interval time.Duration) {
 	By("Creating the InstanceSnapshot resource")
 	Expect(k8sClient.Create(ctx, isnap)).Should(Succeed())
 
 	By("Checking that the instance has been created")
 	instanceSnapshotLookupKey := types.NamespacedName{Name: isnap.Name, Namespace: workingNamespace}
-	createdInstanceSnapshot := &crownlabsv1alpha2.InstanceSnapshot{}
+	createdInstanceSnapshot := &clv1alpha2.InstanceSnapshot{}
 
 	doesEventuallyExists(ctx, instanceSnapshotLookupKey, createdInstanceSnapshot, BeTrue(), timeout, interval)
 
 	By("Checking that the InstanceSnapshot failed")
-	checkIsnapStatus(ctx, isnap.Name, workingNamespace, crownlabsv1alpha2.Failed, timeout, interval)
+	checkIsnapStatus(ctx, isnap.Name, workingNamespace, clv1alpha2.Failed, timeout, interval)
 }

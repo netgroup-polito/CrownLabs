@@ -24,18 +24,18 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	commonapi "github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 // GetWorkspaceTargetLabel returns the label key for identifying tenants with a specific workspace.
 func GetWorkspaceTargetLabel(workspaceName string) string {
-	return fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, workspaceName)
+	return fmt.Sprintf("%s%s", clv1alpha2.WorkspaceLabelPrefix, workspaceName)
 }
 
 // UpdateTenantResourceCommonLabels updates the common labels for resources managed by the tenant controller.
-func UpdateTenantResourceCommonLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+func UpdateTenantResourceCommonLabels(labels map[string]string, targetLabel ctrlcommon.KVLabel) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)
 	}
@@ -78,7 +78,7 @@ func CleanTenantName(name string) string {
 }
 
 // ConfigureTenantResourceQuota configures a ResourceQuota for a tenant namespace.
-func ConfigureTenantResourceQuota(rq *corev1.ResourceQuota, quota *commonapi.WorkspaceResourceQuota, labels map[string]string) {
+func ConfigureTenantResourceQuota(rq *corev1.ResourceQuota, quota *apicommon.WorkspaceResourceQuota, labels map[string]string) {
 	// Set the labels
 	if rq.Labels == nil {
 		rq.Labels = make(map[string]string)

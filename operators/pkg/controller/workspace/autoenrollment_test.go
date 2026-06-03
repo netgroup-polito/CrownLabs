@@ -23,8 +23,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("AutoEnrollment", func() {
@@ -38,7 +38,7 @@ var _ = Describe("AutoEnrollment", func() {
 
 	Context("When no autoenrollment is configured", func() {
 		It("Should set the autoenroll label to 'disabled'", func() {
-			ws := &v1alpha1.Workspace{}
+			ws := &clv1alpha1.Workspace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -46,7 +46,7 @@ var _ = Describe("AutoEnrollment", func() {
 		})
 
 		It("Should update the Tenant spec to remove the workspace", func() {
-			tenant := &v1alpha2.Tenant{}
+			tenant := &clv1alpha2.Tenant{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tenantResources[0].Name}, tenant, BeTrue(), timeout, interval)
 
@@ -56,11 +56,11 @@ var _ = Describe("AutoEnrollment", func() {
 
 	Context("When autoenrollment is Immediate", func() {
 		BeforeEach(func() {
-			wsResource.Spec.AutoEnroll = v1alpha1.AutoenrollImmediate
+			wsResource.Spec.AutoEnroll = clv1alpha1.AutoenrollImmediate
 		})
 
 		It("Should set the autoenroll label to 'immediate'", func() {
-			ws := &v1alpha1.Workspace{}
+			ws := &clv1alpha1.Workspace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -68,24 +68,24 @@ var _ = Describe("AutoEnrollment", func() {
 		})
 
 		It("Should update the Tenant spec to set the workspace with User role", func() {
-			tenant := &v1alpha2.Tenant{}
+			tenant := &clv1alpha2.Tenant{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tenantResources[0].Name}, tenant, BeTrue(), timeout, interval)
 
-			Expect(tenant.Spec.Workspaces).To(ContainElement(v1alpha2.TenantWorkspaceEntry{
+			Expect(tenant.Spec.Workspaces).To(ContainElement(clv1alpha2.TenantWorkspaceEntry{
 				Name: wsName,
-				Role: v1alpha2.User,
+				Role: clv1alpha2.User,
 			}))
 		})
 	})
 
 	Context("When autoenrollment is WithApproval", func() {
 		BeforeEach(func() {
-			wsResource.Spec.AutoEnroll = v1alpha1.AutoenrollWithApproval
+			wsResource.Spec.AutoEnroll = clv1alpha1.AutoenrollWithApproval
 		})
 
 		It("Should set the autoenroll label to 'with-approval'", func() {
-			ws := &v1alpha1.Workspace{}
+			ws := &clv1alpha1.Workspace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -97,7 +97,7 @@ var _ = Describe("AutoEnrollment", func() {
 		BeforeEach(func() {
 			builder.WithInterceptorFuncs(interceptor.Funcs{
 				Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-					if ws, ok := obj.(*v1alpha1.Workspace); ok && ws.Name == wsName && ws.Labels["crownlabs.polito.it/autoenroll"] == "disabled" {
+					if ws, ok := obj.(*clv1alpha1.Workspace); ok && ws.Name == wsName && ws.Labels["crownlabs.polito.it/autoenroll"] == "disabled" {
 						return fmt.Errorf("error updating workspace label")
 					}
 					return nil
@@ -116,14 +116,14 @@ var _ = Describe("AutoEnrollment", func() {
 		BeforeEach(func() {
 			builder.WithInterceptorFuncs(interceptor.Funcs{
 				List: func(_ context.Context, _ client.WithWatch, list client.ObjectList, _ ...client.ListOption) error {
-					if _, ok := list.(*v1alpha2.TenantList); ok {
+					if _, ok := list.(*clv1alpha2.TenantList); ok {
 						return fmt.Errorf("error listing tenants")
 					}
 					return nil
 				},
 			})
 
-			wsResource.Spec.AutoEnroll = v1alpha1.AutoenrollImmediate // Ensure autoenrollment is set to Immediate for the test
+			wsResource.Spec.AutoEnroll = clv1alpha1.AutoenrollImmediate // Ensure autoenrollment is set to Immediate for the test
 
 			wsReconcileErrExpected = HaveOccurred()
 		})
@@ -137,14 +137,14 @@ var _ = Describe("AutoEnrollment", func() {
 		BeforeEach(func() {
 			builder.WithInterceptorFuncs(interceptor.Funcs{
 				Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-					if tenant, ok := obj.(*v1alpha2.Tenant); ok && tenant.Name == tenantResources[0].Name {
+					if tenant, ok := obj.(*clv1alpha2.Tenant); ok && tenant.Name == tenantResources[0].Name {
 						return fmt.Errorf("error updating tenant spec")
 					}
 					return nil
 				},
 			})
 
-			wsResource.Spec.AutoEnroll = v1alpha1.AutoenrollImmediate // Ensure autoenrollment is set to Immediate for the test
+			wsResource.Spec.AutoEnroll = clv1alpha1.AutoenrollImmediate // Ensure autoenrollment is set to Immediate for the test
 
 			wsReconcileErrExpected = HaveOccurred()
 		})
@@ -154,7 +154,7 @@ var _ = Describe("AutoEnrollment", func() {
 		})
 
 		It("Should set the workspace status to not ready", func() {
-			ws := &v1alpha1.Workspace{}
+			ws := &clv1alpha1.Workspace{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 

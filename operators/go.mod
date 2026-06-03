@@ -22,7 +22,6 @@ require (
 	github.com/onsi/gomega v1.37.0
 	github.com/prometheus/client_golang v1.23.0
 	github.com/prometheus/common v0.66.0
-	go.uber.org/mock v0.5.2
 	golang.org/x/crypto v0.46.0
 	golang.org/x/net v0.48.0
 	golang.org/x/text v0.32.0

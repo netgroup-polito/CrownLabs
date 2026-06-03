@@ -34,7 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -112,9 +112,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer.Step("instance, template and tenant retrieved")
 
 	// Add the instance, template and tenant to the context
-	ctx, _ = pkgcontext.InstanceInto(ctx, instance)
-	ctx, _ = pkgcontext.TemplateInto(ctx, template)
-	ctx, _ = pkgcontext.TenantInto(ctx, tenant)
+	ctx, _ = clctx.InstanceInto(ctx, instance)
+	ctx, _ = clctx.TemplateInto(ctx, template)
+	ctx, _ = clctx.TenantInto(ctx, tenant)
 
 	inactivityTimeout := template.Spec.InactivityTimeout
 	// If set to neverTimeoutValue, return without rescheduling
@@ -219,7 +219,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
 func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeoutDuration time.Duration) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
@@ -288,7 +288,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 // GetRemainingInactivityTime checks if the Instance has to be terminated.
 func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx context.Context, inactivityTimeoutDuration time.Duration) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return 0, fmt.Errorf("instance not found in context")
 	}
@@ -314,7 +314,7 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx c
 func (r *InstanceInactiveTerminationReconciler) GetInactivityNotificationWindow(ctx context.Context, instance *clv1alpha2.Instance) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("GetInactivityNotificationWindow")
 
-	template := pkgcontext.TemplateFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
 	// Calculate the remaining number of alerts that should be sent
 	NumAlerts := r.InstanceMaxNumberOfAlerts
@@ -363,11 +363,11 @@ func IsTemplatePersistent(template *clv1alpha2.Template) bool {
 func (r *InstanceInactiveTerminationReconciler) TerminateInstance(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("termination")
 
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
-	template := pkgcontext.TemplateFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 	if template == nil {
 		return fmt.Errorf("template not found in context")
 	}
@@ -411,7 +411,7 @@ func (r *InstanceInactiveTerminationReconciler) IncrementAnnotation(ctx context.
 func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("setup-instance-annotations")
 
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
@@ -496,7 +496,7 @@ func (r *InstanceInactiveTerminationReconciler) getAlertCounts(ctx context.Conte
 	}
 
 	maxAlerts = r.InstanceMaxNumberOfAlerts
-	template := pkgcontext.TemplateFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 	if template != nil {
 		// if the CustomNumberOfAlertsAnnotation is set, override the default max alerts
 		if customMaxAlertsStr, ok := template.Annotations[forge.CustomNumberOfAlertsAnnotation]; ok {
@@ -575,7 +575,7 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendWarningNotification(ct
 // SendInactivityWarning sends an inactivity warning email to the user and updates the instance annotations.
 func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
 	log := ctrl.LoggerFrom(ctx)
-	tenant := pkgcontext.TenantFrom(ctx)
+	tenant := clctx.TenantFrom(ctx)
 	if tenant == nil {
 		return fmt.Errorf("tenant not found in context")
 	}
@@ -617,12 +617,12 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 // SendTerminationNotification handles sending notification emails when an instance is deleted.
 func (r *InstanceInactiveTerminationReconciler) SendTerminationNotification(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("send-termination-notification")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
 
-	tenant := pkgcontext.TenantFrom(ctx)
+	tenant := clctx.TenantFrom(ctx)
 	if tenant == nil {
 		return fmt.Errorf("tenant not found in context")
 	}
@@ -643,7 +643,7 @@ func (r *InstanceInactiveTerminationReconciler) SendTerminationNotification(ctx 
 func (r *InstanceInactiveTerminationReconciler) ResetAnnotations(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithName("reset-annotation")
 
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}

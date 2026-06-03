@@ -80,30 +80,6 @@ var _ = Describe("Utils forging", func() {
 		)
 	})
 
-	Describe("The forge.NamespacedName function", func() {
-		type NamespaceNameCase struct {
-			InstanceNamespace string
-			InstanceName      string
-			ExpectedOutput    types.NamespacedName
-		}
-
-		DescribeTable("Correctly returns the expected object meta",
-			func(c NamespaceNameCase) {
-				Expect(forge.NamespacedName(ForgeInstance(c.InstanceNamespace, c.InstanceName))).To(Equal(c.ExpectedOutput))
-			},
-			Entry("When the instance name does not contain dots", NamespaceNameCase{
-				InstanceNamespace: "workspace-netgroup",
-				InstanceName:      "kubernetes-1234",
-				ExpectedOutput:    types.NamespacedName{Namespace: "workspace-netgroup", Name: "kubernetes-1234"},
-			}),
-			Entry("When the instance name does contain dots", NamespaceNameCase{
-				InstanceNamespace: "workspace-netgroup",
-				InstanceName:      "kuber.netes.1234",
-				ExpectedOutput:    types.NamespacedName{Namespace: "workspace-netgroup", Name: "kuber-netes-1234"},
-			}),
-		)
-	})
-
 	Describe("The forge.NamespacedNameWithSuffix function", func() {
 		const Suffix = "prime"
 
@@ -145,7 +121,7 @@ var _ = Describe("Utils forging", func() {
 		It("Should have a matching namespace", func() { Expect(objectMeta.Namespace).To(BeIdenticalTo(namespacedName.Namespace)) })
 	})
 
-	Describe("The forge.NamespacedNameFromSharedVolume function", func() {
+	Describe("The forge.NamespacedNameFromObject function", func() {
 		var (
 			shvol          clv1alpha2.SharedVolume
 			namespacedName types.NamespacedName
@@ -160,7 +136,7 @@ var _ = Describe("Utils forging", func() {
 			}
 		})
 		JustBeforeEach(func() {
-			namespacedName = forge.NamespacedNameFromSharedVolume(&shvol)
+			namespacedName = forge.NamespacedNameFromObject(&shvol)
 		})
 
 		It("Should have a matching name", func() {
@@ -172,29 +148,27 @@ var _ = Describe("Utils forging", func() {
 
 	})
 
-	Describe("The forge.NamespacedNameFromMount function", func() {
+	Describe("The forge.NamespacedNameFromGenericRef function", func() {
 		var (
-			mountInfo      clv1alpha2.SharedVolumeMountInfo
+			ref            clv1alpha2.GenericRef
 			namespacedName types.NamespacedName
 		)
 
 		BeforeEach(func() {
-			mountInfo = clv1alpha2.SharedVolumeMountInfo{
-				SharedVolumeRef: clv1alpha2.GenericRef{
-					Name:      "name",
-					Namespace: "namespace",
-				},
+			ref = clv1alpha2.GenericRef{
+				Name:      "name",
+				Namespace: "namespace",
 			}
 		})
 		JustBeforeEach(func() {
-			namespacedName = forge.NamespacedNameFromMount(mountInfo)
+			namespacedName = forge.NamespacedNameFromGenericRef(ref)
 		})
 
 		It("Should have a matching name", func() {
-			Expect(namespacedName.Name).To(Equal(mountInfo.SharedVolumeRef.Name))
+			Expect(namespacedName.Name).To(Equal(ref.Name))
 		})
 		It("Should have a matching namespace", func() {
-			Expect(namespacedName.Namespace).To(Equal(mountInfo.SharedVolumeRef.Namespace))
+			Expect(namespacedName.Namespace).To(Equal(ref.Namespace))
 		})
 
 	})

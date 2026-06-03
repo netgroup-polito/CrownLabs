@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var roleBindingResources = []*rbacv1.RoleBinding{
@@ -173,7 +173,7 @@ var _ = Describe("RoleBinding", func() {
 			})
 
 			It("Should set the workspace status as not ready", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -189,7 +189,7 @@ var _ = Describe("RoleBinding", func() {
 
 		Context("When the rolebindings exist", func() {
 			BeforeEach(func() {
-				wsResource.Status.Namespace = v1alpha2.NameCreated{
+				wsResource.Status.Namespace = clv1alpha2.NameCreated{
 					Created: true,
 					Name:    "workspace-" + wsName,
 				}
@@ -235,7 +235,7 @@ var _ = Describe("RoleBinding", func() {
 				})
 
 				It("Should prevent the workspace from being deleted", func() {
-					ws := &v1alpha1.Workspace{}
+					ws := &clv1alpha1.Workspace{}
 
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -252,7 +252,7 @@ var _ = Describe("RoleBinding", func() {
 
 		Context("When the rolebindings do not exist", func() {
 			BeforeEach(func() {
-				wsResource.Status.Namespace = v1alpha2.NameCreated{
+				wsResource.Status.Namespace = clv1alpha2.NameCreated{
 					Created: true,
 					Name:    "workspace-" + wsName,
 				}

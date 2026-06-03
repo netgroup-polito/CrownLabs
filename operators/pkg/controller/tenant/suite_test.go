@@ -22,10 +22,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
-	"go.uber.org/mock/gomock"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -35,9 +35,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 )
@@ -59,7 +59,7 @@ var (
 	keycloakActor    *mock.MockKeycloakActorIface
 	tenantReconciler tenant.Reconciler
 
-	tnResource             *v1alpha2.Tenant
+	tnResource             *clv1alpha2.Tenant
 	tnReconcileErrExpected gomegaTypes.GomegaMatcher
 
 	objects []client.Object
@@ -73,8 +73,8 @@ func TestTenant(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	Expect(v1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
-	Expect(v1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
 })
 
 var _ = BeforeEach(func() {
@@ -87,14 +87,14 @@ var _ = BeforeEach(func() {
 
 	keycloakActor.EXPECT().IsInitialized().Return(false).AnyTimes()
 
-	tnResource = &v1alpha2.Tenant{
+	tnResource = &clv1alpha2.Tenant{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: tnName,
 			Labels: map[string]string{
 				"crownlabs.polito.it/operator-selector": "test",
 			},
 		},
-		Spec: v1alpha2.TenantSpec{
+		Spec: clv1alpha2.TenantSpec{
 			FirstName: "Test",
 			LastName:  "Tenant",
 			Email:     "test@tenant.example",
@@ -118,7 +118,7 @@ var _ = JustBeforeEach(func() {
 		Client:                      cl,
 		Scheme:                      scheme.Scheme,
 		KeycloakActor:               keycloakActor,
-		TargetLabel:                 common.NewLabel("crownlabs.polito.it/operator-selector", "test"),
+		TargetLabel:                 ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test"),
 		TenantNSKeepAlive:           24 * time.Hour,
 		WaitUserVerification:        true,
 		SandboxClusterRole:          "test-sandbox-editor",
@@ -166,7 +166,7 @@ func removeObjFromObjectsList(obj client.Object) {
 }
 
 func tenantBeingDeleted() {
-	tnResource.Finalizers = append(tnResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
+	tnResource.Finalizers = append(tnResource.Finalizers, clv1alpha2.TnOperatorFinalizerName)
 	tnResource.DeletionTimestamp = &metav1.Time{Time: time.Now().Add(10 * time.Second)}
 }
 

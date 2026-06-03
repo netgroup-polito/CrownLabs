@@ -21,7 +21,7 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/pmp"
 )
 
@@ -39,7 +39,7 @@ func setupPmp(
 	ctx context.Context,
 	mgr manager.Manager,
 	log logr.Logger,
-	targetLabel common.KVLabel,
+	targetLabel ctrlcommon.KVLabel,
 ) error {
 	log = log.WithName("pmp")
 
