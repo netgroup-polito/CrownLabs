@@ -23,9 +23,9 @@ import (
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	commonapi "github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -48,7 +48,7 @@ var _ = Describe("Tenant forging", func() {
 
 		It("Should prepend the workspace label prefix correctly", func() {
 			// Verify we're using the correct prefix from the v1alpha2 package
-			Expect(v1alpha2.WorkspaceLabelPrefix).To(Equal("crownlabs.polito.it/workspace-"))
+			Expect(clv1alpha2.WorkspaceLabelPrefix).To(Equal("crownlabs.polito.it/workspace-"))
 
 			workspaceName := "demo"
 			expectedLabel := "crownlabs.polito.it/workspace-demo"
@@ -104,7 +104,7 @@ var _ = Describe("Tenant forging", func() {
 	var _ = Describe("ConfigureTenantResourceQuota", func() {
 		It("Should initialize labels if nil and set quota spec", func() {
 			rq := &corev1.ResourceQuota{}
-			quota := &commonapi.WorkspaceResourceQuota{}
+			quota := &apicommon.WorkspaceResourceQuota{}
 			labels := map[string]string{
 				"custom-label": "custom-value",
 			}
@@ -125,7 +125,7 @@ var _ = Describe("Tenant forging", func() {
 				},
 			}
 
-			quota := &commonapi.WorkspaceResourceQuota{}
+			quota := &apicommon.WorkspaceResourceQuota{}
 			labels := map[string]string{
 				"custom-label": "custom-value",
 			}
@@ -218,7 +218,7 @@ var _ = Describe("Tenant forging", func() {
 				"existing-label": "existing-value",
 			}
 
-			targetLabel := common.NewLabel("test-key", "test-value")
+			targetLabel := ctrlcommon.NewLabel("test-key", "test-value")
 
 			resultLabels := forge.UpdateTenantResourceCommonLabels(inputLabels, targetLabel)
 
@@ -231,7 +231,7 @@ var _ = Describe("Tenant forging", func() {
 		It("Should initialize labels map when nil", func() {
 			var inputLabels map[string]string
 
-			targetLabel := common.NewLabel("test-key", "test-value")
+			targetLabel := ctrlcommon.NewLabel("test-key", "test-value")
 
 			resultLabels := forge.UpdateTenantResourceCommonLabels(inputLabels, targetLabel)
 

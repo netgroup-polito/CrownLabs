@@ -25,15 +25,15 @@ import (
 	"google.golang.org/grpc/status"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/sig-storage-lib-external-provisioner/v13/controller"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/pmp"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -42,7 +42,7 @@ import (
 var _ = Describe("The PVC Mirror Provisioner methods", func() {
 	AddObject := func(obj client.Object) {
 		err := pmprov.Client.Create(ctx, obj)
-		if apierrors.IsAlreadyExists(err) {
+		if kerrors.IsAlreadyExists(err) {
 			Expect(pmprov.Client.Update(ctx, obj)).To(Succeed())
 		} else {
 			Expect(err).To(BeNil())
@@ -61,13 +61,13 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 	}
 
 	RemovePVC := func(pvc *corev1.PersistentVolumeClaim) {
-		ctrlUtil.RemoveFinalizer(pvc, "kubernetes.io/pvc-protection")
+		ctrlutil.RemoveFinalizer(pvc, "kubernetes.io/pvc-protection")
 		Expect(pmprov.Client.Update(ctx, pvc.DeepCopy())).To(Succeed())
 		RemoveObject(pvc)
 	}
 
 	RemovePV := func(pv *corev1.PersistentVolume) {
-		ctrlUtil.RemoveFinalizer(pv, "kubernetes.io/pv-protection")
+		ctrlutil.RemoveFinalizer(pv, "kubernetes.io/pv-protection")
 		Expect(pmprov.Client.Update(ctx, pv.DeepCopy())).To(Succeed())
 		RemoveObject(pv)
 	}
@@ -149,7 +149,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 		}
 
 		BeforeAll(func() {
-			pmprov.TargetLabel = common.NewLabel(targetLabelKey, targetLabelVal)
+			pmprov.TargetLabel = ctrlcommon.NewLabel(targetLabelKey, targetLabelVal)
 
 			nsOrigin = corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
@@ -269,7 +269,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 				nsTgtLabels = map[string]string{
 					targetLabelKey: targetLabelVal,
 				}
-				pmprov.TargetLabel = common.NewLabel(targetLabelKey, targetLabelVal)
+				pmprov.TargetLabel = ctrlcommon.NewLabel(targetLabelKey, targetLabelVal)
 			})
 
 			When("DataSourceRef is present", func() {

@@ -18,7 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -91,7 +91,7 @@ type TenantSpec struct {
 	CreateSandbox bool `json:"createSandbox,omitempty"`
 
 	// The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled.
-	PersonalWorkspace *common.WorkspaceResourceQuota `json:"personalWorkspace,omitempty"`
+	PersonalWorkspace *apicommon.WorkspaceResourceQuota `json:"personalWorkspace,omitempty"`
 }
 
 // KeycloakStatus defines the status of the authentication flow with Keycloak.

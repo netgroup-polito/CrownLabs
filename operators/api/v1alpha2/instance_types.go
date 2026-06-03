@@ -15,7 +15,7 @@
 package v1alpha2
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -186,7 +186,7 @@ type PublicServicePort struct {
 	// The port protocol
 	// +kubebuilder:validation:Enum=TCP;UDP;SCTP
 	// +kubebuilder:default=TCP
-	Protocol v1.Protocol `json:"protocol,omitempty"`
+	Protocol corev1.Protocol `json:"protocol,omitempty"`
 }
 
 // PublicExposurePhase is an enumeration of the different phases associated with the public exposure of an instance.

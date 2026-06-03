@@ -18,7 +18,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
@@ -37,8 +37,8 @@ func LogConstructor(logger logr.Logger, ctrlname string) func(*reconcile.Request
 }
 
 // FromResult returns a logger level, given the result of a CreateOrUpdate operation.
-func FromResult(result controllerutil.OperationResult) int {
-	if result == controllerutil.OperationResultNone {
+func FromResult(result ctrlutil.OperationResult) int {
+	if result == ctrlutil.OperationResultNone {
 		return LogDebugLevel
 	}
 	return LogInfoLevel

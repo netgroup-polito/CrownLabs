@@ -17,34 +17,34 @@ package forge
 import (
 	"fmt"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // WorkspaceRoleName generates the role name for a workspace.
 func WorkspaceRoleName(
 	wsName string,
-	role v1alpha2.WorkspaceUserRole,
+	role clv1alpha2.WorkspaceUserRole,
 ) string {
 	return fmt.Sprintf("workspace-%s:%s", wsName, role)
 }
 
 // GetWorkspaceManagerRoleName returns the Keycloak role name for workspace managers.
-func GetWorkspaceManagerRoleName(ws *v1alpha1.Workspace) string {
-	return WorkspaceRoleName(ws.Name, v1alpha2.Manager)
+func GetWorkspaceManagerRoleName(ws *clv1alpha1.Workspace) string {
+	return WorkspaceRoleName(ws.Name, clv1alpha2.Manager)
 }
 
 // GetWorkspaceManagerRoleDescription returns the Keycloak role description for workspace managers.
-func GetWorkspaceManagerRoleDescription(ws *v1alpha1.Workspace) string {
+func GetWorkspaceManagerRoleDescription(ws *clv1alpha1.Workspace) string {
 	return fmt.Sprintf("%s Manager Role", ws.Spec.PrettyName)
 }
 
 // GetWorkspaceUserRoleName returns the Keycloak role name for workspace users.
-func GetWorkspaceUserRoleName(ws *v1alpha1.Workspace) string {
-	return WorkspaceRoleName(ws.Name, v1alpha2.User)
+func GetWorkspaceUserRoleName(ws *clv1alpha1.Workspace) string {
+	return WorkspaceRoleName(ws.Name, clv1alpha2.User)
 }
 
 // GetWorkspaceUserRoleDescription returns the Keycloak role description for workspace users.
-func GetWorkspaceUserRoleDescription(ws *v1alpha1.Workspace) string {
+func GetWorkspaceUserRoleDescription(ws *clv1alpha1.Workspace) string {
 	return fmt.Sprintf("%s User Role", ws.Spec.PrettyName)
 }

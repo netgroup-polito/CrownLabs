@@ -20,14 +20,14 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -35,7 +35,7 @@ import (
 func (r *Reconciler) enforceResourcesRelatedToPersonalNamespace(
 	ctx context.Context,
 	extlog logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	log := extlog.WithValues("namespace", forge.GetTenantNamespaceName(tn))
 
@@ -74,7 +74,7 @@ func (r *Reconciler) enforceResourcesRelatedToPersonalNamespace(
 func (r *Reconciler) enforceResourcesRelatedToPersonalNamespaceAbsence(
 	ctx context.Context,
 	extlog logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	log := extlog.WithValues("namespace", forge.GetTenantNamespaceName(tn))
 
@@ -111,19 +111,19 @@ func (r *Reconciler) enforceResourcesRelatedToPersonalNamespaceAbsence(
 
 func (r *Reconciler) enforcePersonalNamespace(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
-	ns := v1.Namespace{
+	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetTenantNamespaceName(tn),
 		},
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &ns, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &ns, func() error {
 		// Configure the namespace
 		forge.ConfigureTenantNamespace(&ns, tn, forge.UpdateTenantResourceCommonLabels(ns.Labels, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, &ns, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &ns, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error when creating namespace for tenant %s: %w", tn.Name, err)
 	}
@@ -138,9 +138,9 @@ func (r *Reconciler) enforcePersonalNamespace(
 func (r *Reconciler) enforcePersonalNamespaceAbsence(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
-	ns := v1.Namespace{
+	ns := corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetTenantNamespaceName(tn),
 		},
@@ -159,7 +159,7 @@ func (r *Reconciler) enforcePersonalNamespaceAbsence(
 }
 
 // checkNamespaceKeepAlive checks to see if the namespace should be deleted.
-func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logger, tn *v1alpha2.Tenant) (keepNsOpen bool, err error) {
+func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logger, tn *clv1alpha2.Tenant) (keepNsOpen bool, err error) {
 	// We check to see if last login was more than r.TenantNSKeepAlive in the past:
 	// if so, temporarily delete the namespace. The lastLogin field is omitted when a user is first created
 
@@ -174,7 +174,7 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 	}
 
 	// Attempt to get instances in current namespace
-	list := &v1alpha2.InstanceList{}
+	list := &clv1alpha2.InstanceList{}
 
 	if err := r.List(ctx, list, client.InNamespace(forge.GetTenantNamespaceName(tn))); err != nil {
 		return true, err
@@ -207,7 +207,7 @@ func (r *Reconciler) checkNamespaceKeepAlive(ctx context.Context, log logr.Logge
 func (r *Reconciler) enforceResourceQuota(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	// get the enrolled workspaces
 	wss, err := r.getWorkspacesList(
@@ -224,18 +224,18 @@ func (r *Reconciler) enforceResourceQuota(
 
 	// update or create the resource quota
 	nsName := forge.GetTenantNamespaceName(tn)
-	rq := v1.ResourceQuota{
+	rq := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-resource-quota",
 			Namespace: nsName,
 		},
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
 		// Configure the resource quota
 		forge.ConfigureTenantResourceQuota(&rq, &quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, &rq, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &rq, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error when creating resource quota for tenant %s: %w", tn.Name, err)
 	}
@@ -245,10 +245,10 @@ func (r *Reconciler) enforceResourceQuota(
 
 func (r *Reconciler) enforceResourceQuotaAbsence(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
-	rq := v1.ResourceQuota{
+	rq := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "crownlabs-resource-quota",
 			Namespace: nsName,
@@ -260,7 +260,7 @@ func (r *Reconciler) enforceResourceQuotaAbsence(
 
 func (r *Reconciler) enforceInstanceRoleBinding(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
 	rb := rbacv1.RoleBinding{
@@ -270,11 +270,11 @@ func (r *Reconciler) enforceInstanceRoleBinding(
 		},
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, &rb, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &rb, func() error {
 		// Configure the role binding
 		forge.ConfigureTenantInstancesRoleBinding(&rb, tn, forge.UpdateTenantResourceCommonLabels(rb.Labels, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, &rb, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &rb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error when creating role binding for tenant %s: %w", tn.Name, err)
 	}
@@ -284,7 +284,7 @@ func (r *Reconciler) enforceInstanceRoleBinding(
 
 func (r *Reconciler) enforceInstanceRoleBindingAbsence(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
 	rb := rbacv1.RoleBinding{
@@ -299,7 +299,7 @@ func (r *Reconciler) enforceInstanceRoleBindingAbsence(
 
 func (r *Reconciler) enforceDenyNetworkPolicy(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
 	netPolDeny := &netv1.NetworkPolicy{
@@ -309,11 +309,11 @@ func (r *Reconciler) enforceDenyNetworkPolicy(
 		},
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolDeny, func() error {
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, netPolDeny, func() error {
 		// Configure the network policy
 		forge.ConfigureTenantDenyNetworkPolicy(netPolDeny, forge.UpdateTenantResourceCommonLabels(netPolDeny.Labels, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, netPolDeny, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, netPolDeny, r.Scheme)
 	})
 
 	return err
@@ -321,7 +321,7 @@ func (r *Reconciler) enforceDenyNetworkPolicy(
 
 func (r *Reconciler) enforceAllowNetworkPolicy(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
 	netPolAllow := &netv1.NetworkPolicy{
@@ -331,11 +331,11 @@ func (r *Reconciler) enforceAllowNetworkPolicy(
 		},
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, netPolAllow, func() error {
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, netPolAllow, func() error {
 		// Configure the network policy
 		forge.ConfigureTenantAllowNetworkPolicy(netPolAllow, forge.UpdateTenantResourceCommonLabels(netPolAllow.Labels, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, netPolAllow, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, netPolAllow, r.Scheme)
 	})
 
 	return err
@@ -343,7 +343,7 @@ func (r *Reconciler) enforceAllowNetworkPolicy(
 
 func (r *Reconciler) enforceDenyNetworkPolicyAbsence(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
 	netPolDeny := &netv1.NetworkPolicy{
@@ -358,7 +358,7 @@ func (r *Reconciler) enforceDenyNetworkPolicyAbsence(
 
 func (r *Reconciler) enforceAllowNetworkPolicyAbsence(
 	ctx context.Context,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
 	netPolAllow := &netv1.NetworkPolicy{

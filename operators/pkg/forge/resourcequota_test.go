@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -37,7 +37,7 @@ var _ = Describe("Resource quota spec forging", func() {
 			BeforeEach(func() {
 				tenant = clv1alpha2.Tenant{
 					Spec: clv1alpha2.TenantSpec{
-						PersonalWorkspace: &common.WorkspaceResourceQuota{
+						PersonalWorkspace: &apicommon.WorkspaceResourceQuota{
 							CPU:       *resource.NewQuantity(25, resource.DecimalSI),
 							Memory:    *resource.NewScaledQuantity(50, resource.Giga),
 							Instances: 6,
@@ -56,7 +56,7 @@ var _ = Describe("Resource quota spec forging", func() {
 		Describe("Forging the tenant resource quota with sample workspaces", func() {
 			var (
 				workspaces  []clv1alpha1.Workspace
-				resultQuota common.WorkspaceResourceQuota
+				resultQuota apicommon.WorkspaceResourceQuota
 			)
 
 			BeforeEach(func() {
@@ -64,13 +64,13 @@ var _ = Describe("Resource quota spec forging", func() {
 				workspaces = make([]clv1alpha1.Workspace, 0)
 				var sampleWorkspace1, sampleWorkspace2 clv1alpha1.Workspace
 				// sample resource quota spec for each workspace.
-				quota1 := common.WorkspaceResourceQuota{
+				quota1 := apicommon.WorkspaceResourceQuota{
 					CPU:       *resource.NewQuantity(10, resource.DecimalSI),
 					Memory:    *resource.NewScaledQuantity(15, resource.Giga),
 					Instances: 2,
 				}
 
-				quota2 := common.WorkspaceResourceQuota{
+				quota2 := apicommon.WorkspaceResourceQuota{
 					CPU:       *resource.NewQuantity(20, resource.DecimalSI),
 					Memory:    *resource.NewScaledQuantity(25, resource.Giga),
 					Instances: 3,
@@ -112,7 +112,7 @@ var _ = Describe("Resource quota spec forging", func() {
 		BeforeEach(func() {
 			tenant = clv1alpha2.Tenant{
 				Spec: clv1alpha2.TenantSpec{
-					PersonalWorkspace: &common.WorkspaceResourceQuota{
+					PersonalWorkspace: &apicommon.WorkspaceResourceQuota{
 						CPU:       *resource.NewQuantity(15, resource.DecimalSI),
 						Memory:    *resource.NewScaledQuantity(20, resource.Giga),
 						Instances: 3,

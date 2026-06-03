@@ -20,13 +20,13 @@ import (
 	"os"
 	"strings"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	crownlabsalpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // BastionReconciler reconciles a Bastion object.
@@ -49,10 +49,10 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 
 	klog.Infof("reconciling bastion [tenant=%s]", req.Name)
 
-	tenant := &crownlabsalpha2.Tenant{}
+	tenant := &clv1alpha2.Tenant{}
 	deleted := false
 
-	if err := r.Get(ctx, req.NamespacedName, tenant); apierrors.IsNotFound(err) {
+	if err := r.Get(ctx, req.NamespacedName, tenant); kerrors.IsNotFound(err) {
 		deleted = true
 	} else if err != nil {
 		return ctrl.Result{}, err
@@ -100,6 +100,6 @@ func (r *BastionReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ct
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *BastionReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&crownlabsalpha2.Tenant{}).
+		For(&clv1alpha2.Tenant{}).
 		Complete(r)
 }

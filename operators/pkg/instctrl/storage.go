@@ -20,7 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -47,14 +47,14 @@ func (r *InstanceReconciler) EnforceShVolMirrorPVCs(ctx context.Context) error {
 				Namespace: instance.Namespace,
 			},
 		}
-		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &mirrPvc, func() error {
+		_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &mirrPvc, func() error {
 			// Configure the mirror PVC
 			if mirrPvc.CreationTimestamp.IsZero() {
 				mirrPvc.Spec = forge.MirrorPVCSpec(&shvolPvc, r.MirrorPVCStorageClassName)
 			}
 			mirrPvc.SetLabels(forge.UpdateShVolMirrorPVCLabels(mirrPvc.Labels))
 
-			return controllerutil.SetControllerReference(instance, &mirrPvc, r.Scheme)
+			return ctrlutil.SetControllerReference(instance, &mirrPvc, r.Scheme)
 		})
 		if err != nil {
 			log.Error(err, "failed to enforce mirror sharedvolume", "SharedVolume", shvolPvc, "Environment", environment)

@@ -22,14 +22,14 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 func (r *Reconciler) enforceAutoEnrollment(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	log logr.Logger,
 ) error {
 	// check label and update if needed
@@ -40,9 +40,9 @@ func (r *Reconciler) enforceAutoEnrollment(
 		wantedLabel = "disabled"
 	}
 
-	if ws.Labels[v1alpha2.WorkspaceLabelAutoenroll] != wantedLabel {
-		if err := r.enforcePreservingStatus(ctx, log, ws, func(workspace *v1alpha1.Workspace) *v1alpha1.Workspace {
-			workspace.Labels[v1alpha2.WorkspaceLabelAutoenroll] = wantedLabel
+	if ws.Labels[clv1alpha2.WorkspaceLabelAutoenroll] != wantedLabel {
+		if err := r.enforcePreservingStatus(ctx, log, ws, func(workspace *clv1alpha1.Workspace) *clv1alpha1.Workspace {
+			workspace.Labels[clv1alpha2.WorkspaceLabelAutoenroll] = wantedLabel
 			return workspace
 		}); err != nil {
 			log.Error(err, "Error when updating workspace", "workspace", ws.Name)
@@ -52,7 +52,7 @@ func (r *Reconciler) enforceAutoEnrollment(
 
 	// if actual AutoEnroll is WithApproval, nothing left to do
 	// else, need to update Tenants in candidate status
-	if ws.Spec.AutoEnroll != v1alpha1.AutoenrollWithApproval {
+	if ws.Spec.AutoEnroll != clv1alpha1.AutoenrollWithApproval {
 		if err := r.autoEnrollUpdateTenants(ctx, ws, log); err != nil {
 			log.Error(err, "Error when updating tenants subscribed to workspace", "workspace", ws.Name)
 			return err
@@ -66,13 +66,13 @@ func (r *Reconciler) enforceAutoEnrollment(
 // this function shall be called only when AutoEnrollment is enabled and not WithApproval.
 func (r *Reconciler) autoEnrollUpdateTenants(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	log logr.Logger,
 ) error {
-	var tenantsToUpdate v1alpha2.TenantList
-	targetLabel := fmt.Sprintf("%s%s", v1alpha2.WorkspaceLabelPrefix, ws.Name)
+	var tenantsToUpdate clv1alpha2.TenantList
+	targetLabel := fmt.Sprintf("%s%s", clv1alpha2.WorkspaceLabelPrefix, ws.Name)
 
-	err := r.List(ctx, &tenantsToUpdate, &client.MatchingLabels{targetLabel: string(v1alpha2.Candidate)})
+	err := r.List(ctx, &tenantsToUpdate, &client.MatchingLabels{targetLabel: string(clv1alpha2.Candidate)})
 	if err != nil {
 		log.Error(err, "Error when listing tenants subscribed to workspace", "workspace", ws.Name)
 		return err
@@ -91,19 +91,19 @@ func (r *Reconciler) autoEnrollUpdateTenants(
 
 func (r *Reconciler) autoEnrollUpdateSingleTenant(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
-	tenant *v1alpha2.Tenant,
+	ws *clv1alpha1.Workspace,
+	tenant *clv1alpha2.Tenant,
 	log logr.Logger,
 ) error {
 	patch := client.MergeFrom(tenant.DeepCopy())
 	removeWorkspaceFromTenant(&tenant.Spec.Workspaces, ws.Name)
 	// if AutoEnrollment is Immediate, add the workspace with User role
-	if ws.Spec.AutoEnroll == v1alpha1.AutoenrollImmediate {
+	if ws.Spec.AutoEnroll == clv1alpha1.AutoenrollImmediate {
 		tenant.Spec.Workspaces = append(
 			tenant.Spec.Workspaces,
-			v1alpha2.TenantWorkspaceEntry{
+			clv1alpha2.TenantWorkspaceEntry{
 				Name: ws.Name,
-				Role: v1alpha2.User,
+				Role: clv1alpha2.User,
 			},
 		)
 	}

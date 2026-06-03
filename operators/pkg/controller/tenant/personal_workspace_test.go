@@ -21,7 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -29,19 +29,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Personal workspace handling", func() {
 	When("Tenant namespace exists", func() {
 		JustBeforeEach(func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeTrue(), timeout, interval)
 		})
 		When("Personal workspace is enabled", func() {
 			BeforeEach(func() {
-				tnResource.Spec.PersonalWorkspace = &common.WorkspaceResourceQuota{
+				tnResource.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 					Instances: 2,
 					CPU:       resource.MustParse("4"),
 					Memory:    resource.MustParse("8Gi"),
@@ -58,7 +58,7 @@ var _ = Describe("Personal workspace handling", func() {
 				Expect(len(rb.Subjects)).To(Equal(1))
 				Expect(rb.Subjects[0].Kind).To(Equal("User"))
 				Expect(rb.Subjects[0].Name).To(Equal(tnName))
-				updatedTenant := &v1alpha2.Tenant{}
+				updatedTenant := &clv1alpha2.Tenant{}
 				err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedTenant.Status.PersonalWorkspaceCreated).To(BeTrue())
@@ -77,7 +77,7 @@ var _ = Describe("Personal workspace handling", func() {
 					tnReconcileErrExpected = HaveOccurred()
 				})
 				It("Should mark the personal workspace as failing", func() {
-					updatedTenant := &v1alpha2.Tenant{}
+					updatedTenant := &clv1alpha2.Tenant{}
 					Expect(cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)).To(Succeed())
 					Expect(updatedTenant.Status.PersonalWorkspaceCreated).To(BeFalse())
 					Expect(updatedTenant.Status.FailingWorkspaces).To(HaveLen(1))
@@ -89,7 +89,7 @@ var _ = Describe("Personal workspace handling", func() {
 			It("Should not have the manage templates role binding", func() {
 				rb := &rbacv1.RoleBinding{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
-				updatedTenant := &v1alpha2.Tenant{}
+				updatedTenant := &clv1alpha2.Tenant{}
 				err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedTenant.Status.PersonalWorkspaceCreated).To(BeFalse())
@@ -108,7 +108,7 @@ var _ = Describe("Personal workspace handling", func() {
 					tnReconcileErrExpected = HaveOccurred()
 				})
 				It("Should mark the personal workspace as not created", func() {
-					updatedTenant := &v1alpha2.Tenant{}
+					updatedTenant := &clv1alpha2.Tenant{}
 					Expect(cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)).To(Succeed())
 					Expect(updatedTenant.Status.PersonalWorkspaceCreated).To(BeFalse())
 					Expect(updatedTenant.Status.FailingWorkspaces).To(BeEmpty())
@@ -121,14 +121,14 @@ var _ = Describe("Personal workspace handling", func() {
 			tnResource.Spec.LastLogin = timePtr(metav1.NewTime(time.Now().Add(-(tenantReconciler.TenantNSKeepAlive + time.Second))))
 		})
 		JustBeforeEach(func() {
-			namespace := &v1.Namespace{}
+			namespace := &corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnPersonalNamespace}, namespace, BeFalse(), timeout, interval)
 		})
 		When("Personal workspace is enabled", func() {
 			It("Should not have the manage templates role binding", func() {
 				rb := &rbacv1.RoleBinding{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
-				updatedTenant := &v1alpha2.Tenant{}
+				updatedTenant := &clv1alpha2.Tenant{}
 				err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedTenant.Status.PersonalWorkspaceCreated).To(BeFalse())
@@ -139,7 +139,7 @@ var _ = Describe("Personal workspace handling", func() {
 			It("Should not have the manage templates role binding", func() {
 				rb := &rbacv1.RoleBinding{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
-				updatedTenant := &v1alpha2.Tenant{}
+				updatedTenant := &clv1alpha2.Tenant{}
 				err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(updatedTenant.Status.PersonalWorkspaceCreated).To(BeFalse())

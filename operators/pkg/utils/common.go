@@ -29,7 +29,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 // ParseDockerDirectory returns a valid Docker image directory.
@@ -70,7 +70,7 @@ func CheckSelectorLabel(ctx context.Context, k8sClient client.Client, namespaceN
 }
 
 // CheckNamespaceTargetLabel checks if the given namespace has the specified target label where to perform reconciliation.
-func CheckNamespaceTargetLabel(ctx context.Context, k8sClient client.Client, namespaceName string, targetLabel common.KVLabel) (bool, error) {
+func CheckNamespaceTargetLabel(ctx context.Context, k8sClient client.Client, namespaceName string, targetLabel ctrlcommon.KVLabel) (bool, error) {
 	namespaceLookupKey := types.NamespacedName{Name: namespaceName}
 	var ns corev1.Namespace
 
