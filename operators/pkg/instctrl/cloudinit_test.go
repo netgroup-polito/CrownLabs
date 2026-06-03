@@ -108,7 +108,7 @@ var _ = Describe("Generation of the cloud-init configuration", func() {
 			},
 		}
 
-		objectName = forge.NamespacedName(&instance)
+		objectName = forge.NamespacedNameFromObject(&instance)
 		secret = corev1.Secret{}
 
 		ownerRef = metav1.OwnerReference{

@@ -25,19 +25,16 @@ import (
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
 	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // ValidateRequest validates the InstanceSnapshot request, returns an error and if there's the need to try again.
 func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot) (bool, error) {
 	// First it is needed to check if the instance actually exists.
-	instanceName := types.NamespacedName{
-		Namespace: isnap.Spec.Instance.Namespace,
-		Name:      isnap.Spec.Instance.Name,
-	}
+	instanceName := forge.NamespacedNameFromGenericRef(isnap.Spec.Instance)
 	instance := &crownlabsv1alpha2.Instance{}
 
 	if err := r.Get(ctx, instanceName, instance); err != nil && errors.IsNotFound(err) {
@@ -53,10 +50,7 @@ func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap 
 	// - the vm is powered off, since it is not possible to steal the DataVolume if it is still running;
 	// - the environment is a persistent vm and not a container.
 
-	templateName := types.NamespacedName{
-		Namespace: instance.Spec.Template.Namespace,
-		Name:      instance.Spec.Template.Name,
-	}
+	templateName := forge.NamespacedNameFromGenericRef(instance.Spec.Template)
 	template := &crownlabsv1alpha2.Template{}
 
 	if err := r.Get(ctx, templateName, template); err != nil && errors.IsNotFound(err) {
@@ -118,10 +112,7 @@ func (r *InstanceSnapshotReconciler) GetJobStatus(job *batch.Job) (bool, batch.J
 // CreateSnapshottingJobDefinition generates the job to be created.
 func (r *InstanceSnapshotReconciler) CreateSnapshottingJobDefinition(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot) (batch.Job, error) {
 	// Get the tenant name in order to set it as directory of the image
-	instanceName := types.NamespacedName{
-		Namespace: isnap.Spec.Instance.Namespace,
-		Name:      isnap.Spec.Instance.Name,
-	}
+	instanceName := forge.NamespacedNameFromGenericRef(isnap.Spec.Instance)
 	instance := &crownlabsv1alpha2.Instance{}
 
 	if err := r.Get(ctx, instanceName, instance); err != nil {

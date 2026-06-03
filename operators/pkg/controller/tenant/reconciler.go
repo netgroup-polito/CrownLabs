@@ -28,7 +28,6 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/util/workqueue"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -42,6 +41,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -360,9 +360,7 @@ func (r *Reconciler) WorkspaceNameToEnrolledTenants(
 	}
 	for idx := range tenants.Items {
 		enqueues = append(enqueues, ctrl.Request{
-			NamespacedName: types.NamespacedName{
-				Name: tenants.Items[idx].GetName(),
-			},
+			NamespacedName: forge.NamespacedNameFromObject(&tenants.Items[idx]),
 		})
 	}
 	return enqueues

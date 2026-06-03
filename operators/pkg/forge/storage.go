@@ -92,7 +92,7 @@ func PVCMountInfosFromEnvironment(ctx context.Context, c client.Client) ([]corev
 	for _, mount := range env.SharedVolumeMounts {
 		// Check existence before mounting
 		var shvol clv1alpha2.SharedVolume
-		if err := c.Get(ctx, NamespacedNameFromMount(mount), &shvol); err != nil {
+		if err := c.Get(ctx, NamespacedNameFromGenericRef(mount.SharedVolumeRef), &shvol); err != nil {
 			return nil, fmt.Sprintf(
 				"unable to retrieve SharedVolume %q in namespace %q to mount for environment %%s",
 				mount.SharedVolumeRef.Name,

@@ -24,7 +24,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -171,10 +170,7 @@ func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Te
 func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) ([]*clv1alpha2.Environment, error) {
 	log := ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel)
 
-	templateName := types.NamespacedName{
-		Namespace: instance.Spec.Template.Namespace,
-		Name:      instance.Spec.Template.Name,
-	}
+	templateName := forge.NamespacedNameFromGenericRef(instance.Spec.Template)
 
 	var template clv1alpha2.Template
 	if err := c.Get(ctx, templateName, &template); err != nil {
@@ -219,10 +215,7 @@ func getTemplateInstanceRequests(ctx context.Context, c client.Client, template 
 	for i := range instances.Items {
 		instance := &instances.Items[i]
 		requests = append(requests, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      instance.Name,
-				Namespace: instance.Namespace,
-			},
+			NamespacedName: forge.NamespacedNameFromObject(instance),
 		})
 	}
 
@@ -339,20 +332,14 @@ func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, c client.C
 	}
 
 	var template clv1alpha2.Template
-	if err := c.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, &template); err != nil {
+	if err := c.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), &template); err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
 		return nil, nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
 			instance.Spec.Template.Namespace, instance.Spec.Template.Name, err)
 	}
 
 	var tenant clv1alpha2.Tenant
-	if err := c.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Namespace,
-	}, &tenant); err != nil {
+	if err := c.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Tenant), &tenant); err != nil {
 		log.Error(err, "Unable to fetch the instance tenant.")
 		return nil, nil, nil, fmt.Errorf("failed to fetch instance tenant %s/%s: %w",
 			instance.Namespace, instance.Spec.Tenant.Name, err)
@@ -378,10 +365,7 @@ func createNamespaceWatchHandlerWithIgnore(c client.Client, ignoreLabel string) 
 		for i := range instances.Items {
 			instance := &instances.Items[i]
 			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-				},
+				NamespacedName: forge.NamespacedNameFromObject(instance),
 			})
 		}
 		return requests

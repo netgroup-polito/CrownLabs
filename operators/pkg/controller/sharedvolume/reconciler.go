@@ -302,10 +302,7 @@ func (r *Reconciler) getDeletingSharedVolumes(ctx context.Context, obj client.Ob
 	var enqueues []ctrl.Request
 	var shvols clv1alpha2.SharedVolumeList
 
-	log := ctrl.LoggerFrom(ctx, "woken-by-template", types.NamespacedName{
-		Namespace: obj.GetNamespace(),
-		Name:      obj.GetName(),
-	})
+	log := ctrl.LoggerFrom(ctx, "woken-by-template", forge.NamespacedNameFromObject(obj))
 
 	filter := client.MatchingFields{
 		phaseFieldIndex: string(clv1alpha2.SharedVolumePhaseDeleting),
@@ -317,7 +314,7 @@ func (r *Reconciler) getDeletingSharedVolumes(ctx context.Context, obj client.Ob
 
 	for i := range shvols.Items {
 		enqueues = append(enqueues, ctrl.Request{
-			NamespacedName: forge.NamespacedNameFromSharedVolume(&shvols.Items[i]),
+			NamespacedName: forge.NamespacedNameFromObject(&shvols.Items[i]),
 		})
 	}
 
