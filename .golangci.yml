@@ -119,8 +119,6 @@ linters:
       # Mocking
       - pkg: github.com/golang/mock/gomock
         alias: ""
-      - pkg: go.uber.org/mock/gomock
-        alias: ""
 
       # Keycloak
       - pkg: github.com/Nerzal/gocloak/v7
