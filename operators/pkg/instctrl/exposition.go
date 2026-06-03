@@ -98,7 +98,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 				gwNs, gwName, gwSection := utils.ParseGatewayParent(r.GatewayRefsValues)
 				params := &forge.HTTPRouteSpecParams{
 					Host:               host,
-					Path:               forge.HTTPRouteGUIPath(instance, environment),
+					Path:               forge.ExposeGUIPath(instance, environment),
 					ServiceName:        service.GetName(),
 					GatewayName:        gwName,
 					GatewayNamespace:   gwNs,
@@ -131,7 +131,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 			// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
 			// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 			if ingressGUI.CreationTimestamp.IsZero() {
-				ingressGUI.Spec = forge.IngressSpec(host, forge.IngressGUIPath(instance, environment),
+				ingressGUI.Spec = forge.IngressSpec(host, forge.ExposeGUIPath(instance, environment),
 					forge.IngressDefaultCertificateName, service.GetName(), forge.GUIPortName)
 			}
 			ingressGUI.SetLabels(forge.EnvironmentObjectLabels(ingressGUI.GetLabels(), instance, environment))
