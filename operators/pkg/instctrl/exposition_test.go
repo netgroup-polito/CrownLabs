@@ -40,6 +40,7 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 type FakeClientWrapped struct {
@@ -82,7 +83,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		err error
 
-		enableGateway bool
+		enableGateway     bool
+		gatewayRefsValues string
 	)
 
 	const (
@@ -143,6 +145,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 		enableAuth = false
 		instancesAuthURL = ""
 		enableGateway = false
+		gatewayRefsValues = ""
 	})
 
 	JustBeforeEach(func() {
@@ -154,6 +157,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 			EventsRecorder:       record.NewFakeRecorder(1024),
 			EnableAuthentication: enableAuth,
 			GatewayAPIMode:       enableGateway,
+			GatewayRefsValues:    gatewayRefsValues,
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -228,6 +232,12 @@ var _ = Describe("Generation of the exposition environment", func() {
 		NamespacedName: &httpRouteName, Object: &httpRoute, GroupResource: schema.GroupResource{Group: gatewayv1.GroupVersion.Group, Resource: "httproutes"},
 		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
 			params := &forge.HTTPRouteSpecParams{Host: host, Path: forge.HTTPRouteGUIPath(inst, &environment), ServiceName: serviceName.Name}
+			if gatewayRefsValues != "" {
+				ns, name, section := utils.ParseGatewayParent(gatewayRefsValues)
+				params.GatewayNamespace = ns
+				params.GatewayName = name
+				params.GatewaySectionName = section
+			}
 			return forge.HTTPRouteSpec(params, &environment, forge.GUIPortNumber)
 		},
 		EmptySpec:              gatewayv1.HTTPRouteSpec{},
@@ -434,9 +444,14 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 			Context("When Gateway API is enabled", func() {
 				BeforeEach(func() { enableGateway = true })
+				BeforeEach(func() { gatewayRefsValues = "" })
 				BeforeEach(func() {
 					environment.EnvironmentType = clv1alpha2.ClassContainer
 					environment.GuiEnabled = true
+				})
+
+				BeforeEach(func() {
+					gatewayRefsValues = templateNamespace + "/test-gateway/section"
 				})
 
 				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
