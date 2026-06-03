@@ -180,4 +180,3 @@ func ExposeGuiStatusURL(host string, environment *clv1alpha2.Environment, instan
 func ExposeGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) string {
 	return fmt.Sprintf("https://%v%v/%v/", host, ExpositionInstancePrefix, instance.UID)
 }
-
