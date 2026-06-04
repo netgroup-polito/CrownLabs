@@ -1,0 +1,8 @@
+to: |-
+  { tenantEmail }
+subject: |-
+  CrownLabs: Instance { prettyName } Deleted
+plaintext_content: |-
+  Your instance { prettyName } has been deleted due to prolonged inactivity.
+html_content: |-
+  <p>Your instance <strong>{ prettyName }</strong> has been deleted due to prolonged inactivity.</p>
