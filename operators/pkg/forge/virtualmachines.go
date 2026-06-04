@@ -261,7 +261,7 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
 		return &cdiv1beta1.DataVolumeSource{
 			PVC: &cdiv1beta1.DataVolumeSourcePVC{
-				Namespace: "cldprog-5-block-vms-tests",
+				Namespace: "crownlabs-staging-1094",
 				Name:      "debian-nginx-raw-block",
 			},
 		}
