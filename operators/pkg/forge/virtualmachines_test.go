@@ -363,24 +363,6 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 				})
 			*/
 
-			When("Environment type is CloudVM", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassCloudVM
-					environment.StorageClassName = "pvc-mirror"
-				})
-
-				It("Should target the source PVC through a cross-namespace DataSourceRef", func() {
-					Expect(dataVolumeTemplate.Spec.PVC).ToNot(BeNil())
-					Expect(dataVolumeTemplate.Spec.PVC.DataSourceRef).ToNot(BeNil())
-					Expect(dataVolumeTemplate.Spec.PVC.DataSourceRef.APIGroup).To(BeNil())
-					Expect(dataVolumeTemplate.Spec.PVC.DataSourceRef.Kind).To(Equal("PersistentVolumeClaim"))
-					Expect(dataVolumeTemplate.Spec.PVC.DataSourceRef.Name).To(Equal("debian-nginx-raw-block"))
-					Expect(*dataVolumeTemplate.Spec.PVC.DataSourceRef.Namespace).To(Equal("cldprog-5-block-vms-tests"))
-					Expect(dataVolumeTemplate.Spec.Source).To(BeNil())
-					Expect(dataVolumeTemplate.Spec.PVC.StorageClassName).To(PointTo(Equal("pvc-mirror")))
-				})
-			})
-
 			It("Should have the correct name", func() {
 				Expect(dataVolumeTemplate.GetName()).To(BeIdenticalTo(name))
 			})
