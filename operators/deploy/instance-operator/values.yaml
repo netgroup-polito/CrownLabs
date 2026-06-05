@@ -45,12 +45,12 @@ configurations:
     terminationStatusCheckTimeout: "3s"
     terminationStatusCheckInterval: "2m"
     inactiveTerminationStatusCheckTimeout: "3s"
-    inactiveTerminationMaxNumberOfAlerts: 2 # for staging test
-    enableInactivityNotifications: true # for staging test
-    enableExpirationNotifications: true # for staging test
-    inactiveTerminationNotificationInterval: "10m" # for staging test
-    expirationNotificationInterval: "1h" # for staging test
-    inactiveDestructionNotificationInterval: "10m" # for staging test
+    inactiveTerminationMaxNumberOfAlerts: 3 
+    enableInactivityNotifications: true 
+    enableExpirationNotifications: true 
+    inactiveTerminationNotificationInterval: "24h" 
+    expirationNotificationInterval: "24h" 
+    inactiveDestructionNotificationInterval: "24h" 
     marginTime: "1m"
   publicExposure:
     # The IP pool used to assign public IPs to instances.

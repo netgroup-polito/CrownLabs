@@ -3,6 +3,6 @@ to: |-
 subject: |-
   CrownLabs: Instance { prettyName } Deleted
 plaintext_content: |-
-  Your instance { prettyName } has been deleted due to prolonged inactivity.
+  Your instance { prettyName } has been deleted since it was detected as stopped for an extended period.
 html_content: |-
-  <p>Your instance <strong>{ prettyName }</strong> has been deleted due to prolonged inactivity.</p>
+  <p>Your instance <strong>{ prettyName }</strong> has been deleted since it was detected as stopped for an extended period.</p>

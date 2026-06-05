@@ -3,8 +3,8 @@ to: |-
 subject: |-
   CrownLabs: Inactivity Detected for instance { prettyName }
 plaintext_content: |-
-  Your instance { prettyName } has been detected as inactive and has been stopped for an extended period.
-  If no activity is detected (either via the web GUI, via SSH, or via the browser-based SSH client) in the next { remainingTime } , the instance will be automatically deleted permanently to save resources.
+  Your instance { prettyName } has been detected as stopped for an extended period.
+  If the instance remains stopped in the next { remainingTime } , the instance will be automatically deleted permanently to save resources.
 html_content: |-
-  <p>Your instance <strong>{ prettyName }</strong> has been detected as inactive and has been stopped for an extended period.</p>
-  <p>If no activity is detected (either via the web GUI, via SSH, or via the browser-based SSH client) in the next <strong>{ remainingTime }</strong>, the instance will be automatically deleted permanently to save resources.</p>
+  <p>Your instance <strong>{ prettyName }</strong> has been detected as stopped for an extended period.</p>
+  <p>If the instance remains stopped in the next <strong>{ remainingTime }</strong>, the instance will be automatically deleted permanently to save resources.</p>
