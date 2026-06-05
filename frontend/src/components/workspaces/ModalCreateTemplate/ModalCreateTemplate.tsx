@@ -421,33 +421,24 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   }, []);
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
+    const numValue = value ? Number(value) : 0;
+    const unit = timeouts[field].unit;
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
-      [field]: {
-        value: value ? Number(value) : 0,
-        unit: prevTimeouts[field].unit,
-      },
+      [field]: { value: numValue, unit },
     }));
-    form.setFieldValue(field, {
-      value,
-      unit: timeouts[field].unit,
-    });
-    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
+    form.setFieldsValue({ [field]: { value: numValue, unit } });
+    form.validateFields([field]).catch(() => { });
   }
 
-  const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
+  const handleTimeUnitChange = (newUnit: string, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
+    const val = timeouts[field].value;
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
-      [field]: {
-        value: prevTimeouts[field].value,
-        unit: value,
-      },
+      [field]: { value: val, unit: newUnit },
     }));
-    form.setFieldValue(field, {
-      value: timeouts[field].value,
-      unit: value,
-    });
-    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
+    form.setFieldsValue({ [field]: { value: val, unit: newUnit } });
+    form.validateFields([field]).catch(() => { });
   }
 
   const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
