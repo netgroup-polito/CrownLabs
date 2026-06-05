@@ -71,16 +71,20 @@ const TimeUnitOptions = [
 ];
 
 const parseTimeoutString = (s?: string) => {
-  if (!s || s === 'never') return { value: 0, unit: '' }
+  if (!s || s === 'never') return { value: 0, unit: 'd' }
   const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
-  if (!m) return { value: 0, unit: '' }
+  if (!m) return { value: 0, unit: 'd' }
 
   const unitOpt = TimeUnitOptions.find(
     opt => opt.value === m[2].toLowerCase(),
   );
 
-  return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : '' }
+  return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : 'd' }
 };
+
+/** Read an optional runtime config variable injected by Helm via configmap. */
+const getDefaultTimeout = (name: string): string =>
+  (window as unknown as Record<string, unknown>)[name] as string ?? 'never';
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
@@ -292,9 +296,15 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [timeouts, setTimeouts] = useState(
     {
-      inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
-      destroyAfterInactivity: { value: parseTimeoutString(template?.destroyAfterInactivity).value ?? 0, unit: parseTimeoutString(template?.destroyAfterInactivity).unit ?? '' },
-      deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
+      inactivityTimeout: template
+        ? { value: parseTimeoutString(template.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template.inactivityTimeout).unit }
+        : parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_INACTIVITY_TIMEOUT')),
+      destroyAfterInactivity: template
+        ? { value: parseTimeoutString(template.destroyAfterInactivity).value ?? 0, unit: parseTimeoutString(template.destroyAfterInactivity).unit }
+        : parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DESTROY_AFTER_INACTIVITY')),
+      deleteAfter: template
+        ? { value: parseTimeoutString(template.deleteAfter).value ?? 0, unit: parseTimeoutString(template.deleteAfter).unit }
+        : parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DELETE_AFTER')),
     });
 
   const {
@@ -352,9 +362,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       form.resetFields();
       form.setFieldsValue(getInitialValues(undefined));
       setTimeouts({
-        inactivityTimeout: { value: 0, unit: '' },
-        destroyAfterInactivity: { value: 0, unit: '' },
-        deleteAfter: { value: 0, unit: '' },
+        inactivityTimeout: parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_INACTIVITY_TIMEOUT')),
+        destroyAfterInactivity: parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DESTROY_AFTER_INACTIVITY')),
+        deleteAfter: parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DELETE_AFTER')),
       });
       setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
       setSelectedLabels([]);
@@ -411,33 +421,24 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   }, []);
 
   const handleTimeoutValueChange = (value: number | null, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
+    const numValue = value ? Number(value) : 0;
+    const unit = timeouts[field].unit;
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
-      [field]: {
-        value: value ? Number(value) : 0,
-        unit: prevTimeouts[field].unit,
-      },
+      [field]: { value: numValue, unit },
     }));
-    form.setFieldValue(field, {
-      value,
-      unit: timeouts[field].unit,
-    });
-    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
+    form.setFieldsValue({ [field]: { value: numValue, unit } });
+    form.validateFields([field]).catch(() => { });
   }
 
-  const handleTimeUnitChange = (value: string, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
+  const handleTimeUnitChange = (newUnit: string, field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
+    const val = timeouts[field].value;
     setTimeouts(prevTimeouts => ({
       ...prevTimeouts,
-      [field]: {
-        value: prevTimeouts[field].value,
-        unit: value,
-      },
+      [field]: { value: val, unit: newUnit },
     }));
-    form.setFieldValue(field, {
-      value: timeouts[field].value,
-      unit: value,
-    });
-    form.validateFields(['inactivityTimeout', 'destroyAfterInactivity', 'deleteAfter']).catch(() => { });
+    form.setFieldsValue({ [field]: { value: val, unit: newUnit } });
+    form.validateFields([field]).catch(() => { });
   }
 
   const isTimeUnitDisabled = (field: 'inactivityTimeout' | 'destroyAfterInactivity' | 'deleteAfter') => {
@@ -555,7 +556,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
             min={0}
-            max={60}
             defaultValue={timeouts.inactivityTimeout.value}
           >
           </InputNumber>
@@ -596,7 +596,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'destroyAfterInactivity')}
             min={0}
-            max={60}
             defaultValue={timeouts.destroyAfterInactivity.value}
           >
           </InputNumber>
@@ -636,7 +635,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
             min={0}
-            max={60}
             defaultValue={timeouts.deleteAfter.value}
           >
           </InputNumber>
