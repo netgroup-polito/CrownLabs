@@ -71,15 +71,15 @@ const TimeUnitOptions = [
 ];
 
 const parseTimeoutString = (s?: string) => {
-  if (!s || s === 'never') return { value: 0, unit: '' }
+  if (!s || s === 'never') return { value: 0, unit: 'd' }
   const m = String(s).trim().match(/^(\d+)\s*([mhd])$/i)
-  if (!m) return { value: 0, unit: '' }
+  if (!m) return { value: 0, unit: 'd' }
 
   const unitOpt = TimeUnitOptions.find(
     opt => opt.value === m[2].toLowerCase(),
   );
 
-  return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : '' }
+  return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : 'd' }
 };
 
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
@@ -352,9 +352,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       form.resetFields();
       form.setFieldsValue(getInitialValues(undefined));
       setTimeouts({
-        inactivityTimeout: { value: 0, unit: '' },
-        destroyAfterInactivity: { value: 0, unit: '' },
-        deleteAfter: { value: 0, unit: '' },
+        inactivityTimeout: { value: 0, unit: 'd' },
+        destroyAfterInactivity: { value: 0, unit: 'd' },
+        deleteAfter: { value: 0, unit: 'd' },
       });
       setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
       setSelectedLabels([]);
@@ -555,7 +555,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'inactivityTimeout')}
             min={0}
-            max={60}
             defaultValue={timeouts.inactivityTimeout.value}
           >
           </InputNumber>
@@ -596,7 +595,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'destroyAfterInactivity')}
             min={0}
-            max={60}
             defaultValue={timeouts.destroyAfterInactivity.value}
           >
           </InputNumber>
@@ -636,7 +634,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <InputNumber
             onChange={value => handleTimeoutValueChange(value, 'deleteAfter')}
             min={0}
-            max={60}
             defaultValue={timeouts.deleteAfter.value}
           >
           </InputNumber>
