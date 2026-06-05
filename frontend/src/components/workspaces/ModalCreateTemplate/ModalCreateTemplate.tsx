@@ -82,6 +82,10 @@ const parseTimeoutString = (s?: string) => {
   return { value: Number(m[1]), unit: unitOpt ? unitOpt.value : 'd' }
 };
 
+/** Read an optional runtime config variable injected by Helm via configmap. */
+const getDefaultTimeout = (name: string): string =>
+  (window as unknown as Record<string, unknown>)[name] as string ?? 'never';
+
 const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const {
     show,
@@ -292,9 +296,15 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const [timeouts, setTimeouts] = useState(
     {
-      inactivityTimeout: { value: parseTimeoutString(template?.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template?.inactivityTimeout).unit ?? '' },
-      destroyAfterInactivity: { value: parseTimeoutString(template?.destroyAfterInactivity).value ?? 0, unit: parseTimeoutString(template?.destroyAfterInactivity).unit ?? '' },
-      deleteAfter: { value: parseTimeoutString(template?.deleteAfter).value ?? 0, unit: parseTimeoutString(template?.deleteAfter).unit ?? '' },
+      inactivityTimeout: template
+        ? { value: parseTimeoutString(template.inactivityTimeout).value ?? 0, unit: parseTimeoutString(template.inactivityTimeout).unit }
+        : parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_INACTIVITY_TIMEOUT')),
+      destroyAfterInactivity: template
+        ? { value: parseTimeoutString(template.destroyAfterInactivity).value ?? 0, unit: parseTimeoutString(template.destroyAfterInactivity).unit }
+        : parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DESTROY_AFTER_INACTIVITY')),
+      deleteAfter: template
+        ? { value: parseTimeoutString(template.deleteAfter).value ?? 0, unit: parseTimeoutString(template.deleteAfter).unit }
+        : parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DELETE_AFTER')),
     });
 
   const {
@@ -352,9 +362,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       form.resetFields();
       form.setFieldsValue(getInitialValues(undefined));
       setTimeouts({
-        inactivityTimeout: { value: 0, unit: 'd' },
-        destroyAfterInactivity: { value: 0, unit: 'd' },
-        deleteAfter: { value: 0, unit: 'd' },
+        inactivityTimeout: parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_INACTIVITY_TIMEOUT')),
+        destroyAfterInactivity: parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DESTROY_AFTER_INACTIVITY')),
+        deleteAfter: parseTimeoutString(getDefaultTimeout('VITE_APP_DEFAULT_DELETE_AFTER')),
       });
       setNodeSelectorMode(NodeSelectorOptionMap['NodeSelectorDisabled']);
       setSelectedLabels([]);
