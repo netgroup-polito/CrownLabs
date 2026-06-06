@@ -270,15 +270,13 @@ func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLab
 }
 
 // TenantNamespaceLabels receives in input a set of labels and returns the updated set for a tenant namespace.
-func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel, allowedRoutesLabel common.KVLabel) map[string]string {
+func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel ctrlcommon.KVLabel, tenantNamespaceLabels map[string]string) map[string]string {
 	labels = deepCopyLabels(labels)
 
+	maps.Copy(labels, tenantNamespaceLabels)
 	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
 	labels[LabelTypeKey] = labelTypeTenantValue
 	labels[LabelTenantKey] = tenant.Name
-	if allowedRoutesLabel.GetKey() != "" {
-		labels[allowedRoutesLabel.GetKey()] = allowedRoutesLabel.GetValue()
-	}
 	labels["crownlabs.polito.it/name"] = tenant.Name
 	labels["crownlabs.polito.it/instance-resources-replication"] = "true"
 

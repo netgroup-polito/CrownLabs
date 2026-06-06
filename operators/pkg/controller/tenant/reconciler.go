@@ -49,8 +49,8 @@ import (
 type Reconciler struct {
 	client.Client
 	Scheme                      *runtime.Scheme
-	TargetLabel                 ctrlcommon.KVLabel
-	AllowedRoutesLabel          ctrlcommon.KVLabel
+	TenantNamespaceLabels       map[string]string
+	TenantSelectorLabelKey      string
 	TenantNSKeepAlive           time.Duration
 	TriggerReconcileChannel     chan event.GenericEvent // Channel to trigger a reconciliation of the tenant resource.
 	MyDrivePVCsSize             resource.Quantity
@@ -63,6 +63,10 @@ type Reconciler struct {
 	BaseWorkspaces              []string
 	Concurrency                 int
 	Reschedule                  ctrlcommon.Rescheduler
+}
+
+func (r *Reconciler) targetLabel() ctrlcommon.KVLabel {
+	return ctrlcommon.NewLabel(r.TenantSelectorLabelKey, r.TenantNamespaceLabels[r.TenantSelectorLabelKey])
 }
 
 // Reconcile reconciles the state of a tenant resource.
@@ -79,7 +83,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if !r.TargetLabel.IsIncluded(tn.Labels) {
+	if !r.targetLabel().IsIncluded(tn.Labels) {
 		// the actual Tenant is not responsibility of this controller
 		log.Info("Tenant is not responsibility of this controller, skipping reconcile")
 		return ctrl.Result{}, nil
@@ -232,7 +236,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
-	pred, err := r.TargetLabel.GetPredicate()
+	pred, err := r.targetLabel().GetPredicate()
 	if err != nil {
 		log.Error(err, "Error creating predicate for tenant controller")
 		return fmt.Errorf("error creating predicate for tenant controller: %w", err)

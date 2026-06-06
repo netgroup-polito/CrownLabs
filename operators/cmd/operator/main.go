@@ -55,15 +55,15 @@ func main() {
 	var metricsAddr string
 	var healthProbeAddr string
 	var enableLeaderElection bool
-	var targetLabelStr string
-	var allowedRoutesLabelStr string
+	var tenantNamespaceLabelsStr string
+	var tenantSelectorLabelKey string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&targetLabelStr, "target-label", "", "The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value")
-	flag.StringVar(&allowedRoutesLabelStr, "allowed-routes-label", "", "The key=value pair label that tenant namespaces must expose to be selected by Gateway allowedRoutes. A single pair in the format key=value")
+	flag.StringVar(&tenantNamespaceLabelsStr, "tenant-namespace-labels", "", "A Kubernetes label selector string (exact-match only) parsed and converted into labels to stamp on tenant namespaces")
+	flag.StringVar(&tenantSelectorLabelKey, "tenant-selector-label-key", "", "The label key inside --tenant-namespace-labels used as tenant controller selector")
 	flag.DurationVar(&reschedule.RequeueAfterMin, "reschedule-min", reschedule.RequeueAfterMin,
 		"Minimum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
@@ -113,15 +113,23 @@ func main() {
 		klog.Fatal(err, "Unable to create manager")
 	}
 
-	targetLabel, err := ctrlcommon.ParseLabel(targetLabelStr)
-	if err != nil {
-		klog.Fatal(err, "Unable to parse target label")
+	if tenantNamespaceLabelsStr == "" {
+		klog.Fatal("Missing required --tenant-namespace-labels")
 	}
-	allowedRoutesLabel, err := common.ParseLabel(allowedRoutesLabelStr)
-	if err != nil {
-		klog.Fatal(err, "Unable to parse allowed routes label")
+	if tenantSelectorLabelKey == "" {
+		klog.Fatal("Missing required --tenant-selector-label-key")
 	}
-	log.Info("Selecting resources with label", "label", targetLabelStr)
+
+	tenantNamespaceLabels, err := ctrlcommon.ParseLabelSelectorAsMap(tenantNamespaceLabelsStr)
+	if err != nil {
+		klog.Fatal(err, "Unable to parse tenant namespace labels")
+	}
+
+	targetLabel, err := ctrlcommon.ExtractLabelFromMap(tenantNamespaceLabels, tenantSelectorLabelKey)
+	if err != nil {
+		klog.Fatal(err, "Unable to extract tenant selector label")
+	}
+	log.Info("Selecting resources with label", "label", targetLabel.GetKey()+"="+targetLabel.GetValue())
 
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak = enableKeycloak && (enableTenant || enableWorkspace)
@@ -136,7 +144,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setupTenant(mgr, log, targetLabel, allowedRoutesLabel)
+		err := setupTenant(mgr, log, tenantNamespaceLabels, tenantSelectorLabelKey)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}

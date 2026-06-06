@@ -37,7 +37,6 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 )
@@ -118,7 +117,8 @@ var _ = JustBeforeEach(func() {
 		Client:                      cl,
 		Scheme:                      scheme.Scheme,
 		KeycloakActor:               keycloakActor,
-		TargetLabel:                 ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test"),
+		TenantNamespaceLabels:       map[string]string{"crownlabs.polito.it/operator-selector": "test"},
+		TenantSelectorLabelKey:      "crownlabs.polito.it/operator-selector",
 		TenantNSKeepAlive:           24 * time.Hour,
 		WaitUserVerification:        true,
 		SandboxClusterRole:          "test-sandbox-editor",

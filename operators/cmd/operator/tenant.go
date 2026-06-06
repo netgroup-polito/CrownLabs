@@ -82,9 +82,14 @@ func init() {
 func setupTenant(
 	mgr manager.Manager,
 	log logr.Logger,
-	targetLabel ctrlcommon.KVLabel,
-	allowedRoutesLabel ctrlcommon.KVLabel,
+	tenantNamespaceLabels map[string]string,
+	tenantSelectorLabelKey string,
 ) error {
+	targetLabel, err := ctrlcommon.ExtractLabelFromMap(tenantNamespaceLabels, tenantSelectorLabelKey)
+	if err != nil {
+		return err
+	}
+
 	var baseWorkspacesList []string
 	if tenantBaseWorkspaces != "" {
 		baseWorkspacesList = strings.Split(tenantBaseWorkspaces, ",")
@@ -94,8 +99,8 @@ func setupTenant(
 	tn := &tenant.Reconciler{
 		Client:                      mgr.GetClient(),
 		Scheme:                      mgr.GetScheme(),
-		TargetLabel:                 targetLabel,
-		AllowedRoutesLabel:          allowedRoutesLabel,
+		TenantNamespaceLabels:       tenantNamespaceLabels,
+		TenantSelectorLabelKey:      tenantSelectorLabelKey,
 		TenantNSKeepAlive:           tenantNSKeepAlive,
 		TriggerReconcileChannel:     make(chan event.GenericEvent, 10),
 		MyDrivePVCsSize:             mydrivePVCsSize.Quantity,

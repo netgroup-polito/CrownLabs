@@ -52,7 +52,7 @@ var _ = Describe("Personal workspace handling", func() {
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeTrue(), timeout, interval)
 
 				Expect(rb.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
-				Expect(rb.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", tenantReconciler.TargetLabel.GetValue()))
+				Expect(rb.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", tenantReconciler.TenantNamespaceLabels[tenantReconciler.TenantSelectorLabelKey]))
 				Expect(rb.RoleRef.Name).To(Equal("crownlabs-manage-templates"))
 				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
 				Expect(len(rb.Subjects)).To(Equal(1))

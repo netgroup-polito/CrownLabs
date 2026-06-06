@@ -50,7 +50,7 @@ func GetTenantNamespaceName(tn *clv1alpha2.Tenant) string {
 }
 
 // ConfigureTenantNamespace configures a namespace for a tenant.
-func ConfigureTenantNamespace(ns *corev1.Namespace, tn *clv1alpha2.Tenant, labels map[string]string) {
+func ConfigureTenantNamespace(ns *corev1.Namespace, labels map[string]string) {
 	// Set the labels for the namespace
 	if ns.Labels == nil {
 		ns.Labels = make(map[string]string)
