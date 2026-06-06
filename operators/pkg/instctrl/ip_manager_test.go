@@ -19,7 +19,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -104,7 +104,7 @@ var _ = Describe("IPManager", func() {
 	})
 
 	It("UpdateUsedPortsByIP scans and returns used ports by IP", func() {
-		svc1 := &v1.Service{
+		svc1 := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-service-1",
 				Namespace: "test-ns",
@@ -113,15 +113,15 @@ var _ = Describe("IPManager", func() {
 					"metallb.universe.tf/loadBalancerIPs": "172.18.0.240",
 				},
 			},
-			Spec: v1.ServiceSpec{
-				Type: v1.ServiceTypeLoadBalancer,
-				Ports: []v1.ServicePort{
+			Spec: corev1.ServiceSpec{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Ports: []corev1.ServicePort{
 					{Name: "http", Port: 8080, TargetPort: intstr.FromInt(80)},
 					{Name: "https", Port: 8443, TargetPort: intstr.FromInt(443)},
 				},
 			},
 		}
-		svc2 := &v1.Service{
+		svc2 := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-service-2",
 				Namespace: "test-ns",
@@ -130,9 +130,9 @@ var _ = Describe("IPManager", func() {
 					"metallb.universe.tf/loadBalancerIPs": "172.18.0.241",
 				},
 			},
-			Spec: v1.ServiceSpec{
-				Type: v1.ServiceTypeLoadBalancer,
-				Ports: []v1.ServicePort{
+			Spec: corev1.ServiceSpec{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Ports: []corev1.ServicePort{
 					{Name: "api", Port: 9090, TargetPort: intstr.FromInt(90)},
 				},
 			},
@@ -157,7 +157,7 @@ var _ = Describe("IPManager", func() {
 	It("UpdateUsedPortsByIP excludes specified service", func() {
 		uniquePort := int32(9999)
 		uniqueIP := "172.18.0.243"
-		svc := &v1.Service{
+		svc := &corev1.Service{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "exclude-service",
 				Namespace: "test-ns",
@@ -166,9 +166,9 @@ var _ = Describe("IPManager", func() {
 					"metallb.universe.tf/loadBalancerIPs": uniqueIP,
 				},
 			},
-			Spec: v1.ServiceSpec{
-				Type: v1.ServiceTypeLoadBalancer,
-				Ports: []v1.ServicePort{
+			Spec: corev1.ServiceSpec{
+				Type: corev1.ServiceTypeLoadBalancer,
+				Ports: []corev1.ServicePort{
 					{Name: "unique-port", Port: uniquePort, TargetPort: intstr.FromInt(80)},
 				},
 			},

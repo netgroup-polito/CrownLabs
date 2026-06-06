@@ -23,7 +23,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Nerzal/gocloak/v13"
+	gocloak13 "github.com/Nerzal/gocloak/v13"
 	"github.com/go-logr/logr"
 	"k8s.io/klog/v2"
 )
@@ -33,7 +33,7 @@ type KeycloakActor struct {
 	initialized    bool
 	Client         GoCloakIface
 	Realm          string
-	token          *gocloak.JWT
+	token          *gocloak13.JWT
 	tokenMutex     sync.RWMutex
 	tokenExpiresAt int64
 	credentials    struct {
@@ -65,7 +65,7 @@ func SetupKeycloakActor(
 	}
 
 	if actor.Client == nil {
-		actor.Client = gocloak.NewClient(url)
+		actor.Client = gocloak13.NewClient(url)
 	}
 
 	// login to keycloak
@@ -144,10 +144,10 @@ func (a *KeycloakActor) GetAccessToken(ctx context.Context) string {
 func (a *KeycloakActor) GetUser(
 	ctx context.Context,
 	username string,
-) (*gocloak.User, error) {
+) (*gocloak13.User, error) {
 	log := klog.FromContext(ctx)
 
-	users, err := a.Client.GetUsers(ctx, a.GetAccessToken(ctx), a.Realm, gocloak.GetUsersParams{
+	users, err := a.Client.GetUsers(ctx, a.GetAccessToken(ctx), a.Realm, gocloak13.GetUsersParams{
 		Username: &username,
 	})
 	if err != nil {
@@ -162,7 +162,7 @@ func (a *KeycloakActor) GetUser(
 	}
 
 	// If there are multiple users, look for the one that exactly matches the searched username
-	var user *gocloak.User
+	var user *gocloak13.User
 	if *users[0].Username != username {
 		for _, u := range users {
 			if u.Username != nil && *u.Username == username {
@@ -189,13 +189,13 @@ func (a *KeycloakActor) CreateUser(
 	firstName string,
 	lastName string,
 ) (string, error) {
-	user := gocloak.User{
+	user := gocloak13.User{
 		Username:      &username,
 		Email:         &email,
 		FirstName:     &firstName,
 		LastName:      &lastName,
-		Enabled:       gocloak.BoolP(true),
-		EmailVerified: gocloak.BoolP(false),
+		Enabled:       gocloak13.BoolP(true),
+		EmailVerified: gocloak13.BoolP(false),
 	}
 
 	userID, err := a.Client.CreateUser(ctx, a.GetAccessToken(ctx), a.Realm, user)
@@ -207,7 +207,7 @@ func (a *KeycloakActor) CreateUser(
 	requiredActions := []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}
 	// user should do it in the next 30 days
 	lifespan := 60 * 60 * 24 * 30
-	err = a.Client.ExecuteActionsEmail(ctx, a.GetAccessToken(ctx), a.Realm, gocloak.ExecuteActionsEmail{
+	err = a.Client.ExecuteActionsEmail(ctx, a.GetAccessToken(ctx), a.Realm, gocloak13.ExecuteActionsEmail{
 		UserID:   &userID,
 		Actions:  &requiredActions,
 		Lifespan: &lifespan,
@@ -243,7 +243,7 @@ func (a *KeycloakActor) getClientInternalIdentifierByClientID(
 	a.cacheMutex.RUnlock()
 
 	// If not in cache, fetch the client from Keycloak
-	clients, err := a.Client.GetClients(ctx, a.GetAccessToken(ctx), a.Realm, gocloak.GetClientsParams{
+	clients, err := a.Client.GetClients(ctx, a.GetAccessToken(ctx), a.Realm, gocloak13.GetClientsParams{
 		ClientID: &clientID,
 	})
 	if err != nil {
@@ -267,7 +267,7 @@ func (a *KeycloakActor) getClientInternalIdentifierByClientID(
 func (a *KeycloakActor) GetRole(
 	ctx context.Context,
 	roleName string,
-) (*gocloak.Role, error) {
+) (*gocloak13.Role, error) {
 	log := klog.FromContext(ctx)
 
 	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
@@ -303,7 +303,7 @@ func (a *KeycloakActor) CreateRole(
 ) (string, error) {
 	log := klog.FromContext(ctx)
 
-	role := gocloak.Role{
+	role := gocloak13.Role{
 		Name:        &roleName,
 		Description: &roleDescription,
 	}
@@ -364,7 +364,7 @@ func (a *KeycloakActor) DeleteRole(
 func (a *KeycloakActor) GetUserRoles(
 	ctx context.Context,
 	userID string,
-) ([]*gocloak.Role, error) {
+) ([]*gocloak13.Role, error) {
 	log := klog.FromContext(ctx)
 
 	clientID, err := a.getClientInternalIdentifierByClientID(ctx, a.RolesClientID)
@@ -396,7 +396,7 @@ func (a *KeycloakActor) GetUserRoles(
 func (a *KeycloakActor) AddUserToRoles(
 	ctx context.Context,
 	userID string,
-	roles []*gocloak.Role,
+	roles []*gocloak13.Role,
 ) error {
 	log := klog.FromContext(ctx)
 
@@ -407,7 +407,7 @@ func (a *KeycloakActor) AddUserToRoles(
 	}
 
 	// Convert []*gocloak.Role to []gocloak.Role
-	rolesVal := make([]gocloak.Role, len(roles))
+	rolesVal := make([]gocloak13.Role, len(roles))
 	for i, r := range roles {
 		if r != nil {
 			rolesVal[i] = *r
@@ -435,7 +435,7 @@ func (a *KeycloakActor) AddUserToRoles(
 func (a *KeycloakActor) RemoveUserFromRoles(
 	ctx context.Context,
 	userID string,
-	roles []*gocloak.Role,
+	roles []*gocloak13.Role,
 ) error {
 	log := klog.FromContext(ctx)
 
@@ -446,7 +446,7 @@ func (a *KeycloakActor) RemoveUserFromRoles(
 	}
 
 	// Convert []*gocloak.Role to []gocloak.Role
-	rolesVal := make([]gocloak.Role, len(roles))
+	rolesVal := make([]gocloak13.Role, len(roles))
 	for i, r := range roles {
 		if r != nil {
 			rolesVal[i] = *r

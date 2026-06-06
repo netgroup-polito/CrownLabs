@@ -24,13 +24,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	admissionv1 "k8s.io/api/admission/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var (
@@ -51,17 +51,17 @@ func TestTenantWebhook(t *testing.T) {
 
 var _ = BeforeSuite(func() {
 	scheme = runtime.NewScheme()
-	Expect(v1alpha1.AddToScheme(scheme)).To(Succeed())
-	Expect(v1alpha2.AddToScheme(scheme)).To(Succeed())
+	Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
+	Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
 })
 
-func serializeTenant(t *v1alpha2.Tenant) runtime.RawExtension {
+func serializeTenant(t *clv1alpha2.Tenant) runtime.RawExtension {
 	data, err := json.Marshal(t)
 	Expect(err).ToNot(HaveOccurred())
 	return runtime.RawExtension{Raw: data}
 }
 
-func forgeRequest(op admissionv1.Operation, newTenant, oldTenant *v1alpha2.Tenant) admission.Request {
+func forgeRequest(op admissionv1.Operation, newTenant, oldTenant *clv1alpha2.Tenant) admission.Request {
 	req := admission.Request{AdmissionRequest: admissionv1.AdmissionRequest{Operation: op}}
 	if newTenant != nil {
 		req.Object = serializeTenant(newTenant)
@@ -75,7 +75,7 @@ func forgeRequest(op admissionv1.Operation, newTenant, oldTenant *v1alpha2.Tenan
 
 func forgeResponse(warnings []string, err error) admission.Response {
 	if err != nil {
-		var apiStatus apierrors.APIStatus
+		var apiStatus kerrors.APIStatus
 		if errors.As(err, &apiStatus) {
 			sta := apiStatus.Status()
 			return admission.Response{

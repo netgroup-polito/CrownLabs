@@ -18,7 +18,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	instancewebhook "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/instance/webhook"
 )
 
@@ -44,7 +44,7 @@ func setupInstanceWebhook(
 	mgr ctrl.Manager,
 ) error {
 	return ctrl.NewWebhookManagedBy(mgr).
-		For(&crownlabsv1alpha2.Instance{}).
+		For(&clv1alpha2.Instance{}).
 		WithValidator(&instancewebhook.InstanceValidator{
 			Client: mgr.GetClient(),
 		}).

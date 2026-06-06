@@ -21,7 +21,7 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -40,18 +40,18 @@ const (
 )
 
 // GetWorkspaceInstancesManagerBindingName returns the name of the ClusterRoleBinding for managing instances in a workspace.
-func GetWorkspaceInstancesManagerBindingName(ws *v1alpha1.Workspace) string {
+func GetWorkspaceInstancesManagerBindingName(ws *clv1alpha1.Workspace) string {
 	return fmt.Sprintf("%s-%s", WorkspaceInstancesManagerRoleName, ws.Name)
 }
 
 // GetWorkspaceTenantsManagerBindingName returns the name of the ClusterRoleBinding for managing tenants in a workspace.
-func GetWorkspaceTenantsManagerBindingName(ws *v1alpha1.Workspace) string {
+func GetWorkspaceTenantsManagerBindingName(ws *clv1alpha1.Workspace) string {
 	return fmt.Sprintf("%s-%s", WorkspaceTenantsManagerRoleName, ws.Name)
 }
 
 // ConfigureWorkspaceInstancesManagerBinding configures the RoleRef and Subjects for a ClusterRoleBinding
 // that grants permissions to manage instances in a workspace.
-func ConfigureWorkspaceInstancesManagerBinding(ws *v1alpha1.Workspace, crb *rbacv1.ClusterRoleBinding) {
+func ConfigureWorkspaceInstancesManagerBinding(ws *clv1alpha1.Workspace, crb *rbacv1.ClusterRoleBinding) {
 	// Configure the RoleRef for instances management
 	crb.RoleRef = rbacv1.RoleRef{
 		Kind:     "ClusterRole",
@@ -71,7 +71,7 @@ func ConfigureWorkspaceInstancesManagerBinding(ws *v1alpha1.Workspace, crb *rbac
 
 // ConfigureWorkspaceTenantsManagerBinding configures the RoleRef and Subjects for a ClusterRoleBinding
 // that grants permissions to manage tenants in a workspace.
-func ConfigureWorkspaceTenantsManagerBinding(ws *v1alpha1.Workspace, crb *rbacv1.ClusterRoleBinding) {
+func ConfigureWorkspaceTenantsManagerBinding(ws *clv1alpha1.Workspace, crb *rbacv1.ClusterRoleBinding) {
 	// Configure the RoleRef for tenants management
 	crb.RoleRef = rbacv1.RoleRef{
 		Kind:     "ClusterRole",

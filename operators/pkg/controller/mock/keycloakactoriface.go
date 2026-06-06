@@ -15,7 +15,7 @@ import (
 
 	gocloak "github.com/Nerzal/gocloak/v13"
 	logr "github.com/go-logr/logr"
-	gomock "go.uber.org/mock/gomock"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockKeycloakActorIface is a mock of KeycloakActorIface interface.

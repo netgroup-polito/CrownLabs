@@ -21,7 +21,7 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 var (
@@ -63,7 +63,7 @@ func setupKeycloak(
 	if keycloakCompatibilityMode {
 		log.Info("WARNING: Keycloak compatibility mode is enabled")
 
-		err := common.SetupKeycloakActorCompatibility(
+		err := ctrlcommon.SetupKeycloakActorCompatibility(
 			ctx,
 			keycloakURL,
 			keycloakClientID,
@@ -76,7 +76,7 @@ func setupKeycloak(
 			return err
 		}
 	} else {
-		err := common.SetupKeycloakActor(
+		err := ctrlcommon.SetupKeycloakActor(
 			ctx,
 			keycloakURL,
 			keycloakClientID,

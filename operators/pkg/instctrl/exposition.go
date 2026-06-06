@@ -17,7 +17,7 @@ package instctrl
 import (
 	"context"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -46,7 +46,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
-	template := clctx.TemplateFrom(ctx)
 
 	// Check if index is out of range
 	if envIndex >= len(instance.Status.Environments) {
@@ -54,13 +53,13 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	// Enforce the service presence
-	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+	service := corev1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
 		// Service specifications are forged only at creation time, to prevent issues in case of updates.
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the backend
 		// (i.e., VMI or Pod) configuration, which nonetheless cannot be changed without a restart.
 		if service.CreationTimestamp.IsZero() {
-			service.Spec = forge.ServiceSpec(instance, environment, template)
+			service.Spec = forge.ServiceSpec(instance, environment)
 		}
 
 		labels := forge.EnvironmentObjectLabels(service.GetLabels(), instance, environment)
@@ -85,7 +84,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 		return nil
 	}
 
-	host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+	// Use the configured website base URL
+	host := r.ServiceUrls.WebsiteBaseURL
 
 	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err = ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
@@ -99,7 +99,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
 
-		if template.Spec.Scope == clv1alpha2.ScopeStandard {
+		// Add authentication annotations only if enabled.
+		if r.EnableAuthentication {
 			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
 		}
 
@@ -133,7 +134,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	instance.Status.Environments[envIndex].IP = ""
 
 	// Enforce service absence
-	service := v1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+	service := corev1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &service, "service"); err != nil {
 		return err
 	}

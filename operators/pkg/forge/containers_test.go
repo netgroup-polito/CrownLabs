@@ -16,8 +16,6 @@
 package forge_test
 
 import (
-	"fmt"
-
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -103,7 +101,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
-				Scope:           clv1alpha2.ScopeStandard,
 			},
 		}
 
@@ -113,8 +110,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		}
 		opts = forge.ContainerEnvOpts{
 			ImagesTag:       "tag",
-			XVncImg:         "x-vnc-img",
-			WebsockifyImg:   "wsfy-img",
 			ContentToolsImg: "cont-tools",
 		}
 		container = corev1.Container{}
@@ -242,7 +237,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		var spec corev1.PodSpec
 
 		type PodSpecContainersCase struct {
-			Scope           clv1alpha2.EnvironmentScope
 			EnvironmentType clv1alpha2.EnvironmentType
 			ExpectedOutput  func(*clv1alpha2.Instance, *clv1alpha2.Environment) []corev1.Container
 		}
@@ -250,7 +244,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		ContainersWhenBody := func(psc PodSpecContainersCase) func() {
 			return func() {
 				BeforeEach(func() {
-					template.Spec.Scope = psc.Scope
 					environment.EnvironmentType = psc.EnvironmentType
 				})
 				It("Should set the correct containers", func() {
@@ -275,17 +268,12 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(spec.EnableServiceLinks).To(PointTo(BeFalse()))
 		})
 
-		It("Should set the container hostname accordingly", func() {
-			Expect(spec.Hostname).To(Equal(forge.InstanceHostname(&template)))
-		})
-
 		It("Should set the node selector labels accordingly", func() {
 			Expect(spec.NodeSelector).To(Equal(forge.NodeSelectorLabels(&instance, &template)))
 		})
 
 		When("the environment type is Standalone", func() {
 			When("the environment mode is Standard", ContainersWhenBody(PodSpecContainersCase{
-				Scope:           clv1alpha2.ScopeStandard,
 				EnvironmentType: clv1alpha2.ClassStandalone,
 				ExpectedOutput: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []corev1.Container {
 					return []corev1.Container{
@@ -340,7 +328,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			It("ReadinessProbe URL is "+forge.IngressGUIPath(&instance, &environment), func() {
 				Expect(actual.ReadinessProbe).To(Equal(probe))
 			})
-
 		})
 
 		It("Should set the env variables", func() {
@@ -350,123 +337,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_REQUESTS", expected.Name, corev1.ResourceRequestsCPU, forge.DefaultDivisor)
 			forge.AddEnvVariableFromResourcesToContainer(&expected, "CROWNLABS_CPU_LIMITS", expected.Name, corev1.ResourceLimitsCPU, forge.DefaultDivisor)
 			Expect(actual.Env).To(ConsistOf(expected.Env))
-		})
-	})
-
-	Describe("The forge.WebsockifyContainer function forges a websockify sidecar container", func() {
-		var actual, expected corev1.Container
-		JustBeforeEach(func() {
-			expected = corev1.Container{}
-			actual = forge.WebsockifyContainer(&opts, &environment, &instance)
-		})
-
-		It("Should set the correct container name and image", func() {
-			// PodSecurityContext setting is checked by GenericContainer specific tests
-			Expect(actual.Name).To(Equal("websockify"))
-			Expect(actual.Image).To(Equal(opts.WebsockifyImg + ":" + opts.ImagesTag))
-		})
-		It("Should set the correct resources", func() {
-			forge.SetContainerResources(&expected, 0.01, 0.1, 30, 100)
-			Expect(actual.Resources).To(Equal(expected.Resources))
-		})
-		It("Should set the tcp port exposition", func() {
-			forge.AddTCPPortToContainer(&expected, "gui", 6080)
-			forge.AddTCPPortToContainer(&expected, "metrics", 9090)
-			Expect(actual.Ports).To(Equal(expected.Ports))
-		})
-		It("Should set the readiness probe", func() {
-			forge.SetContainerReadinessHTTPProbe(&expected, "gui", forge.HealthzEndpoint)
-			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
-		})
-		It("Should set the env varibles", func() {
-			expected.Name = forge.WebsockifyName
-			forge.AddEnvVariableFromFieldToContainer(&expected, forge.PodNameEnvName, "metadata.name")
-			forge.AddEnvVariableFromResourcesToContainer(&expected, forge.AppCPULimitsEnvName, environment.Name, corev1.ResourceLimitsCPU, forge.MilliDivisor)
-			forge.AddEnvVariableFromResourcesToContainer(&expected, forge.AppMEMLimitsEnvName, environment.Name, corev1.ResourceLimitsMemory, forge.DefaultDivisor)
-			Expect(actual.Env).To(ConsistOf(expected.Env))
-		})
-
-		disableCtrlsWhenBody := func(disableCtrls bool) func() {
-			return func() {
-				BeforeEach(func() {
-					environment.DisableControls = disableCtrls
-				})
-
-				It("Should set the related argument accordingly", func() {
-					Expect(actual.Args).To(ContainElement(
-						fmt.Sprintf("--show-controls=%v", !disableCtrls),
-					))
-					Expect(actual.Args).NotTo(ContainElement(
-						fmt.Sprintf("--show-controls=%v", disableCtrls),
-					))
-				})
-			}
-		}
-		When("disableControls is true", disableCtrlsWhenBody(true))
-		When("disableControls is false", disableCtrlsWhenBody(false))
-
-		When("the environment mode is Standard", func() {
-			BeforeEach(func() {
-				instance.UID = instanceName
-				template.Spec.Scope = clv1alpha2.ScopeStandard
-			})
-			It("Should set the correct arguments", func() {
-				Expect(actual.Args).To(ConsistOf([]string{
-					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
-					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance, &environment)),
-					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
-					fmt.Sprintf("--show-controls=%v", !environment.DisableControls),
-					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),
-					fmt.Sprintf("--pod-name=$(%s)", forge.PodNameEnvName),
-					fmt.Sprintf("--cpu-limit=$(%s)", forge.AppCPULimitsEnvName),
-					fmt.Sprintf("--memory-limit=$(%s)", forge.AppMEMLimitsEnvName),
-				}))
-			})
-		})
-
-		When("the environment mode is non Standard", func() {
-			BeforeEach(func() {
-				instance.UID = instanceName
-				template.Spec.Scope = clv1alpha2.ScopeExercise
-			})
-			It("Should set the correct arguments", func() {
-				Expect(actual.Args).To(ConsistOf([]string{
-					fmt.Sprintf("--http-addr=:%d", forge.GUIPortNumber),
-					fmt.Sprintf("--base-path=%s", forge.IngressGUICleanPath(&instance, &environment)),
-					fmt.Sprintf("--metrics-addr=:%d", forge.MetricsPortNumber),
-					fmt.Sprintf("--show-controls=%v", !environment.DisableControls),
-					fmt.Sprintf("--instmetrics-server-endpoint=%s", opts.InstMetricsEndpoint),
-					fmt.Sprintf("--pod-name=$(%s)", forge.PodNameEnvName),
-					fmt.Sprintf("--cpu-limit=$(%s)", forge.AppCPULimitsEnvName),
-					fmt.Sprintf("--memory-limit=$(%s)", forge.AppMEMLimitsEnvName),
-				}))
-			})
-		})
-	})
-
-	Describe("The forge.XVncContainer function forges a x-vnc sidecar container", func() {
-		var actual, expected corev1.Container
-		xvncName := "xvnc"
-		JustBeforeEach(func() {
-			actual = forge.XVncContainer(&opts)
-		})
-
-		It("Should set the correct container name and image", func() {
-			// PodSecurityContext setting is checked by GenericContainer specific tests
-			Expect(actual.Name).To(Equal(xvncName))
-			Expect(actual.Image).To(Equal(opts.XVncImg + ":" + opts.ImagesTag))
-		})
-		It("Should set the correct resources", func() {
-			forge.SetContainerResources(&expected, 0.05, 0.25, 200, 600)
-			Expect(actual.Resources).To(Equal(expected.Resources))
-		})
-		It("Should set the tcp port exposition", func() {
-			forge.AddTCPPortToContainer(&expected, xvncName, 5900)
-			Expect(actual.Ports).To(Equal(expected.Ports))
-		})
-		It("Should set the readiness probe", func() {
-			forge.SetContainerReadinessTCPProbe(&expected, xvncName)
-			Expect(actual.ReadinessProbe).To(Equal(expected.ReadinessProbe))
 		})
 	})
 
@@ -989,7 +859,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Persistent          bool
 			MountPersonalVolume bool
 			MountInfos          []corev1.VolumeMount
-			Scope               clv1alpha2.EnvironmentScope
 			StartupOpts         *clv1alpha2.ContainerStartupOpts
 			ExpectedOutputVSs   func(*clv1alpha2.Environment) []corev1.Volume
 		}
@@ -999,7 +868,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 				BeforeEach(func() {
 					environment.Persistent = c.Persistent
 					environment.ContainerStartupOptions = c.StartupOpts
-					template.Spec.Scope = c.Scope
 					environment.MountMyDriveVolume = c.MountPersonalVolume
 				})
 
@@ -1015,7 +883,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is standard", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
@@ -1023,7 +890,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is exam", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
@@ -1031,7 +897,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is not persistent and mode is exercise", WhenBody(ContainerVolumesCase{
 			Persistent: false,
-			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
@@ -1039,7 +904,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is standard", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			Scope:      clv1alpha2.ScopeStandard,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
@@ -1047,7 +911,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is exam", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			Scope:      clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
@@ -1055,7 +918,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 
 		When("the environment is persistent and mode is exercise", WhenBody(ContainerVolumesCase{
 			Persistent: true,
-			Scope:      clv1alpha2.ScopeExercise,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
@@ -1064,7 +926,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("the environment has the source archive url option", WhenBody(ContainerVolumesCase{
 			StartupOpts: &clv1alpha2.ContainerStartupOpts{SourceArchiveURL: httpPath},
 			Persistent:  false,
-			Scope:       clv1alpha2.ScopeExam,
 			ExpectedOutputVSs: func(e *clv1alpha2.Environment) []corev1.Volume {
 				return []corev1.Volume{forge.ContainerVolume(forge.PersistentVolumeName, instanceName+"-"+envName, e)}
 			},
@@ -1292,46 +1153,6 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		When("content path is specified", WhenBody(MyDriveMountPathCase{
 			StartupOpts:    &clv1alpha2.ContainerStartupOpts{ContentPath: volumePath},
 			ExpectedOutput: volumePath,
-		}))
-	})
-
-	Describe("The forge.InstanceHostname function", func() {
-		var actual string
-
-		JustBeforeEach(func() {
-			actual = forge.InstanceHostname(&template)
-		})
-
-		type EnvModeCase struct {
-			EnvScope       clv1alpha2.EnvironmentScope
-			ExpectedOutput string
-		}
-
-		WhenBody := func(c EnvModeCase) func() {
-			return func() {
-				BeforeEach(func() {
-					template.Spec.Scope = c.EnvScope
-				})
-
-				It("Should return the correct hostname", func() {
-					Expect(actual).To(Equal(c.ExpectedOutput))
-				})
-			}
-		}
-
-		When("the environment mode is Exercise", WhenBody(EnvModeCase{
-			EnvScope:       clv1alpha2.ScopeExercise,
-			ExpectedOutput: "exercise",
-		}))
-
-		When("the environment mode is Exam", WhenBody(EnvModeCase{
-			EnvScope:       clv1alpha2.ScopeExam,
-			ExpectedOutput: "exam",
-		}))
-
-		When("the environment mode is Standard", WhenBody(EnvModeCase{
-			EnvScope:       clv1alpha2.ScopeStandard,
-			ExpectedOutput: "",
 		}))
 	})
 

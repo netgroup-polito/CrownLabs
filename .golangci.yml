@@ -66,6 +66,75 @@ linters:
         WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
         See the License for the specific language governing permissions and
         limitations under the License.
+    importas:
+      no-unaliased: true
+      no-extra-aliases: false
+      alias:
+      # CrownLabs Internal APIs
+      - pkg: github.com/netgroup-polito/CrownLabs/operators/api/common
+        alias: apicommon
+      - pkg: github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1
+        alias: clv1alpha1
+      - pkg: github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2
+        alias: clv1alpha2
+      - pkg: github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext
+        alias: clctx
+      - pkg: github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common
+        alias: ctrlcommon
+      
+      # Kubernetes APIs (Standard Naming Convention)
+      - pkg: k8s.io/api/apps/v1
+        alias: appsv1
+      - pkg: k8s.io/api/batch/v1
+        alias: batchv1
+      - pkg: k8s.io/api/core/v1
+        alias: corev1
+      - pkg: k8s.io/api/networking/v1
+        alias: netv1
+      - pkg: k8s.io/api/rbac/v1
+        alias: rbacv1
+      - pkg: k8s.io/apimachinery/pkg/apis/meta/v1
+        alias: metav1
+      - pkg: k8s.io/apimachinery/pkg/api/errors
+        alias: kerrors
+      - pkg: k8s.io/apimachinery/pkg/runtime
+        alias: ""
+        
+      # Controller Runtime
+      - pkg: sigs.k8s.io/controller-runtime
+        alias: ctrl
+      - pkg: sigs.k8s.io/controller-runtime/pkg/client
+        alias: ""
+      - pkg: sigs.k8s.io/controller-runtime/pkg/controller/controllerutil
+        alias: ctrlutil
+      
+      # Kubernetes Client
+      - pkg: k8s.io/client-go/kubernetes/scheme
+        alias: ""
+      
+      # KubeVirt
+      - pkg: kubevirt.io/api/core/v1
+        alias: virtv1
+      
+      # Mocking
+      - pkg: github.com/golang/mock/gomock
+        alias: ""
+
+      # Keycloak
+      - pkg: github.com/Nerzal/gocloak/v7
+        alias: gocloak7
+      - pkg: github.com/Nerzal/gocloak/v13
+        alias: gocloak13
+      
+      # Standard Library (no aliases)
+      - pkg: context
+        alias: ""
+      - pkg: time
+        alias: ""
+      - pkg: io
+        alias: ""
+      - pkg: reflect
+        alias: ""
     misspell:
       locale: US
     nolintlint:

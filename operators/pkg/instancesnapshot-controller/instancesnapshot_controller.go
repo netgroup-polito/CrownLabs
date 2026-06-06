@@ -19,11 +19,10 @@ import (
 	"context"
 	"fmt"
 
-	batch "k8s.io/api/batch/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	batchv1 "k8s.io/api/batch/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -31,7 +30,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -63,7 +63,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		defer r.ReconcileDeferHook()
 	}
 
-	isnap := &crownlabsv1alpha2.InstanceSnapshot{}
+	isnap := &clv1alpha2.InstanceSnapshot{}
 
 	if err := r.Get(ctx, req.NamespacedName, isnap); client.IgnoreNotFound(err) != nil {
 		klog.Errorf("Error when getting InstanceSnapshot %s before starting reconcile -> %s", isnap.Name, err)
@@ -87,15 +87,12 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Check the current status of the InstanceSnapshot by checking
 	// the state of its assigned job.
-	jobName := types.NamespacedName{
-		Namespace: isnap.Namespace,
-		Name:      isnap.Name,
-	}
-	found := &batch.Job{}
+	jobName := forge.NamespacedNameFromObject(isnap)
+	found := &batchv1.Job{}
 	err := r.Get(ctx, jobName, found)
 
 	switch {
-	case err != nil && errors.IsNotFound(err):
+	case err != nil && kerrors.IsNotFound(err):
 		if retry, err1 := r.CreateSnapshottingJob(ctx, isnap); err1 != nil {
 			klog.Error(err1)
 			// Check if we need to try again with the creation of the job
@@ -120,7 +117,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 			klog.Error(err1)
 			return ctrl.Result{}, err1
-		case jstatus == batch.JobComplete:
+		case jstatus == batchv1.JobComplete:
 
 			successMessage := fmt.Sprintf("Image %s created and uploaded", isnap.Spec.ImageName)
 			// If we are able to retrieve the execution time, report it
@@ -130,7 +127,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			}
 			klog.Info(successMessage)
 			r.EventsRecorder.Event(isnap, "Normal", "Created", successMessage)
-		case jstatus == batch.JobFailed:
+		case jstatus == batchv1.JobFailed:
 
 			klog.Infof("Image %s could not be created", isnap.Spec.ImageName)
 			r.EventsRecorder.Event(isnap, "Warning", "CreationFailed", "The creation job failed")
@@ -144,8 +141,8 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 func (r *InstanceSnapshotReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		// The generation changed predicate allow to avoid updates on the status changes of the InstanceSnapshot
-		For(&crownlabsv1alpha2.InstanceSnapshot{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
-		Owns(&batch.Job{}).
+		For(&clv1alpha2.InstanceSnapshot{}, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Owns(&batchv1.Job{}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceSnapshot")).
 		Complete(r)
 }

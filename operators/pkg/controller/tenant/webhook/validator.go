@@ -22,15 +22,15 @@ import (
 	"time"
 
 	admissionv1 "k8s.io/api/admission/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -45,7 +45,7 @@ type TenantValidator struct {
 
 // ValidatePreflightResult is a struct that holds the result of the preflight validation.
 type ValidatePreflightResult struct {
-	newTenant, oldTenant *v1alpha2.Tenant
+	newTenant, oldTenant *clv1alpha2.Tenant
 	warnings             admission.Warnings
 	req                  admission.Request
 	newCtx               context.Context
@@ -60,8 +60,8 @@ func (tv *TenantValidator) ValidatePreflight(
 	op admissionv1.Operation,
 ) ValidatePreflightResult {
 	var ok bool
-	var oldTenant *v1alpha2.Tenant
-	newTenant, ok := newObj.(*v1alpha2.Tenant)
+	var oldTenant *clv1alpha2.Tenant
+	newTenant, ok := newObj.(*clv1alpha2.Tenant)
 	warnings := admission.Warnings{}
 
 	log := ctrl.LoggerFrom(ctx).WithValues("tenant", newTenant.Name, "operation", op)
@@ -81,9 +81,9 @@ func (tv *TenantValidator) ValidatePreflight(
 	}
 
 	if op != admissionv1.Update {
-		oldTenant = &v1alpha2.Tenant{}
+		oldTenant = &clv1alpha2.Tenant{}
 	} else {
-		oldTenant, ok = oldObj.(*v1alpha2.Tenant)
+		oldTenant, ok = oldObj.(*clv1alpha2.Tenant)
 		if !ok && op != admissionv1.Create {
 			return ValidatePreflightResult{
 				newTenant: nil,
@@ -215,7 +215,7 @@ func (tv *TenantValidator) ValidateDelete(
 	ctx context.Context,
 	obj runtime.Object,
 ) (admission.Warnings, error) {
-	tenant, ok := obj.(*v1alpha2.Tenant)
+	tenant, ok := obj.(*clv1alpha2.Tenant)
 	if !ok {
 		return nil, fmt.Errorf("expected a Tenant object, got %T", obj)
 	}
@@ -230,7 +230,7 @@ func (tv *TenantValidator) ValidateDelete(
 // - Other fields must be unchanged.
 func (tv *TenantValidator) HandleSelfEdit(
 	ctx context.Context,
-	newTenant, oldTenant *v1alpha2.Tenant,
+	newTenant, oldTenant *clv1alpha2.Tenant,
 ) (admission.Warnings, error) {
 	log := ctrl.LoggerFrom(ctx)
 	newTenant.Spec.PublicKeys = nil
@@ -240,7 +240,7 @@ func (tv *TenantValidator) HandleSelfEdit(
 	if newTenant.Spec.LastLogin != nil {
 		lastLoginDelta := time.Until(newTenant.Spec.LastLogin.Time).Abs()
 		if lastLoginDelta > LastLoginToleration {
-			return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change the LastLogin field in the owned tenant, or the change is not valid: %s", lastLoginDelta))
+			return nil, kerrors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change the LastLogin field in the owned tenant, or the change is not valid: %s", lastLoginDelta))
 		}
 	}
 
@@ -255,7 +255,7 @@ func (tv *TenantValidator) HandleSelfEdit(
 
 	if !reflect.DeepEqual(newTenant.Spec, oldTenant.Spec) {
 		log.Info("denied: unexpected tenant spec change")
-		return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("unexpected tenant spec change, only lastLogintime and self-enrolling workspaces are allowed to change"))
+		return nil, kerrors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("unexpected tenant spec change, only lastLogintime and self-enrolling workspaces are allowed to change"))
 	}
 
 	newTenant.Spec.Workspaces = newWorkspaces
@@ -264,11 +264,11 @@ func (tv *TenantValidator) HandleSelfEdit(
 	res, err := tv.checkValidWorkspaces(ctx, newTenant, oldTenant)
 	if err != nil {
 		log.Error(err, "failed to check workspace changes")
-		return nil, errors.NewInternalError(fmt.Errorf("failed to check workspace changes: %w", err))
+		return nil, kerrors.NewInternalError(fmt.Errorf("failed to check workspace changes: %w", err))
 	}
 	if !res {
 		log.Info("denied: workspaces validation failed")
-		return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change your own workspaces"))
+		return nil, kerrors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not allowed to change your own workspaces"))
 	}
 
 	log.Info("allowed")
@@ -278,7 +278,7 @@ func (tv *TenantValidator) HandleSelfEdit(
 // checkValidWorkspaces checks that the user is not changing workspaces they are not allowed to change.
 func (tv *TenantValidator) checkValidWorkspaces(
 	ctx context.Context,
-	newTenant, oldTenant *v1alpha2.Tenant,
+	newTenant, oldTenant *clv1alpha2.Tenant,
 ) (bool, error) {
 	workspaceDiff := CalculateWorkspacesDiff(newTenant, oldTenant)
 	newWorkspacesMap := mapFromWorkspacesList(newTenant)
@@ -288,7 +288,7 @@ func (tv *TenantValidator) checkValidWorkspaces(
 			// it's always ok to keep the same role
 			continue
 		}
-		wsObj := v1alpha1.Workspace{}
+		wsObj := clv1alpha1.Workspace{}
 		err := tv.Client.Get(ctx, client.ObjectKey{Name: ws}, &wsObj)
 		if err != nil {
 			return false, fmt.Errorf("failed to fetch workspace %s: %w", ws, err)
@@ -301,11 +301,11 @@ func (tv *TenantValidator) checkValidWorkspaces(
 			// it's always possible to remove a Workspace from the Tenant if the target Workspace has autoenroll enabled
 			continue
 		}
-		if wsObj.Spec.AutoEnroll == v1alpha1.AutoenrollImmediate && newWorkspacesMap[ws] != v1alpha2.User {
+		if wsObj.Spec.AutoEnroll == clv1alpha1.AutoenrollImmediate && newWorkspacesMap[ws] != clv1alpha2.User {
 			// if AutoEnroll is Immediate, then the user has to enroll with User role
 			return false, nil
 		}
-		if wsObj.Spec.AutoEnroll == v1alpha1.AutoenrollWithApproval && newWorkspacesMap[ws] != v1alpha2.Candidate {
+		if wsObj.Spec.AutoEnroll == clv1alpha1.AutoenrollWithApproval && newWorkspacesMap[ws] != clv1alpha2.Candidate {
 			// if AutoEnroll is WithApproval, then the user has to enroll with Candidate role (to be approved by a Manager)
 			return false, nil
 		}
@@ -318,7 +318,7 @@ func (tv *TenantValidator) checkValidWorkspaces(
 func (tv *TenantValidator) HandleWorkspaceEdit(
 	ctx context.Context,
 	newTenant, oldTenant,
-	manager *v1alpha2.Tenant,
+	manager *clv1alpha2.Tenant,
 	operation admissionv1.Operation,
 ) (admission.Warnings, error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -327,9 +327,9 @@ func (tv *TenantValidator) HandleWorkspaceEdit(
 	managerWorkspaces := mapFromWorkspacesList(manager)
 
 	for ws, changed := range workspacesDiff {
-		if changed && managerWorkspaces[ws] != v1alpha2.Manager {
+		if changed && managerWorkspaces[ws] != clv1alpha2.Manager {
 			log.Info("denied: unexpected tenant spec change", "not-a-manager-for", ws)
-			return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not a manager for workspace %s, so you cannot change it in the tenant", ws))
+			return nil, kerrors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not a manager for workspace %s, so you cannot change it in the tenant", ws))
 		}
 	}
 
@@ -337,14 +337,14 @@ func (tv *TenantValidator) HandleWorkspaceEdit(
 	oldTenant.Spec.Workspaces = nil
 	if operation != admissionv1.Create && !reflect.DeepEqual(newTenant.Spec, oldTenant.Spec) {
 		log.Info("denied: unexpected tenant spec change")
-		return nil, errors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("only changes to workspaces are allowed in the tenant"))
+		return nil, kerrors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("only changes to workspaces are allowed in the tenant"))
 	}
 
 	log.Info("allowed")
 	return nil, nil
 }
 
-func calculateWorkspacesOneWayDiff(a, b *v1alpha2.Tenant, changes map[string]bool) map[string]bool {
+func calculateWorkspacesOneWayDiff(a, b *clv1alpha2.Tenant, changes map[string]bool) map[string]bool {
 	aAsMap := mapFromWorkspacesList(a)
 	for _, v := range b.Spec.Workspaces {
 		if aAsMap[v.Name] != v.Role {
@@ -355,14 +355,14 @@ func calculateWorkspacesOneWayDiff(a, b *v1alpha2.Tenant, changes map[string]boo
 }
 
 // CalculateWorkspacesDiff returns the list of workspaces that are different between two tenants.
-func CalculateWorkspacesDiff(a, b *v1alpha2.Tenant) map[string]bool {
+func CalculateWorkspacesDiff(a, b *clv1alpha2.Tenant) map[string]bool {
 	changes := calculateWorkspacesOneWayDiff(a, b, map[string]bool{})
 
 	return calculateWorkspacesOneWayDiff(b, a, changes)
 }
 
-func mapFromWorkspacesList(tenant *v1alpha2.Tenant) map[string]v1alpha2.WorkspaceUserRole {
-	wss := make(map[string]v1alpha2.WorkspaceUserRole, len(tenant.Spec.Workspaces))
+func mapFromWorkspacesList(tenant *clv1alpha2.Tenant) map[string]clv1alpha2.WorkspaceUserRole {
+	wss := make(map[string]clv1alpha2.WorkspaceUserRole, len(tenant.Spec.Workspaces))
 
 	for _, v := range tenant.Spec.Workspaces {
 		wss[v.Name] = v.Role
@@ -372,7 +372,7 @@ func mapFromWorkspacesList(tenant *v1alpha2.Tenant) map[string]v1alpha2.Workspac
 }
 
 // HandlePersonalWorkspaceModification checks if the personal workspace is being disabled while it has templates with active instances.
-func (tv *TenantValidator) HandlePersonalWorkspaceModification(ctx context.Context, newTenant, oldTenant *v1alpha2.Tenant) (admission.Warnings, error) {
+func (tv *TenantValidator) HandlePersonalWorkspaceModification(ctx context.Context, newTenant, oldTenant *clv1alpha2.Tenant) (admission.Warnings, error) {
 	log := ctrl.LoggerFrom(ctx)
 	// if the personal workspace was disabled before then there is nothing to check
 	if oldTenant.Spec.PersonalWorkspace == nil {
@@ -380,15 +380,15 @@ func (tv *TenantValidator) HandlePersonalWorkspaceModification(ctx context.Conte
 	}
 	// personal workspace was enabled, and is being disabled
 	if newTenant.Spec.PersonalWorkspace == nil {
-		instances := &v1alpha2.InstanceList{}
+		instances := &clv1alpha2.InstanceList{}
 		if err := tv.Client.List(ctx, instances, client.InNamespace(oldTenant.Status.PersonalNamespace.Name)); err != nil {
 			log.Error(err, "failed to list instances in personal namespace")
-			return nil, errors.NewInternalError(err)
+			return nil, kerrors.NewInternalError(err)
 		}
 		for i := 0; i < len(instances.Items); i++ {
 			if instances.Items[i].Spec.Template.Namespace == oldTenant.Status.PersonalNamespace.Name {
 				log.Info("denied: cannot disable personal workspace, there are instances of personal workspace templates in the namespace")
-				return nil, errors.NewConflict(schema.GroupResource{}, oldTenant.Name, fmt.Errorf("cannot disable personal workspace, there are instances of personal workspace templates in the namespace"))
+				return nil, kerrors.NewConflict(schema.GroupResource{}, oldTenant.Name, fmt.Errorf("cannot disable personal workspace, there are instances of personal workspace templates in the namespace"))
 			}
 		}
 	}

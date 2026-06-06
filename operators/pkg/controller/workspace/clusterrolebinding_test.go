@@ -26,7 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
 var crbInstances = &rbacv1.ClusterRoleBinding{
@@ -118,7 +118,7 @@ var _ = Describe("ClusterRoleBinding", func() {
 			})
 
 			It("Should set the workspace status to not ready", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 				Expect(ws.Status.Ready).To(BeFalse())
 			})
@@ -168,7 +168,7 @@ var _ = Describe("ClusterRoleBinding", func() {
 				})
 
 				It("Should prevent the deletion of the workspace resource", func() {
-					ws := &v1alpha1.Workspace{}
+					ws := &clv1alpha1.Workspace{}
 					DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 					Expect(ws.DeletionTimestamp).To(Not(BeNil()))
 				})

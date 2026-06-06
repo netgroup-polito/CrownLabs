@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
@@ -44,17 +44,17 @@ import (
 )
 
 var (
-	scheme = runtime.NewScheme()
+	rscheme = runtime.NewScheme()
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(scheme.AddToScheme(rscheme))
 
-	utilruntime.Must(crownlabsv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(crownlabsv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 
-	utilruntime.Must(virtv1.AddToScheme(scheme))
-	utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
+	utilruntime.Must(virtv1.AddToScheme(rscheme))
+	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
 }
 
 func main() {
@@ -82,10 +82,7 @@ func main() {
 	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
-	flag.StringVar(&containerEnvOpts.XVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
-	flag.StringVar(&containerEnvOpts.WebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
-	flag.StringVar(&containerEnvOpts.InstMetricsEndpoint, "container-env-instmetrics-server-endpoint", "instmetrics:9090", "The endpoint of the InstMetrics gRPC server")
 
 	flag.StringVar(&instSnapOpts.VMRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
 	flag.StringVar(&instSnapOpts.RegistrySecretName, "vm-registry-secret", "", "The name of the secret for the VM registry")
@@ -100,6 +97,8 @@ func main() {
 
 	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
 
+	enableAuth := flag.Bool("enable-auth", true, "Enable adding authentication on the exposed resources")
+
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -113,7 +112,7 @@ func main() {
 
 	// Configure the manager
 	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 rscheme,
 		Metrics:                server.Options{BindAddress: *metricsAddr},
 		LeaderElection:         *enableLeaderElection,
 		HealthProbeBindAddress: ":8081",
@@ -180,6 +179,7 @@ func main() {
 		WebSSHMasterPublicKey:     pubKeyBytes,
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
+		EnableAuthentication:      *enableAuth,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

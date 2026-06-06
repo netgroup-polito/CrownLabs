@@ -32,7 +32,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -501,7 +501,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 	})
 
 	Describe("UpdateMyDriveMirrorPVCLabels", func() {
-		targetLabel := common.NewLabel(targetLabelKey, "test")
+		targetLabel := ctrlcommon.NewLabel(targetLabelKey, "test")
 
 		It("Should initialize labels if nil and set the right label", func() {
 			var labels map[string]string

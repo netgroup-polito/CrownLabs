@@ -18,17 +18,17 @@ import (
 	"context"
 	"fmt"
 
-	batch "k8s.io/api/batch/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // CreateSnapshottingJob creates the job in charge of creating the snapshot.
-func (r *InstanceSnapshotReconciler) CreateSnapshottingJob(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot) (bool, error) {
+func (r *InstanceSnapshotReconciler) CreateSnapshottingJob(ctx context.Context, isnap *clv1alpha2.InstanceSnapshot) (bool, error) {
 	r.EventsRecorder.Event(isnap, "Normal", "Validating", "Start validation of the request")
 
-	isnap.Status.Phase = crownlabsv1alpha2.Pending
+	isnap.Status.Phase = clv1alpha2.Pending
 	if err := r.Status().Update(ctx, isnap); err != nil {
 		return true, fmt.Errorf("error when updating status of InstanceSnapshot %s -> %w", isnap.Name, err)
 	}
@@ -41,7 +41,7 @@ func (r *InstanceSnapshotReconciler) CreateSnapshottingJob(ctx context.Context, 
 		}
 
 		// Set the status as failed
-		isnap.Status.Phase = crownlabsv1alpha2.Failed
+		isnap.Status.Phase = clv1alpha2.Failed
 		if uerr := r.Status().Update(ctx, isnap); uerr != nil {
 			return true, fmt.Errorf("error when updating status of InstanceSnapshot %s -> %w", isnap.Name, uerr)
 		}
@@ -65,7 +65,7 @@ func (r *InstanceSnapshotReconciler) CreateSnapshottingJob(ctx context.Context, 
 		return true, fmt.Errorf("error when creating the job for %s -> %w", isnap.Name, err)
 	}
 
-	isnap.Status.Phase = crownlabsv1alpha2.Processing
+	isnap.Status.Phase = clv1alpha2.Processing
 	if err := r.Status().Update(ctx, isnap); err != nil {
 		return true, fmt.Errorf("error when updating status of InstanceSnapshot %s -> %w", isnap.Name, err)
 	}
@@ -74,18 +74,18 @@ func (r *InstanceSnapshotReconciler) CreateSnapshottingJob(ctx context.Context, 
 }
 
 // HandleExistingJob checks the status of the existing job and updates the status of the InstanceSnapshot accordingly.
-func (r *InstanceSnapshotReconciler) HandleExistingJob(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot, snapjob *batch.Job) (batch.JobConditionType, error) {
+func (r *InstanceSnapshotReconciler) HandleExistingJob(ctx context.Context, isnap *clv1alpha2.InstanceSnapshot, snapjob *batchv1.Job) (batchv1.JobConditionType, error) {
 	completed, jstatus := r.GetJobStatus(snapjob)
 	if completed {
-		if jstatus == batch.JobComplete {
+		if jstatus == batchv1.JobComplete {
 			// The job is completed and the image has been uploaded to the registry
-			isnap.Status.Phase = crownlabsv1alpha2.Completed
+			isnap.Status.Phase = clv1alpha2.Completed
 			if err := r.Status().Update(ctx, isnap); err != nil {
 				return "", fmt.Errorf("error when updating status of InstanceSnapshot %s -> %w", isnap.Name, err)
 			}
 		} else {
 			// The creation of the snapshot failed since the job failed
-			isnap.Status.Phase = crownlabsv1alpha2.Failed
+			isnap.Status.Phase = clv1alpha2.Failed
 			if err := r.Status().Update(ctx, isnap); err != nil {
 				return "", fmt.Errorf("error when updating status of InstanceSnapshot %s -> %w", isnap.Name, err)
 			}

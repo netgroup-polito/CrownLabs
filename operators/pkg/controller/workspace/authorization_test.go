@@ -18,16 +18,16 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Nerzal/gocloak/v13"
+	gocloak13 "github.com/Nerzal/gocloak/v13"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 )
 
@@ -54,16 +54,16 @@ var _ = Describe("Authorization", func() {
 			})
 
 			It("Should set the Keycloak subscription to ok", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
-				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(v1alpha2.SubscrOk))
+				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(clv1alpha2.SubscrOk))
 			})
 		})
 
 		Context("When Keycloak roles are already present", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":manager")}, nil).Times(1)
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":user")}, nil).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(&gocloak13.Role{Name: gocloak13.StringP("workspace-" + wsName + ":manager")}, nil).Times(1)
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak13.Role{Name: gocloak13.StringP("workspace-" + wsName + ":user")}, nil).Times(1)
 				keycloakActor.EXPECT().CreateRole(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			})
 
@@ -72,17 +72,17 @@ var _ = Describe("Authorization", func() {
 			})
 
 			It("Should set the Keycloak subscription to ok", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
-				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(v1alpha2.SubscrOk))
+				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(clv1alpha2.SubscrOk))
 			})
 		})
 
 		Context("When the Workspace is being deleted", func() {
 			BeforeEach(func() {
 				workspaceBeingDeleted()
-				wsResource.Status.Subscriptions = map[string]v1alpha2.SubscriptionStatus{
-					"keycloak": v1alpha2.SubscrOk,
+				wsResource.Status.Subscriptions = map[string]clv1alpha2.SubscriptionStatus{
+					"keycloak": clv1alpha2.SubscrOk,
 				}
 				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":manager").Return(nil).Times(1)
 				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":user").Return(nil).Times(1)
@@ -96,40 +96,40 @@ var _ = Describe("Authorization", func() {
 		Context("When an error occurs in the getRole call", func() {
 			BeforeEach(func() {
 				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(nil, fmt.Errorf("error getting role")).Times(1)
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":user")}, nil).AnyTimes()
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak13.Role{Name: gocloak13.StringP("workspace-" + wsName + ":user")}, nil).AnyTimes()
 			})
 
 			It("Should set the Keycloak subscription as failed", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
-				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(v1alpha2.SubscrFailed))
+				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(clv1alpha2.SubscrFailed))
 			})
 		})
 
 		Context("When an error occurs in the createRole call", func() {
 			BeforeEach(func() {
 				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":manager").Return(nil, nil).AnyTimes()
-				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak.Role{Name: gocloak.StringP("workspace-" + wsName + ":user")}, nil).AnyTimes()
+				keycloakActor.EXPECT().GetRole(gomock.Any(), "workspace-"+wsName+":user").Return(&gocloak13.Role{Name: gocloak13.StringP("workspace-" + wsName + ":user")}, nil).AnyTimes()
 				keycloakActor.EXPECT().CreateRole(gomock.Any(), "workspace-"+wsName+":manager", wsPrettyName+" Manager Role").Return("", fmt.Errorf("error creating role")).Times(1)
 			})
 
 			It("Should set the Keycloak subscription as failed", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
-				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(v1alpha2.SubscrFailed))
+				Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(clv1alpha2.SubscrFailed))
 			})
 		})
 
 		Context("When an error occurs in the deleteRole call", func() {
 			BeforeEach(func() {
-				wsResource.Finalizers = append(wsResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
+				wsResource.Finalizers = append(wsResource.Finalizers, clv1alpha2.TnOperatorFinalizerName)
 				wsResource.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-				wsResource.Status.Namespace = v1alpha2.NameCreated{
+				wsResource.Status.Namespace = clv1alpha2.NameCreated{
 					Created: true,
 					Name:    "workspace-" + wsName,
 				}
-				wsResource.Status.Subscriptions = map[string]v1alpha2.SubscriptionStatus{
-					"keycloak": v1alpha2.SubscrOk,
+				wsResource.Status.Subscriptions = map[string]clv1alpha2.SubscriptionStatus{
+					"keycloak": clv1alpha2.SubscrOk,
 				}
 				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":user").Return(fmt.Errorf("error deleting role")).AnyTimes()
 				keycloakActor.EXPECT().DeleteRole(gomock.Any(), "workspace-"+wsName+":manager").Return(fmt.Errorf("error deleting role")).AnyTimes()
@@ -148,9 +148,9 @@ var _ = Describe("Authorization", func() {
 		})
 
 		It("Should set the Keycloak subscription to failed", func() {
-			ws := &v1alpha1.Workspace{}
+			ws := &clv1alpha1.Workspace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
-			Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(v1alpha2.SubscrFailed))
+			Expect(ws.Status.Subscriptions["keycloak"]).To(Equal(clv1alpha2.SubscrFailed))
 		})
 
 		It("Should not create Keycloak roles", func() {
@@ -167,9 +167,9 @@ var _ = Describe("Authorization", func() {
 
 		Context("When the Workspace is being deleted", func() {
 			BeforeEach(func() {
-				wsResource.Finalizers = append(wsResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
+				wsResource.Finalizers = append(wsResource.Finalizers, clv1alpha2.TnOperatorFinalizerName)
 				wsResource.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-				wsResource.Status.Namespace = v1alpha2.NameCreated{
+				wsResource.Status.Namespace = clv1alpha2.NameCreated{
 					Created: true,
 					Name:    "workspace-" + wsName,
 				}
