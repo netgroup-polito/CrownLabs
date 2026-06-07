@@ -47,35 +47,6 @@ var _ = Describe("Label", func() {
 		})
 	})
 
-	Describe("ParseLabelSelectorAsMap", func() {
-		It("should parse exact-match selectors into a map", func() {
-			labels, err := ParseLabelSelectorAsMap("k1=v1,k2==v2")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(labels).To(HaveKeyWithValue("k1", "v1"))
-			Expect(labels).To(HaveKeyWithValue("k2", "v2"))
-		})
-
-		It("should reject selectors with unsupported operators for map conversion", func() {
-			_, err := ParseLabelSelectorAsMap("k1 notin (v1)")
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("unsupported operator"))
-		})
-	})
-
-	Describe("ExtractLabelFromMap", func() {
-		It("should return the key/value pair as KVLabel", func() {
-			label, err := ExtractLabelFromMap(map[string]string{"k": "v"}, "k")
-			Expect(err).NotTo(HaveOccurred())
-			Expect(label.GetKey()).To(Equal("k"))
-			Expect(label.GetValue()).To(Equal("v"))
-		})
-
-		It("should return an error if the key is missing", func() {
-			_, err := ExtractLabelFromMap(map[string]string{"k": "v"}, "missing")
-			Expect(err).To(HaveOccurred())
-		})
-	})
-
 	Describe("GetKey", func() {
 		It("should return the label key", func() {
 			label := NewLabel("test-key", "test-value")

@@ -17,9 +17,12 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
@@ -120,15 +123,16 @@ func main() {
 		klog.Fatal("Missing required --tenant-selector-label-key")
 	}
 
-	tenantNamespaceLabels, err := ctrlcommon.ParseLabelSelectorAsMap(tenantNamespaceLabelsStr)
+	tenantNamespaceLabels, err := parseExactMatchLabels(tenantNamespaceLabelsStr)
 	if err != nil {
 		klog.Fatal(err, "Unable to parse tenant namespace labels")
 	}
 
-	targetLabel, err := ctrlcommon.ExtractLabelFromMap(tenantNamespaceLabels, tenantSelectorLabelKey)
-	if err != nil {
-		klog.Fatal(err, "Unable to extract tenant selector label")
+	targetLabelValue, ok := tenantNamespaceLabels[tenantSelectorLabelKey]
+	if !ok {
+		klog.Fatal("Unable to extract tenant selector label", "missingKey", tenantSelectorLabelKey)
 	}
+	targetLabel := ctrlcommon.NewLabel(tenantSelectorLabelKey, targetLabelValue)
 	log.Info("Selecting resources with label", "label", targetLabel.GetKey()+"="+targetLabel.GetValue())
 
 	// enabling Keycloak if modules that needs it are enabled
@@ -215,4 +219,34 @@ func addOperatorProbes(mgr manager.Manager) error {
 	}
 
 	return nil
+}
+
+func parseExactMatchLabels(selectorString string) (map[string]string, error) {
+	selector, err := labels.Parse(selectorString)
+	if err != nil {
+		return nil, err
+	}
+
+	requirements, selectable := selector.Requirements()
+	if !selectable {
+		return nil, fmt.Errorf("label selector %q is not selectable", selectorString)
+	}
+
+	out := make(map[string]string, len(requirements))
+	for i := range requirements {
+		req := requirements[i]
+		values := req.ValuesUnsorted()
+
+		switch req.Operator() {
+		case selection.Equals, selection.DoubleEquals, selection.In:
+			if len(values) != 1 {
+				return nil, fmt.Errorf("selector requirement %q must have exactly one value", req.String())
+			}
+			out[req.Key()] = values[0]
+		default:
+			return nil, fmt.Errorf("selector requirement %q uses unsupported operator %q for map conversion", req.String(), req.Operator())
+		}
+	}
+
+	return out, nil
 }

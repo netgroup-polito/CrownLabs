@@ -117,7 +117,7 @@ var _ = JustBeforeEach(func() {
 		Client:                      cl,
 		Scheme:                      scheme.Scheme,
 		KeycloakActor:               keycloakActor,
-		TenantNamespaceLabels:       map[string]string{"crownlabs.polito.it/operator-selector": "test"},
+		TenantNamespaceLabels:       map[string]string{"crownlabs.polito.it/operator-selector": "test", "crownlabs.polito.it/gw-access": "crownlabs-main-production"},
 		TenantSelectorLabelKey:      "crownlabs.polito.it/operator-selector",
 		TenantNSKeepAlive:           24 * time.Hour,
 		WaitUserVerification:        true,

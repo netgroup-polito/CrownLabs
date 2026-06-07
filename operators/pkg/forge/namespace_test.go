@@ -51,7 +51,7 @@ var _ = Describe("Namespace forging", func() {
 
 		targetLabel = ctrlcommon.NewLabel("test-key", "test-value")
 		tenantNamespaceLabels = map[string]string{
-			"allowed-routes-key": "allowed-routes-value",
+			"crownlabs.polito.it/gw-access": "crownlabs-main-production",
 		}
 	})
 
@@ -153,7 +153,7 @@ var _ = Describe("Namespace forging", func() {
 
 			Expect(namespace.Labels).ToNot(BeNil())
 			Expect(namespace.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
-			Expect(namespace.Labels).To(HaveKeyWithValue("allowed-routes-key", "allowed-routes-value"))
+			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/gw-access", "crownlabs-main-production"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/tenant", "student"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/name", "student"))
@@ -185,7 +185,7 @@ var _ = Describe("Namespace forging", func() {
 			Expect(namespace.Labels).ToNot(BeNil())
 			Expect(namespace.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
-			Expect(namespace.Labels).To(HaveKeyWithValue("allowed-routes-key", "allowed-routes-value"))
+			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/gw-access", "crownlabs-main-production"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/tenant", "student"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/name", "student"))

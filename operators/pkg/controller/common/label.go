@@ -20,8 +20,6 @@ import (
 	"strings"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	k8slabels "k8s.io/apimachinery/pkg/labels"
-	"k8s.io/apimachinery/pkg/selection"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 )
 
@@ -46,59 +44,6 @@ func ParseLabel(label string) (KVLabel, error) {
 		return KVLabel{}, fmt.Errorf("invalid label format: %s", label)
 	}
 	return NewLabel(parts[0], parts[1]), nil
-}
-
-// ParseLabelSelectorAsMap parses a Kubernetes label selector string and converts
-// it into an exact-match map representation.
-//
-// Only exact-match compatible operators are allowed:
-// - '=' and '=='
-// - 'in' with a single value.
-func ParseLabelSelectorAsMap(selector string) (map[string]string, error) {
-	parsed, err := k8slabels.Parse(selector)
-	if err != nil {
-		return nil, fmt.Errorf("invalid label selector %q: %w", selector, err)
-	}
-
-	requirements, selectable := parsed.Requirements()
-	if !selectable {
-		return nil, fmt.Errorf("label selector %q is not selectable", selector)
-	}
-
-	labels := make(map[string]string, len(requirements))
-	for i := range requirements {
-		req := requirements[i]
-		values := req.ValuesUnsorted()
-
-		switch req.Operator() {
-		case selection.Equals, selection.DoubleEquals:
-			if len(values) != 1 {
-				return nil, fmt.Errorf("selector requirement %q must have exactly one value", req.String())
-			}
-			labels[req.Key()] = values[0]
-		case selection.In:
-			if len(values) != 1 {
-				return nil, fmt.Errorf("selector requirement %q must have a single value to convert into map", req.String())
-			}
-			labels[req.Key()] = values[0]
-		default:
-			return nil, fmt.Errorf("selector requirement %q uses unsupported operator %q for map conversion", req.String(), req.Operator())
-		}
-	}
-
-	return labels, nil
-}
-
-// ExtractLabelFromMap extracts a key/value label from a map and returns it as KVLabel.
-func ExtractLabelFromMap(labels map[string]string, key string) (KVLabel, error) {
-	if key == "" {
-		return KVLabel{}, fmt.Errorf("label key cannot be empty")
-	}
-	value, ok := labels[key]
-	if !ok {
-		return KVLabel{}, fmt.Errorf("required label key %q not found", key)
-	}
-	return NewLabel(key, value), nil
 }
 
 // GetKey returns the key of the label.

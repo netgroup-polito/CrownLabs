@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -85,10 +86,11 @@ func setupTenant(
 	tenantNamespaceLabels map[string]string,
 	tenantSelectorLabelKey string,
 ) error {
-	targetLabel, err := ctrlcommon.ExtractLabelFromMap(tenantNamespaceLabels, tenantSelectorLabelKey)
-	if err != nil {
-		return err
+	targetLabelValue, ok := tenantNamespaceLabels[tenantSelectorLabelKey]
+	if !ok {
+		return fmt.Errorf("required label key %q not found", tenantSelectorLabelKey)
 	}
+	targetLabel := ctrlcommon.NewLabel(tenantSelectorLabelKey, targetLabelValue)
 
 	var baseWorkspacesList []string
 	if tenantBaseWorkspaces != "" {
