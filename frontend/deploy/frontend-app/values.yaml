@@ -14,7 +14,7 @@ configuration:
   mountPath: /usr/share/nginx/html
   fileName: config.js
   backend:
-    graphql: https://graphql.example.com
+    graphql: /graph
     grafana: https://grafana.example.com/d/example
     bastion: ssh.example.com
   oidc:
