@@ -71,24 +71,36 @@ spec:
                 description: Whether the Template has the authorization to be Public
                   Exposed or not, using a LoadBalancer service.
                 type: boolean
-              deleteAfter:
-                default: never
-                description: |-
-                  The maximum lifetime of an Instance referencing the current Template.
-                  Once this period is expired, the Instance may be automatically deleted
-                  or stopped to save resources. If set to "never", the instance will not be
-                  automatically terminated.
-                pattern: ^(never|[0-9]+[smhd])$
-                type: string
+              cleanup:
+                description: Cleanup settings for the Template.
+                properties:
+                  stopAfterInactivity:
+                    default: never
+                    description: |-
+                      The maximum period of inactivity after which an Instance referencing
+                      the current Template will be automatically stopped or deleted to
+                      save resources.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                  deleteAfterInactivity:
+                    default: never
+                    description: |-
+                      The maximum period of time a persistent instance can remain powered off
+                      after being stopped, before being completely deleted.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                  deleteAfterCreation:
+                    default: never
+                    description: |-
+                      The maximum lifetime of an Instance referencing the current Template.
+                      Once this period is expired, the Instance may be automatically deleted
+                      or stopped to save resources. If set to "never", the instance will not be
+                      automatically terminated.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                type: object
               description:
                 description: A textual description of the Template.
-                type: string
-              destroyAfterInactivity:
-                default: never
-                description: |-
-                  The maximum period of time a persistent instance can remain powered off
-                  after being stopped for inactivity, before being completely deleted.
-                pattern: ^(never|[0-9]+[smhd])$
                 type: string
               environmentList:
                 description: |-
@@ -269,14 +281,6 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
-              inactivityTimeout:
-                default: never
-                description: |-
-                  The maximum period of inactivity after which an Instance referencing
-                  the current Template will be automatically stopped or deleted to
-                  save resources.
-                pattern: ^(never|[0-9]+[smhd])$
-                type: string
               nodeSelector:
                 additionalProperties:
                   type: string
