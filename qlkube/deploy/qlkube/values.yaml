@@ -78,16 +78,22 @@ service:
   type: ClusterIP
   port: 8080
 
+global: {}
+
 ingress:
   annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-production
     nginx.ingress.kubernetes.io/custom-http-errors: "418"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 
-  hostname: qlkube.crownlabs.example.com
-  path: /
-  secret: qlkube-certificate
+  # Note: this hostname is not used in Gateway API mode
+  hostname: crownlabs.example.com
+  path: /graph
+  secret: frontend-app-certificate
+
+httproute:
+  gateway:
+    name: crownlabs-main
 
 resources:
   limits:

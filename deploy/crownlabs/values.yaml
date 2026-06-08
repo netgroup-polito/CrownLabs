@@ -17,7 +17,7 @@ frontend-app:
     path: /
   configuration:
     backend:
-      graphql: https://graphql.example.com
+      graphql: /graph
       grafana: https://grafana.example.com/d/example
       bastion: ssh.example.com
     oidc:
@@ -31,7 +31,7 @@ qlkube:
     repository: crownlabs/qlkube
   rbacResourcesName: crownlabs-qlkube
   ingress:
-    hostname: qlkube.crownlabs.example.com
+    hostname: crownlabs.example.com
   harborToken: {}
   configuration:
     exposedAPIs:
@@ -67,6 +67,15 @@ operator:
   rbacResourcesName: crownlabs-operator
   configurations:
     targetLabel: crownlabs.polito.it/operator-selector=production
+    features:
+      tenant: true
+      workspace: true
+      instance: true
+      sharedvolume: true
+      pmp: true
+      keycloak: true
+      webhooks: true
+      imageList: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -106,6 +115,7 @@ operator:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
       baseWorkspaces: utilities
     enableMutating: true
+    enableValidating: true
 
 crownmail:
   templates:

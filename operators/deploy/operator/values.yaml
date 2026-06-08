@@ -6,7 +6,13 @@ replicaCount: 1
 
 configurations:
   features:
+    tenant: true
+    workspace: true
+    instance: true
+    sharedvolume: true
     pmp: false
+    keycloak: true
+    webhooks: false
     imageList: true
 
   targetLabel: crownlabs.polito.it/operator-selector=production
@@ -108,6 +114,7 @@ webhook:
     webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
     baseWorkspaces: utilities
   enableMutating: false
+  enableValidating: false
   clusterIssuer: self-signed
 
 rbacResourcesName: crownlabs-operator
