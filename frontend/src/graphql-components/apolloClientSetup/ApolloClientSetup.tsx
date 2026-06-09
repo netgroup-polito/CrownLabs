@@ -32,7 +32,8 @@ if (import.meta.env.DEV) {
 }
 
 const httpUri = VITE_APP_CROWNLABS_GRAPHQL_URL;
-const wsUri = httpUri.replace(/^http?/, 'ws') + '/subscription';
+const wsUri = new URL(`${httpUri}/subscription`, window.location.href).href.replace(/^http/, 'ws');
+
 export interface Definition {
   kind: string;
   operation?: string;
