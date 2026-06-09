@@ -72,23 +72,9 @@ spec:
                   Exposed or not, using a LoadBalancer service.
                 type: boolean
               cleanup:
-                description: Cleanup settings for the Template.
+                default: {}
+                description: Automatic actions to enforce termination policies.
                 properties:
-                  stopAfterInactivity:
-                    default: never
-                    description: |-
-                      The maximum period of inactivity after which an Instance referencing
-                      the current Template will be automatically stopped or deleted to
-                      save resources.
-                    pattern: ^(never|[0-9]+[smhd])$
-                    type: string
-                  deleteAfterInactivity:
-                    default: never
-                    description: |-
-                      The maximum period of time a persistent instance can remain powered off
-                      after being stopped, before being completely deleted.
-                    pattern: ^(never|[0-9]+[smhd])$
-                    type: string
                   deleteAfterCreation:
                     default: never
                     description: |-
@@ -96,6 +82,21 @@ spec:
                       Once this period is expired, the Instance may be automatically deleted
                       or stopped to save resources. If set to "never", the instance will not be
                       automatically terminated.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                  deleteAfterInactivity:
+                    default: never
+                    description: |-
+                      The maximum period of time a persistent instance can remain powered off
+                      after being stopped for inactivity, before being completely deleted.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                  stopAfterInactivity:
+                    default: never
+                    description: |-
+                      The maximum period of inactivity after which an Instance referencing
+                      the current Template will be automatically stopped or deleted to
+                      save resources.
                     pattern: ^(never|[0-9]+[smhd])$
                     type: string
                 type: object

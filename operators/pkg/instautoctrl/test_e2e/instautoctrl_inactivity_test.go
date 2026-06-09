@@ -36,20 +36,20 @@ import (
 var _ = Describe("Instautoctrl-inactivity", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		PersistentInstanceName               = "test-inactivity-instance-persistent"
-		PersistentInstanceName2              = "test-inactivity-instance-persistent2"
-		NonPersistentInstanceName            = "test-inactivity-instance-non-persistent"
-		WorkingNamespace                     = "test-inactivity-working-namespace"
-		persistentTemplateName               = "test-inactivity-test-template-persistent"
-		persistentTemplateName2              = "test-inactivity-test-template-persistent-2"
-		nonPersistentTemplateName            = "test-inactivity-template-non-persistent"
-		TenantName                           = "test-inactivity-tenant"
-		CustomDeleteAfter                    = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeout              = instautoctrl.NeverTimeoutValue
-		CustomDeleteAfterNonPersistent       = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeoutNonPersistent = "0m"
-		CustomDeleteAfterPersistent2         = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeoutPersistent2   = "2m"
+		PersistentInstanceName                 = "test-inactivity-instance-persistent"
+		PersistentInstanceName2                = "test-inactivity-instance-persistent2"
+		NonPersistentInstanceName              = "test-inactivity-instance-non-persistent"
+		WorkingNamespace                       = "test-inactivity-working-namespace"
+		persistentTemplateName                 = "test-inactivity-test-template-persistent"
+		persistentTemplateName2                = "test-inactivity-test-template-persistent-2"
+		nonPersistentTemplateName              = "test-inactivity-template-non-persistent"
+		TenantName                             = "test-inactivity-tenant"
+		CustomDeleteAfter                      = instautoctrl.NeverTimeoutValue
+		CustomstopAfterInactivity              = instautoctrl.NeverTimeoutValue
+		CustomDeleteAfterNonPersistent         = instautoctrl.NeverTimeoutValue
+		CustomstopAfterInactivityNonPersistent = "0m"
+		CustomDeleteAfterPersistent2           = instautoctrl.NeverTimeoutValue
+		CustomstopAfterInactivityPersistent2   = "2m"
 
 		timeout  = time.Second * 60
 		interval = time.Millisecond * 500
@@ -116,10 +116,12 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfterNonPersistent,
-			InactivityTimeout: CustomInactivityTimeoutNonPersistent,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation: CustomDeleteAfterNonPersistent,
+				StopAfterInactivity: CustomstopAfterInactivityNonPersistent,
+			},
 		}
-		templatePersistentEnvironmentWithCustomInactivityTimeout = clv1alpha2.TemplateSpec{
+		templatePersistentEnvironmentWithCustomstopAfterInactivity = clv1alpha2.TemplateSpec{
 			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
@@ -137,8 +139,10 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfterPersistent2,
-			InactivityTimeout: CustomInactivityTimeoutPersistent2,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation: CustomDeleteAfterPersistent2,
+				StopAfterInactivity: CustomstopAfterInactivityPersistent2,
+			},
 		}
 		persistentTemplate2 = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
@@ -146,7 +150,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				Name:      persistentTemplateName2,
 				Namespace: WorkingNamespace,
 			},
-			Spec:   templatePersistentEnvironmentWithCustomInactivityTimeout,
+			Spec:   templatePersistentEnvironmentWithCustomstopAfterInactivity,
 			Status: clv1alpha2.TemplateStatus{},
 		}
 		persistentTemplate = clv1alpha2.Template{
@@ -349,7 +353,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 	Context("Testing default and custom inactivity value", func() {
 
-		It("Should succeed: the Persistent instance get the default InactivityTimeout value and it is not stopped", func() {
+		It("Should succeed: the Persistent instance get the default stopAfterInactivity value and it is not stopped", func() {
 			mockProm.EXPECT().
 				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
@@ -386,10 +390,10 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			templateLookupKey := types.NamespacedName{Name: currentInstance.Spec.Template.Name, Namespace: WorkingNamespace}
 			doesEventuallyExists(ctx, templateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
 
-			By("Checking the InactivityTimeout field is the default one")
-			currentInactivityTimeout := currentTemplate.Spec.InactivityTimeout
-			defaultInactivityTimeout := instautoctrl.NeverTimeoutValue
-			Expect(currentInactivityTimeout).To(Equal(defaultInactivityTimeout))
+			By("Checking the stopAfterInactivity field is the default one")
+			currentstopAfterInactivity := currentTemplate.Spec.Cleanup.StopAfterInactivity
+			defaultstopAfterInactivity := instautoctrl.NeverTimeoutValue
+			Expect(currentstopAfterInactivity).To(Equal(defaultstopAfterInactivity))
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
 				if err != nil {
@@ -525,14 +529,14 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				return k8sClient.Update(ctx, currentInstance)
 			}, timeout, interval).Should(Succeed())
 
-			By("Updating template with destroyAfterInactivity")
+			By("Updating template with deleteAfterInactivity")
 			currentTemplate := &clv1alpha2.Template{}
 			templateLookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
 			Eventually(func() error {
 				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
 					return err
 				}
-				currentTemplate.Spec.DestroyAfterInactivity = "100h"
+				currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "100h"
 				return k8sClient.Update(ctx, currentTemplate)
 			}, timeout, interval).Should(Succeed())
 
@@ -559,14 +563,14 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				return k8sClient.Update(ctx, currentInstance)
 			}, timeout, interval).Should(Succeed())
 
-			By("Updating template with destroyAfterInactivity")
+			By("Updating template with deleteAfterInactivity")
 			currentTemplate := &clv1alpha2.Template{}
 			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
 			Eventually(func() error {
 				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
 					return err
 				}
-				currentTemplate.Spec.DestroyAfterInactivity = "100h"
+				currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "100h"
 				return k8sClient.Update(ctx, currentTemplate)
 			}, timeout, interval).Should(Succeed())
 

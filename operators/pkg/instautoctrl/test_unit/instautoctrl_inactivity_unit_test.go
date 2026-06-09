@@ -38,20 +38,20 @@ import (
 var _ = Describe("Instautoctrl inactivity unit test", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		PersistentInstanceName               = "test-instance-persistent"
-		PersistentInstanceName2              = "test-instance-persistent2"
-		NonPersistentInstanceName            = "test-instance-non-persistent"
-		WorkingNamespace                     = "working-namespace"
-		persistentTemplateName               = "test-template-persistent"
-		persistentTemplateName2              = "test-template-persistent-2"
-		nonPersistentTemplateName            = "test-template-non-persistent"
-		TenantName                           = "test-tenant"
-		CustomDeleteAfter                    = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeout              = instautoctrl.NeverTimeoutValue
-		CustomDeleteAfterNonPersistent       = "1m"
-		CustomInactivityTimeoutNonPersistent = "1m"
-		CustomDeleteAfterPersistent2         = "0m"
-		CustomInactivityTimeoutPersistent2   = "0m"
+		PersistentInstanceName                 = "test-instance-persistent"
+		PersistentInstanceName2                = "test-instance-persistent2"
+		NonPersistentInstanceName              = "test-instance-non-persistent"
+		WorkingNamespace                       = "working-namespace"
+		persistentTemplateName                 = "test-template-persistent"
+		persistentTemplateName2                = "test-template-persistent-2"
+		nonPersistentTemplateName              = "test-template-non-persistent"
+		TenantName                             = "test-tenant"
+		CustomDeleteAfter                      = instautoctrl.NeverTimeoutValue
+		CustomStopAfterInactivity              = instautoctrl.NeverTimeoutValue
+		CustomDeleteAfterNonPersistent         = "1m"
+		CustomStopAfterInactivityNonPersistent = "1m"
+		CustomDeleteAfterPersistent2           = "0m"
+		CustomStopAfterInactivityPersistent2   = "0m"
 
 		timeout  = time.Second * 150
 		interval = time.Millisecond * 500
@@ -121,10 +121,12 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfterNonPersistent,
-			InactivityTimeout: CustomInactivityTimeoutNonPersistent,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation: CustomDeleteAfterNonPersistent,
+				StopAfterInactivity: CustomStopAfterInactivityNonPersistent,
+			},
 		}
-		templatePersistentEnvironmentWithCustomInactivityTimeout = clv1alpha2.TemplateSpec{
+		templatePersistentEnvironmentWithCustomStopAfterInactivity = clv1alpha2.TemplateSpec{
 			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
@@ -142,8 +144,10 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfterPersistent2,
-			InactivityTimeout: CustomInactivityTimeoutPersistent2,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation: CustomDeleteAfterPersistent2,
+				StopAfterInactivity: CustomStopAfterInactivityPersistent2,
+			},
 		}
 		persistentTemplate2 = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
@@ -151,7 +155,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 				Name:      persistentTemplateName2,
 				Namespace: WorkingNamespace,
 			},
-			Spec:   templatePersistentEnvironmentWithCustomInactivityTimeout,
+			Spec:   templatePersistentEnvironmentWithCustomStopAfterInactivity,
 			Status: clv1alpha2.TemplateStatus{},
 		}
 		persistentTemplate = clv1alpha2.Template{
@@ -448,8 +452,8 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
 			err := r.SetupInstanceAnnotations(ctx)
 			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
-			inactivityTimeoutDuration := time.Hour * 24 * 14
-			err = r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration)
+			stopAfterInactivityDuration := time.Hour * 24 * 14
+			err = r.UpdateInstanceLastLogin(ctx, stopAfterInactivityDuration)
 			Expect(err).ToNot(HaveOccurred(), "UpdateInstanceLastLogin should not return an error")
 
 			By("Checking that the instance has been updated")
@@ -471,12 +475,12 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 	Describe("Testing GetRemainingInactivityTime function", func() {
 		var (
-			r                         *instautoctrl.InstanceInactiveTerminationReconciler
-			ctx                       context.Context
-			currentInstance           *clv1alpha2.Instance
-			currentTemplate           *clv1alpha2.Template
-			currentTenant             *clv1alpha2.Tenant
-			inactivityTimeoutDuration time.Duration
+			r                           *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx                         context.Context
+			currentInstance             *clv1alpha2.Instance
+			currentTemplate             *clv1alpha2.Template
+			currentTenant               *clv1alpha2.Tenant
+			stopAfterInactivityDuration time.Duration
 		)
 
 		JustBeforeEach(func() {
@@ -505,7 +509,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
 			ctx, _ = clctx.TenantInto(ctx, currentTenant)
 
-			inactivityTimeoutDuration = time.Hour * 24 * 14
+			stopAfterInactivityDuration = time.Hour * 24 * 14
 			err := r.SetupInstanceAnnotations(ctx)
 			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
 		})
@@ -514,7 +518,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			lastLogin := time.Now().Add(-10 * time.Minute).Format(time.RFC3339)
 			currentInstance.Annotations[forge.LastActivityAnnotation] = lastLogin
 
-			remaining, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			remaining, err := r.GetRemainingInactivityTime(ctx, stopAfterInactivityDuration)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remaining.Seconds()).To(BeNumerically(">", 0))
 		})
@@ -523,7 +527,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			lastLogin := time.Now().Add(-1000 * time.Hour).Format(time.RFC3339)
 			currentInstance.Annotations[forge.LastActivityAnnotation] = lastLogin
 
-			remaining, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			remaining, err := r.GetRemainingInactivityTime(ctx, stopAfterInactivityDuration)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(remaining).To(BeNumerically("<=", 0))
 		})
@@ -531,14 +535,14 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		It("should return error if annotation is missing", func() {
 			delete(currentInstance.Annotations, forge.LastActivityAnnotation)
 
-			_, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			_, err := r.GetRemainingInactivityTime(ctx, stopAfterInactivityDuration)
 			Expect(err).To(HaveOccurred())
 		})
 
 		It("should return error if annotation is not parseable", func() {
 			currentInstance.Annotations[forge.LastActivityAnnotation] = "not-a-valid-time"
 
-			_, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+			_, err := r.GetRemainingInactivityTime(ctx, stopAfterInactivityDuration)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -582,8 +586,8 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
 		})
 
-		It("should return false if destroyAfterInactivity is NeverTimeoutValue", func() {
-			currentTemplate.Spec.DestroyAfterInactivity = instautoctrl.NeverTimeoutValue
+		It("should return false if deleteAfterInactivity is NeverTimeoutValue", func() {
+			currentTemplate.Spec.Cleanup.DeleteAfterInactivity = instautoctrl.NeverTimeoutValue
 
 			remaining, isActive, err := r.GetRemainingInactivityDestructionTime(ctx, currentInstance)
 			Expect(err).ToNot(HaveOccurred())
@@ -592,7 +596,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 
 		It("should return remaining time if destroy timer is set but not exceeded", func() {
-			currentTemplate.Spec.DestroyAfterInactivity = "10d"
+			currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "10d"
 			poweredOffTime := time.Now().Add(-5 * 24 * time.Hour).Format(time.RFC3339)
 			currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = poweredOffTime
 
@@ -603,7 +607,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 
 		It("should return <= 0 if destroy timer has been exceeded", func() {
-			currentTemplate.Spec.DestroyAfterInactivity = "10d"
+			currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "10d"
 			poweredOffTime := time.Now().Add(-15 * 24 * time.Hour).Format(time.RFC3339)
 			currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = poweredOffTime
 
@@ -614,7 +618,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 
 		It("should return false if LastPoweredOffTimestampAnnotation is empty", func() {
-			currentTemplate.Spec.DestroyAfterInactivity = "10d"
+			currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "10d"
 			currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
 
 			remaining, isActive, err := r.GetRemainingInactivityDestructionTime(ctx, currentInstance)

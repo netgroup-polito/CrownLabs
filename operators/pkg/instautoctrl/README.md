@@ -26,9 +26,8 @@ The package includes four different controllers:
 ## Instance Inactive Termination Controller
 This controller monitors instances and automates actions based on their inactivity status and lifespan.
 The controller understands if the Instance can be declared as Inactive and starts sending notifications to its tenant to inform them to access their Instance resources, otherwise they will be paused (if persistent) or deleted (if not persistent) after a specific period of time defined in the `Template` resource.
-The template introduces a new field called `InactivityTimeout`, which specifies the period of time during which the Tenant must not access the Instance for it to be considered inactive and eligible for deletion.
-This field is always available in the Template resource and, if omitted, it is set to `never` by default, meaning that Instances of that Template will be ignored by the controller.
-
+The template defines inactivity policy under the `cleanup` block. The `cleanup.stopAfterInactivity` field specifies the period of time during which the Tenant must not access the Instance for it to be considered inactive and eligible for deletion.
+This field is always available in the Template resource and, if omitted, `cleanup.stopAfterInactivity` is set to `never` by default, meaning that Instances of that Template will be ignored by the controller.
 
 ### Detailed Behavior
 The controller begins by retrieving all the active **Instances**.
@@ -42,7 +41,7 @@ When a new email notification is triggered, the controller adds the `crownlabs.p
 The Helm Chart introduces the `inactiveTerminationNotificationInterval` parameter, which defines the minimum time interval between two consecutive email notifications.
 If the interval has passed, a new email is sent; otherwise, the notification is skipped.
 
-Next, the controller checks whether the instance is inactive by comparing its last activity timestamp with the **InactivityTimeout** value specified in the Template. 
+Next, the controller checks whether the instance is inactive by comparing its last activity timestamp with the `cleanup.stopAfterInactivity` value specified in the Template.
 If the instance is found to be inactive (meaning the remaining time is zero or less), a series of notification emails are sent to the instance owner.
 Once the number of alerts reaches a configurable threshold, either defined via `inactiveTerminationMaxNumberOfAlerts` in the Chart or via `crownlabs.polito.it/custom-number-alerts ` annotation, CrownLabs will take action by either stopping the instance if it is persistent, or deleting it if it is non-persistent.
 On the other hand, if the instance is still active (the remaining time is greater than zero), the controller evaluates the remaining time and reschedules the inactivity check when it expires (a one-minute margin is added to the timer to be sure the timer is actually expired).
@@ -59,37 +58,38 @@ The controller uses **Prometheus** to do this check:
 * It uses Nginx metrics to verify the last access to the Frontend
 * It uses a custom metric (called **bastion_ssh_connections**) to monitor the SSH accesses. Read [here](../../README.md#bastion-ssh-tracker) for more info on how SSH connections are monitored.
 
-Note: a single query on Prometheus cannot return more than **11000 data points**. In order to cover all the scenarios, a new parameter `queryStep` has been defined in the Helm Chart to modify the query resolution (query step), based on the **InactivityTimeout** selected.
+Note: a single query on Prometheus cannot return more than **11000 data points**. In order to cover all the scenarios, a new parameter `queryStep` has been defined in the Helm Chart to modify the query resolution (query step), based on the `cleanup.stopAfterInactivity` value selected.
 
 After this check, the **crownlabs.polito.it/last-activity** is updated with the most recent timestamp.
-If the last access is above the max threshold (defined with the `inactivityTimeout` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval -`inactiveTerminationNotificationInterval` parameter in the Helm chart.
+If the last access is above the max threshold (defined with the `cleanup.stopAfterInactivity` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval - `inactiveTerminationNotificationInterval` parameter in the Helm chart.
 After the maximum time of notifications, the Instance is stopped.
 
 
 ### Watch and Predicates for the reconciler
 The **InstanceInactiveTerminationReconciler** is set to watch and react to events related to the following resources in an efficient way:
-* **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
-* **Templates**: if the `inactivityTimeout` is set or modified in a template, the associated instances must be reconciled to recalculate the remaining time of the associated instances.
-* **Namespaces**: if a `Namespace` is set to be monitored (`annotation crownlabs.polito.it/instance-inactivity-ignore != true`), all the Instance of that `Namespace` must be reconciled to evaluate the remaining time of the instance. There is a predicate filter (called **inactivityIgnoreNamespace**) to let the reconciler reschedule the Instance if a new `Namespace` has to be checked.
 
+- **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
+- **Templates**: if the `cleanup.stopAfterInactivity` is set or modified in a template, the associated instances must be reconciled to recalculate the remaining time of the associated instances.
+- **Namespaces**: if a `Namespace` is set to be monitored (`annotation crownlabs.polito.it/instance-inactivity-ignore != true`), all the Instance of that `Namespace` must be reconciled to evaluate the remaining time of the instance. There is a predicate filter (called **inactivityIgnoreNamespace**) to let the reconciler reschedule the Instance if a new `Namespace` has to be checked.
 
 ### Labels and Annotations
-* **crownlabs.polito.it/instance-inactivity-ignore**: `Namespace` label used to ignore the inactivity termination for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
-* **crownlabs.polito.it/number-alerts-sent**: Instance annotation that stores the number of email notifications sent to the `Tenant`.
-* **crownlabs.polito.it/last-notification-timestamp**: Instance annotation that stores the timestamp of the last email notification sent to the `Tenant`.
-* **crownlabs.polito.it/last-running**: Instance annotation that stores the previous value of the **Running** field of the Instance. It is used to check whether the `Instances` have been restarted after being paused.
-* **crownlabs.polito.it/custom-number-alerts**: Template annotation that stores the override the default `InstanceMaxNumberOfAlerts` in the **InstanceInactiveTerminationReconciler** for a specific template.
 
+- **crownlabs.polito.it/instance-inactivity-ignore**: `Namespace` label used to ignore the inactivity termination for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
+- **crownlabs.polito.it/number-alerts-sent**: Instance annotation that stores the number of email notifications sent to the `Tenant`.
+- **crownlabs.polito.it/last-notification-timestamp**: Instance annotation that stores the timestamp of the last email notification sent to the `Tenant`.
+- **crownlabs.polito.it/last-running**: Instance annotation that stores the previous value of the **Running** field of the Instance. It is used to check whether the `Instances` have been restarted after being paused.
+- **crownlabs.polito.it/custom-number-alerts**: Template annotation that stores the override the default `InstanceMaxNumberOfAlerts` in the **InstanceInactiveTerminationReconciler** for a specific template.
 
 ## Instance Expiration Controller
-This controller verifies whether the instance has exceeded its maximum lifespan, as defined by the **DeleteAfter** field in the associated **Template** resource.
+
+This controller verifies whether the instance has exceeded its maximum lifespan, as defined by `cleanup.deleteAfterCreation` in the associated **Template** resource.
 If exceeded, the instance and its related resources are deleted.
 
-
 ### Detailed Behavior
-The controller retrieves all the active Instances and fetches the related **Template** resource. Based on the `DeleteAfter` field of the Template, the maximum lifespan of each Instance is determined. 
 
-When omitted, this value is set to never, meaning the Instance is not scheduled for termination. However, it can be configured with a time interval representing durations in minutes, hours, or days.
+The controller retrieves all the active Instances and fetches the related **Template** resource. Based on `cleanup.deleteAfterCreation` of the Template, the maximum lifespan of each Instance is determined.
+
+When omitted, this value (`cleanup.deleteAfterCreation`) is set to `never`, meaning the Instance is not scheduled for termination. However, it can be configured with a time interval representing durations in minutes, hours, or days.
 
 Once the instance lifespan expires, the controller sends a warning email to the tenant informing them that their Instance will be deleted soon.
 The controller adds a new `crownlabs.polito.it/expiring-warning-notification-timestamp` annotation to store the timestamp of the warning notification. This annotation is used to determine whether the required interval has elapsed since the warning notification, thereby allowing the deletion of the Instance if necessary.
@@ -98,10 +98,10 @@ After the `notificationInterval` time has passed since the warning, the controll
 
 ### Watch and Predicates for the reconciler
 The **InstanceExpirationReconciler** is set to watch and react to events related to the following resources in an efficient way:
-* **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
-* **Templates**: if the `deleteAfter` value is set or modified in a template, the associated instances must be reconciled to recalculate the remaining time of the associated instances. There is a predicate filter (**deleteAfterChanged**) to let the reconciler reschedule the Instance to update the new remaining time.
-* **Namespaces**: if a `Namespace` is set to be monitored (`ExpirationIgnoreNamespace != true`), all the Instance of that `Namespace` must be reconciled to evaluate the remaining time of the instance. There is a predicate filter (called **expirationIgnoreNamespace**) to let the reconciler reschedule the Instance if a new `Namespace` has to be checked.
 
+- **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
+- **Templates**: if the `cleanup.deleteAfterCreation` value is set or modified in a template, the associated instances must be reconciled to recalculate the remaining time of the associated instances. There is a predicate filter (**deleteAfterChanged**) to let the reconciler reschedule the Instance to update the new remaining time.
+- **Namespaces**: if a `Namespace` is set to be monitored (`ExpirationIgnoreNamespace != true`), all the Instance of that `Namespace` must be reconciled to evaluate the remaining time of the instance. There is a predicate filter (called **expirationIgnoreNamespace**) to let the reconciler reschedule the Instance if a new `Namespace` has to be checked.
 
 ### Labels and Annotations
 * **crownlabs.polito.it/expiration-ignore**: `Namespace` label used to ignore the expiration for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
