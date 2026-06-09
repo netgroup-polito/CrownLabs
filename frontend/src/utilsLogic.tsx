@@ -98,9 +98,14 @@ export const makeGuiTemplate = (
     name: tq.alias.name ?? '',
     gui: hasGUI,
     description: tq.original.spec?.description ?? '',
-    deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
-    inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
-    destroyAfterInactivity: tq.original.spec?.destroyAfterInactivity ?? 'never',
+    cleanup: {
+      deleteAfterCreation:
+        (tq.original.spec)?.cleanup?.deleteAfterCreation ?? 'never',
+      stopAfterInactivity:
+        (tq.original.spec)?.cleanup?.stopAfterInactivity ?? 'never',
+      deleteAfterInactivity:
+        (tq.original.spec)?.cleanup?.deleteAfterInactivity ?? 'never',
+    },
     persistent: hasPersistent,
     nodeSelector: tq.original.spec?.nodeSelector,
     resources: {
@@ -234,9 +239,9 @@ const hasActivePublicExposure = (
 
   return Boolean(
     (spec?.ports && spec.ports.length > 0) ||
-    (status?.ports &&
-      status.ports.length > 0 &&
-      safePhaseConversion(status.phase) !== Phase.Off),
+      (status?.ports &&
+        status.ports.length > 0 &&
+        safePhaseConversion(status.phase) !== Phase.Off),
   );
 };
 
@@ -719,9 +724,11 @@ export const getTemplatesMapped = (
       allowPublicExposure,
       environmentList: environmentList,
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
-      deleteAfter: '',
-      inactivityTimeout: '',
-      destroyAfterInactivity: '',
+      cleanup: {
+        deleteAfterCreation: '',
+        stopAfterInactivity: '',
+        deleteAfterInactivity: '',
+      },
     };
   });
 };
@@ -779,10 +786,10 @@ const makeNotificationContent = (
                 {status === Phase2.Ready
                   ? ' running'
                   : status === Phase2.Off
-                  ? ' stopped'
-                  : status === 'Deleted'
-                  ? ' deleted'
-                  : ''}
+                    ? ' stopped'
+                    : status === 'Deleted'
+                      ? ' deleted'
+                      : ''}
               </i>
             </div>
             {instanceUrl && (
@@ -841,31 +848,31 @@ export const notifyStatus = (
     }
   }
 
-    switch (status) {
-      case Phase2.Off:
-        if (!instance.spec?.running) {
-          notify(
-            'warning',
-            `${namespace}/${name}/stopped`,
-            makeNotificationContent(templateName, prettyName || name, status),
-          );
-        }
-        break;
-      case Phase2.Ready:
-        if (instance.spec?.running) {
-          notify(
-            'success',
-            `${namespace}/${name}/ready`,
-            makeNotificationContent(
-              templateName,
-              prettyName || name,
-              status,
-              iUrl,
-            ),
-          );
-        }
-        break;
-    }
+  switch (status) {
+    case Phase2.Off:
+      if (!instance.spec?.running) {
+        notify(
+          'warning',
+          `${namespace}/${name}/stopped`,
+          makeNotificationContent(templateName, prettyName || name, status),
+        );
+      }
+      break;
+    case Phase2.Ready:
+      if (instance.spec?.running) {
+        notify(
+          'success',
+          `${namespace}/${name}/ready`,
+          makeNotificationContent(
+            templateName,
+            prettyName || name,
+            status,
+            iUrl,
+          ),
+        );
+      }
+      break;
+  }
 };
 
 export const filterUser = (instance: Instance, search: string) => {

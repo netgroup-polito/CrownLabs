@@ -4,10 +4,10 @@ mutation createTemplate(
   $templateName: String!
   $environmentList: [EnvironmentListListItemInput!]!
   $templateId: String = "template-"
-  $deleteAfter: String
+  $cleanupDeleteAfterCreation: String
   $descriptionTemplate: String!
-  $inactivityTimeout: String
-  $destroyAfterInactivity: String
+  $cleanupStopAfterInactivity: String
+  $cleanupDeleteAfterInactivity: String
   $allowPublicExposure: Boolean
   $nodeSelector: JSON
 ) {
@@ -19,9 +19,11 @@ mutation createTemplate(
       spec: {
         prettyName: $templateName
         description: $descriptionTemplate
-        deleteAfter: $deleteAfter
-        inactivityTimeout: $inactivityTimeout
-        destroyAfterInactivity: $destroyAfterInactivity
+        cleanup: {
+          deleteAfterCreation: $cleanupDeleteAfterCreation
+          stopAfterInactivity: $cleanupStopAfterInactivity
+          deleteAfterInactivity: $cleanupDeleteAfterInactivity
+        }
         environmentList: $environmentList
         allowPublicExposure: $allowPublicExposure
         nodeSelector: $nodeSelector
@@ -33,9 +35,11 @@ mutation createTemplate(
     spec {
       prettyName
       description
-      deleteAfter
-      inactivityTimeout
-      destroyAfterInactivity
+      cleanup {
+        deleteAfterCreation
+        stopAfterInactivity
+        deleteAfterInactivity
+      }
       allowPublicExposure
       nodeSelector
       environmentList {

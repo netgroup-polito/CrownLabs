@@ -75,9 +75,11 @@ export type Template = {
   allowPublicExposure: boolean;
   environmentList: Array<TemplateEnvironment>;
   hasMultipleEnvironments: boolean;
-  deleteAfter: string;
-  inactivityTimeout: string;
-  destroyAfterInactivity: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
 };
 
 export type Instance = {
@@ -282,7 +284,7 @@ export const convertToGiB = (sizeStr: string): number => {
   // Strip trailing 'i' and uppercase to normalise both X and Xi to the same prefix
   const unit = unitRaw.replace(/i$/i, '').toUpperCase();
   const round2 = (n: number) => Math.round(n * 100) / 100;
-  
+
   switch (unit) {
     case 'G':
       return round2(value);
