@@ -158,6 +158,7 @@ spec:
             - --instance-inactive-termination-max-number-of-alerts={{.Values.configurations.automation.inactiveTerminationMaxNumberOfAlerts}}
             - --instance-inactive-termination-notification-interval={{ .Values.configurations.automation.inactiveTerminationNotificationInterval }}
             - --expiration-notification-interval={{ .Values.configurations.automation.expirationNotificationInterval }}
+            - --inactive-destruction-notification-interval={{ .Values.configurations.automation.inactiveDestructionNotificationInterval }}
             - --mail-config-dir={{ .Values.configurations.mailConfigDir }}
             - --mail-template-dir={{ .Values.configurations.mailTemplateDir }}
             - --enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}
