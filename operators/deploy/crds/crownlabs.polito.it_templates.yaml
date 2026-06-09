@@ -83,6 +83,13 @@ spec:
               description:
                 description: A textual description of the Template.
                 type: string
+              destroyAfterInactivity:
+                default: never
+                description: |-
+                  The maximum period of time a persistent instance can remain powered off
+                  after being stopped for inactivity, before being completely deleted.
+                pattern: ^(never|[0-9]+[smhd])$
+                type: string
               environmentList:
                 description: |-
                   The list of environments (i.e. VMs or containers) that compose the Template.
