@@ -574,16 +574,6 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 		updated = true
 	}
 
-	// Check and set the delete-after-inactivity annotation from the template
-	template := clctx.TemplateFrom(ctx)
-	if template != nil {
-		if val, ok := instance.Annotations["crownlabs.polito.it/delete-after-inactivity"]; !ok || val != template.Spec.Cleanup.DeleteAfterInactivity {
-			log.Info("updating delete-after-inactivity annotation", "annotation", "crownlabs.polito.it/delete-after-inactivity", "value", template.Spec.Cleanup.DeleteAfterInactivity)
-			instance.Annotations["crownlabs.polito.it/delete-after-inactivity"] = template.Spec.Cleanup.DeleteAfterInactivity
-			updated = true
-		}
-	}
-
 	// Apply the patch only if something changed
 	if updated {
 		patch := client.MergeFrom(original)

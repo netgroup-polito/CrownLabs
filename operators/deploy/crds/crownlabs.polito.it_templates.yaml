@@ -80,8 +80,7 @@ spec:
                     description: |-
                       The maximum lifetime of an Instance referencing the current Template.
                       Once this period is expired, the Instance may be automatically deleted
-                      or stopped to save resources. If set to "never", the instance will not be
-                      automatically terminated.
+                      If set to "never", the instance will not be automatically terminated.
                     pattern: ^(never|[0-9]+[smhd])$
                     type: string
                   deleteAfterInactivity:
@@ -95,10 +94,14 @@ spec:
                     default: never
                     description: |-
                       The maximum period of inactivity after which an Instance referencing
-                      the current Template will be automatically stopped or deleted to
-                      save resources.
+                      the current Template will be automatically stopped, or deleted
+                      (if not persistent) to save resources.
                     pattern: ^(never|[0-9]+[smhd])$
                     type: string
+                required:
+                - deleteAfterCreation
+                - deleteAfterInactivity
+                - stopAfterInactivity
                 type: object
               description:
                 description: A textual description of the Template.
@@ -309,6 +312,7 @@ spec:
                 - name
                 type: object
             required:
+            - cleanup
             - description
             - environmentList
             - prettyName

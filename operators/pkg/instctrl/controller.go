@@ -234,16 +234,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	annotationsUpdated := instance.Spec.Running == hasTimestamp
 
 	if annotationsUpdated {
-		original := instance.DeepCopy()
-		if instance.Annotations == nil {
-			instance.Annotations = make(map[string]string)
-		}
-		if !instance.Spec.Running {
-			instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
-		} else {
-			delete(instance.Annotations, forge.LastPoweredOffTimestampAnnotation)
-		}
-		if err := r.Patch(ctx, &instance, client.MergeFrom(original)); err != nil {
+		if err := utils.PatchObject(ctx, r.Client, &instance, updateInstanceAnnotations); err != nil {
 			log.Error(err, "failed to update the instance annotations")
 			return ctrl.Result{}, err
 		}
@@ -254,12 +245,7 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	// Patch the instance labels to allow for easier categorization.
 	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
 	if updated || instance.Spec.PrettyName == "" {
-		original := instance.DeepCopy()
-		if instance.Spec.PrettyName == "" {
-			instance.Spec.PrettyName = forge.RandomInstancePrettyName()
-		}
-		instance.SetLabels(labels)
-		if err := r.Patch(ctx, &instance, client.MergeFrom(original)); err != nil {
+		if err := utils.PatchObject(ctx, r.Client, &instance, updateInstanceLabels(labels)); err != nil {
 			log.Error(err, "failed to update the instance labels")
 			return ctrl.Result{}, err
 		}
@@ -416,4 +402,26 @@ func (r *InstanceReconciler) vmiToInstance(_ context.Context, o client.Object) [
 	}
 
 	return nil
+}
+
+func updateInstanceAnnotations(i *clv1alpha2.Instance) *clv1alpha2.Instance {
+	if i.Annotations == nil {
+		i.Annotations = make(map[string]string)
+	}
+	if !i.Spec.Running {
+		i.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+	} else {
+		delete(i.Annotations, forge.LastPoweredOffTimestampAnnotation)
+	}
+	return i
+}
+
+func updateInstanceLabels(labels map[string]string) func(*clv1alpha2.Instance) *clv1alpha2.Instance {
+	return func(i *clv1alpha2.Instance) *clv1alpha2.Instance {
+		if i.Spec.PrettyName == "" {
+			i.Spec.PrettyName = forge.RandomInstancePrettyName()
+		}
+		i.SetLabels(labels)
+		return i
+	}
 }
