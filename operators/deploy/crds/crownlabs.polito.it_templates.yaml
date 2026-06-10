@@ -72,7 +72,10 @@ spec:
                   Exposed or not, using a LoadBalancer service.
                 type: boolean
               cleanup:
-                default: {}
+                default:
+                  deleteAfterCreation: never
+                  deleteAfterInactivity: never
+                  stopAfterInactivity: never
                 description: Automatic actions to enforce termination policies.
                 properties:
                   deleteAfterCreation:

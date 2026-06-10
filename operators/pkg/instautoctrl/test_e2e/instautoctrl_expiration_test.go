@@ -79,8 +79,9 @@ var _ = Describe("Instautoctrl-expiration", func() {
 				},
 			},
 			Cleanup: clv1alpha2.CleanupOptions{
-				DeleteAfterCreation: CustomDeleteAfter,
-				StopAfterInactivity: CustomStopAfterInactivity,
+				DeleteAfterCreation:   CustomDeleteAfter,
+				StopAfterInactivity:   CustomStopAfterInactivity,
+				DeleteAfterInactivity: "never",
 			},
 		}
 		templateNonPersistentEnvironment = clv1alpha2.TemplateSpec{
@@ -102,8 +103,9 @@ var _ = Describe("Instautoctrl-expiration", func() {
 				},
 			},
 			Cleanup: clv1alpha2.CleanupOptions{
-				DeleteAfterCreation: CustomDeleteAfter2,
-				StopAfterInactivity: CustomStopAfterInactivity2,
+				DeleteAfterCreation:   CustomDeleteAfter2,
+				StopAfterInactivity:   CustomStopAfterInactivity2,
+				DeleteAfterInactivity: "never",
 			},
 		}
 		persistentTemplate = clv1alpha2.Template{

@@ -77,8 +77,9 @@ var _ = Describe("InstancesnapshotController", func() {
 				},
 			},
 			Cleanup: clv1alpha2.CleanupOptions{
-				DeleteAfterCreation: "",
-				StopAfterInactivity: "",
+				DeleteAfterCreation:   "never",
+				StopAfterInactivity:   "never",
+				DeleteAfterInactivity: "never",
 			},
 		}
 		template = clv1alpha2.Template{

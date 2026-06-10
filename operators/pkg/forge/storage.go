@@ -193,18 +193,13 @@ func MyDrivePVCSpec(storageClassName string, storageSize resource.Quantity) core
 }
 
 // UpdatePVCProvisioningJobLabel updates the provisioning job label for a PVC.
-func UpdatePVCProvisioningJobLabel(pvc *corev1.PersistentVolumeClaim, value string) {
-	if pvc.Labels == nil {
-		pvc.Labels = make(map[string]string)
+func UpdatePVCProvisioningJobLabel(labels map[string]string, value string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
 	}
-	pvc.Labels[ProvisionJobLabel] = value
-}
+	labels[ProvisionJobLabel] = value
 
-// ConfigureMyDriveProvisioningJob configures a Job for provisioning a PVC.
-func ConfigureMyDriveProvisioningJob(job *batchv1.Job, pvc *corev1.PersistentVolumeClaim) {
-	// Set job spec using PVCProvisioningJobSpec
-	jobSpec := PVCProvisioningJobSpec(pvc)
-	job.Spec = jobSpec
+	return labels
 }
 
 // MirrorPVCSpec forges the spec for the PVC that will mirror the "origin" one.

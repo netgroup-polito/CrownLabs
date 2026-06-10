@@ -95,6 +95,11 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   "never",
+				StopAfterInactivity:   "never",
+				DeleteAfterInactivity: "never",
+			},
 		}
 		templateNonPersistentEnvironment = clv1alpha2.TemplateSpec{
 			WorkspaceRef: clv1alpha2.GenericRef{},
@@ -115,8 +120,9 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 				},
 			},
 			Cleanup: clv1alpha2.CleanupOptions{
-				DeleteAfterCreation: CustomDeleteAfter2,
-				StopAfterInactivity: CustomStopAfterInactivity2,
+				DeleteAfterCreation:   CustomDeleteAfter2,
+				StopAfterInactivity:   CustomStopAfterInactivity2,
+				DeleteAfterInactivity: "never",
 			},
 		}
 
