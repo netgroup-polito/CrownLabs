@@ -97,6 +97,11 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   "never",
+				StopAfterInactivity:   "never",
+				DeleteAfterInactivity: "never",
+			},
 		}
 		templateNonPersistentEnvironment = clv1alpha2.TemplateSpec{
 			WorkspaceRef: clv1alpha2.GenericRef{},
@@ -117,8 +122,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				},
 			},
 			Cleanup: clv1alpha2.CleanupOptions{
-				DeleteAfterCreation: CustomDeleteAfterNonPersistent,
-				StopAfterInactivity: CustomstopAfterInactivityNonPersistent,
+				DeleteAfterCreation:   CustomDeleteAfterNonPersistent,
+				StopAfterInactivity:   CustomstopAfterInactivityNonPersistent,
+				DeleteAfterInactivity: "never",
 			},
 		}
 		templatePersistentEnvironmentWithCustomstopAfterInactivity = clv1alpha2.TemplateSpec{
@@ -140,8 +146,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				},
 			},
 			Cleanup: clv1alpha2.CleanupOptions{
-				DeleteAfterCreation: CustomDeleteAfterPersistent2,
-				StopAfterInactivity: CustomstopAfterInactivityPersistent2,
+				DeleteAfterCreation:   CustomDeleteAfterPersistent2,
+				StopAfterInactivity:   CustomstopAfterInactivityPersistent2,
+				DeleteAfterInactivity: "never",
 			},
 		}
 		persistentTemplate2 = clv1alpha2.Template{

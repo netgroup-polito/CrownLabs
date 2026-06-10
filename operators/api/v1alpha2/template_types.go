@@ -76,7 +76,7 @@ type TemplateSpec struct {
 	// +listMapKey=name
 	EnvironmentList []Environment `json:"environmentList"`
 
-	// +kubebuilder:default={}
+	// +kubebuilder:default={deleteAfterCreation: "never", stopAfterInactivity: "never", deleteAfterInactivity: "never"}
 	// Automatic actions to enforce termination policies.
 	Cleanup CleanupOptions `json:"cleanup"`
 
