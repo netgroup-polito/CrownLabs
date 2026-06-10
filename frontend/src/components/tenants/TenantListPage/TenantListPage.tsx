@@ -50,9 +50,18 @@ export default function TenantListPage() {
   const personalWorkspaceActive = searchParams.get('pw');
 
   const registrationDateRange: [dayjs.Dayjs, dayjs.Dayjs] | null =
-    regStart && regEnd ? [dayjs(regStart), dayjs(regEnd)] : null;
-  const lastLoginDateRange: [dayjs.Dayjs, dayjs.Dayjs] | null =
-    loginStart && loginEnd ? [dayjs(loginStart), dayjs(loginEnd)] : null;
+    useMemo(() => {
+      if (regStart && regEnd) {
+        return [dayjs(regStart), dayjs(regEnd)];
+      }
+      return null;
+    }, [regStart, regEnd]);
+  const lastLoginDateRange: [dayjs.Dayjs, dayjs.Dayjs] | null = useMemo(() => {
+    if (loginStart && loginEnd) {
+      return [dayjs(loginStart), dayjs(loginEnd)];
+    }
+    return null;
+  }, [loginStart, loginEnd]);
 
   const setParam = (key: string, value: string | null) => {
     setSearchParams(prev => {
