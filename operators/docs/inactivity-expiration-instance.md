@@ -8,12 +8,13 @@ Users can receive email notifications before any action is taken, giving them th
 - `enable-instance-inactive-termination=true` (`enableInstanceInactiveTermination` value in the Helm chart) enables inactivity monitoring.
 - `enable-inactivity-notifications=true` (`enableInactivityNotifications` value in the Helm chart) enables email notifications, so users are warned several times before their instance is paused or deleted.
 
-Each `Template` resource defines an inactivity policy under the `cleanup` block. The `cleanup.stopAfterInactivity` field specifies the maximum period of inactivity allowed. For example:
+Each `Template` resource defines an inactivity policy under the `cleanup` block. The `cleanup.stopAfterInactivity` field specifies the maximum period of inactivity allowed. For example, if `cleanup.stopAfterInactivity` is set to `10d` (10 days):
 
-- If `cleanup.stopAfterInactivity` is set to `10d` (10 days), CrownLabs will start sending notifications after 10 days without any access (via browser or SSH).
-- If the user does not access the instance even after these warnings, the instance will be paused (if persistent) or deleted (if non-persistent).
+- **If email notifications are enabled** (`enable-inactivity-notifications=true`), CrownLabs will start sending notifications after 10 days without any access (via browser or SSH). If the user does not access the instance even after these warnings, the instance will be paused (if persistent) or deleted (if non-persistent).
+- **If email notifications are disabled** (`enable-inactivity-notifications=false`), the instance will be paused (if persistent) or deleted (if non-persistent) immediately after 10 days without any access, without sending any warning emails.
 
-By default, new Templates have `cleanup.stopAfterInactivity` set to `never`, meaning inactivity checks are disabled. Instances created from such templates will never be terminated due to inactivity.
+By default, new Templates have `cleanup.stopAfterInactivity` set to a default value specified in the Helm chart (see [global values.yaml](../../deploy/crownlabs/values.yaml) or the frontend-specific [values.yaml](../../frontend/deploy/frontend-app/values.yaml)).  
+If this value is set to `'never'` in the `Template`, inactivity checks are disabled for Instances created from such templates.
 
 ## Namespace-level opt-out
 You can prevent all instances in a namespace from being considered for inactivity-based suspension or deletion by adding the label `crownlabs.polito.it/instance-inactivity-ignore: "true"` to the namespace. If this label is present and set to `true`, the inactivity controller will ignore all instances in that namespace, regardless of their template settings. If omitted or set to `false`, inactivity checks are enabled as usual.
@@ -32,9 +33,9 @@ You can prevent all instances in a namespace from being considered for inactivit
 
 A second timeout, `cleanup.deleteAfterInactivity`, can be specified in the `Template` resource. This applies exclusively to persistent instances left powered off for a specific time.
 
-- If `cleanup.deleteAfterInactivity` is set to `10d`, CrownLabs will track how long the instance has been powered off.
-- As soon as this limit is reached, new warning notifications will be sent to the user.
-- If the user still doesn't turn the instance back on, the persistent instance will be permanently **destroyed** to completely free up resources (including the persistent volume).
+- If `cleanup.deleteAfterInactivity` is set to `10d`, CrownLabs will track how long the instance has been powered off (independently from the cause of powering off).
+- **If email notifications are enabled** (`enable-inactivity-notifications=true`), warning notifications will be sent to the user when this limit is reached. If the user still doesn't turn the instance back on, the persistent instance will be permanently **destroyed** to completely free up resources (including the persistent volume).
+- **If email notifications are disabled** (`enable-inactivity-notifications=false`), the persistent instance will be permanently **destroyed** immediately once the 10-day limit is reached, without sending any warning emails.
 
 Annotations added for this feature:
 - `crownlabs.polito.it/last-powered-off-timestamp`: Timestamp of the last time the instance was powered off.

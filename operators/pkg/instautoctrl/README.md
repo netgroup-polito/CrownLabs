@@ -24,10 +24,26 @@ The package includes four different controllers:
 
 
 ## Instance Inactive Termination Controller
-This controller monitors instances and automates actions based on their inactivity status and lifespan.
-The controller understands if the Instance can be declared as Inactive and starts sending notifications to its tenant to inform them to access their Instance resources, otherwise they will be paused (if persistent) or deleted (if not persistent) after a specific period of time defined in the `Template` resource.
-The template defines inactivity policy under the `cleanup` block. The `cleanup.stopAfterInactivity` field specifies the period of time during which the Tenant must not access the Instance for it to be considered inactive and eligible for deletion.
-This field is always available in the Template resource and, if omitted, `cleanup.stopAfterInactivity` is set to `never` by default, meaning that Instances of that Template will be ignored by the controller.
+This controller monitors instances and automates actions based on their inactivity status.
+If no activity is detected for a period longer than `cleanup.stopAfterInactivity` defined in the associated `Template`:
+- **If email notifications are enabled** (`enableInactivityNotifications` is set to `true`), the controller sends warning notifications to the tenant. If the tenant does not access the instance, it is eventually paused (if persistent) or deleted (if non-persistent) after the configured number of alerts are sent.
+- **If email notifications are disabled** (`enableInactivityNotifications` is set to `false`), the controller immediately pauses (if persistent) or deletes (if non-persistent) the instance when the timer expires, without sending warning notifications.
+
+Similarly, for persistent instances that are already paused/powered off, a destruction process is handled based on `cleanup.deleteAfterInactivity` (if it is set and different from `never`):
+- **If email notifications are enabled**, warning notifications are sent to the tenant before the instance is permanently **destroyed** (deleted) to free up resources.
+- **If email notifications are disabled**, the instance is immediately **destroyed** once the powered-off duration exceeds the threshold, without any warning emails.
+
+The `cleanup.stopAfterInactivity` and `cleanup.deleteAfterInactivity` fields are set to `never` by default, meaning that instances will be ignored by the respective logic if omitted.
+
+However, if desired, default timeouts can be configured at the Helm chart level under the frontend-app configuration (`frontend-app.configuration.defaultTimeouts` parameter, as defined in the `values.yaml` files under `deploy/crownlabs/` and `frontend/deploy/frontend-app/`):
+```yaml
+defaultTimeouts:
+  cleanup:
+    stopAfterInactivity: "15d"
+    deleteAfterInactivity: "never"
+    deleteAfterCreation: "never"
+```
+These values serve as the default settings for the cleanup options when instances and templates are handled.
 
 ### Detailed Behavior
 The controller begins by retrieving all the active **Instances**.
@@ -42,8 +58,9 @@ The Helm Chart introduces the `inactiveTerminationNotificationInterval` paramete
 If the interval has passed, a new email is sent; otherwise, the notification is skipped.
 
 Next, the controller checks whether the instance is inactive by comparing its last activity timestamp with the `cleanup.stopAfterInactivity` value specified in the Template.
-If the instance is found to be inactive (meaning the remaining time is zero or less), a series of notification emails are sent to the instance owner.
-Once the number of alerts reaches a configurable threshold, either defined via `inactiveTerminationMaxNumberOfAlerts` in the Chart or via `crownlabs.polito.it/custom-number-alerts ` annotation, CrownLabs will take action by either stopping the instance if it is persistent, or deleting it if it is non-persistent.
+If the instance is found to be inactive (meaning the remaining time is zero or less), the controller takes action based on whether email notifications are enabled:
+- **If email notifications are enabled** (`enableInactivityNotifications` is set to `true`), a series of notification emails are sent to the instance owner. Once the number of alerts reaches a configurable threshold (defined via `inactiveTerminationMaxNumberOfAlerts` in the Chart or via `crownlabs.polito.it/custom-number-alerts` annotation), CrownLabs takes action by pausing the instance if it is persistent, or deleting it if it is non-persistent.
+- **If email notifications are disabled** (`enableInactivityNotifications` is set to `false`), CrownLabs immediately takes action (pausing the persistent instance or deleting the non-persistent instance) as soon as the inactivity threshold is exceeded, without sending warning or confirmation emails.
 On the other hand, if the instance is still active (the remaining time is greater than zero), the controller evaluates the remaining time and reschedules the inactivity check when it expires (a one-minute margin is added to the timer to be sure the timer is actually expired).
 
 Finally, if the instance has been paused and the user restarts it, the `crownlabs.polito.it/number-alerts-sent` annotation is reset and the `crownlabs.polito.it/last-activity` annotation is updated.

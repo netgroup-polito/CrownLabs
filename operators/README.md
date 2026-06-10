@@ -158,11 +158,14 @@ If omitted, `cleanup.stopAfterInactivity` defaults to `never`, meaning that Inst
 To evaluate whether an Instance is active, the controller relies on **Prometheus** metrics.
 It verifies whether the tenant has accessed the Instance recently, either through the frontend (by analyzing Ingress metrics) or via SSH (using a specific SSH bastion tracker metric).
 If activity is detected, the controller postpones the check.
-If no activity is recorded for a time longer than `cleanup.stopAfterInactivity`, the process of inactivity handling begins.
-When an Instance has been marked as inactive, the controller starts sending email notifications to tenants, warning them that the Instance will be paused or deleted if they do not access it.
-The number of notifications sent is defined by the `inactiveTerminationMaxNumberOfAlerts` parameter in the Helm chart.
-Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**.
-After the final action, an additional email is sent to inform the tenant.
+If no activity is recorded for a time longer than `cleanup.stopAfterInactivity`, the process of inactivity handling begins:
+- **If email notifications are enabled** (`enableInactivityNotifications` is set to `true`), the controller sends warning email notifications to tenants, warning them that the Instance will be paused (if persistent) or deleted (if not persistent) if they do not access it. The number of notifications sent is defined by the `inactiveTerminationMaxNumberOfAlerts` parameter in the Helm chart. Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**, followed by a final notification email.
+- **If email notifications are disabled** (`enableInactivityNotifications` is set to `false`), the controller immediately takes action (i.e., **pauses persistent Instances** or **deletes non-persistent Instances**) when the inactivity threshold is exceeded, without sending any warning or confirmation emails.
+
+Additionally, for persistent Instances that are already paused/powered off, a destruction process is handled based on `cleanup.deleteAfterInactivity` (if it is set and different from `never`):
+- **If email notifications are enabled**, warning notifications are sent to the tenant before the Instance is permanently **destroyed** (deleted) to free up resources.
+- **If email notifications are disabled**, the Instance is immediately **destroyed** once the powered-off duration exceeds the `cleanup.deleteAfterInactivity` threshold, without sending warning emails.
+
 Both the controller and the email notifications can be enabled or disabled through the Helm chart using the `enableInstanceInactiveTermination` and `enableInactivityNotifications` parameters.
 In addition, the behavior can be customized using annotations. For example, the `crownlabs.polito.it/custom-number-alerts` annotation on a Template allows overriding the default number of notifications for a specific Instance type, while the `crownlabs.polito.it/instance-inactivity-ignore` annotation, set to `True` on a Namespace completely excludes its Instances from the inactivity termination logic.
 
