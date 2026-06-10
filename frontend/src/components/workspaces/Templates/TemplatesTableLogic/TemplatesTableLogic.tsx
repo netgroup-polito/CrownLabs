@@ -31,7 +31,7 @@ import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import ModalCreateTemplate from '../../ModalCreateTemplate';
 import type { TemplateForm} from '../../ModalCreateTemplate/types';
-import { getImageNameNoVer, useImageLists } from '../../ModalCreateTemplate/utils';
+import { getImageNameNoVer, isInImageList, useImageLists } from '../../ModalCreateTemplate/utils';
 import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
 
 
@@ -245,21 +245,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   } = useImageLists(dataImages?? {} as ImagesQuery);
   
 
-     const isInImageList = (image: string, envType: string): boolean => {
-       const parsedImge = getImageNameNoVer(image).split('/').slice(-1).join('/');
-      if(envType === EnvironmentType.VirtualMachine) {
-        return availableImagesVM.some(img => {
-          const imgNameNoVer = getImageNameNoVer(img.name).split('/').slice(-1).join('/');
-          return imgNameNoVer === parsedImge;
-        });
-      } else if (envType === EnvironmentType.Standalone) {
-      return availableImagesContainer.some(img => {
-        const imgNameNoVer = getImageNameNoVer(img.name).split('/').slice(-1).join('/');
-        return imgNameNoVer === parsedImge;
-      });
-    };
-    return false;
-  }
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
@@ -390,44 +375,59 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
+                  
                   const templateForm: TemplateForm = {
                     name: template.name,
-                    // Include nodeSelector for modal initialization (state setup), but it won't be in the form
                     nodeSelector: template.nodeSelector,
                     description: template.description ?? template.name,
                     deleteAfter: template.deleteAfter,
                     allowPublicExposure: template.allowPublicExposure,
                     inactivityTimeout: template.inactivityTimeout,
-                    environments: template.environmentList.map(env => ({
-                      name: env.name,
-                      persistent: env.persistent,
-                      environmentType:
-                        env.environmentType ?? EnvironmentType.VirtualMachine,
-                      cpu: env.resources.cpu,
-                      reservedCpu: env.resources.reservedCPUPercentage ?? 50,
-                      ram: env.resources.memory
-                        ? convertToGiB(env.resources.memory)
-                        : 0,
-                      disk: env.resources.disk
-                        ? convertToGiB(env.resources.disk)
-                        : 0,
-                      image:
-                        env.environmentType === EnvironmentType.VirtualMachine || env.environmentType === EnvironmentType.Standalone
-                          ? isInImageList(env.image, env.environmentType) ? getImageNameNoVer(env.image).split('/').slice(-1).join('/') ?? '': env.image : env.image,
-                      registry:
-                        env.environmentType !== EnvironmentType.CloudVm ? getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '' : '',
-                      sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
-                        sharedVolume: svm.name,
-                        mountPath: svm.mountPath,
-                        readOnly: svm.readOnly,
-                      })),
-                      rewriteUrl: env.rewriteUrl,
-                      gui: env.guiEnabled,
-                      disableControls: env.disableControls,
-                      containerStartupOptions: env.containerStartupOptions,
-                      storageClassName: env.storageClassName,
-                    })),
+                    environments: template.environmentList.map(env => {
+                      // Determinizziamo il formato dell'immagine per il Cascader
+                      let finalImageValue = env.image;
+
+                      if (env.environmentType === EnvironmentType.VirtualMachine || env.environmentType === EnvironmentType.Standalone) {
+                        // Controlliamo se l'immagine fa parte del nostro registro locale
+                        if (isInImageList(env.image, env.environmentType, availableImagesVM, availableImagesContainer)) {
+                          
+                          // Puliamo il path (es. harbor.../nome:versione -> nome:versione)
+                          const cleanImageName = getImageNameNoVer(env.image).split('/').slice(-1).join('');
+                          
+                          // Estraiamo la versione originale dalla stringa completa
+                          const versionIndex = env.image.indexOf(':');
+                          const version = versionIndex !== -1 ? env.image.slice(versionIndex + 1) : '';
+                          
+                          // Ricomponiamo nel formato "nome_base:versione" atteso dal nostro Form.Item custom
+                          finalImageValue = version ? `${cleanImageName}:${version}` : cleanImageName;
+                        }
+                      }
+
+                      return {
+                        name: env.name,
+                        persistent: env.persistent,
+                        environmentType: env.environmentType ?? EnvironmentType.VirtualMachine,
+                        cpu: env.resources.cpu,
+                        reservedCpu: env.resources.reservedCPUPercentage ?? 50,
+                        ram: env.resources.memory ? convertToGiB(env.resources.memory) : 0,
+                        disk: env.resources.disk ? convertToGiB(env.resources.disk) : 0,
+                        // Questo valore stringa verrà processato da `getValueProps` diventando un array [base, version]
+                        image: finalImageValue, 
+                        registry: env.environmentType !== EnvironmentType.CloudVm ? getImageNameNoVer(env.image).split('/')[0] ?? '' : '',
+                        sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
+                          sharedVolume: svm.name,
+                          mountPath: svm.mountPath,
+                          readOnly: svm.readOnly,
+                        })),
+                        rewriteUrl: env.rewriteUrl,
+                        gui: env.guiEnabled,
+                        disableControls: env.disableControls,
+                        containerStartupOptions: env.containerStartupOptions,
+                        storageClassName: env.storageClassName,
+                      };
+                    }),
                   };
+
                   setEditingTemplate(templateForm);
                   setShowTemplateModal(true);
                 }}

@@ -8,14 +8,15 @@ import {
   Flex,
   Tooltip,
   InputNumber,
-  Space
+  Space,
+  Cascader
 } from 'antd';
 import { useEffect, useState, type FC } from 'react';
 import { EnvironmentType } from '../../../generated-types';
 import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
 import type { ChildFormItem, Resources, TemplateFormEnv, Image } from './types';
-import { formItemLayout, getImageNameNoVer } from './utils';
+import { formItemLayout, getImageNameNoVer, isInImageList } from './utils';
 
 // Environment type options
 const environmentTypeOptions = [
@@ -25,9 +26,31 @@ const environmentTypeOptions = [
   //{ value: EnvironmentType.Container, label: 'Container' },
 ];
 
-const getImageNames = (images: Image[]) => {
-  const baseNames = images.map(img => getImageNameNoVer(img.name));
-  return Array.from(new Set(baseNames)).sort((a, b) => a.localeCompare(b));
+const getImageNamesCascader = (images: Image[]) => {
+
+  const imageMap: Record<string, { value: string; label: string; children: { value: string; label: string }[] }> = {};
+
+  images.forEach(img => {
+    const baseName = getImageNameNoVer(img.name);
+    const version = img.name.slice(baseName.length + 1); 
+
+    if (!imageMap[baseName]) {
+      imageMap[baseName] = {
+        value: baseName,
+        label: baseName,
+        children: [],
+      };
+    }
+
+    imageMap[baseName].children.push({
+      value: version,
+      label: version,
+    });
+  });
+
+  const options = Object.values(imageMap).sort((a, b) => a.label.localeCompare(b.label));
+  return options;
+
 };
 
 const getAvailableImagesForEnvironment = (
@@ -115,10 +138,10 @@ export const Environment: FC<EnvironmentProps> = ({
       availableImagesVM,
       availableImagesContainer,
     );
-    const found = getImageNames(availableImages).find(
-      tmpImage => tmpImage === image,
-    );
-    if (found) return; // Passa il controllo se trovata localmente
+    const nameWithoutVersion = getImageNameNoVer(image);
+    const versionsForName = availableImages.filter(img => getImageNameNoVer(img.name) === nameWithoutVersion).map(img => img.name);
+    const found = versionsForName.find(imgName => imgName === image);
+    if (found) return;
 
     // 2. Check if it's a valid external registry URL
     // Questa regex valida formati come: harbor.prova.it/test/vscode-latex:latest o docker.io/library/ubuntu:22.04
@@ -132,18 +155,20 @@ export const Environment: FC<EnvironmentProps> = ({
     throw new Error(`Image "${image}" is not found from local registry and is not a valid external registry URL`);
   };
 
-  const [imagesSearchOptions, setImagesSearchOptions] = useState<string[]>([]);
+  // 1. Modifica il tipo dello stato da string[] alla struttura del Cascader
+const [imagesSearchOptions, setImagesSearchOptions] = useState<any[]>([]);
 
-  const currentEnvironmentType = getEnvironmentType(name);
-  const currentAvailableImages = getAvailableImagesForEnvironment(
-    currentEnvironmentType,
-    availableImagesVM,
-    availableImagesContainer,
-  );
+const currentEnvironmentType = getEnvironmentType(name);
+const currentAvailableImages = getAvailableImagesForEnvironment(
+  currentEnvironmentType,
+  availableImagesVM,
+  availableImagesContainer,
+);
 
-  useEffect(() => {
-    setImagesSearchOptions(getImageNames(currentAvailableImages));
-  }, [currentAvailableImages]);
+// 2. Aggiorna lo useEffect per usare la funzione di raggruppamento corretta
+useEffect(() => {
+  setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
+}, [currentAvailableImages]);
 
   const isVM = (currIndex: number) => {
     if (!environments) return false;
@@ -402,42 +427,49 @@ export const Environment: FC<EnvironmentProps> = ({
       {/* VM Image Selection - Remove {...fullLayout} */}
       {isVM(name) || isStandalone(name) ? (
         <Form.Item
-          {...restField}
-          label="Image"
-          name={[name, 'image']}
-          required
-          validateTrigger="onChange"
-          rules={[
-            {
-              required: true,
-              message: 'Select a virtual machine image',
-            },
-            {
-              validator: validateImageName,
-            },
-          ]}
-          validateDebounce={500}
-          {...formItemLayout}
-        >
-          <AutoComplete
-            options={imagesSearchOptions.map(imgName => ({
-              value: imgName,
-            }))}
-            onFocus={() => {
-              if (imagesSearchOptions.length === 0)
-                setImagesSearchOptions(getImageNames(currentAvailableImages));
-            }}
-            onChange={(value: string) => {
-              setImagesSearchOptions(
-                getImageNames(currentAvailableImages).filter(s => s.includes(value)),
-              );
-            }}
-            placeholder="Select a virtual machine image"
-            getPopupContainer={trigger =>
-              trigger.parentElement || document.body
-            }
-          />
-        </Form.Item>
+    {...restField}
+    label="Image"
+    name={[name, 'image']}
+    required
+    validateTrigger="onChange"
+    rules={[
+      {
+        required: true,
+        message: 'Select an image',
+      },
+      {
+        validator: validateImageName,
+      },
+    ]}
+    validateDebounce={500}
+    {...formItemLayout}
+    // Trasforma la stringa salvata nel form "nome:versione" in un array [nome, versione] per il Cascader
+    getValueProps={(value) => {
+      if (!value) return { value: [] };
+      if (!isInImageList(value, getEnvironmentType(name), availableImagesVM, availableImagesContainer)) {
+        return { value: [value] }; // Se l'immagine non è nella lista, trattala come testo libero
+      }
+      const index = value.indexOf(':');
+      if (index === -1) return { value: [value] };
+      return { value: [value.slice(0, index), value.slice(index + 1)] };
+    }}
+    // Trasforma l'array selezionato dal Cascader [nome, versione] nella stringa "nome:versione" per il form
+    getValueFromEvent={(value: string[]) => {
+      if (!value || value.length === 0) return '';
+      return value.length === 2 ? `${value[0]}:${value[1]}` : value[0];
+    }}
+  >
+    <Cascader
+      options={imagesSearchOptions}
+      placeholder="Select image and version"
+      expandTrigger="hover" // Opzionale: apre il secondo livello al passaggio del mouse
+      showSearch={{
+        filter: (inputValue, path) =>
+          path.some(option => (option.label as string).toLowerCase().indexOf(inputValue.toLowerCase()) > -1),
+      }}
+      getPopupContainer={trigger => trigger.parentElement || document.body}
+    />
+  </Form.Item>
       ) : (
         <>
           {/* External Image Input */}

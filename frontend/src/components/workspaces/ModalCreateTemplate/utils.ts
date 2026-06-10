@@ -143,3 +143,18 @@ export const useImageLists = (dataImages: ImagesQuery) => {
 
   return { availableImagesVM, availableImagesContainer, projectBaseNameVM, projectBaseNameContainer };
 }
+export const isInImageList = (image: string, envType: string, availableImagesVM: Image[], availableImagesContainer: Image[]): boolean => {
+       const parsedImge = getImageNameNoVer(image).split('/').slice(-1).join('/');
+      if(envType === EnvironmentType.VirtualMachine) {
+        return availableImagesVM.some(img => {
+          const imgNameNoVer = getImageNameNoVer(img.name).split('/').slice(-1).join('/');
+          return imgNameNoVer === parsedImge;
+        });
+      } else if (envType === EnvironmentType.Standalone) {
+      return availableImagesContainer.some(img => {
+        const imgNameNoVer = getImageNameNoVer(img.name).split('/').slice(-1).join('/');
+        return imgNameNoVer === parsedImge;
+      });
+    };
+    return false;
+  }
