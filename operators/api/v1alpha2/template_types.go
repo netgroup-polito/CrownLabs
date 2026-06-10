@@ -42,22 +42,21 @@ type CleanupOptions struct {
 	// +kubebuilder:default="never"
 	// The maximum lifetime of an Instance referencing the current Template.
 	// Once this period is expired, the Instance may be automatically deleted
-	// or stopped to save resources. If set to "never", the instance will not be
-	// automatically terminated.
-	DeleteAfterCreation string `json:"deleteAfterCreation,omitempty"`
+	//If set to "never", the instance will not be automatically terminated.
+	DeleteAfterCreation string `json:"deleteAfterCreation"`
 
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
 	// +kubebuilder:default="never"
 	// The maximum period of inactivity after which an Instance referencing
-	// the current Template will be automatically stopped or deleted to
-	// save resources.
-	StopAfterInactivity string `json:"stopAfterInactivity,omitempty"`
+	// the current Template will be automatically stopped, or deleted 
+	// (if not persistent) to save resources.
+	StopAfterInactivity string `json:"stopAfterInactivity"`
 
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
 	// +kubebuilder:default="never"
 	// The maximum period of time a persistent instance can remain powered off
 	// after being stopped for inactivity, before being completely deleted.
-	DeleteAfterInactivity string `json:"deleteAfterInactivity,omitempty"`
+	DeleteAfterInactivity string `json:"deleteAfterInactivity"`
 }
 
 // TemplateSpec is the specification of the desired state of the Template.
@@ -79,7 +78,7 @@ type TemplateSpec struct {
 
 	// +kubebuilder:default={}
 	// Automatic actions to enforce termination policies.
-	Cleanup CleanupOptions `json:"cleanup,omitempty"`
+	Cleanup CleanupOptions `json:"cleanup"`
 
 	// Labels that are used for the selection of the node.
 	// They are given by means of a pointer to check the presence of the field.
