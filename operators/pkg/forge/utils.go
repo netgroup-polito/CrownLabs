@@ -37,27 +37,36 @@ func init() {
 	petname.NonDeterministicMode()
 }
 
-// ObjectMeta returns the namespace/name pair given an instance object.
-func ObjectMeta(instance *clv1alpha2.Instance) metav1.ObjectMeta {
+// ObjectMeta returns the namespace/name pair given a Kubernetes object.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func ObjectMeta(object metav1.Object) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      CanonicalName(instance.GetName()),
-		Namespace: instance.GetNamespace(),
+		Name:      CanonicalName(object.GetName()),
+		Namespace: object.GetNamespace(),
 	}
 }
 
-// ObjectMetaWithSuffix returns the namespace/name pair given an instance object and a name suffix.
-func ObjectMetaWithSuffix(instance *clv1alpha2.Instance, suffix string) metav1.ObjectMeta {
+// ObjectMetaWithSuffix returns the namespace/name pair given a Kubernetes object and a name suffix.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func ObjectMetaWithSuffix(object metav1.Object, suffix string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      CanonicalName(instance.GetName()) + StringSeparator + suffix,
-		Namespace: instance.GetNamespace(),
+		Name:      CanonicalName(object.GetName()) + StringSeparator + suffix,
+		Namespace: object.GetNamespace(),
 	}
 }
 
-// NamespacedNameWithSuffix returns the namespace/name pair given an instance object and a name suffix.
-func NamespacedNameWithSuffix(instance *clv1alpha2.Instance, suffix string) types.NamespacedName {
+// NamespacedNameWithSuffix returns the namespace/name pair given a Kubernetes object and a name suffix.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func NamespacedNameWithSuffix(object metav1.Object, suffix string) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      CanonicalName(instance.GetName()) + StringSeparator + suffix,
-		Namespace: instance.GetNamespace(),
+		Name:      CanonicalName(object.GetName()) + StringSeparator + suffix,
+		Namespace: object.GetNamespace(),
 	}
 }
 
