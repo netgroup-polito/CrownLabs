@@ -12,36 +12,40 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package utils collects all the logic shared between different controllers
-package utils
+// Package storage collects all the logic behind the provisioning of attachable storage
+package storage
 
 import (
 	"context"
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// NFSDriveProvisioning enforces a job to provision the passed PVC, changing its owner and adding it a label when done.
-func NFSDriveProvisioning(ctx context.Context, log logr.Logger, c client.Client, pvc *v1.PersistentVolumeClaim, owner metav1.Object) (bool, error) {
+// RunPVCProvisioning enforces a job to provision the passed PVC, changing its owner and adding it a label when done.
+// Returns a bool as first parameter that represents whether the job has completed successfully.
+func RunPVCProvisioning(ctx context.Context, log logr.Logger, c client.Client, pvc *corev1.PersistentVolumeClaim, owner metav1.Object) (bool, error) {
 	log = log.WithName("provisioning-job")
 
 	val, found := pvc.Labels[forge.ProvisionJobLabel]
 	if !found || val != forge.ProvisionJobValueOk {
-		chownJob := batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: pvc.Name + "-provision", Namespace: pvc.Namespace}}
+		chownJob := batchv1.Job{
+			ObjectMeta: forge.ObjectMetaWithSuffix(pvc, "provision"),
+		}
 		labelToSet := forge.ProvisionJobValuePending
 
 		chownJobOpRes, err := ctrl.CreateOrUpdate(ctx, c, &chownJob, func() error {
 			if chownJob.CreationTimestamp.IsZero() {
 				log.Info("Created")
 				chownJob.Spec = forge.PVCProvisioningJobSpec(pvc)
-			} else if found && val == forge.ProvisionJobValuePending {
+			} else {
 				if chownJob.Status.Succeeded == 1 {
 					labelToSet = forge.ProvisionJobValueOk
 					log.Info("Completed")
@@ -58,16 +62,17 @@ func NFSDriveProvisioning(ctx context.Context, log logr.Logger, c client.Client,
 		}
 		log.Info("Job enforced", "result", chownJobOpRes)
 
-		if labelToSet != pvc.Labels[forge.ProvisionJobLabel] {
-			log.Info("PVC labels changed",
-				"previous", pvc.Labels[forge.ProvisionJobLabel], "current", labelToSet)
-
-			pvc.Labels[forge.ProvisionJobLabel] = labelToSet
-			if err := c.Update(ctx, pvc); err != nil {
-				log.Error(err, "Failed to update PVC labels")
-				return false, err
-			}
+		// Update the PVC label
+		if err := utils.PatchObject(ctx, c, pvc, func(pvc *corev1.PersistentVolumeClaim) *corev1.PersistentVolumeClaim {
+			pvc.SetLabels(forge.UpdatePVCProvisioningJobLabel(pvc.Labels, labelToSet))
+			return pvc
+		}); err != nil {
+			log.Error(err, "unable to update PVC Provisioning Job label")
+			return false, err
 		}
+
+		log.Info("PVC labels changed",
+			"previous", val, "current", labelToSet)
 	}
 
 	if pvc.Labels[forge.ProvisionJobLabel] == forge.ProvisionJobValueOk {

@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
@@ -34,8 +34,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -43,18 +43,18 @@ import (
 )
 
 var (
-	scheme     = runtime.NewScheme()
+	rscheme    = runtime.NewScheme()
 	mailClient *mail.Client
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(scheme.AddToScheme(rscheme))
 
-	utilruntime.Must(crownlabsv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(crownlabsv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 
-	utilruntime.Must(virtv1.AddToScheme(scheme))
-	utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
+	utilruntime.Must(virtv1.AddToScheme(rscheme))
+	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
 }
 
 func main() {
@@ -73,7 +73,7 @@ func main() {
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
 		"( e.g. key1=value1&key2=value2")
 
-	prometheusURL := flag.String("monitoring-prometheus-url", "http://kube-prometheus-stack-prometheus.monitoring:9090", "The URL of the Prometheus instance to use for the Inactive Termination")
+	prometheusURL := flag.String("monitoring-prometheus-url", "http://monitoring-kube-prometheus-prometheus.monitoring:9090", "The URL of the Prometheus instance to use for the Inactive Termination")
 	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics"})`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
 	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container="bastion-operator-tracker-sidecar"})`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
 	prometheusWebSSHAvailability := flag.String("monitoring-web-ssh-availability", `count(up{container="webssh"})`, "Prometheus Query to understand if WebSSH (custom metric) Metrics are available in Prometheus.")
@@ -94,6 +94,7 @@ func main() {
 	instanceInactiveTerminationMaxNumberOfAlerts := flag.Int("instance-inactive-termination-max-number-of-alerts", 3, "the maximum number of notification that Crownlabs can send before stopping/deleting the Instance. It can be overrided by the AlertAnnotationNum annotation that can be in the Template resource.")
 	instanceInactiveTerminationNotificationInterval := flag.Duration("instance-inactive-termination-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 	expirationNotificationInterval := flag.Duration("expiration-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
+	inactiveDestructionNotificationInterval := flag.Duration("inactive-destruction-notification-interval", 24*time.Hour, "It represent how long before the instance is deleted the notification email should be sent to the user.")
 
 	marginTime := flag.Duration("margin-time", 1*time.Minute, "The margin time to add to operations involving time comparisons to avoid edge cases due to delays")
 
@@ -118,7 +119,7 @@ func main() {
 	log.Info("restricting reconciled namespaces", "labels", *namespaceWhiteList)
 
 	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 rscheme,
 		Metrics:                server.Options{BindAddress: *metricsAddr},
 		LeaderElection:         *enableLeaderElection,
 		HealthProbeBindAddress: ":8081",
@@ -192,17 +193,18 @@ func main() {
 		// Configure the Instance Inactive termination controller
 		instanceInactiveTermination := "InstanceInactiveTermination."
 		if err := (&instautoctrl.InstanceInactiveTerminationReconciler{
-			Client:                        mgr.GetClient(),
-			Scheme:                        mgr.GetScheme(),
-			EventsRecorder:                mgr.GetEventRecorderFor(instanceInactiveTermination),
-			NamespaceWhitelist:            nsWhitelist,
-			StatusCheckRequestTimeout:     *instanceInactiveTerminationStatusCheckTimeout,
-			InstanceMaxNumberOfAlerts:     *instanceInactiveTerminationMaxNumberOfAlerts,
-			EnableInactivityNotifications: *enableInactivityNotifications,
-			MailClient:                    mailClient,
-			Prometheus:                    prometheus,
-			NotificationInterval:          *instanceInactiveTerminationNotificationInterval,
-			MarginTime:                    *marginTime,
+			Client:                          mgr.GetClient(),
+			Scheme:                          mgr.GetScheme(),
+			EventsRecorder:                  mgr.GetEventRecorderFor(instanceInactiveTermination),
+			NamespaceWhitelist:              nsWhitelist,
+			StatusCheckRequestTimeout:       *instanceInactiveTerminationStatusCheckTimeout,
+			InstanceMaxNumberOfAlerts:       *instanceInactiveTerminationMaxNumberOfAlerts,
+			EnableInactivityNotifications:   *enableInactivityNotifications,
+			MailClient:                      mailClient,
+			Prometheus:                      prometheus,
+			NotificationInterval:            *instanceInactiveTerminationNotificationInterval,
+			DestructionNotificationInterval: *inactiveDestructionNotificationInterval,
+			MarginTime:                      *marginTime,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)

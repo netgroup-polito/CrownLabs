@@ -22,7 +22,6 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -32,7 +31,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -427,53 +426,25 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 
 	Describe("UpdatePVCProvisioningJobLabel", func() {
 		It("Should initialize labels if nil and set provisioning job label", func() {
-			pvc := &corev1.PersistentVolumeClaim{}
+			var labels map[string]string
 
-			forge.UpdatePVCProvisioningJobLabel(pvc, "job-123")
+			labels = forge.UpdatePVCProvisioningJobLabel(labels, "job-123")
 
-			Expect(pvc.Labels).ToNot(BeNil())
-			Expect(pvc.Labels).To(HaveKeyWithValue("crownlabs.polito.it/volume-provisioning", "job-123"))
+			Expect(labels).ToNot(BeNil())
+			Expect(labels).To(HaveKeyWithValue("crownlabs.polito.it/volume-provisioning", "job-123"))
 		})
 
 		It("Should update provisioning job label on existing labels", func() {
-			pvc := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: map[string]string{
-						"crownlabs.polito.it/volume-provisioning": "old-job",
-						"existing-label": "existing-value",
-					},
-				},
+			labels := map[string]string{
+				"crownlabs.polito.it/volume-provisioning": "old-job",
+				"existing-label": "existing-value",
 			}
 
-			forge.UpdatePVCProvisioningJobLabel(pvc, "job-456")
+			labels = forge.UpdatePVCProvisioningJobLabel(labels, "job-456")
 
-			Expect(pvc.Labels).ToNot(BeNil())
-			Expect(pvc.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
-			Expect(pvc.Labels).To(HaveKeyWithValue("crownlabs.polito.it/volume-provisioning", "job-456"))
-		})
-	})
-
-	Describe("ConfigureMyDriveProvisioningJob", func() {
-		It("Should configure the job spec using PVCProvisioningJobSpec", func() {
-			pvc := &corev1.PersistentVolumeClaim{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-pvc",
-					Namespace: "test-namespace",
-				},
-			}
-			job := &batchv1.Job{}
-
-			forge.ConfigureMyDriveProvisioningJob(job, pvc)
-
-			// Verify that the spec is correctly configured
-			Expect(job.Spec.Template.Spec.RestartPolicy).To(Equal(corev1.RestartPolicyOnFailure))
-			Expect(job.Spec.BackoffLimit).ToNot(BeNil())
-			Expect(*job.Spec.BackoffLimit).To(Equal(int32(forge.ProvisionJobMaxRetries)))
-			Expect(job.Spec.TTLSecondsAfterFinished).ToNot(BeNil())
-			Expect(*job.Spec.TTLSecondsAfterFinished).To(Equal(int32(forge.ProvisionJobTTLSeconds)))
-
-			// Verify that there is a container
-			Expect(job.Spec.Template.Spec.Containers).To(HaveLen(1))
+			Expect(labels).ToNot(BeNil())
+			Expect(labels).To(HaveKeyWithValue("existing-label", "existing-value"))
+			Expect(labels).To(HaveKeyWithValue("crownlabs.polito.it/volume-provisioning", "job-456"))
 		})
 	})
 
@@ -501,7 +472,7 @@ var _ = Describe("External Volume Mounts and Provisioning Job forging", func() {
 	})
 
 	Describe("UpdateMyDriveMirrorPVCLabels", func() {
-		targetLabel := common.NewLabel(targetLabelKey, "test")
+		targetLabel := ctrlcommon.NewLabel(targetLabelKey, "test")
 
 		It("Should initialize labels if nil and set the right label", func() {
 			var labels map[string]string

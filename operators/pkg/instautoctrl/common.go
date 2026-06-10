@@ -32,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -50,6 +50,10 @@ const (
 	ExpirationMailTemplatePath = "instautoctrl_expiration_notification.yaml"
 	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
 	WarningExpirationMailTemplatePath = "instautoctrl_expiration_warning_notification.yaml"
+	// WarningDestructionMailTemplatePath is the path to the email template for the destruction warning notifications.
+	WarningDestructionMailTemplatePath = "instautoctrl_destruction_warning_notification.yaml"
+	// DestructionMailTemplatePath is the path to the email template for the destruction notification.
+	DestructionMailTemplatePath = "instautoctrl_destruction_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -103,6 +107,16 @@ func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client, remai
 	return sendNotification(ctx, mc, WarningExpirationMailTemplatePath, remainingTime)
 }
 
+// SendDestructionWarningNotification sends a destruction warning notification when a powered-off instance is about to be destroyed.
+func SendDestructionWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, WarningDestructionMailTemplatePath, remainingTime)
+}
+
+// SendDestructionNotification sends a deletion notification when an instance is deleted.
+func SendDestructionNotification(ctx context.Context, mc *mail.Client) error {
+	return sendNotification(ctx, mc, DestructionMailTemplatePath, 0)
+}
+
 // SendExpiringNotification sends expiration warning notification.
 func SendExpiringNotification(ctx context.Context, mc *mail.Client) error {
 	return sendNotification(ctx, mc, ExpirationMailTemplatePath, 0)
@@ -115,11 +129,11 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 		return fmt.Errorf("mail client is not configured")
 	}
 
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
-	tenant := pkgcontext.TenantFrom(ctx)
+	tenant := clctx.TenantFrom(ctx)
 	if tenant == nil {
 		return fmt.Errorf("tenant not found in context")
 	}
@@ -145,7 +159,7 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.
 func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return nil, fmt.Errorf("instance not found in context")
 	}
@@ -257,8 +271,19 @@ var inactivityTimeoutChanged = predicate.Funcs{
 		log.Info("template %s/%s: old inactivityTimeout=%s, new inactivityTimeout=%s",
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
-		// Requeue only if the deleteAfter field has changed and it is not set to "never"
-		return newValue != NeverTimeoutValue
+		// Requeue only if the inactivity destruction time field has changed and it is not set to "never"
+		if newValue != NeverTimeoutValue {
+			return true
+		}
+
+		// Requeue also if the powered off destruction time field has changed
+		oldPoweredOffValue := oldTemplate.Spec.DestroyAfterInactivity
+		newPoweredOffValue := newTemplate.Spec.DestroyAfterInactivity
+		if oldPoweredOffValue != newPoweredOffValue && newPoweredOffValue != NeverTimeoutValue {
+			return true
+		}
+
+		return false
 	},
 }
 
@@ -303,15 +328,30 @@ var instanceTriggered = predicate.Funcs{
 		return true
 	},
 	UpdateFunc: func(event event.UpdateEvent) bool {
-		// if Running goes from false to true and last-notification-timestamp is updated, we want to trigger the reconciler
+		// if Running state changes (false -> true or true -> false), we want to trigger the reconciler
 		oldInstance, oldOk := event.ObjectOld.(*clv1alpha2.Instance)
 		newInstance, newOk := event.ObjectNew.(*clv1alpha2.Instance)
 		if !oldOk || !newOk {
 			return false
 		}
-		if !oldInstance.Spec.Running && newInstance.Spec.Running {
+		if oldInstance.Spec.Running != newInstance.Spec.Running {
 			return true
 		}
+		if oldInstance.Spec.Template != newInstance.Spec.Template {
+			return true
+		}
+		oldPoweredOffTimestamp := ""
+		if oldInstance.Annotations != nil {
+			oldPoweredOffTimestamp = oldInstance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+		}
+		newPoweredOffTimestamp := ""
+		if newInstance.Annotations != nil {
+			newPoweredOffTimestamp = newInstance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+		}
+		if oldPoweredOffTimestamp != newPoweredOffTimestamp {
+			return true
+		}
+
 		return false
 	},
 	DeleteFunc: func(_ event.DeleteEvent) bool {

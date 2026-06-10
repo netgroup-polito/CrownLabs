@@ -27,7 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -77,7 +77,7 @@ var _ = Describe("Storage enforcement", func() {
 		)
 
 		RemovePVC := func(pvc *corev1.PersistentVolumeClaim) {
-			ctrlUtil.RemoveFinalizer(pvc, "kubernetes.io/pvc-protection")
+			ctrlutil.RemoveFinalizer(pvc, "kubernetes.io/pvc-protection")
 			Expect(reconciler.Update(ctx, pvc.DeepCopy())).To(Succeed())
 			_ = reconciler.Delete(ctx, pvc)
 		}

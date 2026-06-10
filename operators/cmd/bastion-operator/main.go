@@ -20,7 +20,7 @@ import (
 	"os"
 
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -28,20 +28,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	bastion_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/bastion-controller"
 )
 
 var (
-	scheme = runtime.NewScheme()
+	rscheme = runtime.NewScheme()
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
+	_ = scheme.AddToScheme(rscheme)
 
-	_ = crownlabsv1alpha1.AddToScheme(scheme)
-	_ = crownlabsv1alpha2.AddToScheme(scheme)
+	_ = clv1alpha1.AddToScheme(rscheme)
+	_ = clv1alpha2.AddToScheme(rscheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -56,7 +56,7 @@ func main() {
 	flag.Parse()
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 rscheme,
 		Metrics:                server.Options{BindAddress: metricsAddr},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		LeaderElection:         enableLeaderElection,

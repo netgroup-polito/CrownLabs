@@ -23,7 +23,7 @@ configurations:
     secretName: registry-credentials
   maxConcurrentReconciles: 1
   monitoring:
-    prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
+    prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
     queryBastionSSHAvailable: count(up{container="bastion-operator-tracker-sidecar"})
     queryWebSSHAvailable: count(up{container="webssh"})
@@ -45,11 +45,12 @@ configurations:
     terminationStatusCheckTimeout: "3s"
     terminationStatusCheckInterval: "2m"
     inactiveTerminationStatusCheckTimeout: "3s"
-    inactiveTerminationMaxNumberOfAlerts: 3
-    enableInactivityNotifications: false
-    enableExpirationNotifications: false
-    inactiveTerminationNotificationInterval: "24h"
-    expirationNotificationInterval: "24h"
+    inactiveTerminationMaxNumberOfAlerts: 3 
+    enableInactivityNotifications: true 
+    enableExpirationNotifications: true 
+    inactiveTerminationNotificationInterval: "24h" 
+    expirationNotificationInterval: "24h" 
+    inactiveDestructionNotificationInterval: "24h" 
     marginTime: "1m"
   publicExposure:
     # The IP pool used to assign public IPs to instances.

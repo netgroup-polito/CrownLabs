@@ -17,7 +17,7 @@ import (
 	gocloak "github.com/Nerzal/gocloak/v13"
 	resty "github.com/go-resty/resty/v2"
 	jwt "github.com/golang-jwt/jwt/v5"
-	gomock "go.uber.org/mock/gomock"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockGoCloakIface is a mock of GoCloakIface interface.

@@ -19,15 +19,15 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 func (r *Reconciler) enforcePreservingStatus(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
-	mutating func(*v1alpha2.Tenant) *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
+	mutating func(*clv1alpha2.Tenant) *clv1alpha2.Tenant,
 ) error {
 	// the update function will overwrite the status, so we need to save it
 	// and restore it after the update

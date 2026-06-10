@@ -29,7 +29,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
@@ -193,18 +193,13 @@ func MyDrivePVCSpec(storageClassName string, storageSize resource.Quantity) core
 }
 
 // UpdatePVCProvisioningJobLabel updates the provisioning job label for a PVC.
-func UpdatePVCProvisioningJobLabel(pvc *corev1.PersistentVolumeClaim, value string) {
-	if pvc.Labels == nil {
-		pvc.Labels = make(map[string]string)
+func UpdatePVCProvisioningJobLabel(labels map[string]string, value string) map[string]string {
+	if labels == nil {
+		labels = make(map[string]string, 1)
 	}
-	pvc.Labels[ProvisionJobLabel] = value
-}
+	labels[ProvisionJobLabel] = value
 
-// ConfigureMyDriveProvisioningJob configures a Job for provisioning a PVC.
-func ConfigureMyDriveProvisioningJob(job *batchv1.Job, pvc *corev1.PersistentVolumeClaim) {
-	// Set job spec using PVCProvisioningJobSpec
-	jobSpec := PVCProvisioningJobSpec(pvc)
-	job.Spec = jobSpec
+	return labels
 }
 
 // MirrorPVCSpec forges the spec for the PVC that will mirror the "origin" one.
@@ -227,7 +222,7 @@ func MirrorPVCSpec(origin *corev1.PersistentVolumeClaim, mirrorStorageClassName 
 }
 
 // UpdateMyDriveMirrorPVCLabels updates the labels for a Mirror PVC of a MyDrive.
-func UpdateMyDriveMirrorPVCLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+func UpdateMyDriveMirrorPVCLabels(labels map[string]string, targetLabel ctrlcommon.KVLabel) map[string]string {
 	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
 	labels[LabelVolumeTypeKey] = VolumeTypeValueMirror
 

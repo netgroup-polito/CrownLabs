@@ -23,7 +23,7 @@ import (
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -32,12 +32,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/storage"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -48,7 +49,7 @@ const (
 // Reconciler reconciles a SharedVolume object.
 type Reconciler struct {
 	client.Client
-	TargetLabel     common.KVLabel
+	TargetLabel     ctrlcommon.KVLabel
 	EventsRecorder  record.EventRecorder
 	PVCStorageClass string
 
@@ -75,7 +76,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.SharedVolume{}).
-		Owns(&v1.PersistentVolumeClaim{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		Owns(&batchv1.Job{}).
 		Watches(&clv1alpha2.Template{},
 			handler.EnqueueRequestsFromMapFunc(r.getDeletingSharedVolumes)).
@@ -140,7 +141,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		log.Info("Processing delete request")
 		shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseDeleting
 
-		if ctrlUtil.ContainsFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName) {
+		if ctrlutil.ContainsFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName) {
 			if err := r.handleDeletion(ctx, log, &shvolume); err != nil {
 				log.Error(err, "failed handling deletion request")
 				return ctrl.Result{}, err
@@ -166,7 +167,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
 
 	// Create or Update the PVC, reconciling it with the SharedVolume spec.
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
+	pvc := corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
 		Name:      forge.ShVolPVCName(shvolume.GetName()),
 		Namespace: shvolume.GetNamespace(),
 	}}
@@ -188,14 +189,14 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 
 		// Set Error phase if ShVol size is forbidden (less than previous)
 		if sizeDiff := shvolume.Spec.Size.Cmp(oldSize); sizeDiff > 0 || oldSize.IsZero() {
-			pvc.Spec.Resources.Requests = v1.ResourceList{v1.ResourceStorage: shvolume.Spec.Size}
+			pvc.Spec.Resources.Requests = corev1.ResourceList{corev1.ResourceStorage: shvolume.Spec.Size}
 
 			log.V(utils.LogDebugLevel).Info("Size updated",
 				"previous", oldSize, "current", shvolume.Spec.Size)
 		} else if sizeDiff < 0 {
 			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseError
 			log.Error(fmt.Errorf("forbidden: size smaller than previous"), "Phase transitioned to Error")
-			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVCSmaller, EvPVCSmallerMsg)
+			r.EventsRecorder.Eventf(&shvolume, corev1.EventTypeWarning, EvPVCSmaller, EvPVCSmallerMsg)
 
 			// Must return now (do not add code below or add return here).
 		}
@@ -206,7 +207,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		if isResourceQuotaExceeded(err) {
 			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseResourceQuotaExceeded
 			log.Error(fmt.Errorf("forbidden: resource quota exceeded"), "Phase transitioned to ResourceQuotaExceeded")
-			r.EventsRecorder.Eventf(&shvolume, v1.EventTypeWarning, EvPVCResQuotaExceeded, EvPVCResQuotaExceededMsg)
+			r.EventsRecorder.Eventf(&shvolume, corev1.EventTypeWarning, EvPVCResQuotaExceeded, EvPVCResQuotaExceededMsg)
 			err = nil
 		} else {
 			log.Error(err, "Unable to create or update PVC")
@@ -222,8 +223,8 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	// Update SharedVolume Status and start provisioning if PVC is Bound
-	if pvc.Status.Phase == v1.ClaimBound {
-		pv := v1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
+	if pvc.Status.Phase == corev1.ClaimBound {
+		pv := corev1.PersistentVolume{ObjectMeta: metav1.ObjectMeta{Name: pvc.Spec.VolumeName}}
 		if err := r.Get(ctx, types.NamespacedName{Name: pv.Name}, &pv); err != nil {
 			log.Error(err, "Unable to get PV")
 			return ctrl.Result{}, err
@@ -232,12 +233,12 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		shvolume.Status.PVName = pv.Name
 		shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseProvisioning
 
-		done, err := utils.NFSDriveProvisioning(ctx, log, r.Client, &pvc, &shvolume)
+		done, err := storage.RunPVCProvisioning(ctx, log, r.Client, &pvc, &shvolume)
 		if err != nil {
 			return ctrl.Result{}, err
 		} else if done {
 			original := shvolume.DeepCopy()
-			ctrlUtil.AddFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName)
+			ctrlutil.AddFinalizer(&shvolume, clv1alpha2.ShVolCtrlFinalizerName)
 			if err := r.Patch(ctx, &shvolume, client.MergeFrom(original)); err != nil {
 				log.Error(err, "failed adding finalizer")
 				return ctrl.Result{}, err
@@ -282,10 +283,10 @@ func (r *Reconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol 
 	}
 
 	if found {
-		r.EventsRecorder.Eventf(shvol, v1.EventTypeWarning, EvDeletionBlocked, EvDeletionBlockedMsg, mountedList)
+		r.EventsRecorder.Eventf(shvol, corev1.EventTypeWarning, EvDeletionBlocked, EvDeletionBlockedMsg, mountedList)
 		log.Info("blocked deletion, shvol is mounted on some templates")
 	} else {
-		ctrlUtil.RemoveFinalizer(shvol, clv1alpha2.ShVolCtrlFinalizerName)
+		ctrlutil.RemoveFinalizer(shvol, clv1alpha2.ShVolCtrlFinalizerName)
 		if err := r.Update(ctx, shvol); err != nil {
 			log.Error(err, "failed removing finalizer")
 			return err
