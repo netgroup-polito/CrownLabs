@@ -469,8 +469,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     };
 
     const current = form.getFieldValue(['cleanup', field]);
-    const inactivity = field === 'stopAfterInactivity' ? current : form.getFieldValue(['cleanup', 'stopAfterInactivity']) as { value: number; unit: string } | undefined;
-    const deleteAfter = field === 'deleteAfterCreation' ? current : form.getFieldValue(['cleanup', 'deleteAfterCreation']) as { value: number; unit: string } | undefined;
+    const inactivity = field === 'stopAfterInactivity' ? current : form.getFieldValue(['cleanup','stopAfterInactivity']) as { value: number; unit: string } | undefined;
+    const deleteAfter = field === 'deleteAfterCreation' ? current : form.getFieldValue(['cleanup','deleteAfterCreation']) as { value: number; unit: string } | undefined;
 
     if (!inactivity || !deleteAfter) return;
 
@@ -545,7 +545,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       className="right-align-error multiline-label"
       colon={false}
       label={<div className="flex flex-col text-left"><span>Power off if inactive for:</span><Typography.Text keyboard className="w-max mt-1">Stop</Typography.Text></div>}
-      name={['cleanup', 'stopAfterInactivity']}
+      name={['cleanup','stopAfterInactivity']}
       validateTrigger="onChange"
       rules={[{ validator: validateTimeout }, { validator: (rule, value) => validateTimeoutOrder(rule, value, 'stopAfterInactivity') }]}
       {...formItemLayout}>
@@ -585,7 +585,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       className="right-align-error multiline-label"
       colon={false}
       label={<div className="flex flex-col text-left"><span>Delete if powered off for:</span><Typography.Text keyboard className="w-max mt-1">Delete</Typography.Text></div>}
-      name={['cleanup', 'deleteAfterInactivity']}
+      name={['cleanup','deleteAfterInactivity']}
       validateTrigger="onChange"
       rules={[{ validator: validateTimeout }]}
       {...formItemLayout}>
@@ -623,7 +623,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       className="right-align-error multiline-label"
       colon={false}
       label={<div className="flex flex-col text-left"><span>Delete regardless of activity after:</span><Typography.Text keyboard className="w-max mt-1">Expiration</Typography.Text></div>}
-      name={['cleanup', 'deleteAfterCreation']}
+      name={['cleanup','deleteAfterCreation']}
       validateTrigger="onChange"
       rules={[{ validator: validateTimeout }]}
       {...formItemLayout}>

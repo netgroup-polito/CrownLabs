@@ -481,7 +481,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                     </div>
                     <div>
                       {template.persistent
-                        ? ` DISK: ${convertToGiB(template.resources.disk) ||
+                        ? ` DISK: ${
+                          convertToGiB(template.resources.disk) ||
                         'unavailable'
                         }GiB`
                         : ``}

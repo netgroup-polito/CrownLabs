@@ -33,11 +33,11 @@ You can prevent all instances in a namespace from being considered for inactivit
 
 A second timeout, `cleanup.deleteAfterInactivity`, can be specified in the `Template` resource. This applies exclusively to persistent instances left powered off for a specific time.
 
-- If `cleanup.deleteAfterInactivity` is set to `10d`, CrownLabs will track how long the instance has been powered off (independently from the cause of powering off).
-- **If email notifications are enabled** (`enable-inactivity-notifications=true`), warning notifications will be sent to the user when this limit is reached. If the user still doesn't turn the instance back on, the persistent instance will be permanently **destroyed** to completely free up resources (including the persistent volume).
+- If `cleanup.deleteAfterInactivity` is set to a specific value (e.g., `15d`), CrownLabs will track how long the instance has been powered off (independently from the cause of powering off).
+- **If email notifications are enabled** (`enable-inactivity-notifications=true`), warning notifications will be sent to the user when this limit is reached. If the user still does not turn the instance back on, the persistent instance will be permanently **destroyed** to completely free up resources (including the persistent volume).
 - **If email notifications are disabled** (`enable-inactivity-notifications=false`), the persistent instance will be permanently **destroyed** immediately once the 10-day limit is reached, without sending any warning emails.
 
-Annotations added for this feature:
+Annotations added for this feature to work:
 - `crownlabs.polito.it/last-powered-off-timestamp`: Timestamp of the last time the instance was powered off.
 - `crownlabs.polito.it/destruction-alerts-sent`: Number of mail sent to the tenant to inform that the instance will be destroyed.
 - `crownlabs.polito.it/last-destruction-notification-timestamp`: Timestamp of the last notification sent to the tenant to inform that the instance will be destroyed.
