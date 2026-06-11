@@ -440,7 +440,7 @@ export default function TenantListPage() {
             <Table
               pagination={{
                 defaultPageSize: 10,
-                pageSizeOptions: ['10', '20', '50', '100'],
+                pageSizeOptions: ['10', '20', '50', '100', Infinity],
                 showSizeChanger: true,
               }}
               dataSource={filteredTenants}
