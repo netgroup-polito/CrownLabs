@@ -153,7 +153,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 		reconciler = instctrl.InstanceReconciler{
 			Client: cl,
 			Scheme: scheme.Scheme,
-			ExpositionConfig: instctrl.ExpositionConfig{
+			ExpositionConfig: forge.ExpositionConfig{
 				WebsiteBaseURL:     host,
 				InstancesAuthURL:   instancesAuthURL,
 				GatewayAPIMode:     gatewayAPIMode,
@@ -237,13 +237,15 @@ var _ = Describe("Generation of the exposition environment", func() {
 		NamespacedName: &httpRouteName, Object: &httpRoute, GroupResource: schema.GroupResource{Group: "gateway.networking.k8s.io", Resource: "httproutes"},
 		ExpectedSpecForger: func(inst *clv1alpha2.Instance, env *clv1alpha2.Environment) interface{} {
 			tpl := &forge.HTTPRouteTemplate{
-				Path:               forge.ExpositionGUIPath(inst, env),
-				ServiceName:        serviceName.Name,
+				Path:        forge.ExpositionGUIPath(inst, env),
+				ServiceName: serviceName.Name,
+			}
+			expo := forge.ExpositionConfig{
 				GatewayName:        gatewayName,
 				GatewayNamespace:   gatewayNamespace,
 				GatewaySectionName: gatewaySectionName,
 			}
-			return forge.HTTPRouteSpec(tpl, env, forge.GUIPortNumber)
+			return forge.HTTPRouteSpec(tpl, &expo, env, forge.GUIPortNumber)
 		},
 		EmptySpec: gatewayv1.HTTPRouteSpec{},
 		InstanceStatusGetter: func(_ *clv1alpha2.Instance) string {

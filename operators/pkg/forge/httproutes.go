@@ -40,16 +40,23 @@ const (
 
 // HTTPRouteTemplate groups the minimal parameters required to forge an HTTPRouteSpec.
 type HTTPRouteTemplate struct {
-	Path               string
-	ServiceName        string
+	Path        string
+	ServiceName string
+}
+
+// ExpositionConfig holds gateway information used by HTTPRouteSpec.
+type ExpositionConfig struct {
+	WebsiteBaseURL     string
+	InstancesAuthURL   string
+	GatewayAPIMode     bool
 	GatewayName        string
 	GatewayNamespace   string
 	GatewaySectionName string
 }
 
 // HTTPRouteSpec forges the specification of a Kubernetes HTTPRoute resource.
-func HTTPRouteSpec(tpl *HTTPRouteTemplate, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
-	parentRef := BuildParentReference(tpl.GatewayName, tpl.GatewayNamespace, tpl.GatewaySectionName)
+func HTTPRouteSpec(tpl *HTTPRouteTemplate, expo *ExpositionConfig, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
+	parentRef := BuildParentReference(expo.GatewayName, expo.GatewayNamespace, expo.GatewaySectionName)
 	rule := BuildRouteRule(tpl.Path, tpl.ServiceName, servicePort, environment)
 
 	spec := gatewayv1.HTTPRouteSpec{

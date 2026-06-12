@@ -49,7 +49,7 @@ type InstanceReconciler struct {
 	Scheme                    *runtime.Scheme
 	EventsRecorder            record.EventRecorder
 	NamespaceWhitelist        metav1.LabelSelector
-	ExpositionConfig          ExpositionConfig
+	ExpositionConfig          forge.ExpositionConfig
 	ContainerEnvOpts          forge.ContainerEnvOpts
 	WebSSHMasterPublicKey     []byte
 	PublicExposureOpts        forge.PublicExposureOpts
@@ -60,16 +60,6 @@ type InstanceReconciler struct {
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
-}
-
-// ExpositionConfig holds URL and Gateway parameters for the instance reconciler.
-type ExpositionConfig struct {
-	WebsiteBaseURL     string
-	InstancesAuthURL   string
-	GatewayAPIMode     bool
-	GatewayName        string
-	GatewayNamespace   string
-	GatewaySectionName string
 }
 
 // calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
