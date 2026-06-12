@@ -150,14 +150,20 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 	JustBeforeEach(func() {
 		client := FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
+		expo := instctrl.ExpositionConfig{WebsiteBaseURL: host, InstancesAuthURL: instancesAuthURL}
+		expo.GatewayAPIMode = enableGateway
+		if gatewayAPIRefsValues != "" {
+			ns, name, section := utils.ParseGatewayParent(gatewayAPIRefsValues)
+			expo.GatewayNamespace = ns
+			expo.GatewayName = name
+			expo.GatewaySectionName = section
+		}
 		reconciler = instctrl.InstanceReconciler{
 			Client:               client,
 			Scheme:               scheme.Scheme,
-			ServiceUrls:          instctrl.ServiceUrls{WebsiteBaseURL: host, InstancesAuthURL: instancesAuthURL},
+			ExpositionConfig:     expo,
 			EventsRecorder:       record.NewFakeRecorder(1024),
 			EnableAuthentication: enableAuth,
-			GatewayAPIMode:       enableGateway,
-			GatewayAPIRefsValues: gatewayAPIRefsValues,
 		}
 
 		ctx, _ = clctx.InstanceInto(ctx, &instance)

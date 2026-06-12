@@ -84,7 +84,7 @@ var _ = BeforeSuite(func() {
 		EventsRecorder:     record.NewFakeRecorder(1024),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
 		ReconcileDeferHook: GinkgoRecover,
-		ServiceUrls: instctrl.ServiceUrls{
+		ExpositionConfig: instctrl.ExpositionConfig{
 			WebsiteBaseURL:   "fakesite.com",
 			InstancesAuthURL: "fake.com/auth",
 		},
