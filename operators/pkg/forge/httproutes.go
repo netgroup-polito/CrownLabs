@@ -32,17 +32,14 @@ const (
 	DefaultTimeoutSeconds = "3600s"
 
 	// StandaloneRewriteEndpoint -> the endpoint used to rewrite standalone GUI URLs.
-	// TODO: change name.
 	StandaloneRewriteEndpoint = "/"
 
 	// GUIRewriteEndpoint -> the endpoint used to rewrite CloudVM/VM GUI URLs.
-	// TODO: change name.
 	GUIRewriteEndpoint = "/gui/"
 )
 
-// HTTPRouteSpecParams groups the string parameters required to forge an HTTPRouteSpec.
-type HTTPRouteSpecParams struct {
-	Host               string
+// HTTPRouteTemplate groups the minimal parameters required to forge an HTTPRouteSpec.
+type HTTPRouteTemplate struct {
 	Path               string
 	ServiceName        string
 	GatewayName        string
@@ -51,12 +48,11 @@ type HTTPRouteSpecParams struct {
 }
 
 // HTTPRouteSpec forges the specification of a Kubernetes HTTPRoute resource.
-func HTTPRouteSpec(params *HTTPRouteSpecParams, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
-	parentRef := BuildParentReference(params.GatewayName, params.GatewayNamespace, params.GatewaySectionName)
-	rule := BuildRouteRule(params.Path, params.ServiceName, servicePort, environment)
+func HTTPRouteSpec(tpl *HTTPRouteTemplate, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
+	parentRef := BuildParentReference(tpl.GatewayName, tpl.GatewayNamespace, tpl.GatewaySectionName)
+	rule := BuildRouteRule(tpl.Path, tpl.ServiceName, servicePort, environment)
 
 	spec := gatewayv1.HTTPRouteSpec{
-		Hostnames: []gatewayv1.Hostname{gatewayv1.Hostname(params.Host)},
 		CommonRouteSpec: gatewayv1.CommonRouteSpec{
 			ParentRefs: []gatewayv1.ParentReference{parentRef},
 		},

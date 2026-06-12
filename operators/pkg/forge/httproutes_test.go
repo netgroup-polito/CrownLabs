@@ -64,15 +64,8 @@ var _ = Describe("HTTPRoute", func() {
 
 	DescribeTable("HTTPRouteSpec and rule construction",
 		func(gwName, gwNs, gwSection string, env *clv1alpha2.Environment, expectRewrite bool) {
-			params := forge.HTTPRouteSpecParams{
-				Host:               host,
-				Path:               path,
-				ServiceName:        serviceName,
-				GatewayName:        gwName,
-				GatewayNamespace:   gwNs,
-				GatewaySectionName: gwSection,
-			}
-			spec := forge.HTTPRouteSpec(&params, env, svcPort)
+			tpl := forge.HTTPRouteTemplate{Path: path, ServiceName: serviceName, GatewayName: gwName, GatewayNamespace: gwNs, GatewaySectionName: gwSection}
+			spec := forge.HTTPRouteSpec(&tpl, env, svcPort)
 
 			// ParentRef assertions
 			Expect(spec.CommonRouteSpec.ParentRefs).To(HaveLen(1))
