@@ -174,8 +174,8 @@ func main() {
 	// Populate exposition/gateway fields from flags
 	expositionCfg.GatewayAPIMode = *gatewayAPIMode
 	gwNs, gwName, gwSection := utils.ParseGatewayParent(*gatewayAPIRefsValues)
-	expositionCfg.GatewayNamespace = gwNs
 	expositionCfg.GatewayName = gwName
+	expositionCfg.GatewayNamespace = gwNs
 	expositionCfg.GatewaySectionName = gwSection
 
 	if err = (&instctrl.InstanceReconciler{

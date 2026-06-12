@@ -237,14 +237,18 @@ var _ = Describe("Generation of the exposition environment", func() {
 	DescribeBodyParametersHTTPRoute := DescribeBodyParameters{
 		NamespacedName: &httpRouteName, Object: &httpRoute, GroupResource: schema.GroupResource{Group: gatewayv1.GroupVersion.Group, Resource: "httproutes"},
 		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
-			params := &forge.HTTPRouteSpecParams{Host: host, Path: forge.ExpositionGUIPath(inst, &environment), ServiceName: serviceName.Name}
+			tpl := &forge.HTTPRouteTemplate{Path: forge.ExpositionGUIPath(inst, &environment), ServiceName: serviceName.Name}
+			expo := instctrl.ExpositionConfig{}
 			if gatewayAPIRefsValues != "" {
 				ns, name, section := utils.ParseGatewayParent(gatewayAPIRefsValues)
-				params.GatewayNamespace = ns
-				params.GatewayName = name
-				params.GatewaySectionName = section
+				expo.GatewayNamespace = ns
+				expo.GatewayName = name
+				expo.GatewaySectionName = section
 			}
-			return forge.HTTPRouteSpec(params, &environment, forge.GUIPortNumber)
+			tpl.GatewayName = expo.GatewayName
+			tpl.GatewayNamespace = expo.GatewayNamespace
+			tpl.GatewaySectionName = expo.GatewaySectionName
+			return forge.HTTPRouteSpec(tpl, &environment, forge.GUIPortNumber)
 		},
 		EmptySpec:              gatewayv1.HTTPRouteSpec{},
 		InstanceStatusGetter:   func(_ *clv1alpha2.Instance) string { return "" },

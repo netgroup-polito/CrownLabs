@@ -62,13 +62,13 @@ type InstanceReconciler struct {
 	ReconcileDeferHook func()
 }
 
-// ExpositionConfig holds URL and gateway parameters for the instance reconciler.
+// ExpositionConfig holds URL and Gateway parameters for the instance reconciler.
 type ExpositionConfig struct {
 	WebsiteBaseURL     string
 	InstancesAuthURL   string
 	GatewayAPIMode     bool
-	GatewayNamespace   string
 	GatewayName        string
+	GatewayNamespace   string
 	GatewaySectionName string
 }
 
