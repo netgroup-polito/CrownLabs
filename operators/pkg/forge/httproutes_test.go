@@ -127,7 +127,7 @@ var _ = Describe("HTTPRoute", func() {
 		Entry("gateway but rewrite disabled", gwName, gwNs, gwSection, makeEnv(clv1alpha2.ClassStandalone, false, ""), false),
 	)
 
-	Describe("The forge.Expose*Path functions", func() {
+	Describe("The forge.Exposition*Path functions", func() {
 		var (
 			instance    clv1alpha2.Instance
 			path        string
@@ -150,9 +150,9 @@ var _ = Describe("HTTPRoute", func() {
 			environment.Name = environmentName
 		})
 
-		Describe("The forge.ExposeGUIPath function", func() {
+		Describe("The forge.ExpositionGUIPath function", func() {
 			JustBeforeEach(func() {
-				path = forge.ExposeGUIPath(&instance, &environment)
+				path = forge.ExpositionGUIPath(&instance, &environment)
 			})
 			When("EnvironmentType is ClassStandalone", func() {
 				BeforeEach(func() {
@@ -182,9 +182,9 @@ var _ = Describe("HTTPRoute", func() {
 
 		})
 
-		Describe("The forge.ExposeGuiStatusURL function", func() {
+		Describe("The forge.ExpositionGuiStatusURL function", func() {
 			JustBeforeEach(func() {
-				statusPath = forge.ExposeGuiStatusURL(host, &environment, &instance)
+				statusPath = forge.ExpositionGuiStatusURL(host, &environment, &instance)
 			})
 			It("Should generate a path based on the instance UID and /app at the end", func() {
 				Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/"))

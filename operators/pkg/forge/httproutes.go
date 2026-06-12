@@ -152,8 +152,8 @@ func RewriteFilterForEnvironment(environment *clv1alpha2.Environment) *gatewayv1
 // These functions below are used both for forging the HTTPRoute spec and for setting environment
 // variables in the containers, to ensure consistency between the two.
 
-// ExposeGUIPath returns the path of the route targeting the environment GUI vnc or Standalone.
-func ExposeGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
+// ExpositionGUIPath returns the path of the route targeting the environment GUI vnc or Standalone.
+func ExpositionGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 		if environment.RewriteURL {
@@ -166,17 +166,17 @@ func ExposeGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Enviro
 	return ""
 }
 
-// ExposeGUICleanPath returns the path of the route targeting the environment GUI vnc or Standalone, without regex.
-func ExposeGUICleanPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
+// ExpositionGUICleanPath returns the path of the route targeting the environment GUI vnc or Standalone, without regex.
+func ExpositionGUICleanPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
 	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", ExpositionInstancePrefix, instance.UID, environment.Name), "/")
 }
 
-// ExposeGuiStatusURL returns the path of the route targeting the environment.
-func ExposeGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
+// ExpositionGuiStatusURL returns the path of the route targeting the environment.
+func ExpositionGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
 	return fmt.Sprintf("https://%v%v/%v/%v/", host, ExpositionInstancePrefix, instance.UID, environment.Name)
 }
 
-// ExposeGuiStatusInstanceURL returns the root of the route url targeting an environment within the instance.
-func ExposeGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) string {
+// ExpositionGuiStatusInstanceURL returns the root of the route url targeting an environment within the instance.
+func ExpositionGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) string {
 	return fmt.Sprintf("https://%v%v/%v/", host, ExpositionInstancePrefix, instance.UID)
 }
