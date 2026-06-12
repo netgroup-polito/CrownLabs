@@ -71,13 +71,10 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 		if httpRoute.CreationTimestamp.IsZero() {
 			tpl := &forge.HTTPRouteTemplate{
-				Path:               forge.ExpositionGUIPath(instance, environment),
-				ServiceName:        svc.GetName(),
-				GatewayName:        r.ExpositionConfig.GatewayName,
-				GatewayNamespace:   r.ExpositionConfig.GatewayNamespace,
-				GatewaySectionName: r.ExpositionConfig.GatewaySectionName,
+				Path:        forge.ExpositionGUIPath(instance, environment),
+				ServiceName: svc.GetName(),
 			}
-			httpRoute.Spec = forge.HTTPRouteSpec(tpl, environment, forge.GUIPortNumber)
+			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, forge.GUIPortNumber)
 		}
 		httpRoute.SetLabels(forge.EnvironmentObjectLabels(httpRoute.GetLabels(), instance, environment))
 

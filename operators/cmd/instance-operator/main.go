@@ -59,7 +59,7 @@ func init() {
 
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
-	expositionCfg := instctrl.ExpositionConfig{}
+	expositionCfg := forge.ExpositionConfig{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 	publicExposureOpts := forge.PublicExposureOpts{}
 	publicExposureIPPoolRaw := ""
