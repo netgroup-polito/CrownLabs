@@ -40,7 +40,6 @@ import (
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 type FakeClientWrapped struct {
@@ -64,6 +63,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		enableAuth       bool
 		instancesAuthURL string
+		gatewayAPIMode   bool
 
 		instance    clv1alpha2.Instance
 		environment clv1alpha2.Environment
@@ -82,21 +82,21 @@ var _ = Describe("Generation of the exposition environment", func() {
 		ownerRef metav1.OwnerReference
 
 		err error
-
-		enableGateway        bool
-		gatewayAPIRefsValues string
 	)
 
 	const (
-		instanceName      = "kubernetes-0000"
-		instanceNamespace = "tenant-tester"
-		instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
-		templateName      = "kubernetes"
-		templateNamespace = "workspace-netgroup"
-		environmentName   = "control-plane"
-		tenantName        = "tester"
-		host              = "crownlabs.example.com"
-		clusterIP         = "1.1.1.1"
+		instanceName       = "kubernetes-0000"
+		instanceNamespace  = "tenant-tester"
+		instanceUID        = "dcc6ead1-0040-451b-ba68-787ebfb68640"
+		templateName       = "kubernetes"
+		templateNamespace  = "workspace-netgroup"
+		environmentName    = "control-plane"
+		tenantName         = "tester"
+		host               = "crownlabs.example.com"
+		clusterIP          = "1.1.1.1"
+		gatewayName        = "test-gateway"
+		gatewayNamespace   = "gateway-ns"
+		gatewaySectionName = "https"
 	)
 
 	BeforeEach(func() {
@@ -132,6 +132,7 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		service = corev1.Service{}
 		ingress = netv1.Ingress{}
+		httpRoute = gatewayv1.HTTPRoute{}
 
 		ownerRef = metav1.OwnerReference{
 			APIVersion:         clv1alpha2.GroupVersion.String(),
@@ -144,24 +145,22 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		enableAuth = false
 		instancesAuthURL = ""
-		enableGateway = false
-		gatewayAPIRefsValues = ""
+		gatewayAPIMode = false
 	})
 
 	JustBeforeEach(func() {
-		client := FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
-		expo := instctrl.ExpositionConfig{WebsiteBaseURL: host, InstancesAuthURL: instancesAuthURL}
-		expo.GatewayAPIMode = enableGateway
-		if gatewayAPIRefsValues != "" {
-			ns, name, section := utils.ParseGatewayParent(gatewayAPIRefsValues)
-			expo.GatewayNamespace = ns
-			expo.GatewayName = name
-			expo.GatewaySectionName = section
-		}
+		cl := FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
 		reconciler = instctrl.InstanceReconciler{
-			Client:               client,
-			Scheme:               scheme.Scheme,
-			ExpositionConfig:     expo,
+			Client: cl,
+			Scheme: scheme.Scheme,
+			ExpositionConfig: instctrl.ExpositionConfig{
+				WebsiteBaseURL:     host,
+				InstancesAuthURL:   instancesAuthURL,
+				GatewayAPIMode:     gatewayAPIMode,
+				GatewayName:        gatewayName,
+				GatewayNamespace:   gatewayNamespace,
+				GatewaySectionName: gatewaySectionName,
+			},
 			EventsRecorder:       record.NewFakeRecorder(1024),
 			EnableAuthentication: enableAuth,
 		}
@@ -235,23 +234,21 @@ var _ = Describe("Generation of the exposition environment", func() {
 	}
 
 	DescribeBodyParametersHTTPRoute := DescribeBodyParameters{
-		NamespacedName: &httpRouteName, Object: &httpRoute, GroupResource: schema.GroupResource{Group: gatewayv1.GroupVersion.Group, Resource: "httproutes"},
-		ExpectedSpecForger: func(inst *clv1alpha2.Instance, _ *clv1alpha2.Environment) interface{} {
-			tpl := &forge.HTTPRouteTemplate{Path: forge.ExpositionGUIPath(inst, &environment), ServiceName: serviceName.Name}
-			expo := instctrl.ExpositionConfig{}
-			if gatewayAPIRefsValues != "" {
-				ns, name, section := utils.ParseGatewayParent(gatewayAPIRefsValues)
-				expo.GatewayNamespace = ns
-				expo.GatewayName = name
-				expo.GatewaySectionName = section
+		NamespacedName: &httpRouteName, Object: &httpRoute, GroupResource: schema.GroupResource{Group: "gateway.networking.k8s.io", Resource: "httproutes"},
+		ExpectedSpecForger: func(inst *clv1alpha2.Instance, env *clv1alpha2.Environment) interface{} {
+			tpl := &forge.HTTPRouteTemplate{
+				Path:               forge.ExpositionGUIPath(inst, env),
+				ServiceName:        serviceName.Name,
+				GatewayName:        gatewayName,
+				GatewayNamespace:   gatewayNamespace,
+				GatewaySectionName: gatewaySectionName,
 			}
-			tpl.GatewayName = expo.GatewayName
-			tpl.GatewayNamespace = expo.GatewayNamespace
-			tpl.GatewaySectionName = expo.GatewaySectionName
-			return forge.HTTPRouteSpec(tpl, &environment, forge.GUIPortNumber)
+			return forge.HTTPRouteSpec(tpl, env, forge.GUIPortNumber)
 		},
-		EmptySpec:              gatewayv1.HTTPRouteSpec{},
-		InstanceStatusGetter:   func(_ *clv1alpha2.Instance) string { return "" },
+		EmptySpec: gatewayv1.HTTPRouteSpec{},
+		InstanceStatusGetter: func(_ *clv1alpha2.Instance) string {
+			return ""
+		},
 		InstanceStatusExpected: "",
 	}
 
@@ -270,222 +267,403 @@ var _ = Describe("Generation of the exposition environment", func() {
 			return nil
 		}
 
-		Describe("Authentication annotations", func() {
-			Context("when authentication is enabled and InstancesAuthURL is set", func() {
-				BeforeEach(func() {
-					enableAuth = true
-					instancesAuthURL = "https://auth.example.com"
+		// ── Ingress mode ──────────────────────────────────────────────────────────
+
+		Context("GatewayAPIMode is disabled (Ingress mode)", func() {
+			BeforeEach(func() { gatewayAPIMode = false })
+
+			Describe("Authentication annotations", func() {
+				Context("when authentication is enabled and InstancesAuthURL is set", func() {
+					BeforeEach(func() {
+						enableAuth = true
+						instancesAuthURL = "https://auth.example.com"
+					})
+
+					It("adds auth annotations to the GUI ingress", func() {
+						Expect(err).ToNot(HaveOccurred())
+						Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
+						ann := ingress.GetAnnotations()
+						Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-url", "https://auth.example.com/auth"))
+						Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-signin", "https://auth.example.com/start?rd=$escaped_request_uri"))
+						Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/proxy-read-timeout", "3600"))
+					})
 				})
 
-				It("adds auth annotations to the GUI ingress", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
-					ann := ingress.GetAnnotations()
-					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-url", "https://auth.example.com/auth"))
-					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-signin", "https://auth.example.com/start?rd=$escaped_request_uri"))
-					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/proxy-read-timeout", "3600"))
-				})
-			})
+				Context("when authentication is enabled and InstancesAuthURL is empty", func() {
+					BeforeEach(func() {
+						enableAuth = true
+						instancesAuthURL = ""
+					})
 
-			Context("when authentication is enabled and InstancesAuthURL is empty", func() {
-				BeforeEach(func() {
-					enableAuth = true
-					instancesAuthURL = ""
-				})
-
-				It("adds relative auth annotations to the GUI ingress", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
-					ann := ingress.GetAnnotations()
-					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-url", "/auth"))
-					Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-signin", "/start?rd=$escaped_request_uri"))
-				})
-			})
-
-			Context("when authentication is disabled", func() {
-				BeforeEach(func() {
-					enableAuth = false
-					instancesAuthURL = "https://auth.example.com"
+					It("adds relative auth annotations to the GUI ingress", func() {
+						Expect(err).ToNot(HaveOccurred())
+						Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
+						ann := ingress.GetAnnotations()
+						Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-url", "/auth"))
+						Expect(ann).To(HaveKeyWithValue("nginx.ingress.kubernetes.io/auth-signin", "/start?rd=$escaped_request_uri"))
+					})
 				})
 
-				It("does not add auth annotations to the GUI ingress", func() {
-					Expect(err).ToNot(HaveOccurred())
-					Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
-					ann := ingress.GetAnnotations()
-					Expect(ann).ToNot(HaveKey("nginx.ingress.kubernetes.io/auth-url"))
-					Expect(ann).ToNot(HaveKey("nginx.ingress.kubernetes.io/auth-signin"))
-				})
-			})
-		})
+				Context("when authentication is disabled", func() {
+					BeforeEach(func() {
+						enableAuth = false
+						instancesAuthURL = "https://auth.example.com"
+					})
 
-		DescribeBodyPresent := func(p DescribeBodyParameters) {
-			When("it is not yet present", func() {
-				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
-
-				It("Should be present and have the common attributes", func() {
-					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					for k, v := range forge.InstanceObjectLabels(nil, &instance) {
-						Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
-					}
-					Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
-				})
-
-				It("Should be present and have the expected specs", func() {
-					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.ExpectedSpecForger(&instance, &environment))))
-				})
-
-				It("Should fill the correct instance status value", func() {
-					Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(p.InstanceStatusExpected))
+					It("does not add auth annotations to the GUI ingress", func() {
+						Expect(err).ToNot(HaveOccurred())
+						Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
+						ann := ingress.GetAnnotations()
+						Expect(ann).ToNot(HaveKey("nginx.ingress.kubernetes.io/auth-url"))
+						Expect(ann).ToNot(HaveKey("nginx.ingress.kubernetes.io/auth-signin"))
+					})
 				})
 			})
 
-			When("it is already present", func() {
-				BeforeEach(func() {
-					svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
-					svc.SetCreationTimestamp(metav1.NewTime(time.Now()))
-					svc.Spec.ClusterIP = clusterIP
+			DescribeBodyPresent := func(p DescribeBodyParameters) {
+				When("it is not yet present", func() {
+					It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
 
-					// prepare objects to pre-seed in the fake client depending on the resource under test
-					objs := []client.Object{&svc}
+					It("Should be present and have the common attributes", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						for k, v := range forge.InstanceObjectLabels(nil, &instance) {
+							Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
+						}
+						Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
+					})
 
-					// if testing ingresses, pre-seed the ingress object
-					if p.GroupResource.Resource == "ingresses" {
+					It("Should be present and have the expected specs", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.ExpectedSpecForger(&instance, &environment))))
+					})
+
+					It("Should fill the correct instance status value", func() {
+						Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(p.InstanceStatusExpected))
+					})
+				})
+
+				When("it is already present", func() {
+					BeforeEach(func() {
+						svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
 						ingGUI := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressGUIName)}
+
+						svc.SetCreationTimestamp(metav1.NewTime(time.Now()))
 						ingGUI.SetCreationTimestamp(metav1.NewTime(time.Now()))
-						objs = append(objs, &ingGUI)
-					}
 
-					// if testing httproutes, pre-seed the HTTPRoute object
-					if p.GroupResource.Resource == "httproutes" {
-						hr := gatewayv1.HTTPRoute{ObjectMeta: forge.NamespacedNameToObjectMeta(*p.NamespacedName)}
-						hr.SetCreationTimestamp(metav1.NewTime(time.Now()))
-						objs = append(objs, &hr)
-					}
+						svc.Spec.ClusterIP = clusterIP
 
-					clientBuilder.WithObjects(objs...)
+						clientBuilder.WithObjects(&svc, &ingGUI)
+					})
+
+					It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+					It("Should still be present and have the common attributes", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						for k, v := range forge.InstanceObjectLabels(nil, &instance) {
+							Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
+						}
+						Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
+					})
+
+					It("Should still be present and have unmodified specs", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.EmptySpec)))
+					})
+
+					It("Should fill the correct instance status value", func() {
+						Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(p.InstanceStatusExpected))
+					})
+				})
+			}
+
+			DescribeBodyAbsent := func(p DescribeBodyParameters) {
+				When("it is not yet present", func() {
+					var notFoundError error
+
+					BeforeEach(func() {
+						notFoundError = kerrors.NewNotFound(p.GroupResource, p.NamespacedName.Name)
+					})
+
+					It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+					It("Should not be created", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(MatchError(notFoundError))
+					})
+
+					It("Should set the instance status empty", func() {
+						Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(""))
+					})
+				})
+			}
+
+			Context("The environment is VM-based", func() {
+				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassVM })
+
+				Context("The environment has a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = true })
+
+					Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+					Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
+					Describe("Assessing the HTTPRoute absence (no gateway mode)", func() {
+						It("Should not create an HTTPRoute", func() {
+							Expect(reconciler.Get(ctx, httpRouteName, &httpRoute)).To(MatchError(
+								kerrors.NewNotFound(schema.GroupResource{Group: "gateway.networking.k8s.io", Resource: "httproutes"}, httpRouteName.Name),
+							))
+						})
+					})
 				})
 
-				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+				Context("The environment has not a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = false })
 
-				It("Should still be present and have the common attributes", func() {
-					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					for k, v := range forge.InstanceObjectLabels(nil, &instance) {
-						Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
-					}
-					Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
-				})
-
-				It("Should still be present and have unmodified specs", func() {
-					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
-					Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.EmptySpec)))
-				})
-
-				It("Should fill the correct instance status value", func() {
-					Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(p.InstanceStatusExpected))
+					Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+					Describe("Assessing the GUI ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressGUI) })
 				})
 			})
-		}
 
-		DescribeBodyAbsent := func(p DescribeBodyParameters) {
-			When("it is not yet present", func() {
-				var notFoundError error
+			Context("The environment is CloudVM-based", func() {
+				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
 
-				BeforeEach(func() {
-					notFoundError = kerrors.NewNotFound(p.GroupResource, p.NamespacedName.Name)
+				Context("The environment has a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = true })
+
+					Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+					Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
 				})
 
-				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+				Context("The environment has not a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = false })
 
-				It("Should not be created", func() {
-					Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(MatchError(notFoundError))
-				})
-
-				It("Should set the instance status empty", func() {
-					Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(""))
+					Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+					Describe("Assessing the GUI ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressGUI) })
 				})
 			})
-		}
 
-		Context("The environment is VM-based", func() {
-			BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassVM })
-
-			Context("The environment has a GUI", func() {
-				BeforeEach(func() { environment.GuiEnabled = true })
-
-				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
-				Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
-			})
-
-			Context("The environment has not a GUI", func() {
-				BeforeEach(func() { environment.GuiEnabled = false })
-
-				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
-				Describe("Assessing the GUI ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressGUI) })
-			})
-		})
-
-		Context("The environment is CloudVM-based", func() {
-			BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
-
-			Context("The environment has a GUI", func() {
-				BeforeEach(func() { environment.GuiEnabled = true })
-
-				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
-				Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUI) })
-			})
-
-			Context("The environment has not a GUI", func() {
-				BeforeEach(func() { environment.GuiEnabled = false })
-
-				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
-				Describe("Assessing the GUI ingress absence", func() { DescribeBodyAbsent(DescribeBodyParametersIngressGUI) })
-			})
-		})
-
-		Context("The environment is Container-based", func() {
-			BeforeEach(func() {
-				environment.EnvironmentType = clv1alpha2.ClassContainer
-				environment.GuiEnabled = true
-			})
-
-			Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
-			Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUIContainer) })
-
-			Context("When Gateway API is enabled", func() {
-				BeforeEach(func() { enableGateway = true })
-				BeforeEach(func() { gatewayAPIRefsValues = "" })
+			Context("The environment is Container-based", func() {
 				BeforeEach(func() {
 					environment.EnvironmentType = clv1alpha2.ClassContainer
 					environment.GuiEnabled = true
 				})
 
-				BeforeEach(func() {
-					gatewayAPIRefsValues = templateNamespace + "/test-gateway/section"
+				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+				Describe("Assessing the GUI ingress presence", func() { DescribeBodyPresent(DescribeBodyParametersIngressGUIContainer) })
+			})
+
+			Context("The instance is multi-environment", func() {
+
+				Context("The environment has an index greater than 1", func() {
+					BeforeEach(func() {
+						index = 1
+					})
+					Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
 				})
 
-				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
-				Describe("Assessing the GUI HTTPRoute presence", func() { DescribeBodyPresent(DescribeBodyParametersHTTPRoute) })
+				Context("The index is out of range", func() {
+					BeforeEach(func() {
+						index = 3
+					})
+					Describe("Assessing the service absence", func() { DescribeBodyAbsent(DescribeBodyParametersService) })
+				})
 			})
 		})
 
-		Context("The instance is multi-environment", func() {
+		// ── Gateway API mode ──────────────────────────────────────────────────────
 
-			Context("The environment has an index greater than 1", func() {
-				BeforeEach(func() {
-					index = 1
+		Context("GatewayAPIMode is enabled", func() {
+			BeforeEach(func() { gatewayAPIMode = true })
+
+			DescribeBodyPresentGW := func(p DescribeBodyParameters) {
+				When("it is not yet present", func() {
+					It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+					It("Should be present and have the common attributes", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						for k, v := range forge.InstanceObjectLabels(nil, &instance) {
+							Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
+						}
+						Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
+					})
+
+					It("Should be present and have the expected specs", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.ExpectedSpecForger(&instance, &environment))))
+					})
+
+					It("Should fill the correct instance status value", func() {
+						Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(p.InstanceStatusExpected))
+					})
 				})
-				Describe("Assessing the service presence", func() { DescribeBodyPresent(DescribeBodyParametersService) })
+
+				When("it is already present", func() {
+					BeforeEach(func() {
+						svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
+						hr := gatewayv1.HTTPRoute{ObjectMeta: forge.NamespacedNameToObjectMeta(httpRouteName)}
+
+						svc.SetCreationTimestamp(metav1.NewTime(time.Now()))
+						hr.SetCreationTimestamp(metav1.NewTime(time.Now()))
+
+						svc.Spec.ClusterIP = clusterIP
+
+						clientBuilder.WithObjects(&svc, &hr)
+					})
+
+					It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+					It("Should still be present and have the common attributes", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						for k, v := range forge.InstanceObjectLabels(nil, &instance) {
+							Expect(p.Object.GetLabels()).To(HaveKeyWithValue(k, v))
+						}
+						Expect(p.Object.GetOwnerReferences()).To(ContainElement(ownerRef))
+					})
+
+					It("Should still be present and have unmodified specs", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(Succeed())
+						Expect(p.Object).To(WithTransform(ObjectToSpec, Equal(p.EmptySpec)))
+					})
+
+					It("Should fill the correct instance status value", func() {
+						Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(p.InstanceStatusExpected))
+					})
+				})
+			}
+
+			DescribeBodyAbsentGW := func(p DescribeBodyParameters) {
+				When("it is not yet present", func() {
+					var notFoundError error
+
+					BeforeEach(func() {
+						notFoundError = kerrors.NewNotFound(p.GroupResource, p.NamespacedName.Name)
+					})
+
+					It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+					It("Should not be created", func() {
+						Expect(reconciler.Get(ctx, *p.NamespacedName, p.Object)).To(MatchError(notFoundError))
+					})
+
+					It("Should set the instance status empty", func() {
+						Expect(p.InstanceStatusGetter(&instance)).To(BeIdenticalTo(""))
+					})
+				})
+			}
+
+			Context("The environment is VM-based", func() {
+				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassVM })
+
+				Context("The environment has a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = true })
+
+					Describe("Assessing the service presence", func() { DescribeBodyPresentGW(DescribeBodyParametersService) })
+					Describe("Assessing the HTTPRoute presence", func() { DescribeBodyPresentGW(DescribeBodyParametersHTTPRoute) })
+					Describe("Assessing the Ingress absence (gateway mode)", func() {
+						It("Should not create an Ingress", func() {
+							Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(MatchError(
+								kerrors.NewNotFound(netv1.Resource("ingresses"), ingressGUIName.Name),
+							))
+						})
+					})
+				})
+
+				Context("The environment has not a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = false })
+
+					Describe("Assessing the service presence", func() { DescribeBodyPresentGW(DescribeBodyParametersService) })
+					Describe("Assessing the HTTPRoute absence (gui-less VM)", func() { DescribeBodyAbsentGW(DescribeBodyParametersHTTPRoute) })
+				})
 			})
 
-			Context("The index is out of range", func() {
-				BeforeEach(func() {
-					index = 3
+			Context("The environment is CloudVM-based", func() {
+				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
+
+				Context("The environment has a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = true })
+
+					Describe("Assessing the service presence", func() { DescribeBodyPresentGW(DescribeBodyParametersService) })
+					Describe("Assessing the HTTPRoute presence", func() { DescribeBodyPresentGW(DescribeBodyParametersHTTPRoute) })
 				})
-				Describe("Assessing the service absence", func() { DescribeBodyAbsent(DescribeBodyParametersService) })
+
+				Context("The environment has not a GUI", func() {
+					BeforeEach(func() { environment.GuiEnabled = false })
+
+					Describe("Assessing the service presence", func() { DescribeBodyPresentGW(DescribeBodyParametersService) })
+					Describe("Assessing the HTTPRoute absence (gui-less CloudVM)", func() { DescribeBodyAbsentGW(DescribeBodyParametersHTTPRoute) })
+				})
+			})
+
+			Context("The environment is Container-based", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassContainer
+					environment.GuiEnabled = true
+				})
+
+				Describe("Assessing the service presence", func() { DescribeBodyPresentGW(DescribeBodyParametersService) })
+				Describe("Assessing the HTTPRoute presence", func() { DescribeBodyPresentGW(DescribeBodyParametersHTTPRoute) })
+			})
+
+			Context("The instance is multi-environment", func() {
+				Context("The environment has an index greater than 1", func() {
+					BeforeEach(func() {
+						index = 1
+					})
+					Describe("Assessing the service presence", func() { DescribeBodyPresentGW(DescribeBodyParametersService) })
+				})
+
+				Context("The index is out of range", func() {
+					BeforeEach(func() {
+						index = 3
+					})
+					Describe("Assessing the service absence", func() { DescribeBodyAbsentGW(DescribeBodyParametersService) })
+				})
+			})
+
+			Context("Conflicting Ingress is removed when HTTPRoute is created", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassContainer
+					environment.GuiEnabled = true
+					// Pre-populate a conflicting Ingress
+					ingGUI := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressGUIName)}
+					clientBuilder.WithObjects(&ingGUI)
+				})
+
+				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+				It("Should remove the conflicting Ingress", func() {
+					Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(MatchError(
+						kerrors.NewNotFound(netv1.Resource("ingresses"), ingressGUIName.Name),
+					))
+				})
+
+				It("Should create the HTTPRoute", func() {
+					Expect(reconciler.Get(ctx, httpRouteName, &httpRoute)).To(Succeed())
+				})
 			})
 		})
 
+		// ── Switching from GatewayAPIMode to Ingress mode cleans up HTTPRoute ────
+
+		Context("GatewayAPIMode is disabled and a pre-existing HTTPRoute exists", func() {
+			BeforeEach(func() {
+				gatewayAPIMode = false
+				environment.EnvironmentType = clv1alpha2.ClassContainer
+				environment.GuiEnabled = true
+				// Pre-populate a conflicting HTTPRoute
+				hr := gatewayv1.HTTPRoute{ObjectMeta: forge.NamespacedNameToObjectMeta(httpRouteName)}
+				clientBuilder.WithObjects(&hr)
+			})
+
+			It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
+
+			It("Should remove the conflicting HTTPRoute", func() {
+				Expect(reconciler.Get(ctx, httpRouteName, &httpRoute)).To(MatchError(
+					kerrors.NewNotFound(schema.GroupResource{Group: "gateway.networking.k8s.io", Resource: "httproutes"}, httpRouteName.Name),
+				))
+			})
+
+			It("Should create the Ingress", func() {
+				Expect(reconciler.Get(ctx, ingressGUIName, &ingress)).To(Succeed())
+			})
+		})
 	})
 
 	Context("The instance is not running", func() {
@@ -502,7 +680,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 				BeforeEach(func() {
 					svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
 					ingGUI := netv1.Ingress{ObjectMeta: forge.NamespacedNameToObjectMeta(ingressGUIName)}
-					clientBuilder.WithObjects(&svc, &ingGUI)
+					hr := gatewayv1.HTTPRoute{ObjectMeta: forge.NamespacedNameToObjectMeta(httpRouteName)}
+					clientBuilder.WithObjects(&svc, &ingGUI, &hr)
 				})
 
 				It("Should not return an error", func() { Expect(err).ToNot(HaveOccurred()) })
@@ -527,25 +706,6 @@ var _ = Describe("Generation of the exposition environment", func() {
 
 		Describe("Assessing the service deletion", func() { DescribeBody(DescribeBodyParametersService) })
 		Describe("Assessing the GUI ingress deletion", func() { DescribeBody(DescribeBodyParametersIngressGUI) })
-
-		Context("When Gateway API is enabled for deletion", func() {
-			BeforeEach(func() { enableGateway = true })
-
-			BeforeEach(func() {
-				// prepare objects: service and HTTPRoute
-				svc := corev1.Service{ObjectMeta: forge.NamespacedNameToObjectMeta(serviceName)}
-				hr := gatewayv1.HTTPRoute{ObjectMeta: forge.NamespacedNameToObjectMeta(httpRouteName)}
-				svc.SetCreationTimestamp(metav1.NewTime(time.Now()))
-				hr.SetCreationTimestamp(metav1.NewTime(time.Now()))
-				clientBuilder.WithObjects(&svc, &hr)
-			})
-
-			It("Should delete the HTTPRoute and clear status", func() {
-				Expect(err).ToNot(HaveOccurred())
-				notFoundError := kerrors.NewNotFound(schema.GroupResource{Group: gatewayv1.GroupVersion.Group, Resource: "httproutes"}, httpRouteName.Name)
-				Expect(reconciler.Get(ctx, httpRouteName, &httpRoute)).To(MatchError(notFoundError))
-				Expect(instance.Status.Environments[0].IP).To(BeIdenticalTo(""))
-			})
-		})
+		Describe("Assessing the HTTPRoute deletion", func() { DescribeBody(DescribeBodyParametersHTTPRoute) })
 	})
 })

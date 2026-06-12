@@ -68,9 +68,9 @@ var _ = BeforeSuite(func() {
 
 	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
-	Expect(gatewayv1.Install(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(gatewayv1.Install(scheme.Scheme)).NotTo(HaveOccurred())
 
 	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
