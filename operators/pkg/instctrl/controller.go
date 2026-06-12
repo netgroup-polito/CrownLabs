@@ -49,14 +49,12 @@ type InstanceReconciler struct {
 	Scheme                    *runtime.Scheme
 	EventsRecorder            record.EventRecorder
 	NamespaceWhitelist        metav1.LabelSelector
-	ServiceUrls               ServiceUrls
+	ExpositionConfig          ExpositionConfig
 	ContainerEnvOpts          forge.ContainerEnvOpts
 	WebSSHMasterPublicKey     []byte
 	PublicExposureOpts        forge.PublicExposureOpts
 	MirrorPVCStorageClassName string
 	EnableAuthentication      bool
-	GatewayAPIMode            bool
-	GatewayAPIRefsValues      string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -64,10 +62,14 @@ type InstanceReconciler struct {
 	ReconcileDeferHook func()
 }
 
-// ServiceUrls holds URL parameters for the instance reconciler.
-type ServiceUrls struct {
-	WebsiteBaseURL   string
-	InstancesAuthURL string
+// ExpositionConfig holds URL and gateway parameters for the instance reconciler.
+type ExpositionConfig struct {
+	WebsiteBaseURL     string
+	InstancesAuthURL   string
+	GatewayAPIMode     bool
+	GatewayNamespace   string
+	GatewayName        string
+	GatewaySectionName string
 }
 
 // calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
@@ -328,7 +330,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	if urlNeeded {
 		// Enforce the ingress to access the GUI
 		// Use the configured website base URL
-		host := r.ServiceUrls.WebsiteBaseURL
+		host := r.ExpositionConfig.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
 		instance.Status.URL = forge.ExposeGuiStatusInstanceURL(host, instance)

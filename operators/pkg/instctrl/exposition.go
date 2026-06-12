@@ -86,23 +86,22 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 	}
 
 	// Use the configured website base URL
-	host := r.ServiceUrls.WebsiteBaseURL
+	host := r.ExpositionConfig.WebsiteBaseURL
 
 	// Enforce the external exposure presence (HTTProute if Gateway API is enabled, Ingress otherwise)
-	if r.GatewayAPIMode {
+	if r.ExpositionConfig.GatewayAPIMode {
 		httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 		res, err = ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {
 			// HTTPRoute specifications are forged only at creation time, to prevent issues in case of updates.
 			// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
 			if httpRoute.CreationTimestamp.IsZero() {
-				gwNs, gwName, gwSection := utils.ParseGatewayParent(r.GatewayAPIRefsValues)
 				params := &forge.HTTPRouteSpecParams{
 					Host:               host,
 					Path:               forge.ExposeGUIPath(instance, environment),
 					ServiceName:        service.GetName(),
-					GatewayName:        gwName,
-					GatewayNamespace:   gwNs,
-					GatewaySectionName: gwSection,
+					GatewayName:        r.ExpositionConfig.GatewayName,
+					GatewayNamespace:   r.ExpositionConfig.GatewayNamespace,
+					GatewaySectionName: r.ExpositionConfig.GatewaySectionName,
 				}
 				httpRoute.Spec = forge.HTTPRouteSpec(params, environment, forge.GUIPortNumber)
 			}
@@ -140,7 +139,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionPresence(ctx context.Conte
 
 			// Add authentication annotations only if enabled.
 			if r.EnableAuthentication {
-				ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ServiceUrls.InstancesAuthURL))
+				ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ExpositionConfig.InstancesAuthURL))
 			}
 
 			return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
@@ -188,7 +187,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	}
 
 	// Enforce the external exposure absence (HTTPRoute if Gateway API is enabled, Ingress otherwise)
-	if r.GatewayAPIMode {
+	if r.ExpositionConfig.GatewayAPIMode {
 		httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 		if err := utils.EnforceObjectAbsence(ctx, r.Client, &httpRoute, "httproute"); err != nil {
 			return err

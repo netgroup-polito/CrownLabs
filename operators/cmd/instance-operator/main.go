@@ -59,7 +59,7 @@ func init() {
 
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
-	svcUrls := instctrl.ServiceUrls{}
+	expositionCfg := instctrl.ExpositionConfig{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 	publicExposureOpts := forge.PublicExposureOpts{}
 	publicExposureIPPoolRaw := ""
@@ -78,8 +78,8 @@ func main() {
 
 	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
 
-	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
+	flag.StringVar(&expositionCfg.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
+	flag.StringVar(&expositionCfg.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
@@ -171,19 +171,24 @@ func main() {
 		log.Error(err, "no path provided for webssh public key")
 	}
 
+	// Populate exposition/gateway fields from flags
+	expositionCfg.GatewayAPIMode = *gatewayAPIMode
+	gwNs, gwName, gwSection := utils.ParseGatewayParent(*gatewayAPIRefsValues)
+	expositionCfg.GatewayNamespace = gwNs
+	expositionCfg.GatewayName = gwName
+	expositionCfg.GatewaySectionName = gwSection
+
 	if err = (&instctrl.InstanceReconciler{
 		Client:                    mgr.GetClient(),
 		Scheme:                    mgr.GetScheme(),
 		EventsRecorder:            mgr.GetEventRecorderFor(instanceCtrlName),
 		NamespaceWhitelist:        nsWhitelist,
-		ServiceUrls:               svcUrls,
+		ExpositionConfig:          expositionCfg,
 		ContainerEnvOpts:          containerEnvOpts,
 		WebSSHMasterPublicKey:     pubKeyBytes,
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
 		EnableAuthentication:      *enableAuth,
-		GatewayAPIMode:            *gatewayAPIMode,
-		GatewayAPIRefsValues:      *gatewayAPIRefsValues,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)
