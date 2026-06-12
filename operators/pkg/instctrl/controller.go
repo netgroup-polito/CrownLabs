@@ -333,7 +333,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		host := r.ExpositionConfig.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
-		instance.Status.URL = forge.ExposeGuiStatusInstanceURL(host, instance)
+		instance.Status.URL = forge.ExpositionGuiStatusInstanceURL(host, instance)
 	} else {
 		instance.Status.URL = ""
 	}
