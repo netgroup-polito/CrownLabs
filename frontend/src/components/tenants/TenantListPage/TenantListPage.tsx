@@ -122,7 +122,7 @@ export default function TenantListPage() {
       const el = tableBodyRef.current;
       if (!el) return;
       const top = el.getBoundingClientRect().top;
-      setTableHeight(window.innerHeight - top - 170);
+      setTableHeight(window.innerHeight - top - 140);
     };
     calculateHeight();
     window.addEventListener('resize', calculateHeight);
@@ -142,70 +142,77 @@ export default function TenantListPage() {
 
   const filteredTenants = useMemo(
     () =>
-      tenants.filter(tenant => {
-        if (
-          !multiStringIncludes(searchText, tenant.name, tenant.surname, tenant.userid)
-        )
-          return false;
-
-        if (registrationDateRange) {
-          if (!tenant.creationDate) return false;
-          const date = dayjs(tenant.creationDate);
+      tenants
+        .filter(tenant => {
           if (
-            !date.isAfter(registrationDateRange[0].startOf('day')) ||
-            !date.isBefore(registrationDateRange[1].endOf('day'))
-          )
-            return false;
-        }
-
-        if (lastLoginDateRange) {
-          if (!tenant.lastLogin) return false;
-          const date = dayjs(tenant.lastLogin);
-          if (
-            !date.isAfter(lastLoginDateRange[0].startOf('day')) ||
-            !date.isBefore(lastLoginDateRange[1].endOf('day'))
-          )
-            return false;
-        }
-
-        if (labelKeyFilter || labelValueFilter) {
-          if (!tenant.labels) return false;
-          if (labelKeyFilter && labelValueFilter) {
-            if (
-              tenant.labels[labelKeyFilter] === undefined ||
-              !tenant.labels[labelKeyFilter]
-                .toLowerCase()
-                .includes(labelValueFilter.toLowerCase())
+            !multiStringIncludes(
+              searchText,
+              tenant.name,
+              tenant.surname,
+              tenant.userid,
             )
-              return false;
-          } else if (labelKeyFilter) {
-            if (tenant.labels[labelKeyFilter] === undefined) return false;
-          } else {
+          )
+            return false;
+
+          if (registrationDateRange) {
+            if (!tenant.creationDate) return false;
+            const date = dayjs(tenant.creationDate);
             if (
-              !Object.values(tenant.labels).some(v =>
-                v.toLowerCase().includes(labelValueFilter.toLowerCase()),
-              )
+              !date.isAfter(registrationDateRange[0].startOf('day')) ||
+              !date.isBefore(registrationDateRange[1].endOf('day'))
             )
               return false;
           }
-        }
 
-        if (selectedOperators.length > 0) {
-          const val = tenant.labels?.['crownlabsPolitoItOperatorSelector'];
-          if (!val || !selectedOperators.includes(val)) return false;
-        }
+          if (lastLoginDateRange) {
+            if (!tenant.lastLogin) return false;
+            const date = dayjs(tenant.lastLogin);
+            if (
+              !date.isAfter(lastLoginDateRange[0].startOf('day')) ||
+              !date.isBefore(lastLoginDateRange[1].endOf('day'))
+            )
+              return false;
+          }
 
-        const wsCount = tenant.workspaces?.length ?? 0;
-        if (minWorkspaces !== null && wsCount < minWorkspaces) return false;
-        if (maxWorkspaces !== null && wsCount > maxWorkspaces) return false;
+          if (labelKeyFilter || labelValueFilter) {
+            if (!tenant.labels) return false;
+            if (labelKeyFilter && labelValueFilter) {
+              if (
+                tenant.labels[labelKeyFilter] === undefined ||
+                !tenant.labels[labelKeyFilter]
+                  .toLowerCase()
+                  .includes(labelValueFilter.toLowerCase())
+              )
+                return false;
+            } else if (labelKeyFilter) {
+              if (tenant.labels[labelKeyFilter] === undefined) return false;
+            } else {
+              if (
+                !Object.values(tenant.labels).some(v =>
+                  v.toLowerCase().includes(labelValueFilter.toLowerCase()),
+                )
+              )
+                return false;
+            }
+          }
 
-        if (personalWorkspaceActive === 'yes' && !tenant.personalWorkspace)
-          return false;
-        if (personalWorkspaceActive === 'no' && tenant.personalWorkspace)
-          return false;
+          if (selectedOperators.length > 0) {
+            const val = tenant.labels?.['crownlabsPolitoItOperatorSelector'];
+            if (!val || !selectedOperators.includes(val)) return false;
+          }
 
-        return true;
-      }),
+          const wsCount = tenant.workspaces?.length ?? 0;
+          if (minWorkspaces !== null && wsCount < minWorkspaces) return false;
+          if (maxWorkspaces !== null && wsCount > maxWorkspaces) return false;
+
+          if (personalWorkspaceActive === 'yes' && !tenant.personalWorkspace)
+            return false;
+          if (personalWorkspaceActive === 'no' && tenant.personalWorkspace)
+            return false;
+
+          return true;
+        })
+        .map((tenant, index) => ({ ...tenant, key: index + 1 })),
     [
       tenants,
       searchText,
@@ -226,46 +233,51 @@ export default function TenantListPage() {
       startKey: string,
       endKey: string,
     ) =>
-    ({ confirm }: FilterDropdownProps) =>
-      (
-        <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <DatePicker.RangePicker
-            value={value}
-            onChange={dates => {
+    ({ confirm }: FilterDropdownProps) => (
+      <div
+        style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}
+      >
+        <DatePicker.RangePicker
+          value={value}
+          onChange={dates => {
+            setSearchParams(prev => {
+              const next = new URLSearchParams(prev);
+              if (dates?.[0]) next.set(startKey, dates[0].toISOString());
+              else next.delete(startKey);
+              if (dates?.[1]) next.set(endKey, dates[1].toISOString());
+              else next.delete(endKey);
+              return next;
+            });
+          }}
+        />
+        <div
+          style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}
+        >
+          <Button
+            size="small"
+            onClick={() => {
               setSearchParams(prev => {
                 const next = new URLSearchParams(prev);
-                if (dates?.[0]) next.set(startKey, dates[0].toISOString());
-                else next.delete(startKey);
-                if (dates?.[1]) next.set(endKey, dates[1].toISOString());
-                else next.delete(endKey);
+                next.delete(startKey);
+                next.delete(endKey);
                 return next;
               });
+              confirm();
             }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-            <Button
-              size="small"
-              onClick={() => {
-                setSearchParams(prev => {
-                  const next = new URLSearchParams(prev);
-                  next.delete(startKey);
-                  next.delete(endKey);
-                  return next;
-                });
-                confirm();
-              }}
-            >
-              Reset
-            </Button>
-            <Button type="primary" size="small" onClick={() => confirm()}>
-              OK
-            </Button>
-          </div>
+          >
+            Reset
+          </Button>
+          <Button type="primary" size="small" onClick={() => confirm()}>
+            OK
+          </Button>
         </div>
-      );
+      </div>
+    );
 
   const workspacesDropdown = ({ confirm }: FilterDropdownProps) => (
-    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div
+      style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}
+    >
       <Space.Compact>
         <InputNumber
           placeholder="Min"
@@ -305,7 +317,9 @@ export default function TenantListPage() {
   );
 
   const personalWorkspaceDropdown = ({ confirm }: FilterDropdownProps) => (
-    <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div
+      style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8 }}
+    >
       <Select
         allowClear
         placeholder="Any"
@@ -334,102 +348,118 @@ export default function TenantListPage() {
     </div>
   );
 
+  const resetFilters = () => {
+    setSelectedRowKeys([]);
+    setSearchParams(new URLSearchParams());
+  };
+
   return (
     <Col span={24} lg={22} xxl={20} className="h-full">
       <Box
         header={{
           className: 'py-4 md:py-6 h-auto',
           center: (
-            <div className="flex flex-col items-center gap-4 w-full px-2 sm:px-4">
-              <p className="md:text-2xl text-lg text-center mb-0">
-                <b>Manage users</b>
-              </p>
+            <div>
+              <div className="flex flex-col items-center gap-4 w-full px-2 sm:px-4">
+                <p className="md:text-2xl text-lg text-center mb-0">
+                  <b>Manage users</b>
+                </p>
 
-              <div
-                className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-3 w-full p-3"
-                style={{
-                  background: token.colorFillAlter,
-                  border: `1px solid ${token.colorBorderSecondary}`,
-                  borderRadius: token.borderRadiusLG,
-                }}
-              >
-                {/* Search + delete button — full width */}
-                <div className="col-span-1 sm:col-span-3 flex flex-wrap items-center gap-2">
-                  <Input.Search
-                    placeholder="Search by name, surname, user ID"
-                    className="flex-1 min-w-48"
-                    value={searchText}
-                    onSearch={v => setParam('q', v)}
-                    onChange={e => setParam('q', e.target.value)}
-                    enterButton
-                    allowClear
-                  />
-                  {selectedRowKeys.length > 0 && (
-                    <Popconfirm
-                      title={`Delete ${selectedRowKeys.length} users?`}
-                      onConfirm={handleDeleteMultipleTenants}
-                      okText="Yes"
-                      cancelText="No"
-                    >
-                      <Button
-                        type="primary"
-                        danger
-                        icon={<DeleteOutlined />}
-                        loading={deleteLoading}
+                <div
+                  className="grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-3 w-full p-3"
+                  style={{
+                    background: token.colorFillAlter,
+                    border: `1px solid ${token.colorBorderSecondary}`,
+                    borderRadius: token.borderRadiusLG,
+                  }}
+                >
+                  {/* Search + delete button — full width */}
+                  <div className="col-span-1 sm:col-span-3 flex flex-wrap items-center gap-2">
+                    <Input.Search
+                      placeholder="Search by name, surname, user ID"
+                      className="flex-1 min-w-48"
+                      value={searchText}
+                      onSearch={v => setParam('q', v)}
+                      onChange={e => setParam('q', e.target.value)}
+                      enterButton
+                      allowClear
+                    />
+                    {selectedRowKeys.length > 0 && (
+                      <Popconfirm
+                        title={`Delete ${selectedRowKeys.length} users?`}
+                        onConfirm={handleDeleteMultipleTenants}
+                        okText="Yes"
+                        cancelText="No"
                       >
-                        Delete ({selectedRowKeys.length})
-                      </Button>
-                    </Popconfirm>
-                  )}
-                </div>
+                        <Button
+                          type="primary"
+                          danger
+                          icon={<DeleteOutlined />}
+                          loading={deleteLoading}
+                        >
+                          Delete ({selectedRowKeys.length})
+                        </Button>
+                      </Popconfirm>
+                    )}
+                  </div>
 
-                <div>
-                  <span
-                    className="text-xs font-medium block mb-1"
-                    style={{ color: token.colorTextSecondary }}
-                  >
-                    Operator
-                  </span>
-                  <Select
-                    mode="multiple"
-                    allowClear
-                    placeholder="Any"
-                    className="w-full"
-                    value={selectedOperators}
-                    onChange={vals => setMultiParam('op', vals)}
-                    options={operatorSelectorValues.map(v => ({ label: v, value: v }))}
-                  />
-                </div>
+                  <div>
+                    <span
+                      className="text-xs font-medium block mb-1"
+                      style={{ color: token.colorTextSecondary }}
+                    >
+                      Operator
+                    </span>
+                    <Select
+                      mode="multiple"
+                      allowClear
+                      placeholder="Any"
+                      className="w-full"
+                      value={selectedOperators}
+                      onChange={vals => setMultiParam('op', vals)}
+                      options={operatorSelectorValues.map(v => ({
+                        label: v,
+                        value: v,
+                      }))}
+                    />
+                  </div>
 
-                <div>
-                  <span
-                    className="text-xs font-medium block mb-1"
-                    style={{ color: token.colorTextSecondary }}
-                  >
-                    Label Key
-                  </span>
-                  <Input
-                    placeholder="e.g. crownlabs.polito.it/role"
-                    value={labelKeyFilter}
-                    onChange={e => setParam('labelKey', e.target.value)}
-                    allowClear
-                  />
-                </div>
+                  <div>
+                    <span
+                      className="text-xs font-medium block mb-1"
+                      style={{ color: token.colorTextSecondary }}
+                    >
+                      Label Key
+                    </span>
+                    <Input
+                      placeholder="e.g. crownlabs.polito.it/role"
+                      value={labelKeyFilter}
+                      onChange={e => setParam('labelKey', e.target.value)}
+                      allowClear
+                    />
+                  </div>
 
-                <div>
-                  <span
-                    className="text-xs font-medium block mb-1"
-                    style={{ color: token.colorTextSecondary }}
-                  >
-                    Label Value
-                  </span>
-                  <Input
-                    placeholder="e.g. admin"
-                    value={labelValueFilter}
-                    onChange={e => setParam('labelVal', e.target.value)}
-                    allowClear
-                  />
+                  <div>
+                    <span
+                      className="text-xs font-medium block mb-1"
+                      style={{ color: token.colorTextSecondary }}
+                    >
+                      Label Value
+                    </span>
+                    <Input
+                      placeholder="e.g. admin"
+                      value={labelValueFilter}
+                      onChange={e => setParam('labelVal', e.target.value)}
+                      allowClear
+                    />
+                  </div>
                 </div>
+              </div>
+
+              <div className="mt-2 px-2 sm:px-4 flex justify-end items-center gap-4">
+                <p>{filteredTenants.length} elements</p>
+
+                <Button onClick={resetFilters}>Reset all filters</Button>
               </div>
             </div>
           ),
@@ -453,10 +483,13 @@ export default function TenantListPage() {
               scroll={{ y: tableHeight }}
               style={{ height: '100%' }}
             >
+              <Table.Column dataIndex="key" rowScope="row" width={40} />
               <Table.Column
                 title="User ID"
                 dataIndex="userid"
-                sorter={(a: Tenant, b: Tenant) => a.userid.localeCompare(b.userid)}
+                sorter={(a: Tenant, b: Tenant) =>
+                  a.userid.localeCompare(b.userid)
+                }
                 key="userid"
                 width={100}
               />
@@ -472,7 +505,9 @@ export default function TenantListPage() {
                 responsive={['md', 'lg']}
                 title="Surname"
                 dataIndex="surname"
-                sorter={(a: Tenant, b: Tenant) => a.surname.localeCompare(b.surname)}
+                sorter={(a: Tenant, b: Tenant) =>
+                  a.surname.localeCompare(b.surname)
+                }
                 key="surname"
                 width={120}
               />
@@ -536,7 +571,9 @@ export default function TenantListPage() {
                 width={130}
                 filterDropdown={workspacesDropdown}
                 filteredValue={
-                  minWorkspaces !== null || maxWorkspaces !== null ? ['active'] : []
+                  minWorkspaces !== null || maxWorkspaces !== null
+                    ? ['active']
+                    : []
                 }
               />
               <Table.Column
@@ -548,8 +585,8 @@ export default function TenantListPage() {
                   a.personalWorkspace === b.personalWorkspace
                     ? 0
                     : a.personalWorkspace
-                    ? -1
-                    : 1
+                      ? -1
+                      : 1
                 }
                 key="personalWorkspace"
                 width={160}
