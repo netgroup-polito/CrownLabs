@@ -1,6 +1,5 @@
 import { InfoCircleOutlined } from '@ant-design/icons';
 import {
-  AutoComplete,
   Checkbox,
   Form,
   Input,
@@ -17,6 +16,7 @@ import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
 import type { ChildFormItem, Resources, TemplateFormEnv, Image } from './types';
 import { formItemLayout, getImageNameNoVer, isInImageList } from './utils';
+import type { DefaultOptionType } from 'antd/es/cascader';
 
 // Environment type options
 const environmentTypeOptions = [
@@ -130,33 +130,57 @@ export const Environment: FC<EnvironmentProps> = ({
   };
 
   const validateImageName = async (_: unknown, image: string) => {
-    if (!environments || !image) return;
+  if (!environments || !image) return;
 
-    // 1. Check if the image is in the list of available images (Local Registry)
-    const availableImages = getAvailableImagesForEnvironment(
-      getEnvironmentType(name),
-      availableImagesVM,
-      availableImagesContainer,
-    );
-    const nameWithoutVersion = getImageNameNoVer(image);
-    const versionsForName = availableImages.filter(img => getImageNameNoVer(img.name) === nameWithoutVersion).map(img => img.name);
-    const found = versionsForName.find(imgName => imgName === image);
-    if (found) return;
+  const cleanImage = image.replace(/:$/, '');
 
-    // 2. Check if it's a valid external registry URL
-    // Questa regex valida formati come: harbor.prova.it/test/vscode-latex:latest o docker.io/library/ubuntu:22.04
-    const externalRegistryRegex = /^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}(\/[a-zA-Z0-9._-]+)+(:[a-zA-Z0-9._-]+)?$/;
+  // 1. Check if the image is in the list of available images (Local Registry)
+  const availableImages = getAvailableImagesForEnvironment(
+    getEnvironmentType(name),
+    availableImagesVM,
+    availableImagesContainer,
+  );
+  
+  const nameWithoutVersion = getImageNameNoVer(cleanImage);
+  const versionsForName = availableImages
+    .filter(img => getImageNameNoVer(img.name) === nameWithoutVersion)
+    .map(img => img.name);
     
-    if (externalRegistryRegex.test(image)) {
-      return; // Passa il controllo se è un URL esterno valido
-    }
+  const found = versionsForName.find(imgName => imgName === cleanImage);
+  if (found) return; 
+  
+  const dockerImageRegex = /^(?:(?=[^/]{1,253})(?!-)[a-zA-Z0-9.-]+(?<!-)(?::[0-9]+)?\/)?(?:(?=[^/]{1,253})(?!-)[a-zA-Z0-9._-]+(?<!-)\/)*(?=[^_.:/]{1,253})[a-zA-Z0-9._-]+(?::(?=[^.:/]{1,128})[a-zA-Z0-9._-]+)?$/;
 
-    // Se falliscono entrambi i controlli, lancia l'errore
-    throw new Error(`Image "${image}" is not found from local registry and is not a valid external registry URL`);
-  };
+  if (dockerImageRegex.test(cleanImage)) {
+    return; 
+  }
+  throw new Error(`Image "${cleanImage}" is not found from local registry and is not a valid registry URL`);
+};
+const [imagesSearchOptions, setImagesSearchOptions] = useState<DefaultOptionType[]>([]);
 
-  // 1. Modifica il tipo dello stato da string[] alla struttura del Cascader
-const [imagesSearchOptions, setImagesSearchOptions] = useState<any[]>([]);
+const handleSearch = (value: string) => {
+  if (!value) {
+    setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
+    return;
+  }
+
+  const matchExists = currentAvailableImages.some(img =>
+    img.name.toLowerCase().includes(value.toLowerCase())
+  );
+
+  if (!matchExists) {
+    const customOption = {
+      value: value,
+      label: value,
+      children: [{ value: '', label: '' }],
+    };
+    
+    setImagesSearchOptions([customOption, ...getImageNamesCascader(currentAvailableImages)]);
+  } else {
+    setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
+  }
+};
+
 
 const currentEnvironmentType = getEnvironmentType(name);
 const currentAvailableImages = getAvailableImagesForEnvironment(
@@ -165,7 +189,6 @@ const currentAvailableImages = getAvailableImagesForEnvironment(
   availableImagesContainer,
 );
 
-// 2. Aggiorna lo useEffect per usare la funzione di raggruppamento corretta
 useEffect(() => {
   setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
 }, [currentAvailableImages]);
@@ -427,49 +450,63 @@ useEffect(() => {
       {/* VM Image Selection - Remove {...fullLayout} */}
       {isVM(name) || isStandalone(name) ? (
         <Form.Item
-    {...restField}
-    label="Image"
-    name={[name, 'image']}
-    required
-    validateTrigger="onChange"
-    rules={[
-      {
-        required: true,
-        message: 'Select an image',
-      },
-      {
-        validator: validateImageName,
-      },
-    ]}
-    validateDebounce={500}
-    {...formItemLayout}
-    // Trasforma la stringa salvata nel form "nome:versione" in un array [nome, versione] per il Cascader
-    getValueProps={(value) => {
-      if (!value) return { value: [] };
-      if (!isInImageList(value, getEnvironmentType(name), availableImagesVM, availableImagesContainer)) {
-        return { value: [value] }; // Se l'immagine non è nella lista, trattala come testo libero
-      }
-      const index = value.indexOf(':');
-      if (index === -1) return { value: [value] };
-      return { value: [value.slice(0, index), value.slice(index + 1)] };
+  {...restField}
+  label="Image"
+  name={[name, 'image']}
+  required
+  validateTrigger="onChange"
+  rules={[
+    {
+      required: true,
+      message: 'Select an image',
+    },
+    {
+      validator: validateImageName,
+    },
+  ]}
+  validateDebounce={500}
+  {...formItemLayout}
+  
+  getValueProps={(value) => {
+    if (!value) return { value: [] };
+    
+    if (!isInImageList(value, getEnvironmentType(name), availableImagesVM, availableImagesContainer)) {
+      return { value: [value] }; 
+    }
+    
+    const index = value.indexOf(':');
+    if (index === -1) return { value: [value] };
+    return { value: [value.slice(0, index), value.slice(index + 1)] };
+  }}
+  
+  getValueFromEvent={(value: string[]) => {
+    if (!value || value.length === 0) return '';
+    
+    // Case 1: User has selected an option from the Cascader (both image name and version are present)
+    if (value.length === 2 && value[1] !== '') {
+      return `${value[0]}:${value[1]}`;
+    }
+    
+    // Case 2 and 3: Custom/external image (we take the first element and remove the trailing ":" if present)
+    const rawImage = value[0];
+    return typeof rawImage === 'string' ? rawImage.trim().replace(/:$/, '') : rawImage;
+  }}
+>
+  <Cascader
+    options={imagesSearchOptions}
+    placeholder="Select image and version"
+    expandTrigger="hover"
+    onSearch={handleSearch}
+    showSearch={{
+      filter: (inputValue, path) =>
+        path.some(option => (option.label as string).toLowerCase().indexOf(inputValue.toLowerCase()) > -1),
     }}
-    // Trasforma l'array selezionato dal Cascader [nome, versione] nella stringa "nome:versione" per il form
-    getValueFromEvent={(value: string[]) => {
-      if (!value || value.length === 0) return '';
-      return value.length === 2 ? `${value[0]}:${value[1]}` : value[0];
+    getPopupContainer={trigger => trigger.parentElement || document.body}
+    onChange={() => {
+      setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
     }}
-  >
-    <Cascader
-      options={imagesSearchOptions}
-      placeholder="Select image and version"
-      expandTrigger="hover" // Opzionale: apre il secondo livello al passaggio del mouse
-      showSearch={{
-        filter: (inputValue, path) =>
-          path.some(option => (option.label as string).toLowerCase().indexOf(inputValue.toLowerCase()) > -1),
-      }}
-      getPopupContainer={trigger => trigger.parentElement || document.body}
-    />
-  </Form.Item>
+  />
+</Form.Item>
       ) : (
         <>
           {/* External Image Input */}
