@@ -79,7 +79,7 @@ operator:
       pmp: true
       keycloak: true
       webhooks: true
-      imageList: true
+      imageList: false
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
