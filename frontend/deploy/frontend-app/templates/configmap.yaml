@@ -16,3 +16,6 @@ data:
     window.VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM="{{ .Values.configuration.oidc.adminClaim }}";
     window.VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL="{{ .Values.configuration.backend.grafana }}";
     window.VITE_APP_CROWNLABS_BASTION_HOST="{{ .Values.configuration.backend.bastion }}";
+    window.VITE_APP_DEFAULT_INACTIVITY_TIMEOUT="{{ .Values.configuration.defaultTimeouts.inactivityTimeout }}";
+    window.VITE_APP_DEFAULT_DESTROY_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.destroyAfterInactivity }}";
+    window.VITE_APP_DEFAULT_DELETE_AFTER="{{ .Values.configuration.defaultTimeouts.deleteAfter }}";

@@ -77,6 +77,7 @@ export type Template = {
   hasMultipleEnvironments: boolean;
   deleteAfter: string;
   inactivityTimeout: string;
+  destroyAfterInactivity: string;
 };
 
 export type Instance = {

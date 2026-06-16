@@ -102,6 +102,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         environmentList: environmentList,
         deleteAfter: t.deleteAfter,
         inactivityTimeout: t.inactivityTimeout,
+        destroyAfterInactivity: t.destroyAfterInactivity,
         allowPublicExposure: t.allowPublicExposure,
         ...(t.nodeSelector !== null && { nodeSelector: t.nodeSelector }),
       },
