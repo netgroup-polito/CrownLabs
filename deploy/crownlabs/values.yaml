@@ -9,7 +9,7 @@ global:
 createClusterRoles: true
 
 # Namespace that hosts the PVC used as the source for CloudVM clones.
-cloneSourceNamespace: crownlabs-staging-1094
+cloneSourceNamespace: cldprog-5-block-vms-tests
 
 frontend-app:
   replicaCount: 1
