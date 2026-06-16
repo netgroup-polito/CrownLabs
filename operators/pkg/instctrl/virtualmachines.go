@@ -64,6 +64,35 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	template := clctx.TemplateFrom(ctx)
 	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
+	//TODO: Test logic for datavolume init before vm creation
+    dvName := forge.NamespacedNameWithSuffix(instance, environment.Name).Name
+    
+    // Init the DataVolume object with the correct name and namespace
+    dv := cdiv1beta1.DataVolume{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      dvName,
+            Namespace: instance.Namespace,
+        },
+    }
+
+    // CreateOrUpdate the DataVolume, setting the Spec only if the DataVolume is being created for the first time.
+    resDV, errDV := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
+        if dv.CreationTimestamp.IsZero() {
+            // Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
+            forgedDV := forge.DataVolume(dvName, instance.Namespace, environment)
+            dv.Spec = forgedDV.Spec
+        }
+        // Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
+        return ctrl.SetControllerReference(instance, &dv, r.Scheme)
+    })
+
+    if errDV != nil {
+        log.Error(errDV, "failed to enforce datavolume", "datavolume", klog.KObj(&dv))
+        return errDV
+    }
+    log.V(utils.FromResult(resDV)).Info("datavolume enforced", "datavolume", klog.KObj(&dv), "result", resDV)
+    // =========================================================================
+
 	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	// It is necessary to retrieve the VMI object associated with the VM (if any), to enforce the MAC of the VMI into the VM, and later to correctly detect the ResourceQuotaExceeded phase.

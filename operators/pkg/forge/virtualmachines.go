@@ -57,9 +57,9 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Temp
 			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
 			Spec:       VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},
-		DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
-			DataVolumeTemplate(NamespacedNameWithSuffix(instance, environment.Name).Name, environment),
-		},
+		// DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
+		// 	DataVolumeTemplate(NamespacedNameWithSuffix(instance, environment.Name).Name, environment),
+		// },
 	}
 }
 
@@ -260,9 +260,8 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
 		return &cdiv1beta1.DataVolumeSource{
-			PVC: &cdiv1beta1.DataVolumeSourcePVC{
-				Namespace: "cldprog-5-block-vms-tests",
-				Name:      "debian-nginx-raw-block",
+			HTTP: &cdiv1beta1.DataVolumeSourceHTTP{
+				URL: environment.Image,
 			},
 		}
 	}
@@ -273,7 +272,7 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 		},
 	}
 }
-
+//TODO: Consider removing this func
 // DataVolumeTemplate forges the DataVolume template associated with a given environment.
 func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1.DataVolumeTemplateSpec {
 	return virtv1.DataVolumeTemplateSpec{
@@ -291,3 +290,22 @@ func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1
 		},
 	}
 }
+
+func DataVolume(name string, namespace string, environment *clv1alpha2.Environment) *cdiv1beta1.DataVolume {
+    return &cdiv1beta1.DataVolume{
+        ObjectMeta: metav1.ObjectMeta{
+            Name:      name,
+            Namespace: namespace,
+        },
+        Spec: cdiv1beta1.DataVolumeSpec{
+            Source: DataVolumeSourceForge(environment),
+            PVC: &corev1.PersistentVolumeClaimSpec{
+                AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+                Resources: corev1.VolumeResourceRequirements{
+                    Requests: corev1.ResourceList{
+                        corev1.ResourceStorage: environment.Resources.Disk,
+                    },
+                },
+            },
+        },
+    }
