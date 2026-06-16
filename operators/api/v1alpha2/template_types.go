@@ -77,6 +77,12 @@ type TemplateSpec struct {
 	// the current Template will be automatically stopped or deleted to
 	// save resources.
 	InactivityTimeout string `json:"inactivityTimeout,omitempty"`
+
+	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
+	// +kubebuilder:default="never"
+	// The maximum period of time a persistent instance can remain powered off
+	// after being stopped for inactivity, before being completely deleted.
+	DestroyAfterInactivity string `json:"destroyAfterInactivity,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.

@@ -61,9 +61,11 @@ async function main() {
   const app = express();
   const httpServer = createServer(app);
 
+  const basePath = process.env.BASE_URL || '/graph';
+
   app.use(compression());
 
-  app.get('/schema', (req, res) => {
+  app.get(`${basePath}/schema`, (req, res) => {
     res.setHeader('content-type', 'text/plain');
     res.send(
       printSchema(schema)
@@ -72,15 +74,19 @@ async function main() {
         .join('\n'),
     );
   });
-  app.get('/healthz', (req, res) => {
+  app.get(`${basePath}/healthz`, (req, res) => {
     res.sendStatus(200);
   });
-  app.get('/', (req, res) => {
+  app.get(`${basePath}/playground`, (req, res) => {
     res.setHeader('content-type', 'text/html');
     res.send(`<html><head><title>CrownLabs GraphQL Playground</title></head><body>
       <div></div>
       <script src="https://embeddable-sandbox.cdn.apollographql.com/_latest/embeddable-sandbox.umd.production.min.js"></script> 
-      <script>new window.EmbeddedSandbox({ target: 'div', initialEndpoint: document.location.href, initialSubscriptionEndpoint: document.location.href+'subscription' });</script>
+      <script>
+        const wsProtocol = document.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = wsProtocol + '//' + document.location.host + '${basePath}/subscription';
+        new window.EmbeddedSandbox({ target: 'div', initialEndpoint: document.location.origin + '${basePath}', initialSubscriptionEndpoint: wsUrl });
+      </script>
       <style>html, body, body > div {height: 100%;body: 100%;margin: 0;padding: 0}</style>
       </body></html>`);
   });
@@ -143,7 +149,7 @@ async function main() {
     server: httpServer,
     // Pass a different path here if app.use
     // serves expressMiddleware at a different path
-    path: '/subscription',
+    path: `${basePath}/subscription`,
   });
 
   // Hand in the schema we just created and have the
@@ -176,7 +182,7 @@ async function main() {
   await server.start();
 
   app.use(
-    '/',
+    basePath,
     cors(),
     express.json(),
     expressMiddleware(server, {
@@ -191,8 +197,8 @@ async function main() {
 
   httpServer.listen({ port: PORT }, () => {
     logger.info({
-      url: `http://localhost:${PORT}/`,
-      subscriptions: `ws://localhost:${PORT}/subscription`,
+      url: `http://localhost:${PORT}${basePath}`,
+      subscriptions: `ws://localhost:${PORT}${basePath}/subscription`,
     }, '🚀 Server ready');
     repl.start('> ');
   });

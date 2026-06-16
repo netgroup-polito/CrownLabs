@@ -178,19 +178,13 @@ var _ = Describe("MyDrive management", func() {
 					Status: corev1.PersistentVolumeClaimStatus{
 						Phase: corev1.ClaimBound,
 					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						VolumeName: "pv-" + tnName,
-					},
 				}
 
 				// Create a job that has succeeded
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      forge.MyDrivePVCName(tnName) + "-provision",
-						Namespace: "mydrive-pvcs",
-						Labels: map[string]string{
-							forge.ProvisionJobLabel: forge.ProvisionJobValuePending,
-						},
+						Name:              forge.MyDrivePVCName(tnName) + "-provision",
+						Namespace:         "mydrive-pvcs",
 						CreationTimestamp: metav1.Now(),
 					},
 					Status: batchv1.JobStatus{
@@ -199,6 +193,9 @@ var _ = Describe("MyDrive management", func() {
 				}
 
 				BeforeEach(func() {
+					// Clean up the outer version of the object
+					removeObjFromObjectsList(pvc)
+
 					addObjToObjectsList(pvc)
 					addObjToObjectsList(job)
 				})
@@ -210,16 +207,13 @@ var _ = Describe("MyDrive management", func() {
 				})
 
 				It("Should update the PVC label to ok", func() {
-					pvc := &corev1.PersistentVolumeClaim{}
 					Eventually(func() string {
-						err := cl.Get(ctx, client.ObjectKey{
-							Name:      forge.MyDrivePVCName(tnName),
-							Namespace: "mydrive-pvcs",
-						}, pvc)
+						gotPvc := &corev1.PersistentVolumeClaim{}
+						err := cl.Get(ctx, forge.NamespacedNameFromObject(pvc), gotPvc)
 						if err != nil {
 							return ""
 						}
-						return pvc.Labels[forge.ProvisionJobLabel]
+						return gotPvc.Labels[forge.ProvisionJobLabel]
 					}, timeout, interval).Should(Equal(forge.ProvisionJobValueOk))
 				})
 			})
@@ -238,19 +232,13 @@ var _ = Describe("MyDrive management", func() {
 					Status: corev1.PersistentVolumeClaimStatus{
 						Phase: corev1.ClaimBound,
 					},
-					Spec: corev1.PersistentVolumeClaimSpec{
-						VolumeName: "pv-" + tnName,
-					},
 				}
 
 				// Create a job that has failed
 				job := &batchv1.Job{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      forge.MyDrivePVCName(tnName) + "-provision",
-						Namespace: "mydrive-pvcs",
-						Labels: map[string]string{
-							forge.ProvisionJobLabel: forge.ProvisionJobValuePending,
-						},
+						Name:              forge.MyDrivePVCName(tnName) + "-provision",
+						Namespace:         "mydrive-pvcs",
 						CreationTimestamp: metav1.Now(),
 					},
 					Status: batchv1.JobStatus{
@@ -259,6 +247,9 @@ var _ = Describe("MyDrive management", func() {
 				}
 
 				BeforeEach(func() {
+					// Clean up the outer version of the object
+					removeObjFromObjectsList(pvc)
+
 					addObjToObjectsList(pvc)
 					addObjToObjectsList(job)
 				})
@@ -270,16 +261,13 @@ var _ = Describe("MyDrive management", func() {
 				})
 
 				It("Should keep the PVC label as pending", func() {
-					pvc := &corev1.PersistentVolumeClaim{}
 					Consistently(func() string {
-						err := cl.Get(ctx, client.ObjectKey{
-							Name:      forge.MyDrivePVCName(tnName),
-							Namespace: "mydrive-pvcs",
-						}, pvc)
+						gotPvc := &corev1.PersistentVolumeClaim{}
+						err := cl.Get(ctx, forge.NamespacedNameFromObject(pvc), gotPvc)
 						if err != nil {
 							return ""
 						}
-						return pvc.Labels[forge.ProvisionJobLabel]
+						return gotPvc.Labels[forge.ProvisionJobLabel]
 					}, 2*time.Second, 250*time.Millisecond).Should(Equal(forge.ProvisionJobValuePending))
 				})
 			})

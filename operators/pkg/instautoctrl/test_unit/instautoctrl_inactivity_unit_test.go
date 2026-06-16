@@ -543,6 +543,87 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 	})
 
+	Describe("Testing GetRemainingInactivityDestructionTime function", func() {
+		var (
+			r               *instautoctrl.InstanceInactiveTerminationReconciler
+			ctx             context.Context
+			currentInstance *clv1alpha2.Instance
+			currentTemplate *clv1alpha2.Template
+			currentTenant   *clv1alpha2.Tenant
+		)
+
+		JustBeforeEach(func() {
+			ctx = context.Background()
+
+			r = &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client:             k8sClient,
+				NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
+				Prometheus:         mockProm,
+			}
+
+			By("Checking that the instance is running")
+			InstanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+			currentInstance = &clv1alpha2.Instance{}
+			doesEventuallyExists(ctx, InstanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+
+			TemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
+			currentTemplate = &clv1alpha2.Template{}
+			doesEventuallyExists(ctx, TemplateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+
+			tenantLookupKey := types.NamespacedName{Name: TenantName, Namespace: tenantNs.Name}
+			currentTenant = &clv1alpha2.Tenant{}
+			doesEventuallyExists(ctx, tenantLookupKey, currentTenant, BeTrue(), timeout, interval, k8sClient)
+
+			ctx, _ = clctx.InstanceInto(ctx, currentInstance)
+			ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
+			ctx, _ = clctx.TenantInto(ctx, currentTenant)
+
+			err := r.SetupInstanceAnnotations(ctx)
+			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
+		})
+
+		It("should return false if destroyAfterInactivity is NeverTimeoutValue", func() {
+			currentTemplate.Spec.DestroyAfterInactivity = instautoctrl.NeverTimeoutValue
+
+			remaining, isActive, err := r.GetRemainingInactivityDestructionTime(ctx, currentInstance)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(isActive).To(BeFalse())
+			Expect(remaining.Seconds()).To(BeNumerically("==", 0))
+		})
+
+		It("should return remaining time if destroy timer is set but not exceeded", func() {
+			currentTemplate.Spec.DestroyAfterInactivity = "10d"
+			poweredOffTime := time.Now().Add(-5 * 24 * time.Hour).Format(time.RFC3339)
+			currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = poweredOffTime
+
+			remaining, isActive, err := r.GetRemainingInactivityDestructionTime(ctx, currentInstance)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(isActive).To(BeTrue())
+			Expect(remaining.Seconds()).To(BeNumerically(">", 0))
+		})
+
+		It("should return <= 0 if destroy timer has been exceeded", func() {
+			currentTemplate.Spec.DestroyAfterInactivity = "10d"
+			poweredOffTime := time.Now().Add(-15 * 24 * time.Hour).Format(time.RFC3339)
+			currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = poweredOffTime
+
+			remaining, isActive, err := r.GetRemainingInactivityDestructionTime(ctx, currentInstance)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(isActive).To(BeTrue())
+			Expect(remaining.Seconds()).To(BeNumerically("<=", 0))
+		})
+
+		It("should return false if LastPoweredOffTimestampAnnotation is empty", func() {
+			currentTemplate.Spec.DestroyAfterInactivity = "10d"
+			currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
+
+			remaining, isActive, err := r.GetRemainingInactivityDestructionTime(ctx, currentInstance)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(isActive).To(BeFalse())
+			Expect(remaining.Seconds()).To(BeNumerically("==", 0))
+		})
+	})
+
 	Describe("Testing IncrementAnnotation function", func() {
 		var (
 			reconciler *instautoctrl.InstanceInactiveTerminationReconciler

@@ -55,10 +55,16 @@ spec:
             - "--shared-volume-storage-class={{.Values.configurations.sharedVolumeOptions.storageClass }}"
             - "--mirror-storage-class={{.Values.configurations.pvcMirrorProvisioner.storageClass.name}}"
             - "--mirror-provisioner-name={{.Values.configurations.pvcMirrorProvisioner.provisionerName}}"
+            - "--enable-tenant={{.Values.configurations.features.tenant}}"
+            - "--enable-workspace={{.Values.configurations.features.workspace}}"
+            - "--enable-instance={{.Values.configurations.features.instance}}"
+            - "--enable-sharedvolume={{.Values.configurations.features.sharedvolume}}"
             - "--enable-pmp={{.Values.configurations.features.pmp}}"
+            - "--enable-keycloak={{.Values.configurations.features.keycloak}}"
+            - "--enable-webhooks={{.Values.configurations.features.webhooks}}"
+            - "--enable-imagelist={{.Values.configurations.features.imageList}}"
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
-            - "--enable-imagelist={{ .Values.configurations.features.imageList }}"
             {{- if .Values.configurations.imageList }}
             - "--image-list-config-file={{ .Values.configurations.imageList.configFile }}"
             - "--image-list-update-interval={{ .Values.configurations.imageList.updateInterval }}"
