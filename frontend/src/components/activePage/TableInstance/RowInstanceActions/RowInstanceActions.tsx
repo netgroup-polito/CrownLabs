@@ -76,6 +76,27 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
     return 'now';
   };
 
+  const getLastAccess = () => {
+    if (!instance.lastActivity) return '-';
+    const lastAccess = new Date(instance.lastActivity);
+    if (isNaN(lastAccess.getTime())) return '-';
+    let delta = (now.getTime() - lastAccess.getTime()) / 1000;
+    const years = Math.floor(delta / (86400 * 365));
+    delta -= years * (86400 * 365);
+    const days = Math.floor(delta / 86400);
+    delta -= days * 86400;
+    const hours = Math.floor(delta / 3600) % 24;
+    delta -= hours * 3600;
+    const minutes = Math.floor(delta / 60) % 60;
+
+    if (years < 0 || days < 0 || hours < 0 || minutes < 0) return 'now';
+    if (years) return years + 'y ' + days + 'd';
+    if (days) return days + 'd ' + hours + 'h';
+    if (hours) return hours + 'h ' + minutes + 'm';
+    if (minutes) return minutes + 'm';
+    return 'now';
+  };
+
   // include public exposure handler only when allowed by template
   // include public exposure handler only when allowed or in dev
   const fieldsDropdown = {
@@ -98,7 +119,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
             className={`flex justify-between items-center ${
               viewMode === WorkspaceRole.manager
                 ? 'lg:w-2/5 xl:w-7/12 2xl:w-1/2'
-                : 'lg:w-1/3 xl:w-1/2'
+                : 'lg:w-1/2 xl:w-7/12'
             }`}
           >
             <RowInstanceActionsExtended
@@ -110,13 +131,16 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
             <Text className="hidden lg:block" strong>
               {getTime()}
             </Text>
+            <Text className="hidden lg:block w-24 whitespace-nowrap" strong>
+              {getLastAccess()}
+            </Text>
           </div>
         )}
         <div
           className={`flex justify-end items-center gap-2 w-full ${
             viewMode === WorkspaceRole.manager
               ? 'lg:w-3/5 xl:w-5/12 2xl:w-1/2'
-              : 'lg:w-2/3 xl:w-1/2'
+              : 'lg:w-1/2 xl:w-5/12'
           } ${extended ? 'pr-2' : ''}`}
         >
           {!extended && <RowInstanceActionsDropdown {...fieldsDropdown} />}

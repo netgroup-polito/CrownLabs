@@ -398,8 +398,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                     </div>
                   }
                 >
-                  <div className="ml-3 flex items-center">
-                    <ClockCircleOutlined style={{ fontSize: '18px', color: '#f8cf8d' }} />
+                  <div className="ml-3 flex warning-color-fg items-center">
+                    <ClockCircleOutlined style={{ fontSize: '18px' }} />
                   </div>
                 </Tooltip>
               )}

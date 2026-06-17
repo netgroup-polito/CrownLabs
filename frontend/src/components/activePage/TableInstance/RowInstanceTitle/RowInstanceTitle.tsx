@@ -3,15 +3,17 @@ import {
   DesktopOutlined,
   AppstoreAddOutlined,
   DockerOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { Checkbox, Space, Tooltip, Typography } from 'antd';
 import SvgInfinite from '../../../../assets/infinite.svg?react';
 import type { ApolloError } from '@apollo/client';
 import { type FC, useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import { useApplyInstanceMutation } from '../../../../generated-types';
+import { useApplyInstanceMutation, Phase2 } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { setInstancePrettyname } from '../../../../utilsLogic';
+import { TenantContext } from '../../../../contexts/TenantContext';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
@@ -241,13 +243,146 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
               </Text>
               {extended && (
                 <Text
-                  className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block"
+                  className="md:w-36 hidden xs:block xs:w-28 sm:hidden md:block"
                   ellipsis
                 >
                   <i>{templatePrettyName}</i>
                 </Text>
               )}
               {persistent && extended && <PersistentIcon />}
+              {extended && (() => {
+                const stopTimeout = instance.cleanup?.stopAfterInactivity ?? 'never';
+                const deleteTimeout = instance.cleanup?.deleteAfterInactivity ?? 'never';
+                const hasInactivity = (stopTimeout && stopTimeout !== 'never') || (deleteTimeout && deleteTimeout !== 'never');
+                if (!hasInactivity) return null;
+
+                // Parse Go duration string (e.g. "1h", "30m", "24h", "7d") to milliseconds
+                const parseDuration = (dur: string): number | null => {
+                  if (!dur || dur === 'never') return null;
+                  const match = dur.match(/^(\d+)(s|m|h|d)$/);
+                  if (!match) return null;
+                  const val = parseInt(match[1]);
+                  switch (match[2]) {
+                    case 's': return val * 1000;
+                    case 'm': return val * 60 * 1000;
+                    case 'h': return val * 3600 * 1000;
+                    case 'd': return val * 86400 * 1000;
+                    default: return null;
+                  }
+                };
+
+                const formatRemaining = (ms: number): string => {
+                  if (ms <= 0) return 'imminently';
+                  const totalSec = Math.floor(ms / 1000);
+                  const days = Math.floor(totalSec / 86400);
+                  const hours = Math.floor((totalSec % 86400) / 3600);
+                  const minutes = Math.floor((totalSec % 3600) / 60);
+                  if (days > 0) return `${days}d ${hours}h`;
+                  if (hours > 0) return `${hours}h ${minutes}m`;
+                  if (minutes > 0) return `${minutes}m`;
+                  return 'less than 1m';
+                };
+
+                const now = new Date();
+                const isRunning = instance.running;
+                const isStopped = instance.status === Phase2.Off;
+
+                // Calculate time remaining until auto-stop (if running)
+                let stopRemainingMs: number | null = null;
+                if (isRunning && instance.lastActivity && stopTimeout !== 'never') {
+                  const stopMs = parseDuration(stopTimeout);
+                  if (stopMs) {
+                    const lastAct = new Date(instance.lastActivity);
+                    stopRemainingMs = (lastAct.getTime() + stopMs) - now.getTime();
+                  }
+                }
+
+                // Calculate time remaining until deletion (if stopped)
+                let deleteRemainingMs: number | null = null;
+                if (isStopped && instance.lastPoweredOffTimestamp && deleteTimeout !== 'never') {
+                  const deleteMs = parseDuration(deleteTimeout);
+                  if (deleteMs) {
+                    const lastOff = new Date(instance.lastPoweredOffTimestamp);
+                    deleteRemainingMs = (lastOff.getTime() + deleteMs) - now.getTime();
+                  }
+                }
+
+                // Determine icon urgency color
+                const isUrgent = (deleteRemainingMs !== null && deleteRemainingMs < 3600000) ||
+                                 (stopRemainingMs !== null && stopRemainingMs < 600000);
+
+                return (
+                  <Tooltip
+                    title={
+                      <div className="text-left">
+                        {/* Rules section */}
+                        {(stopTimeout !== 'never' || deleteTimeout !== 'never') && (
+                          <>
+                            This instance will be:<br />
+                          </>
+                        )}
+                        {stopTimeout !== 'never' && (
+                          <>
+                            - powered off after <b>{stopTimeout}</b> of inactivity<br />
+                          </>
+                        )}
+                        {deleteTimeout !== 'never' && (
+                          <>
+                            - deleted after being stopped for <b>{deleteTimeout}</b><br />
+                          </>
+                        )}
+
+                        {/* Running instance status */}
+                        {isRunning && stopTimeout !== 'never' && (
+                          <>
+                            <br />
+                            <b>Status:</b> Running<br />
+                            {instance.lastActivity ? (
+                              <>
+                                Last activity: <b>{new Date(instance.lastActivity).toLocaleString()}</b><br />
+                                {stopRemainingMs !== null && (
+                                  stopRemainingMs > 0
+                                    ? <>Auto-stop in: <b style={{ color: stopRemainingMs < 600000 ? '#ff4d4f' : '#faad14' }}>{formatRemaining(stopRemainingMs)}</b></>
+                                    : <span style={{ color: '#ff4d4f' }}>⚠ Should have been stopped already</span>
+                                )}
+                              </>
+                            ) : (
+                              <>No activity detected yet</>
+                            )}
+                          </>
+                        )}
+
+                        {/* Stopped instance status */}
+                        {isStopped && deleteTimeout !== 'never' && (
+                          <>
+                            <br />
+                            <b>Status:</b> Stopped<br />
+                            {instance.lastPoweredOffTimestamp ? (
+                              <>
+                                Stopped since: <b>{new Date(instance.lastPoweredOffTimestamp).toLocaleString()}</b><br />
+                                {deleteRemainingMs !== null && (
+                                  deleteRemainingMs > 0
+                                    ? <>Auto-delete in: <b style={{ color: deleteRemainingMs < 3600000 ? '#ff4d4f' : '#faad14' }}>{formatRemaining(deleteRemainingMs)}</b></>
+                                    : <span style={{ color: '#ff4d4f' }}>⚠ Pending deletion</span>
+                                )}
+                              </>
+                            ) : (
+                              <>Waiting for powered-off timestamp...</>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    }
+                  >
+                    <div className="flex items-center">
+                      <ClockCircleOutlined
+                        className={isUrgent ? 'ml-1' : 'warning-color-fg ml-1'}
+                        style={{ fontSize: '14px', ...(isUrgent ? { color: '#ff4d4f' } : {}) }}
+                      />
+                    </div>
+                  </Tooltip>
+                );
+              })()}
               {nodeSelector && extended && (
                 <NodeSelectorIcon
                   isOnWorkspace={false}

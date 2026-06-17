@@ -16,6 +16,7 @@ export default gql`
           namespace
           creationTimestamp
           labels
+          annotations
         }
         status {
           ip
@@ -60,6 +61,10 @@ export default gql`
                   prettyName
                   description
                   allowPublicExposure
+                  cleanup {
+                    stopAfterInactivity
+                    deleteAfterInactivity
+                  }
                   environmentList {
                     name
                     guiEnabled

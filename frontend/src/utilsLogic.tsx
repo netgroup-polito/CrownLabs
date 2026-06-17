@@ -405,6 +405,10 @@ export const makeGuiInstance = (
     status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url || '',
     timeStamp: metadata?.creationTimestamp || '',
+    lastActivity:
+      (metadata?.annotations as Record<string, string> | undefined)?.[
+        'crownlabsPolitoItLastActivity'
+      ] || '',
     tenantId: tenantName || '',
     tenantNamespace: tenantNamespace || '',
     workspaceName: workspaceName,
@@ -421,6 +425,14 @@ export const makeGuiInstance = (
       cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
       memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
       disk: environments.reduce((acc, env) => acc + env.quota.disk, 0),
+    },
+    lastPoweredOffTimestamp:
+      (metadata?.annotations as Record<string, string> | undefined)?.[
+        'crownlabsPolitoItLastPoweredOffTimestamp'
+      ] || '',
+    cleanup: {
+      stopAfterInactivity: templateSpec?.cleanup?.stopAfterInactivity ?? 'never',
+      deleteAfterInactivity: templateSpec?.cleanup?.deleteAfterInactivity ?? 'never',
     },
   };
 };
@@ -787,7 +799,7 @@ const makeNotificationContent = (
                   ? ' running'
                   : status === Phase2.Off
                     ? ' stopped'
-                    : status === 'Deleted'
+                    : status === UpdateType.Deleted
                       ? ' deleted'
                       : ''}
               </i>
@@ -833,7 +845,7 @@ export const notifyStatus = (
     notify(
       'warning',
       `${namespace}/${name}/deleted`,
-      makeNotificationContent(templateName, prettyName || name, 'Deleted'),
+      makeNotificationContent(templateName, prettyName || name, UpdateType.Deleted),
     );
     return;
   }

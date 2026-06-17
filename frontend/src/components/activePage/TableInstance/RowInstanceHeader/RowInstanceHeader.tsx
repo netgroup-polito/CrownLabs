@@ -113,7 +113,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
       <div
         className={
           viewMode === WorkspaceRole.user
-            ? 'w-5/6 sm:w-2/3 lg:w-3/5 xl:w-1/2 2xl:w-5/12'
+            ? 'w-5/6 sm:w-2/3 lg:w-1/2 xl:w-5/12 2xl:w-5/12'
             : 'w-2/3 sm:w-1/2 md:w-2/3 lg:w-7/12 xl:w-1/2'
         }
         title="Instance Title"
@@ -175,7 +175,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
                 {getArrow(prettyNameOrder, true)}
               </div>
               <div
-                className="flex items-center justify-start md:w-max hidden xs:block xs:w-28 sm:hidden md:block cursor-pointer"
+                className="flex items-center justify-start md:w-36 hidden xs:block xs:w-28 sm:hidden md:block cursor-pointer"
                 onClick={() => selectOrder('templatePrettyName')}
               >
                 <Text strong>Template Name</Text>
@@ -188,7 +188,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
       <div
         className={
           viewMode === WorkspaceRole.user
-            ? 'w-1/6 sm:w-1/3 lg:w-2/5 xl:w-1/2 2xl:w-7/12'
+            ? 'w-1/6 sm:w-1/3 lg:w-1/2 xl:w-7/12 2xl:w-7/12'
             : 'w-1/3 sm:w-1/2 md:w-1/3 lg:w-5/12 xl:w-1/2'
         }
       >
@@ -197,7 +197,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
             className={`flex justify-between items-center ${
               viewMode === WorkspaceRole.manager
                 ? 'lg:w-2/5 xl:w-7/12 2xl:w-1/2'
-                : 'lg:w-1/3 xl:w-1/2'
+                : 'lg:w-1/2 xl:w-7/12'
             }`}
           >
             <div className="flex items-center justify-center hidden sm:block w-12 xl:w-40 text-center">
@@ -205,18 +205,23 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
             </div>
 
             <div
-              className="flex items-center justify-center w-12 hidden lg:block text-center cursor-pointer"
+              className="flex items-center justify-center w-16 hidden lg:block text-center cursor-pointer"
               onClick={() => selectOrder('timeStamp')}
             >
               <Text strong>Age</Text>
               {getArrow(timeStampOrder, false)}
+            </div>
+            <div
+              className="flex items-center justify-center w-24 hidden lg:block text-center whitespace-nowrap"
+            >
+              <Text strong>Last Access</Text>
             </div>
           </div>
           <div
             className={`flex justify-end items-center gap-2 w-full ${
               viewMode === WorkspaceRole.manager
                 ? 'lg:w-3/5 xl:w-5/12 2xl:w-1/2'
-                : 'lg:w-2/3 xl:w-1/2'
+                : 'lg:w-1/2 xl:w-5/12'
             }`}
           >
             <div className="flex items-center justify-center w-20 sm:w-40 lg:w-56 xl:w-48">

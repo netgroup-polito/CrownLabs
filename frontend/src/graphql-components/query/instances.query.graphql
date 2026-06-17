@@ -9,6 +9,7 @@ query ownedInstances($tenantNamespace: String!) {
         namespace
         creationTimestamp
         labels
+        annotations
       }
       status {
         ip
@@ -64,6 +65,10 @@ query ownedInstances($tenantNamespace: String!) {
                 prettyName
                 description
                 allowPublicExposure
+                cleanup {
+                  stopAfterInactivity
+                  deleteAfterInactivity
+                }
                 environmentList {
                   name
                   guiEnabled

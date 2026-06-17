@@ -148,7 +148,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
             className={
               extended
                 ? viewMode === WorkspaceRole.user
-                  ? 'w-5/6 sm:w-2/3 lg:w-3/5 xl:w-1/2 2xl:w-5/12'
+                  ? 'w-5/6 sm:w-2/3 lg:w-1/2 xl:w-5/12 2xl:w-5/12'
                   : 'w-1/2 md:w-2/3 lg:w-7/12 xl:w-1/2'
                 : 'w-2/3 md:w-3/4'
             }
@@ -170,7 +170,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
             className={
               extended
                 ? viewMode === WorkspaceRole.user
-                  ? 'w-1/6 sm:w-1/3 lg:w-2/5 xl:w-1/2 2xl:w-7/12'
+                  ? 'w-1/6 sm:w-1/3 lg:w-1/2 xl:w-7/12 2xl:w-7/12'
                   : 'w-1/2 md:w-1/3 lg:w-5/12 xl:w-1/2'
                 : 'w-1/3 md:w-1/4'
             }

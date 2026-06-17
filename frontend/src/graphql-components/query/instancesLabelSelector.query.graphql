@@ -5,6 +5,7 @@ query instancesLabelSelector($labels: String) {
         name
         namespace
         creationTimestamp
+        annotations
       }
       status {
         ip
@@ -59,6 +60,10 @@ query instancesLabelSelector($labels: String) {
                 prettyName
                 description
                 allowPublicExposure
+                cleanup {
+                  stopAfterInactivity
+                  deleteAfterInactivity
+                }
                 environmentList {
                   name
                   guiEnabled

@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
+import { useState, useContext, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
 import type { CreateTemplateMutation } from '../../../generated-types';
@@ -109,6 +109,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const [form] = Form.useForm<TemplateForm>();
+  const stopInputRef = useRef<React.ComponentRef<typeof InputNumber>>(null);
+  const deleteInactivityInputRef = useRef<React.ComponentRef<typeof InputNumber>>(null);
+  const deleteCreationInputRef = useRef<React.ComponentRef<typeof InputNumber>>(null);
 
 
   // sharedVolumes must be declared at top-level (hooks cannot be conditional).
@@ -289,6 +292,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   }, [cpuInterval, ramInterval, diskInterval]);
 
   const handleFormSubmit = async () => {
+    // Blur timeout InputNumbers to commit any typed value before validation.
+    // These inputs are not direct Form.Item children, so typed values are
+    // synced manually via their onBlur handlers.
+    stopInputRef.current?.blur();
+    deleteInactivityInputRef.current?.blur();
+    deleteCreationInputRef.current?.blur();
     try {
       await form.validateFields();
     } catch (error) {
@@ -430,7 +439,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       [field]: { value: numValue, unit },
     }));
     form.setFieldsValue({ cleanup: { [field]: { value: numValue, unit } } });
-    form.validateFields([['cleanup', field]]).catch(() => { });
+    if (field === 'stopAfterInactivity' || field === 'deleteAfterCreation') {
+      form.validateFields([['cleanup', 'stopAfterInactivity'], ['cleanup', 'deleteAfterCreation']]).catch(() => { });
+    } else {
+      form.validateFields([['cleanup', field]]).catch(() => { });
+    }
   }
 
   const handleTimeUnitChange = (newUnit: string, field: 'stopAfterInactivity' | 'deleteAfterInactivity' | 'deleteAfterCreation') => {
@@ -440,8 +453,17 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       [field]: { value: val, unit: newUnit },
     }));
     form.setFieldsValue({ cleanup: { [field]: { value: val, unit: newUnit } } });
-    form.validateFields([['cleanup', field]]).catch(() => { });
+    if (field === 'stopAfterInactivity' || field === 'deleteAfterCreation') {
+      form.validateFields([['cleanup', 'stopAfterInactivity'], ['cleanup', 'deleteAfterCreation']]).catch(() => { });
+    } else {
+      form.validateFields([['cleanup', field]]).catch(() => { });
+    }
   }
+
+  const handleTimeoutInputSync = (e: React.FocusEvent<HTMLInputElement>, field: 'stopAfterInactivity' | 'deleteAfterInactivity' | 'deleteAfterCreation') => {
+    const val = Number(e.target.value) || 0;
+    handleTimeoutValueChange(val, field);
+  };
 
   const isTimeUnitDisabled = (field: 'stopAfterInactivity' | 'deleteAfterInactivity' | 'deleteAfterCreation') => {
     return timeouts[field].value === 0;
@@ -460,29 +482,35 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const validateTimeoutOrder = async (_: RuleObject, _val: { value: number; unit: string } | undefined, field: 'stopAfterInactivity' | 'deleteAfterInactivity' | 'deleteAfterCreation') => {
 
-    const toMinutes = (t: { value: number; unit: string } | undefined) => {
+    const toMinutes = (t: { value: number; unit: string } | string | undefined) => {
       if (!t) return undefined;
-      if (t.value === 0) return Infinity;
-      const u = String(t.unit || '').toLowerCase();
+      let obj: { value: number; unit: string };
+      if (typeof t === 'string') {
+        obj = parseTimeoutString(t);
+      } else {
+        obj = t as { value: number; unit: string };
+      }
+      if (obj.value === 0) return Infinity;
+      const u = String(obj.unit || '').toLowerCase();
       const mul = u === 'h' ? 60 : u === 'd' ? 1440 : 1;
-      return Number(t.value) * mul;
+      return Number(obj.value) * mul;
     };
 
     const current = form.getFieldValue(['cleanup', field]);
-    const inactivity = field === 'stopAfterInactivity' ? current : form.getFieldValue(['cleanup', 'stopAfterInactivity']) as { value: number; unit: string } | undefined;
-    const deleteAfter = field === 'deleteAfterCreation' ? current : form.getFieldValue(['cleanup', 'deleteAfterCreation']) as { value: number; unit: string } | undefined;
+    const stopAfterInactivity = field === 'stopAfterInactivity' ? current : form.getFieldValue(['cleanup', 'stopAfterInactivity']);
+    const deleteAfterCreation = field === 'deleteAfterCreation' ? current : form.getFieldValue(['cleanup', 'deleteAfterCreation']);
 
-    if (!inactivity || !deleteAfter) return;
+    if (!stopAfterInactivity || !deleteAfterCreation) return;
 
-    const inactivityMin = toMinutes(inactivity);
-    const deleteAfterMin = toMinutes(deleteAfter);
+    const stopAfterInactivityMin = toMinutes(stopAfterInactivity);
+    const deleteAfterCreationMin = toMinutes(deleteAfterCreation);
 
-    if (deleteAfterMin === Infinity) return;
+    if (deleteAfterCreationMin === Infinity) return;
 
-    if (typeof inactivityMin !== 'number' || typeof deleteAfterMin !== 'number') return;
+    if (typeof stopAfterInactivityMin !== 'number' || typeof deleteAfterCreationMin !== 'number') return;
 
-    if (!isTimeUnitDisabled('stopAfterInactivity') && inactivityMin >= deleteAfterMin) {
-      throw new Error('Inactivity must be smaller than Expiration');
+    if (!isTimeUnitDisabled('stopAfterInactivity') && stopAfterInactivityMin >= deleteAfterCreationMin) {
+      throw new Error('Stop time must be smaller than Expire time');
     }
     return;
   };
@@ -556,11 +584,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         </Tooltip>
         <div className="flex gap-4 items-center">
           <InputNumber
+            ref={stopInputRef}
             onChange={value => handleTimeoutValueChange(value, 'stopAfterInactivity')}
+            onBlur={e => handleTimeoutInputSync(e, 'stopAfterInactivity')}
             min={0}
             defaultValue={timeouts.stopAfterInactivity.value}
-          >
-          </InputNumber>
+          />
 
           <Select
             style={{ width: 130 }}
@@ -596,11 +625,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         </Tooltip>
         <div className="flex gap-4 items-center">
           <InputNumber
+            ref={deleteInactivityInputRef}
             onChange={value => handleTimeoutValueChange(value, 'deleteAfterInactivity')}
+            onBlur={e => handleTimeoutInputSync(e, 'deleteAfterInactivity')}
             min={0}
             defaultValue={timeouts.deleteAfterInactivity.value}
-          >
-          </InputNumber>
+          />
 
           <Select
             style={{ width: 130 }}
@@ -622,7 +652,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     <Form.Item
       className="right-align-error multiline-label"
       colon={false}
-      label={<div className="flex flex-col text-left"><span>Delete regardless of activity after:</span><Typography.Text keyboard className="w-max mt-1">Expiration</Typography.Text></div>}
+      label={<div className="flex flex-col text-left"><span>Delete regardless of activity after:</span><Typography.Text keyboard className="w-max mt-1">Expire</Typography.Text></div>}
       name={['cleanup', 'deleteAfterCreation']}
       validateTrigger="onChange"
       rules={[{ validator: validateTimeout }]}
@@ -635,11 +665,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         </Tooltip>
         <div className="flex gap-4 items-center">
           <InputNumber
+            ref={deleteCreationInputRef}
             onChange={value => handleTimeoutValueChange(value, 'deleteAfterCreation')}
+            onBlur={e => handleTimeoutInputSync(e, 'deleteAfterCreation')}
             min={0}
             defaultValue={timeouts.deleteAfterCreation.value}
-          >
-          </InputNumber>
+          />
 
           <Select
             style={{ width: 130 }}
@@ -803,7 +834,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             children: automaticInstanceSavingResource,
             style: panelStyle,
             forceRender: true,
-            extra: <><Text keyboard>Stop <StatusIcon active={!isTimeUnitDisabled('stopAfterInactivity')} /></Text> <Text keyboard>Delete <StatusIcon active={!isTimeUnitDisabled('deleteAfterInactivity')} /></Text> <Text keyboard>Expiration <StatusIcon active={!isTimeUnitDisabled('deleteAfterCreation')} /></Text></>
+            extra: <><Text keyboard>Stop <StatusIcon active={!isTimeUnitDisabled('stopAfterInactivity')} /></Text> <Text keyboard>Delete <StatusIcon active={!isTimeUnitDisabled('deleteAfterInactivity')} /></Text> <Text keyboard>Expire <StatusIcon active={!isTimeUnitDisabled('deleteAfterCreation')} /></Text></>
           },
           {
             key: '3',

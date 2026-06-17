@@ -99,6 +99,7 @@ export type Instance = {
   status: Phase2;
   url: string | null;
   timeStamp: string;
+  lastActivity: string;
   workspaceName: string;
   running: boolean;
   nodeSelector?: Record<string, string>;
@@ -110,6 +111,11 @@ export type Instance = {
   environments?: Array<InstanceEnvironment>;
   hasMultipleEnvironments?: boolean;
   resources: InstanceResources;
+  lastPoweredOffTimestamp: string;
+  cleanup?: {
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
 };
 
 export type SharedVolume = {
