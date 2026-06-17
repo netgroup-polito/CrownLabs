@@ -15,20 +15,20 @@
 package instctrl
 
 import (
-    "context"
+	"context"
 
-    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-    "k8s.io/klog/v2"
-    "k8s.io/utils/ptr"
-    virtv1 "kubevirt.io/api/core/v1"
-    cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
-    ctrl "sigs.k8s.io/controller-runtime"
-    "sigs.k8s.io/controller-runtime/pkg/client"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/klog/v2"
+	"k8s.io/utils/ptr"
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
-    clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-    clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
-    "github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-    "github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // EnforceVMEnvironment implements the logic to create all the different
@@ -67,33 +67,33 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
 	//TODO: Test logic for datavolume init before vm creation
-    dvName := forge.NamespacedNameWithSuffix(instance, environment.Name).Name
-    
-    // Init the DataVolume object with the correct name and namespace
-    dv := cdiv1beta1.DataVolume{
-        ObjectMeta: metav1.ObjectMeta{
-            Name:      dvName,
-            Namespace: instance.Namespace,
-        },
-    }
+	dvName := forge.NamespacedNameWithSuffix(instance, environment.Name).Name
 
-    // CreateOrUpdate the DataVolume, setting the Spec only if the DataVolume is being created for the first time.
-    resDV, errDV := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
-        if dv.CreationTimestamp.IsZero() {
-            // Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
-            forgedDV := forge.DataVolume(dvName, instance.Namespace, environment)
-            dv.Spec = forgedDV.Spec
-        }
-        // Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
-        return ctrl.SetControllerReference(instance, &dv, r.Scheme)
-    })
+	// Init the DataVolume object with the correct name and namespace
+	dv := cdiv1beta1.DataVolume{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      dvName,
+			Namespace: instance.Namespace,
+		},
+	}
 
-    if errDV != nil {
-        log.Error(errDV, "failed to enforce datavolume", "datavolume", klog.KObj(&dv))
-        return errDV
-    }
-    log.V(utils.FromResult(resDV)).Info("datavolume enforced", "datavolume", klog.KObj(&dv), "result", resDV)
-    // =========================================================================
+	// CreateOrUpdate the DataVolume, setting the Spec only if the DataVolume is being created for the first time.
+	resDV, errDV := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
+		if dv.CreationTimestamp.IsZero() {
+			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
+			forgedDV := forge.DataVolume(dvName, instance.Namespace, environment)
+			dv.Spec = forgedDV.Spec
+		}
+		// Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
+		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
+	})
+
+	if errDV != nil {
+		log.Error(errDV, "failed to enforce datavolume", "datavolume", klog.KObj(&dv))
+		return errDV
+	}
+	log.V(utils.FromResult(resDV)).Info("datavolume enforced", "datavolume", klog.KObj(&dv), "result", resDV)
+	// =========================================================================
 
 	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
