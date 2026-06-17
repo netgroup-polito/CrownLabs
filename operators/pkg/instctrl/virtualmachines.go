@@ -15,18 +15,20 @@
 package instctrl
 
 import (
-	"context"
+    "context"
 
-	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
-	virtv1 "kubevirt.io/api/core/v1"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+    metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+    "k8s.io/klog/v2"
+    "k8s.io/utils/ptr"
+    virtv1 "kubevirt.io/api/core/v1"
+    cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+    ctrl "sigs.k8s.io/controller-runtime"
+    "sigs.k8s.io/controller-runtime/pkg/client"
 
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
+    clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+    clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
+    "github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+    "github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // EnforceVMEnvironment implements the logic to create all the different

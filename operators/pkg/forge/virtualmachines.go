@@ -273,6 +273,7 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 		},
 	}
 }
+
 //TODO: Consider removing this func
 // DataVolumeTemplate forges the DataVolume template associated with a given environment.
 func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1.DataVolumeTemplateSpec {
@@ -310,3 +311,4 @@ func DataVolume(name string, namespace string, environment *clv1alpha2.Environme
             },
         },
     }
+}
