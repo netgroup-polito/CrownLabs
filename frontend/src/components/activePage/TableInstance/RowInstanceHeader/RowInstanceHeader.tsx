@@ -175,7 +175,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
                 {getArrow(prettyNameOrder, true)}
               </div>
               <div
-                className="flex items-center justify-start md:w-36 hidden xs:block xs:w-28 sm:hidden md:block cursor-pointer"
+                className="flex items-center justify-start md:w-48 hidden xs:block xs:w-28 sm:hidden md:block cursor-pointer"
                 onClick={() => selectOrder('templatePrettyName')}
               >
                 <Text strong>Template Name</Text>
@@ -194,7 +194,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
       >
         <div className="w-full flex items-center justify-end sm:justify-between">
           <div
-            className={`flex justify-between items-center ${
+            className={`flex items-center gap-8 ${
               viewMode === WorkspaceRole.manager
                 ? 'lg:w-2/5 xl:w-7/12 2xl:w-1/2'
                 : 'lg:w-1/2 xl:w-7/12'

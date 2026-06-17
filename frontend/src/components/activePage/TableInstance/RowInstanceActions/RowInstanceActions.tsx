@@ -116,7 +116,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
       >
         {extended && (
           <div
-            className={`flex justify-between items-center ${
+            className={`flex items-center gap-8 ${
               viewMode === WorkspaceRole.manager
                 ? 'lg:w-2/5 xl:w-7/12 2xl:w-1/2'
                 : 'lg:w-1/2 xl:w-7/12'
@@ -128,12 +128,12 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
               viewMode={viewMode}
               instance={instance}
             />
-            <Text className="hidden lg:block" strong>
-              {getTime()}
-            </Text>
-            <Text className="hidden lg:block w-24 whitespace-nowrap" strong>
-              {getLastAccess()}
-            </Text>
+            <div className="hidden lg:flex w-16 justify-center">
+              <Text strong>{getTime()}</Text>
+            </div>
+            <div className="hidden lg:flex w-24 justify-center">
+              <Text strong>{getLastAccess()}</Text>
+            </div>
           </div>
         )}
         <div
@@ -193,7 +193,6 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           instanceId={instance.name}
           instancePrettyName={instance.prettyName || instance.name}
           tenantNamespace={instance.tenantNamespace}
-
         />
       )}
     </>
