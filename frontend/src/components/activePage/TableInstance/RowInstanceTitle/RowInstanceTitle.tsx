@@ -242,7 +242,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
               </Text>
               {extended && (
                 <Text
-                  className="md:w-36 hidden xs:block xs:w-28 sm:hidden md:block"
+                  className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block"
                   ellipsis
                 >
                   <i>{templatePrettyName}</i>
