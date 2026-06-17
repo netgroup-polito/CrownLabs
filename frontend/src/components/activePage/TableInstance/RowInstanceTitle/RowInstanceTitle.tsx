@@ -13,7 +13,6 @@ import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { useApplyInstanceMutation, Phase2 } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { setInstancePrettyname } from '../../../../utilsLogic';
-import { TenantContext } from '../../../../contexts/TenantContext';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
