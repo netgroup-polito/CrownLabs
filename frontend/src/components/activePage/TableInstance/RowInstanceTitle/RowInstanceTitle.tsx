@@ -322,12 +322,12 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                         )}
                         {stopTimeout !== 'never' && (
                           <>
-                            - powered off after <b>{stopTimeout}</b> of inactivity<br />
+                            ▸ powered off after <b>{stopTimeout}</b> of inactivity<br />
                           </>
                         )}
                         {deleteTimeout !== 'never' && (
                           <>
-                            - deleted after being stopped for <b>{deleteTimeout}</b><br />
+                            ▸ deleted after being stopped for <b>{deleteTimeout}</b><br />
                           </>
                         )}
 

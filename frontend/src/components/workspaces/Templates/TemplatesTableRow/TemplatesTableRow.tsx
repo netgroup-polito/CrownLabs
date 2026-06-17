@@ -295,12 +295,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                                     )}
                                     {stopTimeout !== 'never' && (
                                       <>
-                                        - powered off after <b>{stopTimeout}</b> of inactivity<br />
+                                        ▸ powered off after <b>{stopTimeout}</b> of inactivity<br />
                                       </>
                                     )}
                                     {deleteTimeout !== 'never' && (
                                       <>
-                                        - deleted after being stopped for <b>{deleteTimeout}</b>
+                                        ▸ deleted after being stopped for <b>{deleteTimeout}</b>
                                       </>
                                     )}
                                   </div>
@@ -387,12 +387,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                       )}
                       {stopTimeout !== 'never' && (
                         <>
-                          - powered off after <b>{stopTimeout}</b> of inactivity<br />
+                          ▸ powered off after <b>{stopTimeout}</b> of inactivity<br />
                         </>
                       )}
                       {deleteTimeout !== 'never' && (
                         <>
-                          - deleted after being stopped for <b>{deleteTimeout}</b>
+                          ▸ deleted after being stopped for <b>{deleteTimeout}</b>
                         </>
                       )}
                     </div>
