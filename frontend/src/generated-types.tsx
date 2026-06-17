@@ -48,6 +48,49 @@ export type AutomationInput = {
   terminationTime?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Automatic actions to enforce termination policies. */
+export type Cleanup = {
+  __typename?: 'Cleanup';
+  /**
+   * The maximum lifetime of an Instance referencing the current Template.
+   * Once this period is expired, the Instance will be automatically deleted
+   * If set to "never", the instance will not be automatically terminated.
+   */
+  deleteAfterCreation: Scalars['String']['output'];
+  /**
+   * The maximum period of time a persistent instance can remain powered off
+   * after being stopped for inactivity, before being completely deleted.
+   */
+  deleteAfterInactivity: Scalars['String']['output'];
+  /**
+   * The maximum period of inactivity after which an Instance referencing
+   * the current Template will be automatically stopped, or deleted
+   * (if not persistent) to save resources.
+   */
+  stopAfterInactivity: Scalars['String']['output'];
+};
+
+/** Automatic actions to enforce termination policies. */
+export type CleanupInput = {
+  /**
+   * The maximum lifetime of an Instance referencing the current Template.
+   * Once this period is expired, the Instance will be automatically deleted
+   * If set to "never", the instance will not be automatically terminated.
+   */
+  deleteAfterCreation: Scalars['String']['input'];
+  /**
+   * The maximum period of time a persistent instance can remain powered off
+   * after being stopped for inactivity, before being completely deleted.
+   */
+  deleteAfterInactivity: Scalars['String']['input'];
+  /**
+   * The maximum period of inactivity after which an Instance referencing
+   * the current Template will be automatically stopped, or deleted
+   * (if not persistent) to save resources.
+   */
+  stopAfterInactivity: Scalars['String']['input'];
+};
+
 /** Options to customize container startup */
 export type ContainerStartupOptions = {
   __typename?: 'ContainerStartupOptions';
@@ -2921,6 +2964,12 @@ export type SandboxNamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
+export enum Scope {
+  Exam = 'Exam',
+  Exercise = 'Exercise',
+  Standard = 'Standard'
+}
+
 /** The reference of the Shared Volume this Mount Info is related to. */
 export type SharedVolume = {
   __typename?: 'SharedVolume';
@@ -2970,6 +3019,8 @@ export type Spec = {
   __typename?: 'Spec';
   /** The list of VM images currently available in CrownLabs. */
   images: Array<Maybe<ImagesListItem>>;
+  /** The base name of the project in which the images are stored. */
+  projectBaseName?: Maybe<Scalars['String']['output']>;
   /** The host name that can be used to access the registry. */
   registryName: Scalars['String']['output'];
 };
@@ -3129,6 +3180,8 @@ export type Spec6 = {
   __typename?: 'Spec6';
   /** Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service. */
   allowPublicExposure?: Maybe<Scalars['Boolean']['output']>;
+  /** Automatic actions to enforce termination policies. */
+  cleanup?: Maybe<Cleanup>;
   /**
    * The maximum lifetime of an Instance referencing the current Template.
    * Once this period is expired, the Instance may be automatically deleted
@@ -3159,6 +3212,8 @@ export type Spec6 = {
   nodeSelector?: Maybe<Scalars['JSON']['output']>;
   /** The human-readable name of the Template. */
   prettyName: Scalars['String']['output'];
+  /** The scope associated with the environments belonging to the template (Standard, Exam, Exercise) */
+  scope?: Maybe<Scope>;
   /** The reference to the Workspace this Template belongs to. */
   workspaceCrownlabsPolitoItWorkspaceRef?: Maybe<WorkspaceCrownlabsPolitoItWorkspaceRef>;
 };
@@ -3167,6 +3222,8 @@ export type Spec6 = {
 export type Spec6Input = {
   /** Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service. */
   allowPublicExposure?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Automatic actions to enforce termination policies. */
+  cleanup?: InputMaybe<CleanupInput>;
   /**
    * The maximum lifetime of an Instance referencing the current Template.
    * Once this period is expired, the Instance may be automatically deleted
@@ -3197,6 +3254,8 @@ export type Spec6Input = {
   nodeSelector?: InputMaybe<Scalars['JSON']['input']>;
   /** The human-readable name of the Template. */
   prettyName: Scalars['String']['input'];
+  /** The scope associated with the environments belonging to the template (Standard, Exam, Exercise) */
+  scope?: InputMaybe<Scope>;
   /** The reference to the Workspace this Template belongs to. */
   workspaceCrownlabsPolitoItWorkspaceRef?: InputMaybe<WorkspaceCrownlabsPolitoItWorkspaceRefInput>;
 };
@@ -3284,6 +3343,8 @@ export type Spec7Input = {
 export type SpecInput = {
   /** The list of VM images currently available in CrownLabs. */
   images: Array<InputMaybe<ImagesListItemInput>>;
+  /** The base name of the project in which the images are stored. */
+  projectBaseName?: InputMaybe<Scalars['String']['input']>;
   /** The host name that can be used to access the registry. */
   registryName: Scalars['String']['input'];
 };
@@ -3809,16 +3870,16 @@ export type CreateTemplateMutationVariables = Exact<{
   templateName: Scalars['String']['input'];
   environmentList: Array<EnvironmentListListItemInput> | EnvironmentListListItemInput;
   templateId?: InputMaybe<Scalars['String']['input']>;
-  deleteAfter?: InputMaybe<Scalars['String']['input']>;
+  cleanupDeleteAfterCreation: Scalars['String']['input'];
   descriptionTemplate: Scalars['String']['input'];
-  inactivityTimeout?: InputMaybe<Scalars['String']['input']>;
-  destroyAfterInactivity?: InputMaybe<Scalars['String']['input']>;
+  cleanupStopAfterInactivity: Scalars['String']['input'];
+  cleanupDeleteAfterInactivity: Scalars['String']['input'];
   allowPublicExposure?: InputMaybe<Scalars['Boolean']['input']>;
   nodeSelector?: InputMaybe<Scalars['JSON']['input']>;
 }>;
 
 
-export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, deleteAfter?: string | null, inactivityTimeout?: string | null, destroyAfterInactivity?: string | null, allowPublicExposure?: boolean | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
+export type CreateTemplateMutation = { __typename?: 'Mutation', createdTemplate?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, nodeSelector?: any | null, cleanup?: { __typename?: 'Cleanup', deleteAfterCreation: string, stopAfterInactivity: string, deleteAfterInactivity: string } | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number } } | null> } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null };
 
 export type CreateWorkspaceMutationVariables = Exact<{
   name: Scalars['String']['input'];
@@ -3920,7 +3981,7 @@ export type WorkspaceTemplatesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, deleteAfter?: string | null, inactivityTimeout?: string | null, destroyAfterInactivity?: string | null, nodeSelector?: any | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, mountMyDriveVolume: boolean, image: string, guiEnabled?: boolean | null, disableControls?: boolean | null, rewriteURL?: boolean | null, persistent?: boolean | null, containerStartupOptions?: { __typename?: 'ContainerStartupOptions', sourceArchiveURL?: string | null, contentPath?: string | null, startupArgs?: Array<string | null> | null, enforceWorkdir?: boolean | null } | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', name: string, namespace?: string | null } } | null> | null } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceTemplatesQuery = { __typename?: 'Query', templateList?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', templates: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, allowPublicExposure?: boolean | null, nodeSelector?: any | null, cleanup?: { __typename?: 'Cleanup', deleteAfterCreation: string, stopAfterInactivity: string, deleteAfterInactivity: string } | null, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, environmentType: EnvironmentType, mountMyDriveVolume: boolean, image: string, guiEnabled?: boolean | null, disableControls?: boolean | null, rewriteURL?: boolean | null, persistent?: boolean | null, containerStartupOptions?: { __typename?: 'ContainerStartupOptions', sourceArchiveURL?: string | null, contentPath?: string | null, startupArgs?: Array<string | null> | null, enforceWorkdir?: boolean | null } | null, resources: { __typename?: 'Resources', cpu: number, disk?: any | null, memory: any, reservedCPUPercentage: number }, sharedVolumeMounts?: Array<{ __typename?: 'SharedVolumeMountsListItem', mountPath: string, readOnly: boolean, sharedVolume: { __typename?: 'SharedVolume', name: string, namespace?: string | null } } | null> | null } | null>, workspaceCrownlabsPolitoItWorkspaceRef?: { __typename?: 'WorkspaceCrownlabsPolitoItWorkspaceRef', name: string } | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type TenantQueryVariables = Exact<{
   tenantId: Scalars['String']['input'];
@@ -4036,9 +4097,9 @@ export type ApplyInstanceMutationFn = Apollo.MutationFunction<ApplyInstanceMutat
  * });
  */
 export function useApplyInstanceMutation(baseOptions?: Apollo.MutationHookOptions<ApplyInstanceMutation, ApplyInstanceMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ApplyInstanceMutation, ApplyInstanceMutationVariables>(ApplyInstanceDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<ApplyInstanceMutation, ApplyInstanceMutationVariables>(ApplyInstanceDocument, options);
+}
 export type ApplyInstanceMutationHookResult = ReturnType<typeof useApplyInstanceMutation>;
 export type ApplyInstanceMutationResult = Apollo.MutationResult<ApplyInstanceMutation>;
 export type ApplyInstanceMutationOptions = Apollo.BaseMutationOptions<ApplyInstanceMutation, ApplyInstanceMutationVariables>;
@@ -4088,9 +4149,9 @@ export type ApplySharedVolumeMutationFn = Apollo.MutationFunction<ApplySharedVol
  * });
  */
 export function useApplySharedVolumeMutation(baseOptions?: Apollo.MutationHookOptions<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>(ApplySharedVolumeDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>(ApplySharedVolumeDocument, options);
+}
 export type ApplySharedVolumeMutationHookResult = ReturnType<typeof useApplySharedVolumeMutation>;
 export type ApplySharedVolumeMutationResult = Apollo.MutationResult<ApplySharedVolumeMutation>;
 export type ApplySharedVolumeMutationOptions = Apollo.BaseMutationOptions<ApplySharedVolumeMutation, ApplySharedVolumeMutationVariables>;
@@ -4157,9 +4218,9 @@ export type ApplyTemplateMutationFn = Apollo.MutationFunction<ApplyTemplateMutat
  * });
  */
 export function useApplyTemplateMutation(baseOptions?: Apollo.MutationHookOptions<ApplyTemplateMutation, ApplyTemplateMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ApplyTemplateMutation, ApplyTemplateMutationVariables>(ApplyTemplateDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<ApplyTemplateMutation, ApplyTemplateMutationVariables>(ApplyTemplateDocument, options);
+}
 export type ApplyTemplateMutationHookResult = ReturnType<typeof useApplyTemplateMutation>;
 export type ApplyTemplateMutationResult = Apollo.MutationResult<ApplyTemplateMutation>;
 export type ApplyTemplateMutationOptions = Apollo.BaseMutationOptions<ApplyTemplateMutation, ApplyTemplateMutationVariables>;
@@ -4234,9 +4295,9 @@ export type ApplyTemplateJsonPatchMutationFn = Apollo.MutationFunction<ApplyTemp
  * });
  */
 export function useApplyTemplateJsonPatchMutation(baseOptions?: Apollo.MutationHookOptions<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>(ApplyTemplateJsonPatchDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>(ApplyTemplateJsonPatchDocument, options);
+}
 export type ApplyTemplateJsonPatchMutationHookResult = ReturnType<typeof useApplyTemplateJsonPatchMutation>;
 export type ApplyTemplateJsonPatchMutationResult = Apollo.MutationResult<ApplyTemplateJsonPatchMutation>;
 export type ApplyTemplateJsonPatchMutationOptions = Apollo.BaseMutationOptions<ApplyTemplateJsonPatchMutation, ApplyTemplateJsonPatchMutationVariables>;
@@ -4286,9 +4347,9 @@ export type ApplyTenantMutationFn = Apollo.MutationFunction<ApplyTenantMutation,
  * });
  */
 export function useApplyTenantMutation(baseOptions?: Apollo.MutationHookOptions<ApplyTenantMutation, ApplyTenantMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ApplyTenantMutation, ApplyTenantMutationVariables>(ApplyTenantDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<ApplyTenantMutation, ApplyTenantMutationVariables>(ApplyTenantDocument, options);
+}
 export type ApplyTenantMutationHookResult = ReturnType<typeof useApplyTenantMutation>;
 export type ApplyTenantMutationResult = Apollo.MutationResult<ApplyTenantMutation>;
 export type ApplyTenantMutationOptions = Apollo.BaseMutationOptions<ApplyTenantMutation, ApplyTenantMutationVariables>;
@@ -4337,9 +4398,9 @@ export type ApplyTenantJsonPatchJsonMutationFn = Apollo.MutationFunction<ApplyTe
  * });
  */
 export function useApplyTenantJsonPatchJsonMutation(baseOptions?: Apollo.MutationHookOptions<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>(ApplyTenantJsonPatchJsonDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>(ApplyTenantJsonPatchJsonDocument, options);
+}
 export type ApplyTenantJsonPatchJsonMutationHookResult = ReturnType<typeof useApplyTenantJsonPatchJsonMutation>;
 export type ApplyTenantJsonPatchJsonMutationResult = Apollo.MutationResult<ApplyTenantJsonPatchJsonMutation>;
 export type ApplyTenantJsonPatchJsonMutationOptions = Apollo.BaseMutationOptions<ApplyTenantJsonPatchJsonMutation, ApplyTenantJsonPatchJsonMutationVariables>;
@@ -4388,9 +4449,9 @@ export type ApplyWorkspaceMutationFn = Apollo.MutationFunction<ApplyWorkspaceMut
  * });
  */
 export function useApplyWorkspaceMutation(baseOptions?: Apollo.MutationHookOptions<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>(ApplyWorkspaceDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>(ApplyWorkspaceDocument, options);
+}
 export type ApplyWorkspaceMutationHookResult = ReturnType<typeof useApplyWorkspaceMutation>;
 export type ApplyWorkspaceMutationResult = Apollo.MutationResult<ApplyWorkspaceMutation>;
 export type ApplyWorkspaceMutationOptions = Apollo.BaseMutationOptions<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>;
@@ -4470,9 +4531,9 @@ export type CreateInstanceMutationFn = Apollo.MutationFunction<CreateInstanceMut
  * });
  */
 export function useCreateInstanceMutation(baseOptions?: Apollo.MutationHookOptions<CreateInstanceMutation, CreateInstanceMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<CreateInstanceMutation, CreateInstanceMutationVariables>(CreateInstanceDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<CreateInstanceMutation, CreateInstanceMutationVariables>(CreateInstanceDocument, options);
+}
 export type CreateInstanceMutationHookResult = ReturnType<typeof useCreateInstanceMutation>;
 export type CreateInstanceMutationResult = Apollo.MutationResult<CreateInstanceMutation>;
 export type CreateInstanceMutationOptions = Apollo.BaseMutationOptions<CreateInstanceMutation, CreateInstanceMutationVariables>;
@@ -4519,24 +4580,26 @@ export type CreateSharedVolumeMutationFn = Apollo.MutationFunction<CreateSharedV
  * });
  */
 export function useCreateSharedVolumeMutation(baseOptions?: Apollo.MutationHookOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>(CreateSharedVolumeDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>(CreateSharedVolumeDocument, options);
+}
 export type CreateSharedVolumeMutationHookResult = ReturnType<typeof useCreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationResult = Apollo.MutationResult<CreateSharedVolumeMutation>;
 export type CreateSharedVolumeMutationOptions = Apollo.BaseMutationOptions<CreateSharedVolumeMutation, CreateSharedVolumeMutationVariables>;
 export const CreateTemplateDocument = gql`
-    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $environmentList: [EnvironmentListListItemInput!]!, $templateId: String = "template-", $deleteAfter: String, $descriptionTemplate: String!, $inactivityTimeout: String, $destroyAfterInactivity: String, $allowPublicExposure: Boolean, $nodeSelector: JSON) {
+    mutation createTemplate($workspaceId: String!, $workspaceNamespace: String!, $templateName: String!, $environmentList: [EnvironmentListListItemInput!]!, $templateId: String = "template-", $cleanupDeleteAfterCreation: String!, $descriptionTemplate: String!, $cleanupStopAfterInactivity: String!, $cleanupDeleteAfterInactivity: String!, $allowPublicExposure: Boolean, $nodeSelector: JSON) {
   createdTemplate: createCrownlabsPolitoItV1alpha2NamespacedTemplate(
     namespace: $workspaceNamespace
-    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, deleteAfter: $deleteAfter, inactivityTimeout: $inactivityTimeout, destroyAfterInactivity: $destroyAfterInactivity, environmentList: $environmentList, allowPublicExposure: $allowPublicExposure, nodeSelector: $nodeSelector, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
+    itPolitoCrownlabsV1alpha2TemplateInput: {kind: "Template", apiVersion: "crownlabs.polito.it/v1alpha2", spec: {prettyName: $templateName, description: $descriptionTemplate, cleanup: {deleteAfterCreation: $cleanupDeleteAfterCreation, stopAfterInactivity: $cleanupStopAfterInactivity, deleteAfterInactivity: $cleanupDeleteAfterInactivity}, environmentList: $environmentList, allowPublicExposure: $allowPublicExposure, nodeSelector: $nodeSelector, workspaceCrownlabsPolitoItWorkspaceRef: {name: $workspaceId}}, metadata: {generateName: $templateId, namespace: $workspaceNamespace}}
   ) {
     spec {
       prettyName
       description
-      deleteAfter
-      inactivityTimeout
-      destroyAfterInactivity
+      cleanup {
+        deleteAfterCreation
+        stopAfterInactivity
+        deleteAfterInactivity
+      }
       allowPublicExposure
       nodeSelector
       environmentList {
@@ -4578,19 +4641,19 @@ export type CreateTemplateMutationFn = Apollo.MutationFunction<CreateTemplateMut
  *      templateName: // value for 'templateName'
  *      environmentList: // value for 'environmentList'
  *      templateId: // value for 'templateId'
- *      deleteAfter: // value for 'deleteAfter'
+ *      cleanupDeleteAfterCreation: // value for 'cleanupDeleteAfterCreation'
  *      descriptionTemplate: // value for 'descriptionTemplate'
- *      inactivityTimeout: // value for 'inactivityTimeout'
- *      destroyAfterInactivity: // value for 'destroyAfterInactivity'
+ *      cleanupStopAfterInactivity: // value for 'cleanupStopAfterInactivity'
+ *      cleanupDeleteAfterInactivity: // value for 'cleanupDeleteAfterInactivity'
  *      allowPublicExposure: // value for 'allowPublicExposure'
  *      nodeSelector: // value for 'nodeSelector'
  *   },
  * });
  */
 export function useCreateTemplateMutation(baseOptions?: Apollo.MutationHookOptions<CreateTemplateMutation, CreateTemplateMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<CreateTemplateMutation, CreateTemplateMutationVariables>(CreateTemplateDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<CreateTemplateMutation, CreateTemplateMutationVariables>(CreateTemplateDocument, options);
+}
 export type CreateTemplateMutationHookResult = ReturnType<typeof useCreateTemplateMutation>;
 export type CreateTemplateMutationResult = Apollo.MutationResult<CreateTemplateMutation>;
 export type CreateTemplateMutationOptions = Apollo.BaseMutationOptions<CreateTemplateMutation, CreateTemplateMutationVariables>;
@@ -4641,9 +4704,9 @@ export type CreateWorkspaceMutationFn = Apollo.MutationFunction<CreateWorkspaceM
  * });
  */
 export function useCreateWorkspaceMutation(baseOptions?: Apollo.MutationHookOptions<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>(CreateWorkspaceDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>(CreateWorkspaceDocument, options);
+}
 export type CreateWorkspaceMutationHookResult = ReturnType<typeof useCreateWorkspaceMutation>;
 export type CreateWorkspaceMutationResult = Apollo.MutationResult<CreateWorkspaceMutation>;
 export type CreateWorkspaceMutationOptions = Apollo.BaseMutationOptions<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>;
@@ -4678,9 +4741,9 @@ export type DeleteInstanceMutationFn = Apollo.MutationFunction<DeleteInstanceMut
  * });
  */
 export function useDeleteInstanceMutation(baseOptions?: Apollo.MutationHookOptions<DeleteInstanceMutation, DeleteInstanceMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<DeleteInstanceMutation, DeleteInstanceMutationVariables>(DeleteInstanceDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<DeleteInstanceMutation, DeleteInstanceMutationVariables>(DeleteInstanceDocument, options);
+}
 export type DeleteInstanceMutationHookResult = ReturnType<typeof useDeleteInstanceMutation>;
 export type DeleteInstanceMutationResult = Apollo.MutationResult<DeleteInstanceMutation>;
 export type DeleteInstanceMutationOptions = Apollo.BaseMutationOptions<DeleteInstanceMutation, DeleteInstanceMutationVariables>;
@@ -4715,9 +4778,9 @@ export type DeleteLabelSelectorInstancesMutationFn = Apollo.MutationFunction<Del
  * });
  */
 export function useDeleteLabelSelectorInstancesMutation(baseOptions?: Apollo.MutationHookOptions<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>(DeleteLabelSelectorInstancesDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>(DeleteLabelSelectorInstancesDocument, options);
+}
 export type DeleteLabelSelectorInstancesMutationHookResult = ReturnType<typeof useDeleteLabelSelectorInstancesMutation>;
 export type DeleteLabelSelectorInstancesMutationResult = Apollo.MutationResult<DeleteLabelSelectorInstancesMutation>;
 export type DeleteLabelSelectorInstancesMutationOptions = Apollo.BaseMutationOptions<DeleteLabelSelectorInstancesMutation, DeleteLabelSelectorInstancesMutationVariables>;
@@ -4752,9 +4815,9 @@ export type DeleteSharedVolumeMutationFn = Apollo.MutationFunction<DeleteSharedV
  * });
  */
 export function useDeleteSharedVolumeMutation(baseOptions?: Apollo.MutationHookOptions<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>(DeleteSharedVolumeDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>(DeleteSharedVolumeDocument, options);
+}
 export type DeleteSharedVolumeMutationHookResult = ReturnType<typeof useDeleteSharedVolumeMutation>;
 export type DeleteSharedVolumeMutationResult = Apollo.MutationResult<DeleteSharedVolumeMutation>;
 export type DeleteSharedVolumeMutationOptions = Apollo.BaseMutationOptions<DeleteSharedVolumeMutation, DeleteSharedVolumeMutationVariables>;
@@ -4789,9 +4852,9 @@ export type DeleteTemplateMutationFn = Apollo.MutationFunction<DeleteTemplateMut
  * });
  */
 export function useDeleteTemplateMutation(baseOptions?: Apollo.MutationHookOptions<DeleteTemplateMutation, DeleteTemplateMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<DeleteTemplateMutation, DeleteTemplateMutationVariables>(DeleteTemplateDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<DeleteTemplateMutation, DeleteTemplateMutationVariables>(DeleteTemplateDocument, options);
+}
 export type DeleteTemplateMutationHookResult = ReturnType<typeof useDeleteTemplateMutation>;
 export type DeleteTemplateMutationResult = Apollo.MutationResult<DeleteTemplateMutation>;
 export type DeleteTemplateMutationOptions = Apollo.BaseMutationOptions<DeleteTemplateMutation, DeleteTemplateMutationVariables>;
@@ -4822,9 +4885,9 @@ export type DeleteTenantMutationFn = Apollo.MutationFunction<DeleteTenantMutatio
  * });
  */
 export function useDeleteTenantMutation(baseOptions?: Apollo.MutationHookOptions<DeleteTenantMutation, DeleteTenantMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<DeleteTenantMutation, DeleteTenantMutationVariables>(DeleteTenantDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<DeleteTenantMutation, DeleteTenantMutationVariables>(DeleteTenantDocument, options);
+}
 export type DeleteTenantMutationHookResult = ReturnType<typeof useDeleteTenantMutation>;
 export type DeleteTenantMutationResult = Apollo.MutationResult<DeleteTenantMutation>;
 export type DeleteTenantMutationOptions = Apollo.BaseMutationOptions<DeleteTenantMutation, DeleteTenantMutationVariables>;
@@ -4855,9 +4918,9 @@ export type DeleteWorkspaceMutationFn = Apollo.MutationFunction<DeleteWorkspaceM
  * });
  */
 export function useDeleteWorkspaceMutation(baseOptions?: Apollo.MutationHookOptions<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useMutation<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>(DeleteWorkspaceDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useMutation<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>(DeleteWorkspaceDocument, options);
+}
 export type DeleteWorkspaceMutationHookResult = ReturnType<typeof useDeleteWorkspaceMutation>;
 export type DeleteWorkspaceMutationResult = Apollo.MutationResult<DeleteWorkspaceMutation>;
 export type DeleteWorkspaceMutationOptions = Apollo.BaseMutationOptions<DeleteWorkspaceMutation, DeleteWorkspaceMutationVariables>;
@@ -4890,20 +4953,20 @@ export const AllTemplatesDocument = gql`
  * });
  */
 export function useAllTemplatesQuery(baseOptions?: Apollo.QueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
+}
 export function useAllTemplatesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
+}
 // @ts-ignore
 export function useAllTemplatesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<AllTemplatesQuery, AllTemplatesQueryVariables>;
 export function useAllTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<AllTemplatesQuery | undefined, AllTemplatesQueryVariables>;
 export function useAllTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<AllTemplatesQuery, AllTemplatesQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<AllTemplatesQuery, AllTemplatesQueryVariables>(AllTemplatesDocument, options);
+}
 export type AllTemplatesQueryHookResult = ReturnType<typeof useAllTemplatesQuery>;
 export type AllTemplatesLazyQueryHookResult = ReturnType<typeof useAllTemplatesLazyQuery>;
 export type AllTemplatesSuspenseQueryHookResult = ReturnType<typeof useAllTemplatesSuspenseQuery>;
@@ -4940,20 +5003,20 @@ export const ImagesDocument = gql`
  * });
  */
 export function useImagesQuery(baseOptions?: Apollo.QueryHookOptions<ImagesQuery, ImagesQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
+}
 export function useImagesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ImagesQuery, ImagesQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
+}
 // @ts-ignore
 export function useImagesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>): Apollo.UseSuspenseQueryResult<ImagesQuery, ImagesQueryVariables>;
 export function useImagesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>): Apollo.UseSuspenseQueryResult<ImagesQuery | undefined, ImagesQueryVariables>;
 export function useImagesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
+}
 export type ImagesQueryHookResult = ReturnType<typeof useImagesQuery>;
 export type ImagesLazyQueryHookResult = ReturnType<typeof useImagesLazyQuery>;
 export type ImagesSuspenseQueryHookResult = ReturnType<typeof useImagesSuspenseQuery>;
@@ -5061,21 +5124,21 @@ export const OwnedInstancesDocument = gql`
  *   },
  * });
  */
-export function useOwnedInstancesQuery(baseOptions: Apollo.QueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables> & ({ variables: OwnedInstancesQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
-      }
+export function useOwnedInstancesQuery(baseOptions: Apollo.QueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables> & ({ variables: OwnedInstancesQueryVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
+}
 export function useOwnedInstancesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
+}
 // @ts-ignore
 export function useOwnedInstancesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables>): Apollo.UseSuspenseQueryResult<OwnedInstancesQuery, OwnedInstancesQueryVariables>;
 export function useOwnedInstancesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables>): Apollo.UseSuspenseQueryResult<OwnedInstancesQuery | undefined, OwnedInstancesQueryVariables>;
 export function useOwnedInstancesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<OwnedInstancesQuery, OwnedInstancesQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<OwnedInstancesQuery, OwnedInstancesQueryVariables>(OwnedInstancesDocument, options);
+}
 export type OwnedInstancesQueryHookResult = ReturnType<typeof useOwnedInstancesQuery>;
 export type OwnedInstancesLazyQueryHookResult = ReturnType<typeof useOwnedInstancesLazyQuery>;
 export type OwnedInstancesSuspenseQueryHookResult = ReturnType<typeof useOwnedInstancesSuspenseQuery>;
@@ -5175,20 +5238,20 @@ export const InstancesLabelSelectorDocument = gql`
  * });
  */
 export function useInstancesLabelSelectorQuery(baseOptions?: Apollo.QueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
+}
 export function useInstancesLabelSelectorLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
+}
 // @ts-ignore
 export function useInstancesLabelSelectorSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>): Apollo.UseSuspenseQueryResult<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>;
 export function useInstancesLabelSelectorSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>): Apollo.UseSuspenseQueryResult<InstancesLabelSelectorQuery | undefined, InstancesLabelSelectorQueryVariables>;
 export function useInstancesLabelSelectorSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<InstancesLabelSelectorQuery, InstancesLabelSelectorQueryVariables>(InstancesLabelSelectorDocument, options);
+}
 export type InstancesLabelSelectorQueryHookResult = ReturnType<typeof useInstancesLabelSelectorQuery>;
 export type InstancesLabelSelectorLazyQueryHookResult = ReturnType<typeof useInstancesLabelSelectorLazyQuery>;
 export type InstancesLabelSelectorSuspenseQueryHookResult = ReturnType<typeof useInstancesLabelSelectorSuspenseQuery>;
@@ -5218,20 +5281,20 @@ export const NodesLabelsDocument = gql`
  * });
  */
 export function useNodesLabelsQuery(baseOptions?: Apollo.QueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
+}
 export function useNodesLabelsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
+}
 // @ts-ignore
 export function useNodesLabelsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>): Apollo.UseSuspenseQueryResult<NodesLabelsQuery, NodesLabelsQueryVariables>;
 export function useNodesLabelsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>): Apollo.UseSuspenseQueryResult<NodesLabelsQuery | undefined, NodesLabelsQueryVariables>;
 export function useNodesLabelsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<NodesLabelsQuery, NodesLabelsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<NodesLabelsQuery, NodesLabelsQueryVariables>(NodesLabelsDocument, options);
+}
 export type NodesLabelsQueryHookResult = ReturnType<typeof useNodesLabelsQuery>;
 export type NodesLabelsLazyQueryHookResult = ReturnType<typeof useNodesLabelsLazyQuery>;
 export type NodesLabelsSuspenseQueryHookResult = ReturnType<typeof useNodesLabelsSuspenseQuery>;
@@ -5274,21 +5337,21 @@ export const WorkspaceSharedVolumesDocument = gql`
  *   },
  * });
  */
-export function useWorkspaceSharedVolumesQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables> & ({ variables: WorkspaceSharedVolumesQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
-      }
+export function useWorkspaceSharedVolumesQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables> & ({ variables: WorkspaceSharedVolumesQueryVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
+}
 export function useWorkspaceSharedVolumesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
+}
 // @ts-ignore
 export function useWorkspaceSharedVolumesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>;
 export function useWorkspaceSharedVolumesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceSharedVolumesQuery | undefined, WorkspaceSharedVolumesQueryVariables>;
 export function useWorkspaceSharedVolumesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<WorkspaceSharedVolumesQuery, WorkspaceSharedVolumesQueryVariables>(WorkspaceSharedVolumesDocument, options);
+}
 export type WorkspaceSharedVolumesQueryHookResult = ReturnType<typeof useWorkspaceSharedVolumesQuery>;
 export type WorkspaceSharedVolumesLazyQueryHookResult = ReturnType<typeof useWorkspaceSharedVolumesLazyQuery>;
 export type WorkspaceSharedVolumesSuspenseQueryHookResult = ReturnType<typeof useWorkspaceSharedVolumesSuspenseQuery>;
@@ -5303,9 +5366,11 @@ export const WorkspaceTemplatesDocument = gql`
         prettyName
         description
         allowPublicExposure
-        deleteAfter
-        inactivityTimeout
-        destroyAfterInactivity
+        cleanup {
+          deleteAfterCreation
+          stopAfterInactivity
+          deleteAfterInactivity
+        }
         nodeSelector
         environmentList {
           name
@@ -5367,21 +5432,21 @@ export const WorkspaceTemplatesDocument = gql`
  *   },
  * });
  */
-export function useWorkspaceTemplatesQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables> & ({ variables: WorkspaceTemplatesQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
-      }
+export function useWorkspaceTemplatesQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables> & ({ variables: WorkspaceTemplatesQueryVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
+}
 export function useWorkspaceTemplatesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
+}
 // @ts-ignore
 export function useWorkspaceTemplatesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>;
 export function useWorkspaceTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceTemplatesQuery | undefined, WorkspaceTemplatesQueryVariables>;
 export function useWorkspaceTemplatesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<WorkspaceTemplatesQuery, WorkspaceTemplatesQueryVariables>(WorkspaceTemplatesDocument, options);
+}
 export type WorkspaceTemplatesQueryHookResult = ReturnType<typeof useWorkspaceTemplatesQuery>;
 export type WorkspaceTemplatesLazyQueryHookResult = ReturnType<typeof useWorkspaceTemplatesLazyQuery>;
 export type WorkspaceTemplatesSuspenseQueryHookResult = ReturnType<typeof useWorkspaceTemplatesSuspenseQuery>;
@@ -5453,21 +5518,21 @@ export const TenantDocument = gql`
  *   },
  * });
  */
-export function useTenantQuery(baseOptions: Apollo.QueryHookOptions<TenantQuery, TenantQueryVariables> & ({ variables: TenantQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
-      }
+export function useTenantQuery(baseOptions: Apollo.QueryHookOptions<TenantQuery, TenantQueryVariables> & ({ variables: TenantQueryVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
+}
 export function useTenantLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<TenantQuery, TenantQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
+}
 // @ts-ignore
 export function useTenantSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<TenantQuery, TenantQueryVariables>): Apollo.UseSuspenseQueryResult<TenantQuery, TenantQueryVariables>;
 export function useTenantSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantQuery, TenantQueryVariables>): Apollo.UseSuspenseQueryResult<TenantQuery | undefined, TenantQueryVariables>;
 export function useTenantSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantQuery, TenantQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<TenantQuery, TenantQueryVariables>(TenantDocument, options);
+}
 export type TenantQueryHookResult = ReturnType<typeof useTenantQuery>;
 export type TenantLazyQueryHookResult = ReturnType<typeof useTenantLazyQuery>;
 export type TenantSuspenseQueryHookResult = ReturnType<typeof useTenantSuspenseQuery>;
@@ -5515,20 +5580,20 @@ export const TenantsDocument = gql`
  * });
  */
 export function useTenantsQuery(baseOptions?: Apollo.QueryHookOptions<TenantsQuery, TenantsQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
+}
 export function useTenantsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<TenantsQuery, TenantsQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
+}
 // @ts-ignore
 export function useTenantsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<TenantsQuery, TenantsQueryVariables>): Apollo.UseSuspenseQueryResult<TenantsQuery, TenantsQueryVariables>;
 export function useTenantsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantsQuery, TenantsQueryVariables>): Apollo.UseSuspenseQueryResult<TenantsQuery | undefined, TenantsQueryVariables>;
 export function useTenantsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<TenantsQuery, TenantsQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<TenantsQuery, TenantsQueryVariables>(TenantsDocument, options);
+}
 export type TenantsQueryHookResult = ReturnType<typeof useTenantsQuery>;
 export type TenantsLazyQueryHookResult = ReturnType<typeof useTenantsLazyQuery>;
 export type TenantsSuspenseQueryHookResult = ReturnType<typeof useTenantsSuspenseQuery>;
@@ -5565,21 +5630,21 @@ export const WorkspaceDocument = gql`
  *   },
  * });
  */
-export function useWorkspaceQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables> & ({ variables: WorkspaceQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
-      }
+export function useWorkspaceQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables> & ({ variables: WorkspaceQueryVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
+}
 export function useWorkspaceLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
+}
 // @ts-ignore
 export function useWorkspaceSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuery, WorkspaceQueryVariables>;
 export function useWorkspaceSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuery | undefined, WorkspaceQueryVariables>;
 export function useWorkspaceSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuery, WorkspaceQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<WorkspaceQuery, WorkspaceQueryVariables>(WorkspaceDocument, options);
+}
 export type WorkspaceQueryHookResult = ReturnType<typeof useWorkspaceQuery>;
 export type WorkspaceLazyQueryHookResult = ReturnType<typeof useWorkspaceLazyQuery>;
 export type WorkspaceSuspenseQueryHookResult = ReturnType<typeof useWorkspaceSuspenseQuery>;
@@ -5621,20 +5686,20 @@ export const WorkspaceQuotasDocument = gql`
  * });
  */
 export function useWorkspaceQuotasQuery(baseOptions?: Apollo.QueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
+}
 export function useWorkspaceQuotasLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
+}
 // @ts-ignore
 export function useWorkspaceQuotasSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>;
 export function useWorkspaceQuotasSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceQuotasQuery | undefined, WorkspaceQuotasQueryVariables>;
 export function useWorkspaceQuotasSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<WorkspaceQuotasQuery, WorkspaceQuotasQueryVariables>(WorkspaceQuotasDocument, options);
+}
 export type WorkspaceQuotasQueryHookResult = ReturnType<typeof useWorkspaceQuotasQuery>;
 export type WorkspaceQuotasLazyQueryHookResult = ReturnType<typeof useWorkspaceQuotasLazyQuery>;
 export type WorkspaceQuotasSuspenseQueryHookResult = ReturnType<typeof useWorkspaceQuotasSuspenseQuery>;
@@ -5678,20 +5743,20 @@ export const WorkspacesDocument = gql`
  * });
  */
 export function useWorkspacesQuery(baseOptions?: Apollo.QueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);
+}
 export function useWorkspacesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>) {
-          const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);
-        }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useLazyQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);
+}
 // @ts-ignore
 export function useWorkspacesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspacesQuery, WorkspacesQueryVariables>;
 export function useWorkspacesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspacesQuery | undefined, WorkspacesQueryVariables>;
 export function useWorkspacesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspacesQuery, WorkspacesQueryVariables>) {
-          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);
-        }
+  const options = baseOptions === Apollo.skipToken ? baseOptions : { ...defaultOptions, ...baseOptions }
+  return Apollo.useSuspenseQuery<WorkspacesQuery, WorkspacesQueryVariables>(WorkspacesDocument, options);
+}
 export type WorkspacesQueryHookResult = ReturnType<typeof useWorkspacesQuery>;
 export type WorkspacesLazyQueryHookResult = ReturnType<typeof useWorkspacesLazyQuery>;
 export type WorkspacesSuspenseQueryHookResult = ReturnType<typeof useWorkspacesSuspenseQuery>;
@@ -5791,10 +5856,10 @@ export const UpdatedOwnedInstancesDocument = gql`
  *   },
  * });
  */
-export function useUpdatedOwnedInstancesSubscription(baseOptions: Apollo.SubscriptionHookOptions<UpdatedOwnedInstancesSubscription, UpdatedOwnedInstancesSubscriptionVariables> & ({ variables: UpdatedOwnedInstancesSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useSubscription<UpdatedOwnedInstancesSubscription, UpdatedOwnedInstancesSubscriptionVariables>(UpdatedOwnedInstancesDocument, options);
-      }
+export function useUpdatedOwnedInstancesSubscription(baseOptions: Apollo.SubscriptionHookOptions<UpdatedOwnedInstancesSubscription, UpdatedOwnedInstancesSubscriptionVariables> & ({ variables: UpdatedOwnedInstancesSubscriptionVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useSubscription<UpdatedOwnedInstancesSubscription, UpdatedOwnedInstancesSubscriptionVariables>(UpdatedOwnedInstancesDocument, options);
+}
 export type UpdatedOwnedInstancesSubscriptionHookResult = ReturnType<typeof useUpdatedOwnedInstancesSubscription>;
 export type UpdatedOwnedInstancesSubscriptionResult = Apollo.SubscriptionResult<UpdatedOwnedInstancesSubscription>;
 export const UpdatedInstancesLabelSelectorDocument = gql`
@@ -5896,9 +5961,9 @@ export const UpdatedInstancesLabelSelectorDocument = gql`
  * });
  */
 export function useUpdatedInstancesLabelSelectorSubscription(baseOptions?: Apollo.SubscriptionHookOptions<UpdatedInstancesLabelSelectorSubscription, UpdatedInstancesLabelSelectorSubscriptionVariables>) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useSubscription<UpdatedInstancesLabelSelectorSubscription, UpdatedInstancesLabelSelectorSubscriptionVariables>(UpdatedInstancesLabelSelectorDocument, options);
-      }
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useSubscription<UpdatedInstancesLabelSelectorSubscription, UpdatedInstancesLabelSelectorSubscriptionVariables>(UpdatedInstancesLabelSelectorDocument, options);
+}
 export type UpdatedInstancesLabelSelectorSubscriptionHookResult = ReturnType<typeof useUpdatedInstancesLabelSelectorSubscription>;
 export type UpdatedInstancesLabelSelectorSubscriptionResult = Apollo.SubscriptionResult<UpdatedInstancesLabelSelectorSubscription>;
 export const UpdatedWorkspaceTemplatesDocument = gql`
@@ -5953,10 +6018,10 @@ export const UpdatedWorkspaceTemplatesDocument = gql`
  *   },
  * });
  */
-export function useUpdatedWorkspaceTemplatesSubscription(baseOptions: Apollo.SubscriptionHookOptions<UpdatedWorkspaceTemplatesSubscription, UpdatedWorkspaceTemplatesSubscriptionVariables> & ({ variables: UpdatedWorkspaceTemplatesSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useSubscription<UpdatedWorkspaceTemplatesSubscription, UpdatedWorkspaceTemplatesSubscriptionVariables>(UpdatedWorkspaceTemplatesDocument, options);
-      }
+export function useUpdatedWorkspaceTemplatesSubscription(baseOptions: Apollo.SubscriptionHookOptions<UpdatedWorkspaceTemplatesSubscription, UpdatedWorkspaceTemplatesSubscriptionVariables> & ({ variables: UpdatedWorkspaceTemplatesSubscriptionVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useSubscription<UpdatedWorkspaceTemplatesSubscription, UpdatedWorkspaceTemplatesSubscriptionVariables>(UpdatedWorkspaceTemplatesDocument, options);
+}
 export type UpdatedWorkspaceTemplatesSubscriptionHookResult = ReturnType<typeof useUpdatedWorkspaceTemplatesSubscription>;
 export type UpdatedWorkspaceTemplatesSubscriptionResult = Apollo.SubscriptionResult<UpdatedWorkspaceTemplatesSubscription>;
 export const UpdatedTenantDocument = gql`
@@ -6027,9 +6092,9 @@ export const UpdatedTenantDocument = gql`
  *   },
  * });
  */
-export function useUpdatedTenantSubscription(baseOptions: Apollo.SubscriptionHookOptions<UpdatedTenantSubscription, UpdatedTenantSubscriptionVariables> & ({ variables: UpdatedTenantSubscriptionVariables; skip?: boolean; } | { skip: boolean; }) ) {
-        const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useSubscription<UpdatedTenantSubscription, UpdatedTenantSubscriptionVariables>(UpdatedTenantDocument, options);
-      }
+export function useUpdatedTenantSubscription(baseOptions: Apollo.SubscriptionHookOptions<UpdatedTenantSubscription, UpdatedTenantSubscriptionVariables> & ({ variables: UpdatedTenantSubscriptionVariables; skip?: boolean; } | { skip: boolean; })) {
+  const options = { ...defaultOptions, ...baseOptions }
+  return Apollo.useSubscription<UpdatedTenantSubscription, UpdatedTenantSubscriptionVariables>(UpdatedTenantDocument, options);
+}
 export type UpdatedTenantSubscriptionHookResult = ReturnType<typeof useUpdatedTenantSubscription>;
 export type UpdatedTenantSubscriptionResult = Apollo.SubscriptionResult<UpdatedTenantSubscription>;
