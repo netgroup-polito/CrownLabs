@@ -260,13 +260,13 @@ instance-operator:
       inactiveTerminationNotificationInterval: "24h"
       expirationNotificationInterval: "24h"
 
-bastion-operator:
+bastion:
   replicaCount: 1
   image:
     repositoryBastion: crownlabs/ssh-bastion
-    repositorySidecar: crownlabs/bastion-operator
-    repositoryTrackerSidecar: crownlabs/bastion-ssh-tracker
-  rbacResourcesName: crownlabs-bastion-operator
+    repositoryOperator: crownlabs/bastion-operator
+    repositoryWebSSH: crownlabs/webssh
+  rbacResourcesName: crownlabs-bastion
   serviceAnnotations: {}
   service:
     type: LoadBalancer
@@ -277,7 +277,7 @@ bastion-operator:
     sshTrackerPort: 22
     sshTrackerSnaplen: 1600
     sshTrackerMetricsAddr: ":8082"
-    
+
   webssh:
     ingress:
       enabled: true
@@ -303,7 +303,6 @@ gatewayAPI:
     value: "crownlabs-main-production"
   # allowedRoutes: {}
 
-
 exam-agent:
   replicaCount: 1
   configurations:
@@ -323,4 +322,4 @@ policies:
       - key: crownlabs.polito.it/type
         operator: In
         values:
-        - sandbox
+          - sandbox
