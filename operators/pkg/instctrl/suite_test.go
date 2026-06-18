@@ -15,7 +15,6 @@
 package instctrl_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -28,7 +27,6 @@ import (
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
@@ -49,14 +47,8 @@ func TestAPIs(t *testing.T) {
 var (
 	instanceReconciler instctrl.InstanceReconciler
 	k8sClient          client.Client
-	testEnv            = envtest.Environment{
-		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "deploy", "crds"),
-			filepath.Join("..", "..", "tests", "crds"),
-		},
-		ErrorIfCRDPathMissing: true,
-	}
-	whiteListMap = map[string]string{"production": "true"}
+	testEnv            = *tests.ForgeEnvtestEnv(true)
+	whiteListMap       = map[string]string{"production": "true"}
 )
 
 var _ = BeforeSuite(func() {
