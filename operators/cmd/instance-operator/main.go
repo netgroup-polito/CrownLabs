@@ -175,6 +175,7 @@ func main() {
 	}
 
 	// Populate exposition/gateway fields from flags
+	expositionCfg.EnableAuthentication = enableAuth
 	expositionCfg.GatewayAPIMode = gatewayAPIMode
 	log.Info("Gateway API mode selection", "enabled", gatewayAPIMode)
 	if gatewayAPIMode {
@@ -203,7 +204,6 @@ func main() {
 		WebSSHMasterPublicKey:     pubKeyBytes,
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
-		EnableAuthentication:      enableAuth,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

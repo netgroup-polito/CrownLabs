@@ -85,8 +85,12 @@ var _ = BeforeSuite(func() {
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
 		ReconcileDeferHook: GinkgoRecover,
 		ExpositionConfig: forge.ExpositionConfig{
-			WebsiteBaseURL:   "fakesite.com",
-			InstancesAuthURL: "fake.com/auth",
+			WebsiteBaseURL:       "fakesite.com",
+			InstancesAuthURL:     "fake.com/auth",
+			EnableAuthentication: true,
+			GatewayAPIMode:       false,
+			GatewayName:          "fake-gw",
+			GatewayNamespace:     "fake-gw-ns",
 		},
 		ContainerEnvOpts: forge.ContainerEnvOpts{
 			ImagesTag:       "v0.1.2",
