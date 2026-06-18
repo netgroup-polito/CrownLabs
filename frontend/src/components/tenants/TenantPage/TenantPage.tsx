@@ -26,14 +26,13 @@ export default function TenantPage() {
           left: (
             <div className="h-full flex-none flex justify-center items-center w-20">
               <Tooltip title="Back">
-                <Link to="/tenants">
-                  <Button
-                    type="primary"
-                    shape="circle"
-                    size="large"
-                    icon={<LeftOutlined />}
-                  />
-                </Link>
+                <Button
+                  type="primary"
+                  shape="circle"
+                  size="large"
+                  icon={<LeftOutlined />}
+                  onClick={() => window.history.back()}
+                />
               </Tooltip>
             </div>
           ),

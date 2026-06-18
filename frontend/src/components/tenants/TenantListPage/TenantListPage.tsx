@@ -25,13 +25,14 @@ import { makeTenantsList } from '../../../utilsLogic';
 import { multiStringIncludes, type Tenant } from '../../../utils';
 import Box from '../../common/Box';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function TenantListPage() {
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const { token } = theme.useToken();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+  const navigate = useNavigate();
 
   const searchText = searchParams.get('q') ?? '';
   const regStart = searchParams.get('regStart');
@@ -604,7 +605,7 @@ export default function TenantListPage() {
                         type="text"
                         icon={<EditOutlined />}
                         onClick={() =>
-                          window.open('/tenants/' + tenant.userid, '_blank')
+                          navigate('/tenants/' + tenant.userid)
                         }
                       />
                     </Tooltip>
