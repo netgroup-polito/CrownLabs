@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	"k8s.io/utils/ptr"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -87,16 +88,12 @@ func HTTPRouteSpec(tpl *HTTPRouteTemplate, expo *ExpositionConfig, environment *
 
 // BuildParentReference creates the appropriate ParentReference for the provided gateway.
 func BuildParentReference(gatewayName, gatewayNamespace string) gatewayv1.ParentReference {
-	if gatewayName != "" {
-		parent := gatewayv1.ParentReference{Name: gatewayv1.ObjectName(gatewayName)}
-		if gatewayNamespace != "" {
-			namespace := gatewayv1.Namespace(gatewayNamespace)
-			parent.Namespace = &namespace
-		}
-		return parent
-	}
-	// No gateway specified, return empty parent refs to create an "orphan" HTTPRoute.
-	return gatewayv1.ParentReference{}
+	parent := gatewayv1.ParentReference{}
+
+	parent.Name = gatewayv1.ObjectName(gatewayName)
+	parent.Namespace = ptr.To(gatewayv1.Namespace(gatewayNamespace))
+
+	return parent
 }
 
 // BuildRouteRule constructs a complete HTTPRouteRule including match, backend reference and timeout filters.
@@ -114,21 +111,21 @@ func BuildRouteRule(path, serviceName string, servicePort int32, environment *cl
 
 	rule := gatewayv1.HTTPRouteRule{
 		Matches: []gatewayv1.HTTPRouteMatch{{
-			Path: &gatewayv1.HTTPPathMatch{Type: &pathMatchType, Value: &pathValue},
+			Path: &gatewayv1.HTTPPathMatch{Type: ptr.To(pathMatchType), Value: ptr.To(pathValue)},
 		}},
 		BackendRefs: []gatewayv1.HTTPBackendRef{{
 			BackendRef: gatewayv1.BackendRef{
 				BackendObjectReference: gatewayv1.BackendObjectReference{
 					Name: gatewayv1.ObjectName(serviceName),
-					Port: &backendPort,
+					Port: ptr.To(backendPort),
 				},
 			},
 		}},
 		Timeouts: func() *gatewayv1.HTTPRouteTimeouts {
-			d := gatewayv1.Duration(DefaultTimeoutSeconds)
+			dur := gatewayv1.Duration(DefaultTimeoutSeconds)
 			return &gatewayv1.HTTPRouteTimeouts{
-				Request:        &d,
-				BackendRequest: &d,
+				Request:        ptr.To(dur),
+				BackendRequest: ptr.To(dur),
 			}
 		}(),
 		Filters: filters,
@@ -152,15 +149,18 @@ func RewriteFilterForEnvironment(environment *clv1alpha2.Environment) *gatewayv1
 	}
 
 	rewriteType := gatewayv1.PrefixMatchHTTPPathModifier
-	return &gatewayv1.HTTPRouteFilter{
+
+	filter := &gatewayv1.HTTPRouteFilter{
 		Type: gatewayv1.HTTPRouteFilterURLRewrite,
 		URLRewrite: &gatewayv1.HTTPURLRewriteFilter{
 			Path: &gatewayv1.HTTPPathModifier{
 				Type:               rewriteType,
-				ReplacePrefixMatch: &target,
+				ReplacePrefixMatch: ptr.To(target),
 			},
 		},
 	}
+
+	return filter
 }
 
 // GUI Path helpers for the environment GUI exposure.

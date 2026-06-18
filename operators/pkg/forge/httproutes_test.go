@@ -70,17 +70,8 @@ var _ = Describe("HTTPRoute", func() {
 			// ParentRef assertions
 			Expect(spec.CommonRouteSpec.ParentRefs).To(HaveLen(1))
 			p := spec.ParentRefs[0]
-			if gwName != "" {
-				Expect(p.Name).To(Equal(gatewayv1.ObjectName(gwName)))
-				if gwNs != "" {
-					Expect(p.Namespace).ToNot(BeNil())
-					Expect(*p.Namespace).To(Equal(gatewayv1.Namespace(gwNs)))
-				}
-			} else {
-				// empty parent when no gateway specified
-				Expect(string(p.Name)).To(Equal(""))
-				Expect(p.Namespace).To(BeNil())
-			}
+			Expect(p.Name).To(Equal(gatewayv1.ObjectName(gwName)))
+			Expect(*p.Namespace).To(Equal(gatewayv1.Namespace(gwNs)))
 
 			// Rules and matches
 			Expect(spec.Rules).To(HaveLen(1))
