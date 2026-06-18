@@ -4,7 +4,6 @@ metadata:
   name: httproutes.gateway.networking.k8s.io
   annotations:
     api-approved.kubernetes.io: https://github.com/kubernetes-sigs/gateway-api/pull/1111
-    gateway.networking.k8s.io/bundle-version: v1.3.0
 spec:
   group: gateway.networking.k8s.io
   scope: Namespaced

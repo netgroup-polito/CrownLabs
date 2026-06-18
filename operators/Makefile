@@ -202,7 +202,7 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 
 ## Tool Versions
 ADDLICENSE_VERSION ?= v1.1.1
-CONTROLLER_TOOLS_VERSION ?= v0.19.0
+CONTROLLER_TOOLS_VERSION ?= v0.21.0
 
 #ENVTEST_VERSION is the version of controller-runtime release branch to fetch the envtest setup script (i.e. release-0.20)
 ENVTEST_VERSION ?= $(shell v='$(call gomodver,sigs.k8s.io/controller-runtime)'; \
