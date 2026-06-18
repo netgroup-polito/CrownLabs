@@ -46,17 +46,32 @@ type HTTPRouteTemplate struct {
 
 // ExpositionConfig holds gateway information used by HTTPRouteSpec.
 type ExpositionConfig struct {
-	WebsiteBaseURL     string
-	InstancesAuthURL   string
-	GatewayAPIMode     bool
-	GatewayName        string
-	GatewayNamespace   string
-	GatewaySectionName string
+	WebsiteBaseURL   string
+	InstancesAuthURL string
+	GatewayAPIMode   bool
+	GatewayName      string
+	GatewayNamespace string
+}
+
+// ParseGatewayParent parses a gateway parent reference of the form
+// "namespace/name" and returns the two components. Returns an error on invalid input.
+func ParseGatewayParent(raw string) (namespace, name string, err error) {
+	raw = strings.TrimSpace(raw)
+	parts := strings.Split(raw, "/")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid gateway parent reference: %q", raw)
+	}
+	trim := strings.TrimSpace
+	namespace, name = trim(parts[0]), trim(parts[1])
+	if namespace == "" || name == "" {
+		return "", "", fmt.Errorf("invalid gateway parent reference, empty namespace or name: %q", raw)
+	}
+	return namespace, name, nil
 }
 
 // HTTPRouteSpec forges the specification of a Kubernetes HTTPRoute resource.
 func HTTPRouteSpec(tpl *HTTPRouteTemplate, expo *ExpositionConfig, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
-	parentRef := BuildParentReference(expo.GatewayName, expo.GatewayNamespace, expo.GatewaySectionName)
+	parentRef := BuildParentReference(expo.GatewayName, expo.GatewayNamespace)
 	rule := BuildRouteRule(tpl.Path, tpl.ServiceName, servicePort, environment)
 
 	spec := gatewayv1.HTTPRouteSpec{
@@ -70,16 +85,12 @@ func HTTPRouteSpec(tpl *HTTPRouteTemplate, expo *ExpositionConfig, environment *
 }
 
 // BuildParentReference creates the appropriate ParentReference for the provided gateway.
-func BuildParentReference(gatewayName, gatewayNamespace, gatewaySectionName string) gatewayv1.ParentReference {
+func BuildParentReference(gatewayName, gatewayNamespace string) gatewayv1.ParentReference {
 	if gatewayName != "" {
 		parent := gatewayv1.ParentReference{Name: gatewayv1.ObjectName(gatewayName)}
 		if gatewayNamespace != "" {
 			namespace := gatewayv1.Namespace(gatewayNamespace)
 			parent.Namespace = &namespace
-		}
-		if gatewaySectionName != "" {
-			sectionName := gatewayv1.SectionName(gatewaySectionName)
-			parent.SectionName = &sectionName
 		}
 		return parent
 	}
