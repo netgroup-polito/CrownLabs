@@ -107,11 +107,12 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	if err != nil {
 		return err
 	}
+	// If service presence couldn't be ensured due to out-of-range index, nothing to do
 	if svc == nil {
 		return nil
 	}
 
-	// No need to create ingress resources in case of gui-less VMs.
+	// No need to create ingress resources in case of gui-less VMs
 	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
 		return nil
 	}
@@ -131,7 +132,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
 
 		// Add authentication annotations only if enabled.
-		if r.EnableAuthentication {
+		if r.ExpositionConfig.EnableAuthentication {
 			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ExpositionConfig.InstancesAuthURL))
 		}
 
@@ -168,6 +169,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionServicePresence(ctx contex
 
 	service := corev1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &service, func() error {
+		// Service specifications are forged only at creation time, to prevent issues in case of updates.
 		if service.CreationTimestamp.IsZero() {
 			service.Spec = forge.ServiceSpec(instance, environment)
 		}
