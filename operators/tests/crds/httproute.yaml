@@ -3,7 +3,7 @@ kind: CustomResourceDefinition
 metadata:
   name: httproutes.gateway.networking.k8s.io
   annotations:
-    api-approved.kubernetes.io: https://github.com/kubernetes-sigs/gateway-api/pull/1111
+    api-approved.kubernetes.io: unapproved - this is needed until the API is in-tree, it will ever happen
 spec:
   group: gateway.networking.k8s.io
   scope: Namespaced
