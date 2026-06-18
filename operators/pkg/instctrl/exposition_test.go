@@ -85,18 +85,17 @@ var _ = Describe("Generation of the exposition environment", func() {
 	)
 
 	const (
-		instanceName       = "kubernetes-0000"
-		instanceNamespace  = "tenant-tester"
-		instanceUID        = "dcc6ead1-0040-451b-ba68-787ebfb68640"
-		templateName       = "kubernetes"
-		templateNamespace  = "workspace-netgroup"
-		environmentName    = "control-plane"
-		tenantName         = "tester"
-		host               = "crownlabs.example.com"
-		clusterIP          = "1.1.1.1"
-		gatewayName        = "test-gateway"
-		gatewayNamespace   = "gateway-ns"
-		gatewaySectionName = "https"
+		instanceName      = "kubernetes-0000"
+		instanceNamespace = "tenant-tester"
+		instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
+		templateName      = "kubernetes"
+		templateNamespace = "workspace-netgroup"
+		environmentName   = "control-plane"
+		tenantName        = "tester"
+		host              = "crownlabs.example.com"
+		clusterIP         = "1.1.1.1"
+		gatewayName       = "test-gateway"
+		gatewayNamespace  = "gateway-ns"
 	)
 
 	BeforeEach(func() {
@@ -154,12 +153,11 @@ var _ = Describe("Generation of the exposition environment", func() {
 			Client: cl,
 			Scheme: scheme.Scheme,
 			ExpositionConfig: forge.ExpositionConfig{
-				WebsiteBaseURL:     host,
-				InstancesAuthURL:   instancesAuthURL,
-				GatewayAPIMode:     gatewayAPIMode,
-				GatewayName:        gatewayName,
-				GatewayNamespace:   gatewayNamespace,
-				GatewaySectionName: gatewaySectionName,
+				WebsiteBaseURL:   host,
+				InstancesAuthURL: instancesAuthURL,
+				GatewayAPIMode:   gatewayAPIMode,
+				GatewayName:      gatewayName,
+				GatewayNamespace: gatewayNamespace,
 			},
 			EventsRecorder:       record.NewFakeRecorder(1024),
 			EnableAuthentication: enableAuth,
@@ -241,9 +239,8 @@ var _ = Describe("Generation of the exposition environment", func() {
 				ServiceName: serviceName.Name,
 			}
 			expo := forge.ExpositionConfig{
-				GatewayName:        gatewayName,
-				GatewayNamespace:   gatewayNamespace,
-				GatewaySectionName: gatewaySectionName,
+				GatewayName:      gatewayName,
+				GatewayNamespace: gatewayNamespace,
 			}
 			return forge.HTTPRouteSpec(tpl, &expo, env, forge.GUIPortNumber)
 		},

@@ -33,7 +33,6 @@ var _ = Describe("HTTPRoute", func() {
 		serviceName = "service-name"
 		gwName      = "crownlabs-gw"
 		gwNs        = "envoy-gateway-system"
-		gwSection   = "https"
 		svcPort     = int32(6080)
 	)
 
@@ -63,9 +62,9 @@ var _ = Describe("HTTPRoute", func() {
 	)
 
 	DescribeTable("HTTPRouteSpec and rule construction",
-		func(gwName, gwNs, gwSection string, env *clv1alpha2.Environment, expectRewrite bool) {
+		func(gwName, gwNs string, env *clv1alpha2.Environment, expectRewrite bool) {
 			tpl := forge.HTTPRouteTemplate{Path: path, ServiceName: serviceName}
-			expo := forge.ExpositionConfig{GatewayName: gwName, GatewayNamespace: gwNs, GatewaySectionName: gwSection}
+			expo := forge.ExpositionConfig{GatewayName: gwName, GatewayNamespace: gwNs}
 			spec := forge.HTTPRouteSpec(&tpl, &expo, env, svcPort)
 
 			// ParentRef assertions
@@ -77,15 +76,10 @@ var _ = Describe("HTTPRoute", func() {
 					Expect(p.Namespace).ToNot(BeNil())
 					Expect(*p.Namespace).To(Equal(gatewayv1.Namespace(gwNs)))
 				}
-				if gwSection != "" {
-					Expect(p.SectionName).ToNot(BeNil())
-					Expect(*p.SectionName).To(Equal(gatewayv1.SectionName(gwSection)))
-				}
 			} else {
 				// empty parent when no gateway specified
 				Expect(string(p.Name)).To(Equal(""))
 				Expect(p.Namespace).To(BeNil())
-				Expect(p.SectionName).To(BeNil())
 			}
 
 			// Rules and matches
@@ -115,10 +109,10 @@ var _ = Describe("HTTPRoute", func() {
 				Expect(rule.Filters).To(BeEmpty())
 			}
 		},
-		Entry("gateway + nil env no rewrite", gwName, gwNs, gwSection, nil, false),
-		Entry("no gateway + standalone rewrite", "", "", "", makeEnv(clv1alpha2.ClassStandalone, true, ""), true),
-		Entry("no gateway + cloudvm rewrite", "", "", "", makeEnv(clv1alpha2.ClassCloudVM, true, ""), true),
-		Entry("gateway but rewrite disabled", gwName, gwNs, gwSection, makeEnv(clv1alpha2.ClassStandalone, false, ""), false),
+		Entry("gateway + nil env no rewrite", gwName, gwNs, nil, false),
+		Entry("no gateway + standalone rewrite", "", "", makeEnv(clv1alpha2.ClassStandalone, true, ""), true),
+		Entry("no gateway + cloudvm rewrite", "", "", makeEnv(clv1alpha2.ClassCloudVM, true, ""), true),
+		Entry("gateway but rewrite disabled", gwName, gwNs, makeEnv(clv1alpha2.ClassStandalone, false, ""), false),
 	)
 
 	Describe("The forge.Exposition*Path functions", func() {
