@@ -7,7 +7,7 @@ import TenantInfo from '../TenantInfo';
 import TenantPersonalWorkspaceSettings from '../TenantPersonalWorkspaceSettings';
 import TenantWorkspaces from '../TenantWorkspaces';
 import TenantSettings from '../TenantSettings';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Box from '../../common/Box';
 
 export default function TenantPage() {
