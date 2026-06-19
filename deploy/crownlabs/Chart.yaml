@@ -45,10 +45,10 @@ dependencies:
   repository: file://../../operators/deploy/instance-operator
   condition: instance-operator.enabled
 
-- name: bastion-operator
+- name: bastion
   version: "0.1.1"
-  repository: file://../../operators/deploy/bastion-operator
-  condition: bastion-operator.enabled
+  repository: file://../../operators/deploy/bastion
+  condition: bastion.enabled
 
 - name: exam-agent
   version: "0.1.0"

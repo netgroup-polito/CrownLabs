@@ -299,20 +299,19 @@ The operator will also create or update the corresponding `Service` of type `Loa
 
 ## SSH bastion
 
-The SSH bastion is composed of three basic blocks:
+The SSH bastion is composed of two basic blocks:
 
-1. `bastion-operator`: an operator based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git)
-2. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
-3. `bastion-ssh-tracker`: a golang app based on Google `gopacket` that passively tracks outbound SSH connections going from the **bastion host** to the associated **target instances**, exposing them as metrics for Prometheus.
+1. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+2. `ssh-controller`: an operator-like tool based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git) to read and sync SSH keys which also tracks forwarded SSH connections, leveraging the netfilter/conntrack subsystem, and exposing them as metrics for Prometheus.
 
 ### Bastion SSH Tracker
-The `bastion-ssh-tracker` enables lightweight and non-intrusive monitoring of SSH activity from the bastion, complementing monitoring focused on RDP accesses coming from the ingress.
+The ssh tracker enables lightweight and non-intrusive monitoring of SSH activity from the bastion, complementing monitoring focused on GUI accesses coming from the ingress controller.
 The idea is to track each time a new SSH session is established from a user to an instance (e.g., VM), in order to monitor whether the instance is currently being used by its owner, or it is a 'stale' instance which consumes resources for no reason.
-This is done by tracking all the TCP SYN packets from the SSH bastion to any instance; when such a packet is detected, the corresponding Prometheus metric is incremented.
+This is done by tracking all the new TCP connections (through netfilter/conntrack) from the SSH bastion to any instance; when such a new connection is detected, the corresponding Prometheus metric is incremented.
 
 An example of the metric exposed by the tracker is the following:
 ```
-bastion_ssh_connections{container="bastion-operator-tracker-sidecar", destination_ip="1.2.3.4", destination_port="22", endpoint="metrics", instance="10.244.1.195:8082", job="bastion-bastion-operator-metrics", namespace="default", pod="bastion-bastion-operator-67b688c479-dlx49", service="bastion-bastion-operator-metrics"}
+bastion_ssh_connections{container="bastion-operator", destination_ip="1.2.3.4", destination_port="22", endpoint="metrics", instance="10.244.1.195:8082", job="bastion-bastion-operator-metrics", namespace="default", pod="bastion-bastion-operator-67b688c479-dlx49", service="bastion-bastion-operator-metrics"}
 ```
 with its corresponding counter value, which is incremented each time a new SSH connection is established to the instance with IP `1.2.3.4`.
 
