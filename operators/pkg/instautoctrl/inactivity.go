@@ -340,10 +340,14 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 
 	// Get instance activity data
 	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
+	log.Info("Generated Nginx Prometheus query", "query", queryNginx)
 	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, stopAfterInactivityDuration)
+	log.Info("Nginx Prometheus query result", "lastActivityTime", lastActivityTimeNginx, "error", errNginx)
 
 	queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), instance.Namespace, instance.Name)
+	log.Info("Generated WebSSH Prometheus query", "query", queryWebSSH)
 	lastActivityTimeWebSSH, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, stopAfterInactivityDuration)
+	log.Info("WebSSH Prometheus query result", "lastActivityTime", lastActivityTimeWebSSH, "error", errWebSSH)
 
 	// Aggregate SSH activity times across all environments (find minimum non-zero)
 	var lastActivityTimeSSH time.Time
@@ -351,7 +355,9 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	for envIdx := range instance.Status.Environments {
 		env := &instance.Status.Environments[envIdx]
 		querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
+		log.Info("Generated SSH Prometheus query", "query", querySSH, "envIP", env.IP)
 		envActivityTime, errSSH := r.Prometheus.GetLastActivityTime(querySSH, stopAfterInactivityDuration)
+		log.Info("SSH Prometheus query result", "envIP", env.IP, "lastActivityTime", envActivityTime, "error", errSSH)
 		if errSSH == nil && !envActivityTime.IsZero() {
 			if !lastActivityTimeSSHFound || envActivityTime.Before(lastActivityTimeSSH) {
 				lastActivityTimeSSH = envActivityTime

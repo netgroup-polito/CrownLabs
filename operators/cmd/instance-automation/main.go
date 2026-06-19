@@ -77,7 +77,7 @@ func main() {
 	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", `count(up{service="ingress-nginx-external-controller-metrics"})`, "Prometheus Query to understand if Nginx Metrics are available in Prometheus.")
 	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", `count(up{container="bastion-operator-tracker-sidecar"})`, "Prometheus Query to understand if SSH (custom metric) Metrics are available in Prometheus.")
 	prometheusWebSSHAvailability := flag.String("monitoring-web-ssh-availability", `count(up{container="webssh"})`, "Prometheus Query to understand if WebSSH (custom metric) Metrics are available in Prometheus.")
-	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace=%q, exported_service=%q}`, "Prometheus Query to retrieve metrics about the last (frontend) access to a specific instance.")
+	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace="%s", exported_service=~"%s.*"}`, "Prometheus Query to retrieve metrics about the last (frontend) access to a specific instance.")
 	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (SSH) access to a specific instance.")
 	prometheusWebSSHData := flag.String("monitoring-web-ssh-data", `bastion_web_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (WebSSH) access to a specific instance.")
 	queryStep := flag.Duration("prometheus-query-step", 5*time.Minute, "The step to use when querying range data from Prometheus.")
