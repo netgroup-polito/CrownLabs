@@ -344,7 +344,8 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, stopAfterInactivityDuration)
 	log.Info("Nginx Prometheus query result", "lastActivityTime", lastActivityTimeNginx, "error", errNginx)
 
-	queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), instance.Namespace, instance.Name)
+	// TO FIX: just a test for ssh
+	queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), instance.Status.Environments[0].IP)
 	log.Info("Generated WebSSH Prometheus query", "query", queryWebSSH)
 	lastActivityTimeWebSSH, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, stopAfterInactivityDuration)
 	log.Info("WebSSH Prometheus query result", "lastActivityTime", lastActivityTimeWebSSH, "error", errWebSSH)
