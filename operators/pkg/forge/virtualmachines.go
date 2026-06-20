@@ -295,6 +295,12 @@ func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1
 
 // DataVolume forging is performed in the instance controller, as it needs to be created before the VM, and its specifications cannot be updated after the creation without causing data loss or being rejected by the webhook. The datavolume is forged with the same name as the VM, to ensure that it can be easily retrieved and associated with the correct VM, and with a reference to the environment image, to ensure that it contains the correct data.
 func DataVolume(name, namespace string, environment *clv1alpha2.Environment) *cdiv1beta1.DataVolume {
+	// Select the correct volume mode based on VM type. FS for CloudVMs, Block for VMs
+	volumeMode := corev1.PersistentVolumeFilesystem
+
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
+		volumeMode = corev1.PersistentVolumeBlock
+	}
 	return &cdiv1beta1.DataVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,
@@ -304,6 +310,7 @@ func DataVolume(name, namespace string, environment *clv1alpha2.Environment) *cd
 			Source: DataVolumeSourceForge(environment),
 			PVC: &corev1.PersistentVolumeClaimSpec{
 				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+				VolumeMode:  &volumeMode,
 				Resources: corev1.VolumeResourceRequirements{
 					Requests: corev1.ResourceList{
 						corev1.ResourceStorage: environment.Resources.Disk,
