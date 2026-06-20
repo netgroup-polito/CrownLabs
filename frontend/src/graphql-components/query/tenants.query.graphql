@@ -11,7 +11,11 @@ query tenants($labels: String, $retrieveWorkspaces: Boolean = false) {
         lastName
         email
         lastLogin
-        createPersonalWorkspace
+        personalWorkspace {
+          cpu
+          memory
+          instances
+        }
         workspaces @include(if: $retrieveWorkspaces) {
           role
           name

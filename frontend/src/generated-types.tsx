@@ -2921,6 +2921,12 @@ export type SandboxNamespaceInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
+export enum Scope {
+  Exam = 'Exam',
+  Exercise = 'Exercise',
+  Standard = 'Standard'
+}
+
 /** The reference of the Shared Volume this Mount Info is related to. */
 export type SharedVolume = {
   __typename?: 'SharedVolume';
@@ -2970,6 +2976,8 @@ export type Spec = {
   __typename?: 'Spec';
   /** The list of VM images currently available in CrownLabs. */
   images: Array<Maybe<ImagesListItem>>;
+  /** The base name of the project in which the images are stored. */
+  projectBaseName?: Maybe<Scalars['String']['output']>;
   /** The host name that can be used to access the registry. */
   registryName: Scalars['String']['output'];
 };
@@ -3159,6 +3167,8 @@ export type Spec6 = {
   nodeSelector?: Maybe<Scalars['JSON']['output']>;
   /** The human-readable name of the Template. */
   prettyName: Scalars['String']['output'];
+  /** The scope associated with the environments belonging to the template (Standard, Exam, Exercise) */
+  scope?: Maybe<Scope>;
   /** The reference to the Workspace this Template belongs to. */
   workspaceCrownlabsPolitoItWorkspaceRef?: Maybe<WorkspaceCrownlabsPolitoItWorkspaceRef>;
 };
@@ -3197,6 +3207,8 @@ export type Spec6Input = {
   nodeSelector?: InputMaybe<Scalars['JSON']['input']>;
   /** The human-readable name of the Template. */
   prettyName: Scalars['String']['input'];
+  /** The scope associated with the environments belonging to the template (Standard, Exam, Exercise) */
+  scope?: InputMaybe<Scope>;
   /** The reference to the Workspace this Template belongs to. */
   workspaceCrownlabsPolitoItWorkspaceRef?: InputMaybe<WorkspaceCrownlabsPolitoItWorkspaceRefInput>;
 };
@@ -3284,6 +3296,8 @@ export type Spec7Input = {
 export type SpecInput = {
   /** The list of VM images currently available in CrownLabs. */
   images: Array<InputMaybe<ImagesListItemInput>>;
+  /** The base name of the project in which the images are stored. */
+  projectBaseName?: InputMaybe<Scalars['String']['input']>;
   /** The host name that can be used to access the registry. */
   registryName: Scalars['String']['input'];
 };
@@ -3935,7 +3949,7 @@ export type TenantsQueryVariables = Exact<{
 }>;
 
 
-export type TenantsQuery = { __typename?: 'Query', tenants?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, createPersonalWorkspace?: boolean | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null> } | null };
+export type TenantsQuery = { __typename?: 'Query', tenants?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, spec?: { __typename?: 'Spec7', firstName: string, lastName: string, email: string, lastLogin?: string | null, personalWorkspace?: { __typename?: 'PersonalWorkspace', cpu: any, memory: any, instances: any } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string } | null> | null } | null } | null> } | null };
 
 export type WorkspaceQueryVariables = Exact<{
   name: Scalars['String']['input'];
@@ -5486,7 +5500,11 @@ export const TenantsDocument = gql`
         lastName
         email
         lastLogin
-        createPersonalWorkspace
+        personalWorkspace {
+          cpu
+          memory
+          instances
+        }
         workspaces @include(if: $retrieveWorkspaces) {
           role
           name
