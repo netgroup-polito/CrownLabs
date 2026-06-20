@@ -19,6 +19,8 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -49,6 +51,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
 
 	svc, err := r.enforceInstanceExpositionServicePresence(ctx)
 	if err != nil {
@@ -59,7 +62,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 		return nil
 	}
 
-	// No need to create ingress resources in case of gui-less VMs.
+	// No need to create HTTPRoute resources in case of gui-less VMs.
 	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
 		return nil
 	}
@@ -88,6 +91,21 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 
 	log.V(utils.FromResult(res)).Info("object enforced", "httproute", klog.KObj(&httpRoute), "result", res)
 
+	// Update the instance status to mark if the exposition has been accepted by the Gateway.
+	accepted, err := r.httpRouteAccepted(ctx, &httpRoute)
+
+	if err != nil {
+		log.Error(err, "failed to read httproute status", "httproute", klog.KObj(&httpRoute))
+		return err
+	}
+
+	instance.Status.Environments[envIndex].ExpositionAccepted = accepted
+
+	if !accepted {
+		log.Info("httproute not yet accepted by the gateway", "httproute", klog.KObj(&httpRoute))
+		return nil
+	}
+
 	// Destroy any Ingress
 	if err := r.enforceInstanceExpositionIngressAbsence(ctx); err != nil {
 		log.Error(err, "failed to remove conflicting ingress", "httproute", klog.KObj(&httpRoute))
@@ -102,6 +120,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	envIndex := clctx.EnvironmentIndexFrom(ctx)
 
 	svc, err := r.enforceInstanceExpositionServicePresence(ctx)
 	if err != nil {
@@ -145,6 +164,10 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	}
 
 	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
+
+	// Update the instance status to mark the exposition as accepted a priori
+	// for Ingress-based exposition (Ingresses are considered accepted).
+	instance.Status.Environments[envIndex].ExpositionAccepted = true
 
 	// Destroy any HTTPRoute
 	if err := r.enforceInstanceExpositionHTTPRouteAbsence(ctx); err != nil {
@@ -198,15 +221,18 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	instance := clctx.InstanceFrom(ctx)
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 
-	// check if Status.Environments has enough capacity
+	// Check if Status.Environments has enough capacity
 	if len(instance.Status.Environments) <= envIndex {
-		// extend the array to envIndex+1 elements
+		// Extend the array to envIndex+1 elements
 		newEnvs := make([]clv1alpha2.InstanceStatusEnv, envIndex+1)
 		copy(newEnvs, instance.Status.Environments)
 		instance.Status.Environments = newEnvs
 	}
 
 	instance.Status.Environments[envIndex].IP = ""
+
+	// Mark exposition as not accepted when enforcing absence.
+	instance.Status.Environments[envIndex].ExpositionAccepted = false
 
 	// Enforce Service absence
 	if err := r.enforceInstanceExpositionServiceAbsence(ctx); err != nil {
@@ -258,4 +284,26 @@ func (r *InstanceReconciler) enforceInstanceExpositionServiceAbsence(ctx context
 		return err
 	}
 	return nil
+}
+
+// httpRouteAccepted reads the HTTPRoute status to check if the route has been accepted by the parent Gateway.
+func (r *InstanceReconciler) httpRouteAccepted(ctx context.Context, hr *gatewayv1.HTTPRoute) (bool, error) {
+	var route gatewayv1.HTTPRoute
+	if err := r.Get(ctx, types.NamespacedName{Namespace: hr.GetNamespace(), Name: hr.GetName()}, &route); err != nil {
+		return false, err
+	}
+
+	if len(route.Status.Parents) == 0 {
+		return false, nil
+	}
+
+	for _, parent := range route.Status.Parents {
+		for _, cond := range parent.Conditions {
+			if cond.Type == string(gatewayv1.RouteConditionAccepted) {
+				return cond.Status == metav1.ConditionTrue, nil
+			}
+		}
+	}
+
+	return false, nil
 }
