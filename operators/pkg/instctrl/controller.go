@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -392,6 +393,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&gatewayv1.HTTPRoute{}). 
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).
