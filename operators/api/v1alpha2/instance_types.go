@@ -228,7 +228,7 @@ type InstancePublicExposureStatus struct {
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="Exposition Accepted",type=string,JSONPath=`.status.environments[0].expositionAccepted`
+// +kubebuilder:printcolumn:name="Exposition Accepted",type=boolean,JSONPath=`.status.environments[0].expositionAccepted`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.environments[0].url`,priority=10
 // +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.environments[0].ip`,priority=10
 // +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.environments[0].initialReadyTime`
