@@ -7,7 +7,7 @@ import TenantInfo from '../TenantInfo';
 import TenantPersonalWorkspaceSettings from '../TenantPersonalWorkspaceSettings';
 import TenantWorkspaces from '../TenantWorkspaces';
 import TenantSettings from '../TenantSettings';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import Box from '../../common/Box';
 
 export default function TenantPage() {
@@ -26,14 +26,13 @@ export default function TenantPage() {
           left: (
             <div className="h-full flex-none flex justify-center items-center w-20">
               <Tooltip title="Back">
-                <Link to="/tenants">
-                  <Button
-                    type="primary"
-                    shape="circle"
-                    size="large"
-                    icon={<LeftOutlined />}
-                  />
-                </Link>
+                <Button
+                  type="primary"
+                  shape="circle"
+                  size="large"
+                  icon={<LeftOutlined />}
+                  onClick={() => window.history.back()}
+                />
               </Tooltip>
             </div>
           ),

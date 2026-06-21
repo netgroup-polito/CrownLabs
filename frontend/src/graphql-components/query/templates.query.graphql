@@ -9,6 +9,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
         allowPublicExposure
         deleteAfter
         inactivityTimeout
+        destroyAfterInactivity
         nodeSelector
         environmentList {
           name

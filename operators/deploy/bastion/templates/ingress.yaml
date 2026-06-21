@@ -2,7 +2,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "bastion-operator.fullname" . }}-webssh
+  name: {{ include "bastion.fullname" . }}-webssh
   labels:
     {{- include "webssh.labels" . | nindent 4 }}
   {{- with .Values.webssh.ingress.annotations }}
@@ -18,7 +18,7 @@ spec:
             pathType: {{ .Values.webssh.ingress.pathType }}
             backend:
               service:
-                name: {{ include "bastion-operator.fullname" . }}-webssh
+                name: {{ include "bastion.fullname" . }}-webssh
                 port:
                   name: webssh
   {{- if .Values.webssh.ingress.secret }}

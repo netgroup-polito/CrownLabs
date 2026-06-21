@@ -58,7 +58,7 @@ export function handleInstanceUpdate(
   switch (objType) {
     case SubObjType.Deletion:
       instances = instances.filter(matchK8sObject(instance, true));
-      notify = false;
+      notify = true;
       break;
     case SubObjType.Addition:
       instances = [...instances, instance];
