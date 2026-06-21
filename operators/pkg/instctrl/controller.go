@@ -393,7 +393,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
-		Owns(&gatewayv1.HTTPRoute{}). 
+		Owns(&gatewayv1.HTTPRoute{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).
