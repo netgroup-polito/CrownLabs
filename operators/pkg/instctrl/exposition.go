@@ -92,7 +92,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	log.V(utils.FromResult(res)).Info("object enforced", "httproute", klog.KObj(&httpRoute), "result", res)
 
 	// Update the instance status to mark if the exposition has been accepted by the Gateway.
-	accepted, err := r.httpRouteAccepted(ctx, &httpRoute)
+	accepted, err := r.getHTTPRouteAcceptedStatus(ctx, &httpRoute)
 
 	if err != nil {
 		log.Error(err, "failed to read httproute status", "httproute", klog.KObj(&httpRoute))
@@ -286,8 +286,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionServiceAbsence(ctx context
 	return nil
 }
 
-// httpRouteAccepted reads the HTTPRoute status to check if the route has been accepted by the parent Gateway.
-func (r *InstanceReconciler) httpRouteAccepted(ctx context.Context, hr *gatewayv1.HTTPRoute) (bool, error) {
+// getHTTPRouteAcceptedStatus reads the HTTPRoute status to check if the route has been accepted by the parent Gateway.
+func (r *InstanceReconciler) getHTTPRouteAcceptedStatus(ctx context.Context, hr *gatewayv1.HTTPRoute) (bool, error) {
 	var route gatewayv1.HTTPRoute
 	if err := r.Get(ctx, types.NamespacedName{Namespace: hr.GetNamespace(), Name: hr.GetName()}, &route); err != nil {
 		return false, err

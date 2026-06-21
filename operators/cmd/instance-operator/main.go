@@ -179,19 +179,15 @@ func main() {
 	expositionCfg.GatewayAPIMode = gatewayAPIMode
 	log.Info("Gateway API mode selection", "enabled", gatewayAPIMode)
 	if gatewayAPIMode {
-		if gatewayAPIRefsValues != "" {
-			gwNs, gwName, err := forge.ParseGatewayParent(gatewayAPIRefsValues)
-			if err != nil {
-				log.Error(err, "invalid gateway parent format, expected 'namespace/name'")
-				os.Exit(1)
-			}
-			expositionCfg.GatewayName = gwName
-			expositionCfg.GatewayNamespace = gwNs
+		gwNs, gwName, err := forge.ParseGatewayParent(gatewayAPIRefsValues)
+		if err != nil {
+			log.Error(err, "invalid gateway parent format, expected 'namespace/name'")
+			os.Exit(1)
 		}
-	} else {
-		if gatewayAPIRefsValues != "" {
-			log.Info("Gateway parent provided but Gateway API mode is disabled")
-		}
+		expositionCfg.GatewayName = gwName
+		expositionCfg.GatewayNamespace = gwNs
+	} else if gatewayAPIRefsValues != "" {
+		log.Info("Gateway parent provided but Gateway API mode is disabled")
 	}
 
 	if err = (&instctrl.InstanceReconciler{
