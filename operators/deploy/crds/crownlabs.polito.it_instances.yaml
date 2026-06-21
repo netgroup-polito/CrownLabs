@@ -28,7 +28,7 @@ spec:
       type: string
     - jsonPath: .status.environments[0].expositionAccepted
       name: Exposition Accepted
-      type: string
+      type: boolean
     - jsonPath: .status.environments[0].url
       name: URL
       priority: 10
