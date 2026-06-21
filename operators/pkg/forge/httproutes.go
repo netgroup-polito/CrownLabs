@@ -98,59 +98,81 @@ func BuildParentReference(gatewayName, gatewayNamespace string) gatewayv1.Parent
 
 // BuildRouteRule constructs a complete HTTPRouteRule including match, backend reference and timeout filters.
 func BuildRouteRule(path, serviceName string, servicePort int32, environment *clv1alpha2.Environment) gatewayv1.HTTPRouteRule {
-	pathMatchType := gatewayv1.PathMatchPathPrefix
-	pathValue := path
-	backendPort := gatewayv1.PortNumber(servicePort)
-	rewrite := RewriteFilterForEnvironment(environment)
-
-	// Prepare filters
-	var filters []gatewayv1.HTTPRouteFilter
-	if rewrite != nil {
-		filters = append(filters, *rewrite)
-	}
+	match := BuildHTTPMatch(path)
+	backendRef := BuildBackendRef(serviceName, servicePort)
+	timeout := BuildTimeout()
+	rewriteFilter := BuildRewriteFilterForEnvironment(environment)
 
 	rule := gatewayv1.HTTPRouteRule{
-		Matches: []gatewayv1.HTTPRouteMatch{{
-			Path: &gatewayv1.HTTPPathMatch{Type: ptr.To(pathMatchType), Value: ptr.To(pathValue)},
-		}},
-		BackendRefs: []gatewayv1.HTTPBackendRef{{
-			BackendRef: gatewayv1.BackendRef{
-				BackendObjectReference: gatewayv1.BackendObjectReference{
-					Name: gatewayv1.ObjectName(serviceName),
-					Port: ptr.To(backendPort),
-				},
-			},
-		}},
-		Timeouts: func() *gatewayv1.HTTPRouteTimeouts {
-			dur := gatewayv1.Duration(DefaultTimeoutSeconds)
-			return &gatewayv1.HTTPRouteTimeouts{
-				Request:        ptr.To(dur),
-				BackendRequest: ptr.To(dur),
-			}
-		}(),
-		Filters: filters,
+		Matches:     []gatewayv1.HTTPRouteMatch{match},
+		BackendRefs: []gatewayv1.HTTPBackendRef{backendRef},
+		Timeouts:    timeout,
+		Filters:     []gatewayv1.HTTPRouteFilter{rewriteFilter},
 	}
 
 	return rule
 }
 
-// RewriteFilterForEnvironment returns an URLRewrite filter for the given environment.
-func RewriteFilterForEnvironment(environment *clv1alpha2.Environment) *gatewayv1.HTTPRouteFilter {
-	if environment == nil || !environment.RewriteURL {
-		return nil
+// BuildHTTPMatch prepares a path match for an HTTPRouteRule.
+func BuildHTTPMatch(path string) gatewayv1.HTTPRouteMatch {
+	pathMatchType := gatewayv1.PathMatchPathPrefix
+	pathValue := path
+
+	match := gatewayv1.HTTPRouteMatch{
+		Path: &gatewayv1.HTTPPathMatch{Type: ptr.To(pathMatchType), Value: ptr.To(pathValue)},
 	}
 
-	var target string
+	return match
+}
+
+// BuildBackendRef prepares a backend (i.e., a service) reference for an HTTPRouteRule.
+func BuildBackendRef(serviceName string, servicePort int32) gatewayv1.HTTPBackendRef {
+	backendPort := gatewayv1.PortNumber(servicePort)
+
+	backendRef := gatewayv1.HTTPBackendRef{
+		BackendRef: gatewayv1.BackendRef{
+			BackendObjectReference: gatewayv1.BackendObjectReference{
+				Name: gatewayv1.ObjectName(serviceName),
+				Port: ptr.To(backendPort),
+			},
+		},
+	}
+
+	return backendRef
+}
+
+// BuildTimeout returns the default timeouts for an HTTPRouteRule.
+func BuildTimeout() *gatewayv1.HTTPRouteTimeouts {
+	dur := gatewayv1.Duration(DefaultTimeoutSeconds)
+
+	timeouts := &gatewayv1.HTTPRouteTimeouts{
+		Request:        ptr.To(dur),
+		BackendRequest: ptr.To(dur),
+	}
+
+	return timeouts
+}
+
+// BuildRewriteFilterForEnvironment returns the rewrite filter for the given environment.
+func BuildRewriteFilterForEnvironment(environment *clv1alpha2.Environment) gatewayv1.HTTPRouteFilter {
+	if environment == nil || !environment.RewriteURL {
+		return gatewayv1.HTTPRouteFilter{}
+	}
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		target = StandaloneRewriteEndpoint
+		return BuildRewriteFilter(StandaloneRewriteEndpoint)
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
-		target = GUIRewriteEndpoint
+		return BuildRewriteFilter(GUIRewriteEndpoint)
+	default:
+		return gatewayv1.HTTPRouteFilter{}
 	}
+}
 
+// BuildRewriteFilter returns an URLRewrite filter for the given target endpoint.
+func BuildRewriteFilter(target string) gatewayv1.HTTPRouteFilter {
 	rewriteType := gatewayv1.PrefixMatchHTTPPathModifier
 
-	filter := &gatewayv1.HTTPRouteFilter{
+	filter := gatewayv1.HTTPRouteFilter{
 		Type: gatewayv1.HTTPRouteFilterURLRewrite,
 		URLRewrite: &gatewayv1.HTTPURLRewriteFilter{
 			Path: &gatewayv1.HTTPPathModifier{
