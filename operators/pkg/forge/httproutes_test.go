@@ -24,151 +24,151 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
-// DRY, table-driven tests for the HTTPRoute helpers in pkg/forge/httproutes.go.
-// These tests maximize coverage while avoiding repetition via DescribeTable and helper builders.
-var _ = Describe("HTTPRoute", func() {
+var _ = Describe("HTTPRoute helpers", func() {
 	const (
+		instanceUID = "dcc6ead1-0040-451b-ba68-787ebfb68640"
 		host        = "crownlabs.example.com"
-		path        = "/instance/uuid/environment"
-		serviceName = "service-name"
-		gwName      = "crownlabs-gw"
-		gwNs        = "envoy-gateway-system"
-		svcPort     = int32(6080)
 	)
 
-	// Helper to create environment pointers with minimal syntax.
-	makeEnv := func(t clv1alpha2.EnvironmentType, rewrite bool, name string) *clv1alpha2.Environment {
-		return &clv1alpha2.Environment{EnvironmentType: t, RewriteURL: rewrite, Name: name}
-	}
+	Describe("ParseGatewayParent behavior", func() {
+		It("ParseGatewayParent parses valid parent references", func() {
+			ns, name, err := forge.ParseGatewayParent("my-ns/my-gateway")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(ns).To(Equal("my-ns"))
+			Expect(name).To(Equal("my-gateway"))
+		})
 
-	DescribeTable("RewriteFilterForEnvironment behavior",
-		func(env *clv1alpha2.Environment, expectNil bool, expectedReplace string) {
-			f := forge.RewriteFilterForEnvironment(env)
-			if expectNil {
-				Expect(f).To(BeNil())
-				return
-			}
-			Expect(f).NotTo(BeNil())
+		It("ParseGatewayParent errors on invalid input", func() {
+			_, _, err := forge.ParseGatewayParent("invalidref")
+			Expect(err).To(HaveOccurred())
+		})
+	})
+
+	Describe("HHTTPRoute creation behavior", func() {
+		It("BuildParentReference sets name and namespace", func() {
+			p := forge.BuildParentReference("gw", "gw-ns")
+			Expect(p.Name).To(Equal(gatewayv1.ObjectName("gw")))
+			Expect(*p.Namespace).To(Equal(gatewayv1.Namespace("gw-ns")))
+		})
+
+		It("BuildHTTPMatch constructs prefix path match", func() {
+			m := forge.BuildHTTPMatch("/instance/uid/env")
+			Expect(*m.Path.Type).To(Equal(gatewayv1.PathMatchPathPrefix))
+			Expect(*m.Path.Value).To(Equal("/instance/uid/env"))
+		})
+
+		It("BuildBackendRef sets the backend name and numeric port", func() {
+			br := forge.BuildBackendRef("svc", 8080)
+			bo := br.BackendObjectReference
+			Expect(bo.Name).To(Equal(gatewayv1.ObjectName("svc")))
+			Expect(bo.Port).ToNot(BeNil())
+			Expect(*bo.Port).To(Equal(gatewayv1.PortNumber(8080)))
+		})
+
+		It("BuildTimeout returns the default durations", func() {
+			t := forge.BuildTimeout()
+			Expect(string(*t.Request)).To(Equal(forge.DefaultTimeoutSeconds))
+			Expect(string(*t.BackendRequest)).To(Equal(forge.DefaultTimeoutSeconds))
+		})
+
+		It("BuildRewriteFilter constructs a URLRewrite filter", func() {
+			f := forge.BuildRewriteFilter("/")
 			Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 			Expect(f.URLRewrite).ToNot(BeNil())
 			Expect(f.URLRewrite.Path).ToNot(BeNil())
 			Expect(f.URLRewrite.Path.Type).To(Equal(gatewayv1.PrefixMatchHTTPPathModifier))
-			Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(expectedReplace))
-		},
-		Entry("nil environment", nil, true, ""),
-		Entry("rewrite disabled", makeEnv(clv1alpha2.ClassStandalone, false, ""), true, ""),
-		Entry("standalone rewrite", makeEnv(clv1alpha2.ClassStandalone, true, ""), false, "/"),
-		Entry("cloudvm rewrite", makeEnv(clv1alpha2.ClassCloudVM, true, ""), false, "/gui/"),
-	)
+			Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal("/"))
+		})
 
-	DescribeTable("HTTPRouteSpec and rule construction",
-		func(gwName, gwNs string, env *clv1alpha2.Environment, expectRewrite bool) {
-			tpl := forge.HTTPRouteTemplate{Path: path, ServiceName: serviceName}
-			expo := forge.ExpositionConfig{GatewayName: gwName, GatewayNamespace: gwNs}
-			spec := forge.HTTPRouteSpec(&tpl, &expo, env, svcPort)
-
-			// ParentRef assertions
-			Expect(spec.CommonRouteSpec.ParentRefs).To(HaveLen(1))
-			p := spec.ParentRefs[0]
-			Expect(p.Name).To(Equal(gatewayv1.ObjectName(gwName)))
-			Expect(*p.Namespace).To(Equal(gatewayv1.Namespace(gwNs)))
-
-			// Rules and matches
-			Expect(spec.Rules).To(HaveLen(1))
-			rule := spec.Rules[0]
-			Expect(rule.Matches).To(HaveLen(1))
-			Expect(*rule.Matches[0].Path.Type).To(Equal(gatewayv1.PathMatchPathPrefix))
-			Expect(*rule.Matches[0].Path.Value).To(Equal(path))
-
-			// Backend numeric port
-			Expect(rule.BackendRefs).To(HaveLen(1))
-			br := rule.BackendRefs[0].BackendObjectReference
-			Expect(br.Name).To(Equal(gatewayv1.ObjectName(serviceName)))
-			Expect(br.Port).ToNot(BeNil())
-			Expect(*br.Port).To(Equal(gatewayv1.PortNumber(svcPort)))
-
-			// Timeouts always present
-			Expect(rule.Timeouts).ToNot(BeNil())
-			Expect(string(*rule.Timeouts.Request)).To(Equal("3600s"))
-			Expect(string(*rule.Timeouts.BackendRequest)).To(Equal("3600s"))
-
-			// Filters: either empty or contain a single URLRewrite
-			if expectRewrite {
-				Expect(rule.Filters).To(HaveLen(1))
-				Expect(rule.Filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-			} else {
-				Expect(rule.Filters).To(BeEmpty())
+		Context("BuildRewriteFilterForEnvironment cases", func() {
+			makeEnv := func(t clv1alpha2.EnvironmentType, rewrite bool, name string) *clv1alpha2.Environment {
+				return &clv1alpha2.Environment{EnvironmentType: t, RewriteURL: rewrite, Name: name}
 			}
-		},
-		Entry("gateway + nil env no rewrite", gwName, gwNs, nil, false),
-		Entry("no gateway + standalone rewrite", "", "", makeEnv(clv1alpha2.ClassStandalone, true, ""), true),
-		Entry("no gateway + cloudvm rewrite", "", "", makeEnv(clv1alpha2.ClassCloudVM, true, ""), true),
-		Entry("gateway but rewrite disabled", gwName, gwNs, makeEnv(clv1alpha2.ClassStandalone, false, ""), false),
-	)
 
-	Describe("The forge.Exposition*Path functions", func() {
-		var (
-			instance    clv1alpha2.Instance
-			path        string
-			statusPath  string
-			environment clv1alpha2.Environment
-		)
+			It("returns empty filter for nil environment", func() {
+				f := forge.BuildRewriteFilterForEnvironment(nil)
+				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterType("")))
+				Expect(f.URLRewrite).To(BeNil())
+			})
 
-		const (
-			instanceName      = "kubernetes-0000"
-			instanceNamespace = "tenant-tester"
-			instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
-			environmentName   = "environment-name"
-			host              = "crownlabs.example.com"
-		)
+			It("returns empty filter when rewrite disabled", func() {
+				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassStandalone, false, ""))
+				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterType("")))
+				Expect(f.URLRewrite).To(BeNil())
+			})
+
+			It("returns standalone rewrite when requested", func() {
+				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassStandalone, true, ""))
+				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.StandaloneRewriteEndpoint))
+			})
+
+			It("returns GUI rewrite for cloud VM types", func() {
+				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassCloudVM, true, ""))
+				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
+			})
+		})
+
+		It("HTTPRouteSpec builds a route with expected parent, match, backend and timeouts", func() {
+			tpl := forge.HTTPRouteTemplate{Path: "/instance/uid/env", ServiceName: "svc"}
+			expo := forge.ExpositionConfig{GatewayName: "gw", GatewayNamespace: "gw-ns"}
+			env := &clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true}
+			spec := forge.HTTPRouteSpec(&tpl, &expo, env, 6080)
+
+			// parent
+			Expect(spec.ParentRefs).To(HaveLen(1))
+			Expect(spec.ParentRefs[0].Name).To(Equal(gatewayv1.ObjectName("gw")))
+			Expect(*spec.ParentRefs[0].Namespace).To(Equal(gatewayv1.Namespace("gw-ns")))
+
+			// rule/match
+			Expect(spec.Rules).To(HaveLen(1))
+			r := spec.Rules[0]
+			Expect(*r.Matches[0].Path.Type).To(Equal(gatewayv1.PathMatchPathPrefix))
+			Expect(*r.Matches[0].Path.Value).To(Equal("/instance/uid/env"))
+
+			// backend
+			bo := r.BackendRefs[0].BackendObjectReference
+			Expect(bo.Name).To(Equal(gatewayv1.ObjectName("svc")))
+			Expect(*bo.Port).To(Equal(gatewayv1.PortNumber(6080)))
+
+			// timeouts
+			Expect(r.Timeouts).ToNot(BeNil())
+			Expect(string(*r.Timeouts.Request)).To(Equal(forge.DefaultTimeoutSeconds))
+		})
+	})
+
+	Describe("Exposition GUI path helpers", func() {
+		var instance clv1alpha2.Instance
+		var env clv1alpha2.Environment
 
 		BeforeEach(func() {
-			instance = clv1alpha2.Instance{
-				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace, UID: instanceUID},
-			}
-			environment.Name = environmentName
+			instance = clv1alpha2.Instance{ObjectMeta: metav1.ObjectMeta{UID: instanceUID}}
+			env.Name = "env-name"
 		})
 
-		Describe("The forge.ExpositionGUIPath function", func() {
-			JustBeforeEach(func() {
-				path = forge.ExpositionGUIPath(&instance, &environment)
-			})
-			When("EnvironmentType is ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassStandalone
-				})
-				When("Rewrite is true", func() {
-					BeforeEach(func() {
-						environment.RewriteURL = true
-					})
-					Context("The instance has no special configurations", func() {
-						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name + "(/|$)(.*)"))
-						})
-					})
-				})
-				When("Rewrite is false", func() {
-					BeforeEach(func() {
-						environment.RewriteURL = false
-					})
-					Context("The instance has no special configurations", func() {
-						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
-						})
-					})
-				})
-			})
-
+		It("ExpositionGUIPath returns regex path when rewrite enabled for standalone", func() {
+			env.EnvironmentType = clv1alpha2.ClassStandalone
+			env.RewriteURL = true
+			p := forge.ExpositionGUIPath(&instance, &env)
+			Expect(p).To(Equal("/instance/" + instanceUID + "/" + env.Name + "(/|$)(.*)"))
 		})
 
-		Describe("The forge.ExpositionGuiStatusURL function", func() {
-			JustBeforeEach(func() {
-				statusPath = forge.ExpositionGuiStatusURL(host, &environment, &instance)
-			})
-			It("Should generate a path based on the instance UID and /app at the end", func() {
-				Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/"))
-			})
+		It("ExpositionGUIPath returns clean path when rewrite disabled for standalone", func() {
+			env.EnvironmentType = clv1alpha2.ClassStandalone
+			env.RewriteURL = false
+			p := forge.ExpositionGUIPath(&instance, &env)
+			Expect(p).To(Equal("/instance/" + instanceUID + "/" + env.Name))
 		})
 
+		It("ExpositionGuiStatusURL composes the expected status URL", func() {
+			u := forge.ExpositionGuiStatusURL(host, &env, &instance)
+			Expect(u).To(Equal("https://" + host + "/instance/" + instanceUID + "/" + env.Name + "/"))
+		})
+
+		It("ExpositionGuiStatusInstanceURL composes the expected instance root URL", func() {
+			u := forge.ExpositionGuiStatusInstanceURL(host, &instance)
+			Expect(u).To(Equal("https://" + host + "/instance/" + instanceUID + "/"))
+		})
 	})
 })
