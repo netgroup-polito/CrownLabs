@@ -94,7 +94,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           }),
         )
         .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
-       
+
     return templates;
   }, [templateListData?.templateList?.templates]);
 
@@ -201,7 +201,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
-  
+
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -259,10 +259,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           environmentType: env.environmentType,
           resources: {
             reservedCPUPercentage:
-             env.reservedCpu,
+              env.reservedCpu,
             cpu: env.cpu,
             memory: `${env.ram}Gi`,
-            disk: env.disk ? `${env.disk}Gi` : undefined, 
+            disk: env.disk ? `${env.disk}Gi` : undefined,
           },
           image: env.image,
           disableControls: env.disableControls,
@@ -286,13 +286,30 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         | { op: 'replace' | 'add'; path: string; value: unknown }
         | { op: 'remove'; path: string }
       > = [
-        { op: 'replace', path: '/spec/environmentList', value: environmentList },
-        { op: 'replace', path: '/spec/prettyName', value: t.name },
-        { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-        { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
-        { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
-        { op: 'replace', path: '/spec/description', value: t.description },
-      ];
+          {
+            op: 'replace',
+            path: '/spec/environmentList',
+            value: environmentList,
+          },
+          { op: 'replace', path: '/spec/prettyName', value: t.name },
+          { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
+          {
+            op: 'replace',
+            path: '/spec/inactivityTimeout',
+            value: t.inactivityTimeout,
+          },
+          {
+            op: 'replace',
+            path: '/spec/destroyAfterInactivity',
+            value: t.destroyAfterInactivity,
+          },
+          {
+            op: 'replace',
+            path: '/spec/allowPublicExposure',
+            value: t.allowPublicExposure,
+          },
+          { op: 'replace', path: '/spec/description', value: t.description },
+        ];
 
       // nodeSelector logic:
       // - if undefined: not touched by user, keep existing value (don't patch)

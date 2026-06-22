@@ -100,6 +100,7 @@ export const makeGuiTemplate = (
     description: tq.original.spec?.description ?? '',
     deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
     inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
+    destroyAfterInactivity: tq.original.spec?.destroyAfterInactivity ?? 'never',
     persistent: hasPersistent,
     nodeSelector: tq.original.spec?.nodeSelector,
     resources: {
@@ -233,9 +234,9 @@ const hasActivePublicExposure = (
 
   return Boolean(
     (spec?.ports && spec.ports.length > 0) ||
-      (status?.ports &&
-        status.ports.length > 0 &&
-        safePhaseConversion(status.phase) !== Phase.Off),
+    (status?.ports &&
+      status.ports.length > 0 &&
+      safePhaseConversion(status.phase) !== Phase.Off),
   );
 };
 
@@ -720,6 +721,7 @@ export const getTemplatesMapped = (
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
       deleteAfter: '',
       inactivityTimeout: '',
+      destroyAfterInactivity: '',
     };
   });
 };
@@ -776,7 +778,11 @@ const makeNotificationContent = (
               <i>
                 {status === Phase2.Ready
                   ? ' running'
-                  : status === Phase2.Off && ' stopped'}
+                  : status === Phase2.Off
+                  ? ' stopped'
+                  : status === 'Deleted'
+                  ? ' deleted'
+                  : ''}
               </i>
             </div>
             {instanceUrl && (
@@ -809,23 +815,31 @@ export const notifyStatus = (
   if (!instance) {
     throw new Error('notifyStatus error: instance parameter is undefined');
   }
-  if (updateType !== UpdateType.Deleted) {
-    const { name, namespace } = instance.metadata ?? {};
-    const { prettyName } = instance.spec ?? {};
-    const { url, environments } = instance.status ?? {};
-    const { prettyName: templateName } =
-      instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-        ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
+  const { name, namespace } = instance.metadata ?? {};
+  const { prettyName } = instance.spec ?? {};
+  const { url, environments } = instance.status ?? {};
+  const { prettyName: templateName } =
+    instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
-    // Only set URL for single-environment instances
-    let iUrl;
-    if (url && environments && environments.length == 1) {
-      const firstEnvName = environments[0]?.name;
-      if (firstEnvName) {
-        const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-        iUrl = `${baseUrl}/${firstEnvName}/`;
-      }
+  if (updateType === UpdateType.Deleted) {
+    notify(
+      'warning',
+      `${namespace}/${name}/deleted`,
+      makeNotificationContent(templateName, prettyName || name, 'Deleted'),
+    );
+    return;
+  }
+
+  // Only set URL for single-environment instances
+  let iUrl;
+  if (url && environments && environments.length == 1) {
+    const firstEnvName = environments[0]?.name;
+    if (firstEnvName) {
+      const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+      iUrl = `${baseUrl}/${firstEnvName}/`;
     }
+  }
 
     switch (status) {
       case Phase2.Off:
@@ -852,16 +866,14 @@ export const notifyStatus = (
         }
         break;
     }
-  }
 };
 
 export const filterUser = (instance: Instance, search: string) => {
   if (!search) {
     return true;
   }
-  const composedString = `${
-    instance.tenantId
-  }${instance.tenantDisplayName?.replace(/\s+/g, '')}`.toLowerCase();
+  const composedString = `${instance.tenantId
+    }${instance.tenantDisplayName?.replace(/\s+/g, '')}`.toLowerCase();
   return composedString.includes(search);
 };
 
@@ -994,7 +1006,7 @@ export const makeTenantsList = (rawTenantsQuery?: TenantsQuery): Tenant[] => {
       creationDate: user?.metadata?.creationTimestamp || undefined,
       lastLogin: user?.spec?.lastLogin || undefined,
       labels: (user?.metadata?.labels as Record<string, string>) || undefined,
-      personalWorkspace: user?.spec?.createPersonalWorkspace || false,
+      personalWorkspace: user?.spec?.personalWorkspace != null,
       workspaces:
         user?.spec?.workspaces?.map(workspace => ({
           role: workspace?.role || Role.User,

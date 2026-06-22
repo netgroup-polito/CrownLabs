@@ -30,6 +30,11 @@ configuration:
     standalone: standalone-project-example
     containerdisks: containerdisks-project-example
     
+  defaultTimeouts:
+    inactivityTimeout: "15d"
+    destroyAfterInactivity: "never"
+    deleteAfter: "never"
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

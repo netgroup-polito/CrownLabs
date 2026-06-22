@@ -1,0 +1,33 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "bastion.fullname" . }}
+  labels:
+    {{- include "bastion.labels" . | nindent 4 }}
+    {{- include "bastion.metricsAdditionalLabels" . | nindent 4 }}
+spec:
+  podMetricsEndpoints:
+    - interval: 15s
+      path: /metrics
+      port: metrics
+  selector:
+    matchLabels:
+      {{- include "bastion.selectorLabels" . | nindent 6 }}
+
+---
+
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "bastion.fullname" . }}-webssh
+  labels:
+    {{- include "webssh.labels" . | nindent 4 }}
+    {{- include "bastion.metricsAdditionalLabels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "webssh.selectorLabels" . | nindent 6 }}
+  podMetricsEndpoints:
+    - interval: 15s
+      path: /metrics
+      port: http
