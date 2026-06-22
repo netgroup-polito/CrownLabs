@@ -26,6 +26,7 @@ const environmentTypeOptions = [
   //{ value: EnvironmentType.Container, label: 'Container' },
 ];
 
+
 const getImageNamesCascader = (images: Image[]) => {
 
   const imageMap: Record<string, { value: string; label: string; children: { value: string; label: string }[] }> = {};
@@ -188,6 +189,7 @@ const currentAvailableImages = getAvailableImagesForEnvironment(
   availableImagesVM,
   availableImagesContainer,
 );
+const currentImageValue = Form.useWatch<string | undefined>(['environments', name, 'image']);
 
 useEffect(() => {
   setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
@@ -452,6 +454,12 @@ useEffect(() => {
         <Form.Item
   {...restField}
   label="Image"
+  extra={
+    currentImageValue && 
+    !isInImageList(currentImageValue, getEnvironmentType(name), availableImagesVM, availableImagesContainer)
+      ? "Custom image detected, be sure it exists"
+      : undefined
+  }
   name={[name, 'image']}
   required
   validateTrigger="onChange"
