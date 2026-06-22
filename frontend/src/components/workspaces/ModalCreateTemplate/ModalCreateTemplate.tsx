@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback, useMemo } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
-import type { CreateTemplateMutation } from '../../../generated-types';
+import type { CreateTemplateMutation, ImagesQuery } from '../../../generated-types';
 import { InfoCircleOutlined, CheckSquareFilled, CloseSquareFilled } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
 import {
@@ -295,7 +295,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       console.error('ModalCreateTemplate validation error:', error);
     }
   };
-
+  
   const [timeouts, setTimeouts] = useState(
     {
       inactivityTimeout: template
@@ -561,7 +561,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             defaultValue={timeouts.inactivityTimeout.value}
           >
           </InputNumber>
-
           <Select
             style={{ width: 130 }}
             onChange={value => handleTimeUnitChange(value, 'inactivityTimeout')}

@@ -400,6 +400,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                     deleteAfter: template.deleteAfter,
                     allowPublicExposure: template.allowPublicExposure,
                     inactivityTimeout: template.inactivityTimeout,
+                    destroyAfterInactivity: template.destroyAfterInactivity,
                     environments: template.environmentList.map(env => {
                       // Determinizziamo il formato dell'immagine per il Cascader
                       let finalImageValue = env.image;
