@@ -508,7 +508,7 @@ useEffect(() => {
   showSearch={{
     filter: (inputValue, path) =>
       path.some(option => (option.label as string).toLowerCase().indexOf(inputValue.toLowerCase()) > -1),
-    render: (inputValue, path) => {
+    render: (_, path) => {
       const label = path.map(option => option.label).join(' / ');
       return (
         <div>
