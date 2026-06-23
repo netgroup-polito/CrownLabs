@@ -501,19 +501,27 @@ useEffect(() => {
   }}
 >
   <Cascader
-    options={imagesSearchOptions}
-    placeholder="Select image and version"
-    expandTrigger="hover"
-    onSearch={handleSearch}
-    showSearch={{
-      filter: (inputValue, path) =>
-        path.some(option => (option.label as string).toLowerCase().indexOf(inputValue.toLowerCase()) > -1),
-    }}
-    getPopupContainer={trigger => trigger.parentElement || document.body}
-    onChange={() => {
-      setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
-    }}
-  />
+  options={imagesSearchOptions}
+  placeholder="Select image and version"
+  expandTrigger="hover"
+  onSearch={handleSearch}
+  showSearch={{
+    filter: (inputValue, path) =>
+      path.some(option => (option.label as string).toLowerCase().indexOf(inputValue.toLowerCase()) > -1),
+    render: (inputValue, path) => {
+      const label = path.map(option => option.label).join(' / ');
+      return (
+        <div>
+          { label.length > 50 ? label.slice(0, 50) + '...' : label}
+        </div>
+      );
+    }
+  }}
+  getPopupContainer={trigger => trigger.parentElement || document.body}
+  onChange={() => {
+    setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
+  }}
+/>
 </Form.Item>
       ) : (
         <>
