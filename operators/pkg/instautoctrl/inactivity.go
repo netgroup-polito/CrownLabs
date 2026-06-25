@@ -344,13 +344,24 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, stopAfterInactivityDuration)
 	log.Info("Nginx Prometheus query result", "lastActivityTime", lastActivityTimeNginx, "error", errNginx)
 
-	// TO FIX: just a test for ssh
-	queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), instance.Status.Environments[0].IP)
-	log.Info("Generated WebSSH Prometheus query", "query", queryWebSSH)
-	lastActivityTimeWebSSH, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, stopAfterInactivityDuration)
-	log.Info("WebSSH Prometheus query result", "lastActivityTime", lastActivityTimeWebSSH, "error", errWebSSH)
+	// Aggregate WebSSH activity times across all environments (find maximum)
+	var lastActivityTimeWebSSH time.Time
+	lastActivityTimeWebSSHFound := false
+	for envIdx := range instance.Status.Environments {
+		env := &instance.Status.Environments[envIdx]
+		queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), env.IP)
+		log.Info("Generated WebSSH Prometheus query", "query", queryWebSSH, "envIP", env.IP)
+		envActivityTime, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, stopAfterInactivityDuration)
+		log.Info("WebSSH Prometheus query result", "envIP", env.IP, "lastActivityTime", envActivityTime, "error", errWebSSH)
+		if errWebSSH == nil && !envActivityTime.IsZero() {
+			if !lastActivityTimeWebSSHFound || envActivityTime.After(lastActivityTimeWebSSH) {
+				lastActivityTimeWebSSH = envActivityTime
+				lastActivityTimeWebSSHFound = true
+			}
+		}
+	}
 
-	// Aggregate SSH activity times across all environments (find minimum non-zero)
+	// Aggregate SSH activity times across all environments (find maximum)
 	var lastActivityTimeSSH time.Time
 	lastActivityTimeSSHFound := false
 	for envIdx := range instance.Status.Environments {
@@ -360,7 +371,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 		envActivityTime, errSSH := r.Prometheus.GetLastActivityTime(querySSH, stopAfterInactivityDuration)
 		log.Info("SSH Prometheus query result", "envIP", env.IP, "lastActivityTime", envActivityTime, "error", errSSH)
 		if errSSH == nil && !envActivityTime.IsZero() {
-			if !lastActivityTimeSSHFound || envActivityTime.Before(lastActivityTimeSSH) {
+			if !lastActivityTimeSSHFound || envActivityTime.After(lastActivityTimeSSH) {
 				lastActivityTimeSSH = envActivityTime
 				lastActivityTimeSSHFound = true
 			}
@@ -368,10 +379,10 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	}
 
 	// If all queries failed, return error
-	if errNginx != nil && !lastActivityTimeSSHFound && errWebSSH != nil {
+	if errNginx != nil && !lastActivityTimeSSHFound && !lastActivityTimeWebSSHFound {
 		return fmt.Errorf("failed retrieving last activity time from all queries: %w", errNginx)
 	}
-	if lastActivityTimeNginx.IsZero() && !lastActivityTimeSSHFound && lastActivityTimeWebSSH.IsZero() {
+	if lastActivityTimeNginx.IsZero() && !lastActivityTimeSSHFound && !lastActivityTimeWebSSHFound {
 		log.Info("No activity detected for the instance", "instance", instance.Name, "namespace", instance.Namespace)
 		return nil // No activity detected, do not update the last activity time
 	}
