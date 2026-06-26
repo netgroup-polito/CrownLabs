@@ -57,9 +57,6 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Temp
 			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
 			Spec:       VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},
-		// DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
-		// 	DataVolumeTemplate(NamespacedNameWithSuffix(instance, environment.Name).Name, environment),
-		// },
 	}
 }
 
@@ -256,7 +253,7 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 	}
 }
 
-// DataVolumeSourceForge forges the DataVolumeSource for DataVolumeTemplate.
+// DataVolumeSourceForge forges the DataVolumeSource for DataVolume.
 func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
 		return &cdiv1beta1.DataVolumeSource{
@@ -274,28 +271,9 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 	}
 }
 
-// DataVolumeTemplate forges the DataVolume template associated with a given environment.
-func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1.DataVolumeTemplateSpec {
-	// TODO remove function
-	return virtv1.DataVolumeTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec: cdiv1beta1.DataVolumeSpec{
-			Source: DataVolumeSourceForge(environment),
-			PVC: &corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.VolumeResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: environment.Resources.Disk,
-					},
-				},
-			},
-		},
-	}
-}
-
-// DataVolume forging is performed in the instance controller, as it needs to be created before the VM, and its specifications cannot be updated after the creation without causing data loss or being rejected by the webhook. The datavolume is forged with the same name as the VM, to ensure that it can be easily retrieved and associated with the correct VM, and with a reference to the environment image, to ensure that it contains the correct data.
+// DataVolume forging, it needs to be created before the VM, forged with the same name as the VM.
 func DataVolume(name, namespace string, environment *clv1alpha2.Environment) *cdiv1beta1.DataVolume {
-	// Select the correct volume mode based on VM type. FS for CloudVMs, Block for VMs
+	// Select the correct volume mode based on VM type.
 	volumeMode := corev1.PersistentVolumeFilesystem
 
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
