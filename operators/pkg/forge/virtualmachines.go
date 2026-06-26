@@ -273,7 +273,7 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 
 // DataVolume forging, it needs to be created before the VM, forged with the same name as the VM.
 func DataVolume(name, namespace string, environment *clv1alpha2.Environment) *cdiv1beta1.DataVolume {
-	// Select the correct volume mode based on VM type.
+	// Select the correct volume mode based on VM type. Defaults to FS, but for CloudVMs Block Mode is used
 	volumeMode := corev1.PersistentVolumeFilesystem
 
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {

@@ -66,7 +66,6 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	template := clctx.TemplateFrom(ctx)
 	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
-	//TODO: Test logic for datavolume init before vm creation
 	dvName := forge.NamespacedNameWithSuffix(instance, environment.Name).Name
 
 	// Init the DataVolume object with the correct name and namespace
