@@ -112,6 +112,7 @@ export type Instance = {
   hasMultipleEnvironments?: boolean;
   resources: InstanceResources;
   lastPoweredOffTimestamp: string;
+  // deleteAfterCreation is omitted and currently not displayed in the frontend.
   cleanup?: {
     stopAfterInactivity?: string;
     deleteAfterInactivity?: string;
