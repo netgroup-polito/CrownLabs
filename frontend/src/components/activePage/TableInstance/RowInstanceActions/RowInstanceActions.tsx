@@ -1,4 +1,4 @@
-import { type FC, useContext, useState } from 'react';
+import { type FC, useContext, useState, useCallback, useMemo } from 'react';
 import { Modal, Typography } from 'antd';
 import { Button } from 'antd';
 import { type Instance, WorkspaceRole } from '../../../../utils';
@@ -23,6 +23,36 @@ export interface IRowInstanceActionsProps {
   viewMode: WorkspaceRole;
 }
 
+const EMPTY_QUOTA: IQuota = {
+  instances: 0,
+  cpu: 0,
+  memory: 0,
+  disk: 0,
+};
+
+// Returns a human readable string of the time elapsed between now and timeStr
+const formatElapsedTime = (now: Date, timeStr?: string, fallback = 'unknown') => {
+  if (!timeStr) return fallback;
+  const time = new Date(timeStr);
+  if (isNaN(time.getTime())) return fallback;
+
+  let delta = (now.getTime() - time.getTime()) / 1000;
+  const years = Math.floor(delta / (86400 * 365));
+  delta -= years * (86400 * 365);
+  const days = Math.floor(delta / 86400);
+  delta -= days * 86400;
+  const hours = Math.floor(delta / 3600) % 24;
+  delta -= hours * 3600;
+  const minutes = Math.floor(delta / 60) % 60;
+
+  if (years < 0 || days < 0 || hours < 0 || minutes < 0) return 'now';
+  if (years) return years + 'y ' + days + 'd';
+  if (days) return days + 'd ' + hours + 'h';
+  if (hours) return hours + 'h ' + minutes + 'm';
+  if (minutes) return minutes + 'm';
+  return 'now';
+};
+
 const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
   instance,
   now,
@@ -31,16 +61,11 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
   extended,
   viewMode,
 }) => {
-  // Get the available quota in the workspace from the OwnedInstancesContext
   const { availableQuota } = useContext(OwnedInstancesContext);
+  
   const workspaceAvailableQuota: IQuota = availableQuota?.[
     instance.workspaceName || ''
-  ] || {
-    instances: 0,
-    cpu: 0,
-    memory: 0,
-    disk: 0,
-  };
+  ] || EMPTY_QUOTA;
 
   // Use the value from the template (mapped via GraphQL)
   const allowPublic = instance.allowPublicExposure;
@@ -49,63 +74,21 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
 
   const [sshModal, setSshModal] = useState(false);
   const [showExposureModal, setShowExposureModal] = useState(false);
-  const onEnablePublicExposure = () => setShowExposureModal(true);
+  
+  const onEnablePublicExposure = useCallback(() => setShowExposureModal(true), []);
+  const closeSshModal = useCallback(() => setSshModal(false), []);
+  const closeExposureModal = useCallback(() => setShowExposureModal(false), []);
 
-  const getTime = () => {
-    if (!instance.timeStamp) return 'unknown';
-    const timeStamp = new Date(instance.timeStamp!);
-    // Get Delta time
-    let delta = (now.getTime() - timeStamp.getTime()) / 1000;
-    // Get Years
-    const years = Math.floor(delta / (86400 * 365));
-    // Get Days
-    delta -= years * (86400 * 365);
-    const days = Math.floor(delta / 86400);
-    // Get hours
-    delta -= days * 86400;
-    const hours = Math.floor(delta / 3600) % 24;
-    // Get Minutes
-    delta -= hours * 3600;
-    const minutes = Math.floor(delta / 60) % 60;
+  const timeValue = useMemo(() => formatElapsedTime(now, instance.timeStamp, 'unknown'), [now, instance.timeStamp]);
+  const lastAccessValue = useMemo(() => formatElapsedTime(now, instance.lastActivity, '-'), [now, instance.lastActivity]);
 
-    if (years < 0 || days < 0 || hours < 0 || minutes < 0) return 'now';
-    if (years) return years + 'y ' + days + 'd';
-    if (days) return days + 'd ' + hours + 'h';
-    if (hours) return hours + 'h ' + minutes + 'm';
-    if (minutes) return minutes + 'm';
-    return 'now';
-  };
-
-  const getLastAccess = () => {
-    if (!instance.lastActivity) return '-';
-    const lastAccess = new Date(instance.lastActivity);
-    if (isNaN(lastAccess.getTime())) return '-';
-    let delta = (now.getTime() - lastAccess.getTime()) / 1000;
-    const years = Math.floor(delta / (86400 * 365));
-    delta -= years * (86400 * 365);
-    const days = Math.floor(delta / 86400);
-    delta -= days * 86400;
-    const hours = Math.floor(delta / 3600) % 24;
-    delta -= hours * 3600;
-    const minutes = Math.floor(delta / 60) % 60;
-
-    if (years < 0 || days < 0 || hours < 0 || minutes < 0) return 'now';
-    if (years) return years + 'y ' + days + 'd';
-    if (days) return days + 'd ' + hours + 'h';
-    if (hours) return hours + 'h ' + minutes + 'm';
-    if (minutes) return minutes + 'm';
-    return 'now';
-  };
-
-  // include public exposure handler only when allowed by template
-  // include public exposure handler only when allowed or in dev
-  const fieldsDropdown = {
+  const fieldsDropdown = useMemo(() => ({
     instance,
     setSshModal,
     fileManager,
     extended,
     ...(allowPublic ? { onEnablePublicExposure } : {}),
-  };
+  }), [instance, fileManager, extended, allowPublic, onEnablePublicExposure]);
 
   return (
     <>
@@ -124,15 +107,15 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           >
             <RowInstanceActionsExtended
               setSshModal={setSshModal}
-              time={getTime()}
+              time={timeValue}
               viewMode={viewMode}
               instance={instance}
             />
             <div className="hidden lg:flex w-16 justify-center">
-              <Text strong>{getTime()}</Text>
+              <Text strong>{timeValue}</Text>
             </div>
             <div className="hidden lg:flex w-24 justify-center">
-              <Text strong>{getLastAccess()}</Text>
+              <Text strong>{lastAccessValue}</Text>
             </div>
           </div>
         )}
@@ -168,9 +151,9 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
         title="SSH Connection"
         width={550}
         open={sshModal}
-        onOk={() => setSshModal(false)}
-        onCancel={() => setSshModal(false)}
-        footer={<Button onClick={() => setSshModal(false)}>Close</Button>}
+        onOk={closeSshModal}
+        onCancel={closeSshModal}
+        footer={<Button onClick={closeSshModal}>Close</Button>}
         centered
       >
         <SSHModalContent
@@ -179,7 +162,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           namespace={instance.tenantNamespace}
           name={instance.name}
           prettyName={instance.prettyName}
-          onClose={() => setSshModal(false)}
+          onClose={closeSshModal}
           environments={instance.environments}
         />
       </Modal>
@@ -187,7 +170,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
       {allowPublic && (
         <PublicExposureModal
           open={showExposureModal}
-          onCancel={() => setShowExposureModal(false)}
+          onCancel={closeExposureModal}
           allowPublicExposure={allowPublic}
           existingExposure={instance.publicExposure}
           instanceId={instance.name}

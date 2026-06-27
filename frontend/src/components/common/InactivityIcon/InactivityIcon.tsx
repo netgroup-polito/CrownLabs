@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { FC } from 'react';
 import { Tooltip } from 'antd';
 import { ClockCircleOutlined } from '@ant-design/icons';
@@ -46,6 +47,9 @@ const formatRemaining = (ms: number): string => {
 
 type CountdownKind = 'stop' | 'delete';
 
+const URGENT_ICON_STYLE = { fontSize: '14px', color: '#ff4d4f' };
+const NORMAL_ICON_STYLE = { fontSize: '14px' };
+
 export interface IInactivityIconProps {
   instance: Instance;
 }
@@ -54,27 +58,36 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
   const stopTimeout = instance.cleanup?.stopAfterInactivity ?? NEVER;
   const deleteTimeout = instance.cleanup?.deleteAfterInactivity ?? NEVER;
 
-  if (stopTimeout === NEVER && deleteTimeout === NEVER) return null;
+  const { targetTime, countdownKind } = useMemo(() => {
+    let computedTargetTime: number | null = null;
+    let computedCountdownKind: CountdownKind | null = null;
+
+    if (instance.running && stopTimeout !== NEVER && instance.lastActivity) {
+      const ms = parseDuration(stopTimeout);
+      if (ms) {
+        computedTargetTime = new Date(instance.lastActivity).getTime() + ms;
+        computedCountdownKind = 'stop';
+      }
+    } else if (instance.status === Phase2.Off && deleteTimeout !== NEVER && instance.lastPoweredOffTimestamp) {
+      const ms = parseDuration(deleteTimeout);
+      if (ms) {
+        computedTargetTime = new Date(instance.lastPoweredOffTimestamp).getTime() + ms;
+        computedCountdownKind = 'delete';
+      }
+    }
+
+    return { targetTime: computedTargetTime, countdownKind: computedCountdownKind };
+  }, [
+    instance.running,
+    instance.status,
+    instance.lastActivity,
+    instance.lastPoweredOffTimestamp,
+    stopTimeout,
+    deleteTimeout,
+  ]);
 
   const now = Date.now();
-
-  // Compute remaining time for the relevant countdown
-  let remainingMs: number | null = null;
-  let countdownKind: CountdownKind | null = null;
-
-  if (instance.running && stopTimeout !== NEVER && instance.lastActivity) {
-    const ms = parseDuration(stopTimeout);
-    if (ms) {
-      remainingMs = new Date(instance.lastActivity).getTime() + ms - now;
-      countdownKind = 'stop';
-    }
-  } else if (instance.status === Phase2.Off && deleteTimeout !== NEVER && instance.lastPoweredOffTimestamp) {
-    const ms = parseDuration(deleteTimeout);
-    if (ms) {
-      remainingMs = new Date(instance.lastPoweredOffTimestamp).getTime() + ms - now;
-      countdownKind = 'delete';
-    }
-  }
+  const remainingMs = targetTime !== null ? targetTime - now : null;
 
   const isUrgent =
     remainingMs !== null &&
@@ -83,32 +96,34 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
 
   const countdownLabel = countdownKind === 'stop' ? 'Auto-stop in' : 'Auto-delete in';
 
+  const tooltipTitle = useMemo(() => (
+    <div className="text-left">
+      This instance will be:<br />
+      {stopTimeout !== NEVER && (
+        <>▸ powered off after <b>{stopTimeout}</b> of inactivity<br /></>
+      )}
+      {deleteTimeout !== NEVER && (
+        <>▸ deleted after being stopped for <b>{deleteTimeout}</b><br /></>
+      )}
+      {remainingMs !== null && remainingMs > 0 && (
+        <>
+          <br />
+          {countdownLabel}: <b style={{ color: isUrgent ? '#ff4d4f' : '#faad14' }}>
+            {formatRemaining(remainingMs)}
+          </b>
+        </>
+      )}
+    </div>
+  ), [stopTimeout, deleteTimeout, remainingMs, countdownLabel, isUrgent]);
+
+  if (stopTimeout === NEVER && deleteTimeout === NEVER) return null;
+
   return (
-    <Tooltip
-      title={
-        <div className="text-left">
-          This instance will be:<br />
-          {stopTimeout !== NEVER && (
-            <>▸ powered off after <b>{stopTimeout}</b> of inactivity<br /></>
-          )}
-          {deleteTimeout !== NEVER && (
-            <>▸ deleted after being stopped for <b>{deleteTimeout}</b><br /></>
-          )}
-          {remainingMs !== null && remainingMs > 0 && (
-            <>
-              <br />
-              {countdownLabel}: <b style={{ color: isUrgent ? '#ff4d4f' : '#faad14' }}>
-                {formatRemaining(remainingMs)}
-              </b>
-            </>
-          )}
-        </div>
-      }
-    >
+    <Tooltip title={tooltipTitle}>
       <div className="flex items-center">
         <ClockCircleOutlined
           className={isUrgent ? 'ml-1' : 'warning-color-fg ml-1'}
-          style={{ fontSize: '14px', ...(isUrgent ? { color: '#ff4d4f' } : {}) }}
+          style={isUrgent ? URGENT_ICON_STYLE : NORMAL_ICON_STYLE}
         />
       </div>
     </Tooltip>

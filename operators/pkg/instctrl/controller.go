@@ -228,29 +228,21 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	tracer.Step("retrieved the instance tenant")
 	log.Info("successfully retrieved the instance tenant")
 
-	// Enforce the LastPoweredOffTimestampAnnotation based on the instance running state
+	// Check whether instance metadata (annotations, labels, pretty name) needs updating.
 	hasTimestamp := instance.Annotations != nil && instance.Annotations[forge.LastPoweredOffTimestampAnnotation] != ""
+	annotationsNeedUpdate := instance.Spec.Running == hasTimestamp
 
-	annotationsUpdated := instance.Spec.Running == hasTimestamp
+	labels, labelsNeedUpdate := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
 
-	if annotationsUpdated {
-		if err := utils.PatchObject(ctx, r.Client, &instance, updateInstanceAnnotations); err != nil {
-			log.Error(err, "failed to update the instance annotations")
+	prettyNameNeedUpdate := instance.Spec.PrettyName == ""
+
+	if annotationsNeedUpdate || labelsNeedUpdate || prettyNameNeedUpdate {
+		if err := utils.PatchObject(ctx, r.Client, &instance, enforceInstanceMetadata(labels, annotationsNeedUpdate, labelsNeedUpdate, prettyNameNeedUpdate)); err != nil {
+			log.Error(err, "failed to update the instance metadata")
 			return ctrl.Result{}, err
 		}
-		tracer.Step("instance annotations updated")
-		log.Info("instance annotations correctly configured")
-	}
-
-	// Patch the instance labels to allow for easier categorization.
-	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
-	if updated || instance.Spec.PrettyName == "" {
-		if err := utils.PatchObject(ctx, r.Client, &instance, updateInstanceLabels(labels)); err != nil {
-			log.Error(err, "failed to update the instance labels")
-			return ctrl.Result{}, err
-		}
-		tracer.Step("instance labels updated")
-		log.Info("instance labels correctly configured")
+		tracer.Step("instance metadata updated")
+		log.Info("instance metadata correctly configured")
 	}
 
 	// Iterate over and enforce the instance environments.
@@ -404,24 +396,27 @@ func (r *InstanceReconciler) vmiToInstance(_ context.Context, o client.Object) [
 	return nil
 }
 
-func updateInstanceAnnotations(i *clv1alpha2.Instance) *clv1alpha2.Instance {
-	if i.Annotations == nil {
-		i.Annotations = make(map[string]string)
-	}
-	if !i.Spec.Running {
-		i.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
-	} else {
-		delete(i.Annotations, forge.LastPoweredOffTimestampAnnotation)
-	}
-	return i
-}
-
-func updateInstanceLabels(labels map[string]string) func(*clv1alpha2.Instance) *clv1alpha2.Instance {
+func enforceInstanceMetadata(labels map[string]string, annotationsNeedUpdate, labelsNeedUpdate, prettyNameNeedUpdate bool) func(*clv1alpha2.Instance) *clv1alpha2.Instance {
 	return func(i *clv1alpha2.Instance) *clv1alpha2.Instance {
-		if i.Spec.PrettyName == "" {
+		if annotationsNeedUpdate {
+			if i.Annotations == nil {
+				i.Annotations = make(map[string]string)
+			}
+			if !i.Spec.Running {
+				i.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+			} else {
+				delete(i.Annotations, forge.LastPoweredOffTimestampAnnotation)
+			}
+		}
+
+		if prettyNameNeedUpdate {
 			i.Spec.PrettyName = forge.RandomInstancePrettyName()
 		}
-		i.SetLabels(labels)
+
+		if labelsNeedUpdate {
+			i.SetLabels(labels)
+		}
+
 		return i
 	}
 }
