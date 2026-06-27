@@ -131,7 +131,7 @@ spec:
                     environmentType:
                       description: |-
                         The type of environment to be instantiated, among VirtualMachine,
-                        Container, CloudVM and Standalone.
+                        Container, CloudVM, LocalVM and Standalone.
                       enum:
                       - VirtualMachine
                       - Container
