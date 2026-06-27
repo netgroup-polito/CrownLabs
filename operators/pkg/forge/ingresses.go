@@ -72,7 +72,7 @@ func IngressGUIAnnotations(environment *clv1alpha2.Environment, annotations map[
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpoint
 	}
 
-	if environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassVM {
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
 		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = GUIRewriteEndpoint
 	}
 

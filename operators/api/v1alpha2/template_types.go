@@ -104,7 +104,7 @@ type Environment struct {
 	Image string `json:"image"`
 
 	// The type of environment to be instantiated, among VirtualMachine,
-	// Container, CloudVM and Standalone.
+	// Container, CloudVM, LocalVM and Standalone.
 	EnvironmentType EnvironmentType `json:"environmentType"`
 
 	// +kubebuilder:default=true
