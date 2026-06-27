@@ -8,9 +8,6 @@ global:
 
 createClusterRoles: true
 
-# Namespace that hosts the PVC used as the source for CloudVM clones.
-cloneSourceNamespace: cldprog-5-block-vms-tests
-
 frontend-app:
   replicaCount: 1
   image:
