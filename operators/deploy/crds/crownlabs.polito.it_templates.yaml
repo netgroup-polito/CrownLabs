@@ -137,6 +137,7 @@ spec:
                       - Container
                       - CloudVM
                       - Standalone
+                      - LocalVM
                       type: string
                     guiEnabled:
                       default: true
