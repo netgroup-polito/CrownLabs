@@ -104,7 +104,7 @@ func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Envir
 			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", IngressInstancePrefix, instance.UID, environment.Name)
 		}
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
-	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
+	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM, clv1alpha2.ClassLocalVM:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", IngressInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
 	}
 	return ""

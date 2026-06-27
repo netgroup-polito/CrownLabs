@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone";"LocalVM"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
@@ -34,6 +34,8 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
+	// ClassLocalVM -> the environment is constituted by a Virtual Machine started from a local Golden Image.
+	ClassLocalVM EnvironmentType = "LocalVM"
 )
 
 // TemplateSpec is the specification of the desired state of the Template.

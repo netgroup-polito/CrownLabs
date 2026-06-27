@@ -255,7 +255,8 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 
 // DataVolumeSourceForge forges the DataVolumeSource for DataVolume.
 func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
-	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
+	// For ClassLocalVM, the DataVolume is created from a pre-existing PVC containing the golden image.
+	if environment.EnvironmentType == clv1alpha2.ClassLocalVM {
 		return &cdiv1beta1.DataVolumeSource{
 			PVC: &cdiv1beta1.DataVolumeSourcePVC{
 				Namespace: "cldprog-5-block-vms-tests",
@@ -263,6 +264,17 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.Data
 			},
 		}
 	}
+
+	// For ClassCloudVM, the DataVolume is created from an HTTP source pointing to the image URL.
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
+		return &cdiv1beta1.DataVolumeSource{
+			HTTP: &cdiv1beta1.DataVolumeSourceHTTP{
+				URL: environment.Image,
+			},
+		}
+	}
+
+	// For ClassVM, the DataVolume is created from a registry source.
 	return &cdiv1beta1.DataVolumeSource{
 		Registry: &cdiv1beta1.DataVolumeSourceRegistry{
 			URL:       ptr.To(urlDockerPrefix + environment.Image),
@@ -276,9 +288,10 @@ func DataVolume(name, namespace string, environment *clv1alpha2.Environment) *cd
 	// Select the correct volume mode based on VM type. Defaults to FS, but for CloudVMs Block Mode is used
 	volumeMode := corev1.PersistentVolumeFilesystem
 
-	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
 		volumeMode = corev1.PersistentVolumeBlock
 	}
+
 	return &cdiv1beta1.DataVolume{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      name,

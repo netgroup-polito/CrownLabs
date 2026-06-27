@@ -17,7 +17,6 @@ package instctrl
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
@@ -70,18 +69,14 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 
 	// Init the DataVolume object with the correct name and namespace
 	dv := cdiv1beta1.DataVolume{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      dvName,
-			Namespace: instance.Namespace,
-		},
+		ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name),
 	}
 
 	// CreateOrUpdate the DataVolume, setting the Spec only if the DataVolume is being created for the first time.
 	resDV, errDV := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
 		if dv.CreationTimestamp.IsZero() {
 			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
-			forgedDV := forge.DataVolume(dvName, instance.Namespace, environment)
-			dv.Spec = forgedDV.Spec
+			dv.Spec = forge.DataVolume(dvName, instance.Namespace, environment).Spec
 		}
 		// Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
 		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
