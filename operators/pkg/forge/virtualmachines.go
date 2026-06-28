@@ -15,6 +15,8 @@
 package forge
 
 import (
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -257,6 +259,20 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
 	// For ClassLocalVM, the DataVolume is created from a pre-existing PVC containing the golden image.
 	if environment.EnvironmentType == clv1alpha2.ClassLocalVM {
+		// Splitting the environment.Image
+		// In case of LocalVM the string must be formatted as: namespace/pvc-name
+
+		parts := strings.SplitN(environment.Image, "/", 2)
+		if len(parts) == 2 {
+			return &cdiv1beta1.DataVolumeSource{
+				PVC: &cdiv1beta1.DataVolumeSourcePVC{
+					Namespace: parts[0],
+					Name:      parts[1],
+				},
+			}
+		}
+		// TODO: Manage error! The inserted Image is not valid as it contains more than one "/"
+		// Currently defaults to the debian pvc
 		return &cdiv1beta1.DataVolumeSource{
 			PVC: &cdiv1beta1.DataVolumeSourcePVC{
 				Namespace: "cldprog-5-block-vms-tests",
