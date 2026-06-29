@@ -270,13 +270,11 @@ func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLab
 }
 
 // TenantNamespaceLabels receives in input a set of labels and returns the updated set for a tenant namespace.
-func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel ctrlcommon.KVLabel, tenantNamespaceLabels map[string]string) map[string]string {
+func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, tenantCommonNSLabels map[string]string) map[string]string {
 	labels = deepCopyLabels(labels)
 
-	maps.Copy(labels, tenantNamespaceLabels)
-	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
+	maps.Copy(labels, tenantCommonNSLabels)
 	labels[LabelTypeKey] = labelTypeTenantValue
-	labels[LabelTenantKey] = tenant.Name
 	labels["crownlabs.polito.it/name"] = tenant.Name
 	labels["crownlabs.polito.it/instance-resources-replication"] = "true"
 
@@ -328,6 +326,7 @@ func InstanceNameFromLabels(labels map[string]string) (string, bool) {
 }
 
 // UpdateWorkspaceResourceCommonLabels updates the common labels for resources managed by the workspace controller.
+// Note: uses nil check instead of deepCopyLabels for performance optimization (lightweight function with minimal overhead).
 func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel ctrlcommon.KVLabel) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)

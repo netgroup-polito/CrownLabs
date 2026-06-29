@@ -84,13 +84,14 @@ func setupTenant(
 	mgr manager.Manager,
 	log logr.Logger,
 	tenantNamespaceLabels map[string]string,
-	tenantSelectorLabelKey string,
+	tenantCommonNSLabels map[string]string,
+	targetLabel ctrlcommon.KVLabel,
 ) error {
-	targetLabelValue, ok := tenantNamespaceLabels[tenantSelectorLabelKey]
+	// Generic validation: ensure the targetLabel key exists in the original labels
+	_, ok := tenantNamespaceLabels[targetLabel.GetKey()]
 	if !ok {
-		return fmt.Errorf("required label key %q not found", tenantSelectorLabelKey)
+		return fmt.Errorf("required label key %q not found in tenant namespace labels", targetLabel.GetKey())
 	}
-	targetLabel := ctrlcommon.NewLabel(tenantSelectorLabelKey, targetLabelValue)
 
 	var baseWorkspacesList []string
 	if tenantBaseWorkspaces != "" {
@@ -101,8 +102,8 @@ func setupTenant(
 	tn := &tenant.Reconciler{
 		Client:                      mgr.GetClient(),
 		Scheme:                      mgr.GetScheme(),
-		TenantNamespaceLabels:       tenantNamespaceLabels,
-		TenantSelectorLabelKey:      tenantSelectorLabelKey,
+		TargetLabel:                 targetLabel,
+		TenantCommonNSLabels:        tenantCommonNSLabels,
 		TenantNSKeepAlive:           tenantNSKeepAlive,
 		TriggerReconcileChannel:     make(chan event.GenericEvent, 10),
 		MyDrivePVCsSize:             mydrivePVCsSize.Quantity,

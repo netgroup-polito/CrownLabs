@@ -49,13 +49,3 @@ func GetTenantNamespaceName(tn *clv1alpha2.Tenant) string {
 	return fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 }
 
-// ConfigureTenantNamespace configures a namespace for a tenant.
-func ConfigureTenantNamespace(ns *corev1.Namespace, labels map[string]string) {
-	// Set the labels for the namespace
-	if ns.Labels == nil {
-		ns.Labels = make(map[string]string)
-	}
-
-	// Copy the provided labels (already composed by caller)
-	maps.Copy(ns.Labels, labels)
-}

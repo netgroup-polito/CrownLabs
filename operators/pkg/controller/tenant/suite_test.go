@@ -18,6 +18,7 @@ package tenant_test
 import (
 	"context"
 	"fmt"
+	"maps"
 	"testing"
 	"time"
 
@@ -37,8 +38,10 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 const (
@@ -117,8 +120,8 @@ var _ = JustBeforeEach(func() {
 		Client:                      cl,
 		Scheme:                      scheme.Scheme,
 		KeycloakActor:               keycloakActor,
-		TenantNamespaceLabels:       map[string]string{"crownlabs.polito.it/operator-selector": "test", "crownlabs.polito.it/gw-access": "crownlabs-main-production"},
-		TenantSelectorLabelKey:      "crownlabs.polito.it/operator-selector",
+		TargetLabel:                 tenantTestTargetLabel,
+		TenantCommonNSLabels:        forge.UpdateTenantResourceCommonLabels(maps.Clone(tenantTestNSLabels), tenantTestTargetLabel),
 		TenantNSKeepAlive:           24 * time.Hour,
 		WaitUserVerification:        true,
 		SandboxClusterRole:          "test-sandbox-editor",
@@ -146,6 +149,14 @@ func DoesEventuallyExists(ctx context.Context, cl client.Client, objLookupKey cl
 		return err == nil
 	}, timeout, interval).Should(expectedStatus)
 }
+
+var (
+	tenantTestTargetLabel = ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test")
+	tenantTestNSLabels    = map[string]string{
+		"crownlabs.polito.it/operator-selector": "test",
+		"crownlabs.polito.it/gw-access":         "crownlabs-main-production",
+	}
+)
 
 func addObjToObjectsList(obj client.Object) {
 	for _, o := range objects {

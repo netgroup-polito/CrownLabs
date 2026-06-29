@@ -35,6 +35,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var (
@@ -60,6 +61,7 @@ func main() {
 	var enableLeaderElection bool
 	var tenantNamespaceLabelsStr string
 	var tenantSelectorLabelKey string
+	var gwAccessLabelKey string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -67,6 +69,7 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.StringVar(&tenantNamespaceLabelsStr, "tenant-namespace-labels", "", "A Kubernetes label selector string (exact-match only) parsed and converted into labels to stamp on tenant namespaces")
 	flag.StringVar(&tenantSelectorLabelKey, "tenant-selector-label-key", "", "The label key inside --tenant-namespace-labels used as tenant controller selector")
+	flag.StringVar(&gwAccessLabelKey, "gw-access-label-key", "gw-access", "The label key inside --tenant-namespace-labels for gateway access")
 	flag.DurationVar(&reschedule.RequeueAfterMin, "reschedule-min", reschedule.RequeueAfterMin,
 		"Minimum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
@@ -122,6 +125,9 @@ func main() {
 	if tenantSelectorLabelKey == "" {
 		klog.Fatal("Missing required --tenant-selector-label-key")
 	}
+	if gwAccessLabelKey == "" {
+		klog.Fatal("Missing required --gw-access-label-key")
+	}
 
 	tenantNamespaceLabels, err := parseExactMatchLabels(tenantNamespaceLabelsStr)
 	if err != nil {
@@ -132,8 +138,17 @@ func main() {
 	if !ok {
 		klog.Fatal("Unable to extract tenant selector label", "missingKey", tenantSelectorLabelKey)
 	}
+
+	gwAccessValue, ok := tenantNamespaceLabels[gwAccessLabelKey]
+	if !ok {
+		klog.Fatal("Unable to extract gw-access label", "missingKey", gwAccessLabelKey)
+	}
+	log.Info("Gateway access label", "key", gwAccessLabelKey, "value", gwAccessValue)
+
 	targetLabel := ctrlcommon.NewLabel(tenantSelectorLabelKey, targetLabelValue)
 	log.Info("Selecting resources with label", "label", targetLabel.GetKey()+"="+targetLabel.GetValue())
+
+	tenantCommonNSLabels := forge.UpdateTenantResourceCommonLabels(tenantNamespaceLabels, targetLabel)
 
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak = enableKeycloak && (enableTenant || enableWorkspace)
@@ -148,7 +163,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setupTenant(mgr, log, tenantNamespaceLabels, tenantSelectorLabelKey)
+		err := setupTenant(mgr, log, tenantNamespaceLabels, tenantCommonNSLabels, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}
