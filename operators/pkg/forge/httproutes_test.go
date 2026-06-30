@@ -38,13 +38,39 @@ var _ = Describe("HTTPRoute helpers", func() {
 			Expect(name).To(Equal("my-gateway"))
 		})
 
-		It("ParseGatewayParent errors on invalid input", func() {
-			_, _, err := forge.ParseGatewayParent("invalidref")
-			Expect(err).To(HaveOccurred())
+		Context("ParseGatewayParent errors on invalid input", func() {
+			It("errors on empty string", func() {
+				_, _, err := forge.ParseGatewayParent("")
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("errors on missing namespace", func() {
+				_, _, err := forge.ParseGatewayParent("/my-gateway")
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("errors on missing name", func() {
+				_, _, err := forge.ParseGatewayParent("my-ns/")
+				Expect(err).To(HaveOccurred())
+			})
+
+			It("errors on extra slashes", func() {
+				_, _, err := forge.ParseGatewayParent("my-ns/my-gateway/extra")
+				Expect(err).To(HaveOccurred())
+			})
 		})
 	})
 
 	Describe("HHTTPRoute creation behavior", func() {
+		It("HTTPRouteSpec builds correctly a route", func() {
+			tpl := forge.HTTPRouteTemplate{Path: "/instance/uid/env", ServiceName: "svc"}
+			expo := forge.ExpositionConfig{GatewayName: "gw", GatewayNamespace: "gw-ns"}
+			env := &clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: true}
+			spec := forge.HTTPRouteSpec(&tpl, &expo, env, 8080)
+
+			Expect(spec).ToNot(BeNil())
+		})
+
 		It("BuildParentReference sets name and namespace", func() {
 			p := forge.BuildParentReference("gw", "gw-ns")
 			Expect(p.Name).To(Equal(gatewayv1.ObjectName("gw")))
@@ -110,10 +136,10 @@ var _ = Describe("HTTPRoute helpers", func() {
 			})
 		})
 
-		It("HTTPRouteSpec builds a route with expected parent, match, backend and timeouts", func() {
+		It("HTTPRouteSpec builds a route with expected parent, match, backend and timeouts for a cloud VM environment", func() {
 			tpl := forge.HTTPRouteTemplate{Path: "/instance/uid/env", ServiceName: "svc"}
 			expo := forge.ExpositionConfig{GatewayName: "gw", GatewayNamespace: "gw-ns"}
-			env := &clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: true}
+			env := &clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: true}
 			spec := forge.HTTPRouteSpec(&tpl, &expo, env, 6080)
 
 			// parent
