@@ -117,7 +117,7 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
       ? 'Auto-stop for inactivity in'
       : countdownKind === 'delete'
       ? 'Auto-delete for inactivity in'
-      : 'Auto-delete for expiration in';
+      : 'Auto-delete since creation in';
 
   const tooltipTitle = useMemo(() => (
     <div className="text-left">
