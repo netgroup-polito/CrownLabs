@@ -170,6 +170,15 @@ var _ = Describe("Exposition helpers", func() {
 				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(HaveOccurred())
 				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
 			})
+
+			It("does not create HTTPRoute when no service is available", func() {
+				reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects().Build(), serviceClusterIP: ""}
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
+			})
 		})
 
 		Context("Gateway API mode disabled", func() {
@@ -219,6 +228,15 @@ var _ = Describe("Exposition helpers", func() {
 				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
 				Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
 			})
+
+			It("does not create Ingress when no service is available", func() {
+				reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects().Build(), serviceClusterIP: ""}
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
+			})
 		})
 	})
 
@@ -265,6 +283,18 @@ var _ = Describe("Exposition helpers", func() {
 		})
 
 		It("does not error when httpRoute exists but has no status", func() {
+			reconciler.ExpositionConfig.GatewayAPIMode = true
+			instance.Spec.Running = true
+			httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
+			reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}
+
+			err := reconciler.EnforceInstanceExposition(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
+		})
+
+		It("does not error when getHTTPRouteAcceptedStatus receives HTTPRoute with empty status", func() {
 			reconciler.ExpositionConfig.GatewayAPIMode = true
 			instance.Spec.Running = true
 			httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}

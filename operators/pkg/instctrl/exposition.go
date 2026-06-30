@@ -58,7 +58,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 		return err
 	}
 	// If service presence couldn't be ensured due to out-of-range index, nothing to do.
-	if svc == nil {
+	if svc == nil || svc.Spec.ClusterIP == "" {
 		return nil
 	}
 
@@ -127,7 +127,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 		return err
 	}
 	// If service presence couldn't be ensured due to out-of-range index, nothing to do
-	if svc == nil {
+	if svc == nil || svc.Spec.ClusterIP == "" {
 		return nil
 	}
 
