@@ -99,7 +99,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
 
   const stopTimeout = template.cleanup?.stopAfterInactivity ?? 'never';
   const deleteTimeout = template.cleanup?.deleteAfterInactivity ?? 'never';
-  const hasInactivity = (stopTimeout && stopTimeout !== 'never') || (deleteTimeout && deleteTimeout !== 'never');
+  const deleteCreationTimeout = template.cleanup?.deleteAfterCreation ?? 'never';
+  const hasInactivity = (stopTimeout && stopTimeout !== 'never') || (deleteTimeout && deleteTimeout !== 'never') || (deleteCreationTimeout && deleteCreationTimeout !== 'never');
   const {
     data: labelsData,
     loading: loadingLabels,
@@ -288,7 +289,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                               <Tooltip
                                 title={
                                   <div className="text-left">
-                                    {(stopTimeout !== 'never' || deleteTimeout !== 'never') && (
+                                    {(stopTimeout !== 'never' || deleteTimeout !== 'never' || deleteCreationTimeout !== 'never') && (
                                       <>
                                         These instances will be: <br />
                                       </>
@@ -300,7 +301,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                                     )}
                                     {deleteTimeout !== 'never' && (
                                       <>
-                                        ▸ deleted after being stopped for <b>{deleteTimeout}</b>
+                                        ▸ deleted after being stopped for <b>{deleteTimeout}</b><br />
+                                      </>
+                                    )}
+                                    {deleteCreationTimeout !== 'never' && (
+                                      <>
+                                        ▸ deleted after <b>{deleteCreationTimeout}</b> from creation
                                       </>
                                     )}
                                   </div>
@@ -380,7 +386,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                 <Tooltip
                   title={
                     <div className="text-left">
-                      {(stopTimeout !== 'never' || deleteTimeout !== 'never') && (
+                      {(stopTimeout !== 'never' || deleteTimeout !== 'never' || deleteCreationTimeout !== 'never') && (
                         <>
                           These instances will be: <br />
                         </>
@@ -392,7 +398,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                       )}
                       {deleteTimeout !== 'never' && (
                         <>
-                          ▸ deleted after being stopped for <b>{deleteTimeout}</b>
+                          ▸ deleted after being stopped for <b>{deleteTimeout}</b><br />
+                        </>
+                      )}
+                      {deleteCreationTimeout !== 'never' && (
+                        <>
+                          ▸ deleted after <b>{deleteCreationTimeout}</b> from creation
                         </>
                       )}
                     </div>

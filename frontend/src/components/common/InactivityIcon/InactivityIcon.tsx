@@ -45,7 +45,7 @@ const formatRemaining = (ms: number): string => {
   return 'less than 1m';
 };
 
-type CountdownKind = 'stop' | 'delete';
+type CountdownKind = 'stop' | 'delete' | 'deleteCreation';
 
 const URGENT_ICON_STYLE = { fontSize: '14px', color: '#ff4d4f' };
 const NORMAL_ICON_STYLE = { fontSize: '14px' };
@@ -57,7 +57,11 @@ export interface IInactivityIconProps {
 const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
   const stopTimeout = instance.cleanup?.stopAfterInactivity ?? NEVER;
   const deleteTimeout = instance.cleanup?.deleteAfterInactivity ?? NEVER;
+  const deleteCreationTimeout = instance.cleanup?.deleteAfterCreation ?? NEVER;
 
+  // It calculates the most imminent event among all active timeouts.
+  // The dynamic countdown in the tooltip will only show the single timer
+  // for the event that is going to happen first.
   const { targetTime, countdownKind } = useMemo(() => {
     let computedTargetTime: number | null = null;
     let computedCountdownKind: CountdownKind | null = null;
@@ -76,14 +80,27 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
       }
     }
 
+    if (deleteCreationTimeout !== NEVER && instance.timeStamp) {
+      const ms = parseDuration(deleteCreationTimeout);
+      if (ms) {
+        const creationTargetTime = new Date(instance.timeStamp).getTime() + ms;
+        if (computedTargetTime === null || creationTargetTime < computedTargetTime) {
+          computedTargetTime = creationTargetTime;
+          computedCountdownKind = 'deleteCreation';
+        }
+      }
+    }
+
     return { targetTime: computedTargetTime, countdownKind: computedCountdownKind };
   }, [
     instance.running,
     instance.status,
     instance.lastActivity,
     instance.lastPoweredOffTimestamp,
+    instance.timeStamp,
     stopTimeout,
     deleteTimeout,
+    deleteCreationTimeout,
   ]);
 
   const now = Date.now();
@@ -92,9 +109,15 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
   const isUrgent =
     remainingMs !== null &&
     ((countdownKind === 'stop' && remainingMs < STOP_URGENT_THRESHOLD_MS) ||
-     (countdownKind === 'delete' && remainingMs < DELETE_URGENT_THRESHOLD_MS));
+     (countdownKind === 'delete' && remainingMs < DELETE_URGENT_THRESHOLD_MS) ||
+     (countdownKind === 'deleteCreation' && remainingMs < DELETE_URGENT_THRESHOLD_MS));
 
-  const countdownLabel = countdownKind === 'stop' ? 'Auto-stop in' : 'Auto-delete in';
+  const countdownLabel =
+    countdownKind === 'stop'
+      ? 'Auto-stop for inactivity in'
+      : countdownKind === 'delete'
+      ? 'Auto-delete for inactivity in'
+      : 'Auto-delete for expiration in';
 
   const tooltipTitle = useMemo(() => (
     <div className="text-left">
@@ -105,6 +128,9 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
       {deleteTimeout !== NEVER && (
         <>▸ deleted after being stopped for <b>{deleteTimeout}</b><br /></>
       )}
+      {deleteCreationTimeout !== NEVER && (
+        <>▸ deleted after <b>{deleteCreationTimeout}</b> from creation<br /></>
+      )}
       {remainingMs !== null && remainingMs > 0 && (
         <>
           <br />
@@ -114,9 +140,9 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
         </>
       )}
     </div>
-  ), [stopTimeout, deleteTimeout, remainingMs, countdownLabel, isUrgent]);
+  ), [stopTimeout, deleteTimeout, deleteCreationTimeout, remainingMs, countdownLabel, isUrgent]);
 
-  if (stopTimeout === NEVER && deleteTimeout === NEVER) return null;
+  if (stopTimeout === NEVER && deleteTimeout === NEVER && deleteCreationTimeout === NEVER) return null;
 
   return (
     <Tooltip title={tooltipTitle}>

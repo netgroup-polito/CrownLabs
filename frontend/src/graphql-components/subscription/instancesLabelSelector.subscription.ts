@@ -68,6 +68,7 @@ export default gql`
                   description
                   allowPublicExposure
                   cleanup {
+                    deleteAfterCreation
                     stopAfterInactivity
                     deleteAfterInactivity
                   }

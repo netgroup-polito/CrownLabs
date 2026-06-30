@@ -431,6 +431,7 @@ export const makeGuiInstance = (
         'crownlabsPolitoItLastPoweredOffTimestamp'
       ] || '',
     cleanup: {
+      deleteAfterCreation: templateSpec?.cleanup?.deleteAfterCreation ?? 'never',
       stopAfterInactivity: templateSpec?.cleanup?.stopAfterInactivity ?? 'never',
       deleteAfterInactivity: templateSpec?.cleanup?.deleteAfterInactivity ?? 'never',
     },
