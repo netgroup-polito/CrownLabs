@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package bastion_controller groups the functionalities related to the Bastion controller.
-package bastion_controller
+// Package sshctrl groups the functionalities related to the Bastion controller. This is a fake controller as it does not reconcile any resource, but it is used to load SSH keys from tenants, injecting them onto the bastion host.
+package sshctrl
 
 import (
 	"context"

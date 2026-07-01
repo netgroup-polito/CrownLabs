@@ -1,6 +1,6 @@
 apiVersion: v2
-name: bastion-operator
-description: The CrownLabs Bastion Operator
+name: bastion
+description: The CrownLabs SSH Bastion
 
 # A chart can be either an 'application' or a 'library' chart.
 #

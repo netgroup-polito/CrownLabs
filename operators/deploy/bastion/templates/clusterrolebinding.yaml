@@ -3,12 +3,12 @@ kind: ClusterRoleBinding
 metadata:
   name: {{ .Values.rbacResourcesName }}
   labels:
-    {{- include "bastion-operator.labels" . | nindent 4 }}
+    {{- include "bastion.labels" . | nindent 4 }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: {{ .Values.rbacResourcesName }}
 subjects:
   - kind: ServiceAccount
-    name: {{ include "bastion-operator.fullname" . }}
+    name: {{ include "bastion.fullname" . }}
     namespace: {{ .Release.Namespace }}

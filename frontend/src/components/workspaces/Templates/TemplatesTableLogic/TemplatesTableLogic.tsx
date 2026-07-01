@@ -91,7 +91,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           }),
         )
         .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
-       
+
     return templates;
   }, [templateListData?.templateList?.templates]);
 
@@ -198,7 +198,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
-  
+
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -244,10 +244,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           environmentType: env.environmentType,
           resources: {
             reservedCPUPercentage:
-             env.reservedCpu,
+              env.reservedCpu,
             cpu: env.cpu,
             memory: `${env.ram}Gi`,
-            disk: env.disk ? `${env.disk}Gi` : undefined, 
+            disk: env.disk ? `${env.disk}Gi` : undefined,
           },
           image: env.image,
           disableControls: env.disableControls,
@@ -271,13 +271,28 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         | { op: 'replace' | 'add'; path: string; value: unknown }
         | { op: 'remove'; path: string }
       > = [
-        { op: 'replace', path: '/spec/environmentList', value: environmentList },
-        { op: 'replace', path: '/spec/prettyName', value: t.name },
-        { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-        { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
-        { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
-        { op: 'replace', path: '/spec/description', value: t.description },
-      ];
+          {
+            op: 'replace',
+            path: '/spec/environmentList',
+            value: environmentList,
+          },
+          { op: 'replace', path: '/spec/prettyName', value: t.name },
+          {
+            op: 'replace',
+            path: '/spec/cleanup',
+            value: {
+              deleteAfterCreation: t.cleanup?.deleteAfterCreation,
+              stopAfterInactivity: t.cleanup?.stopAfterInactivity,
+              deleteAfterInactivity: t.cleanup?.deleteAfterInactivity,
+            },
+          },
+          {
+            op: 'replace',
+            path: '/spec/allowPublicExposure',
+            value: t.allowPublicExposure,
+          },
+          { op: 'replace', path: '/spec/description', value: t.description },
+        ];
 
       // nodeSelector logic:
       // - if undefined: not touched by user, keep existing value (don't patch)
@@ -365,9 +380,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                     // Include nodeSelector for modal initialization (state setup), but it won't be in the form
                     nodeSelector: template.nodeSelector,
                     description: template.description ?? template.name,
-                    deleteAfter: template.deleteAfter,
+                    cleanup: template.cleanup,
                     allowPublicExposure: template.allowPublicExposure,
-                    inactivityTimeout: template.inactivityTimeout,
                     environments: template.environmentList.map(env => ({
                       name: env.name,
                       persistent: env.persistent,
@@ -384,9 +398,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                       image:
                         env.environmentType === EnvironmentType.VirtualMachine
                           ? getImageNameNoVer(env.image)
-                              .split('/')
-                              .slice(-2)
-                              .join('/') ?? ''
+                            .split('/')
+                            .slice(-2)
+                            .join('/') ?? ''
                           : env.image,
                       registry:
                         env.environmentType !== EnvironmentType.CloudVm ? getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '' : '',

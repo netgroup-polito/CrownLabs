@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   name: {{ .Values.rbacResourcesName }}
   labels:
-    {{- include "bastion-operator.labels" . | nindent 4 }}
+    {{- include "bastion.labels" . | nindent 4 }}
 rules:
 - apiGroups:
   - crownlabs.polito.it

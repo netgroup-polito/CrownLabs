@@ -5,6 +5,7 @@ import {
   SelectOutlined,
   AppstoreAddOutlined,
   DockerOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
@@ -95,7 +96,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
   workspaceAvailableQuota,
 }) => {
   const canCreate = canCreateInstance(template, workspaceAvailableQuota);
-  
+
+  const stopTimeout = template.cleanup?.stopAfterInactivity ?? 'never';
+  const deleteTimeout = template.cleanup?.deleteAfterInactivity ?? 'never';
+  const deleteCreationTimeout = template.cleanup?.deleteAfterCreation ?? 'never';
+  const hasInactivity = (stopTimeout && stopTimeout !== 'never') || (deleteTimeout && deleteTimeout !== 'never') || (deleteCreationTimeout && deleteCreationTimeout !== 'never');
   const {
     data: labelsData,
     loading: loadingLabels,
@@ -280,6 +285,41 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                                 )}
                               </div>
                             )}
+                            {hasInactivity && (
+                              <Tooltip
+                                title={
+                                  <div className="text-left">
+                                    {(stopTimeout !== 'never' || deleteTimeout !== 'never' || deleteCreationTimeout !== 'never') && (
+                                      <>
+                                        These instances will be: <br />
+                                      </>
+                                    )}
+                                    {stopTimeout !== 'never' && (
+                                      <>
+                                        ▸ powered off after <b>{stopTimeout}</b> of inactivity<br />
+                                      </>
+                                    )}
+                                    {deleteTimeout !== 'never' && (
+                                      <>
+                                        ▸ deleted after being stopped for <b>{deleteTimeout}</b><br />
+                                      </>
+                                    )}
+                                    {deleteCreationTimeout !== 'never' && (
+                                      <>
+                                        ▸ deleted after <b>{deleteCreationTimeout}</b> from creation
+                                      </>
+                                    )}
+                                  </div>
+                                }
+                              >
+                                <div className="flex items-center">
+                                  <ClockCircleOutlined
+                                    className="warning-color-fg ml-1"
+                                    style={{ fontSize: '14px' }}
+                                  />
+                                </div>
+                              </Tooltip>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -308,7 +348,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                 <Space>
                   {template.description != '' ? (
                     <Tooltip title={<span>{template.description}</span>}>{template.name}</Tooltip>
-                  ) : (template.name)} 
+                  ) : (template.name)}
                   {!template.hasMultipleEnvironments &&
                     template.allowPublicExposure && (
                       <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">
@@ -342,6 +382,38 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                   </div>
                 </Tooltip>
               )}
+              {hasInactivity && (
+                <Tooltip
+                  title={
+                    <div className="text-left">
+                      {(stopTimeout !== 'never' || deleteTimeout !== 'never' || deleteCreationTimeout !== 'never') && (
+                        <>
+                          These instances will be: <br />
+                        </>
+                      )}
+                      {stopTimeout !== 'never' && (
+                        <>
+                          ▸ powered off after <b>{stopTimeout}</b> of inactivity<br />
+                        </>
+                      )}
+                      {deleteTimeout !== 'never' && (
+                        <>
+                          ▸ deleted after being stopped for <b>{deleteTimeout}</b><br />
+                        </>
+                      )}
+                      {deleteCreationTimeout !== 'never' && (
+                        <>
+                          ▸ deleted after <b>{deleteCreationTimeout}</b> from creation
+                        </>
+                      )}
+                    </div>
+                  }
+                >
+                  <div className="ml-3 flex warning-color-fg items-center">
+                    <ClockCircleOutlined style={{ fontSize: '18px' }} />
+                  </div>
+                </Tooltip>
+              )}
               {template.nodeSelector && (
                 <div className="ml-3 flex items-center">
                   <NodeSelectorIcon
@@ -363,7 +435,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
           ) : (
             ''
           )}
-          
+
           <Tooltip
             placement="left"
             title={
@@ -420,17 +492,16 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                     </div>
                     <div>
                       {template.persistent
-                        ? ` DISK: ${
-                            convertToGiB(template.resources.disk) ||
-                            'unavailable'
-                          }GiB`
+                        ? ` DISK: ${convertToGiB(template.resources.disk) ||
+                        'unavailable'
+                        }GiB`
                         : ``}
                     </div>
                   </>
                 )}
               </>
             }
-          > 
+          >
             <Button type="link" color="orange" size="middle" className="px-0">
               Info
             </Button>
@@ -514,29 +585,29 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                 items:
                   loadingLabels || labelsError
                     ? [
-                        {
-                          key: 'error',
-                          label: loadingLabels
-                            ? 'Loading labels...'
-                            : 'Error loading labels',
-                          disabled: true,
-                        },
-                      ]
+                      {
+                        key: 'error',
+                        label: loadingLabels
+                          ? 'Loading labels...'
+                          : 'Error loading labels',
+                        disabled: true,
+                      },
+                    ]
                     : labelsData?.labels?.map(({ key, value }) => ({
-                        key: JSON.stringify({ [key]: value }),
-                        label: `${cleanupLabels(key)}=${value}`,
-                        disabled: loadingLabels,
-                        onClick: () => {
-                          setCreateDisabled(true);
-                          createInstance(template.id, JSON.parse(key))
-                            .then(() => {
-                              refreshClock();
-                              setTimeout(setCreateDisabled, 400, false);
-                              expandRow(template.id, true);
-                            })
-                            .catch(() => setCreateDisabled(false));
-                        },
-                      })) || [],
+                      key: JSON.stringify({ [key]: value }),
+                      label: `${cleanupLabels(key)}=${value}`,
+                      disabled: loadingLabels,
+                      onClick: () => {
+                        setCreateDisabled(true);
+                        createInstance(template.id, JSON.parse(key))
+                          .then(() => {
+                            refreshClock();
+                            setTimeout(setCreateDisabled, 400, false);
+                            expandRow(template.id, true);
+                          })
+                          .catch(() => setCreateDisabled(false));
+                      },
+                    })) || [],
               }}
               onClick={createInstanceHandler}
               disabled={createDisabled || !canCreate}

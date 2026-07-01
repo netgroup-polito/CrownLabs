@@ -26,6 +26,11 @@ configuration:
   mydrive:
     templateName: mydrive
     workspaceName: utilities
+  defaultTimeouts:
+    cleanup:
+      stopAfterInactivity: "15d"
+      deleteAfterInactivity: "never"
+      deleteAfterCreation: "never"
 
 imagePullSecrets: []
 nameOverride: ""

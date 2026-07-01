@@ -43,9 +43,9 @@ var _ = Describe("Instautoctrl-expiration", func() {
 		nonPersistentTemplateName  = "test-expiration-template-non-persistent"
 		TenantName                 = "test-expiration-tenant"
 		CustomDeleteAfter          = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeout    = instautoctrl.NeverTimeoutValue
+		CustomStopAfterInactivity  = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfter2         = "10s"
-		CustomInactivityTimeout2   = "1m"
+		CustomStopAfterInactivity2 = "1m"
 	)
 
 	var (
@@ -78,8 +78,11 @@ var _ = Describe("Instautoctrl-expiration", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfter,
-			InactivityTimeout: CustomInactivityTimeout,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   CustomDeleteAfter,
+				StopAfterInactivity:   CustomStopAfterInactivity,
+				DeleteAfterInactivity: "never",
+			},
 		}
 		templateNonPersistentEnvironment = clv1alpha2.TemplateSpec{
 			WorkspaceRef: clv1alpha2.GenericRef{},
@@ -99,8 +102,11 @@ var _ = Describe("Instautoctrl-expiration", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfter2,
-			InactivityTimeout: CustomInactivityTimeout2,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   CustomDeleteAfter2,
+				StopAfterInactivity:   CustomStopAfterInactivity2,
+				DeleteAfterInactivity: "never",
+			},
 		}
 		persistentTemplate = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
@@ -260,13 +266,13 @@ var _ = Describe("Instautoctrl-expiration", func() {
 			currentTemplate := &clv1alpha2.Template{}
 			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
 			Expect(k8sClientExpiration.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
-			Expect(currentTemplate.Spec.DeleteAfter).To(Equal(instautoctrl.NeverTimeoutValue))
+			Expect(currentTemplate.Spec.Cleanup.DeleteAfterCreation).To(Equal(instautoctrl.NeverTimeoutValue))
 		})
 		It("Should succeed: the persistent VM has a valid deletion time and should be deleted", func() {
 			currentTemplate := &clv1alpha2.Template{}
 			templateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
 			Expect(k8sClientExpiration.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
-			Expect(currentTemplate.Spec.DeleteAfter).ToNot(Equal(CustomDeleteAfter))
+			Expect(currentTemplate.Spec.Cleanup.DeleteAfterCreation).ToNot(Equal(CustomDeleteAfter))
 
 		})
 

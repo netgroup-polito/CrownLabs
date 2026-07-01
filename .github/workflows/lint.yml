@@ -16,11 +16,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Install prerequisites
-        run: |
-          sudo apt-get update && sudo apt-get install --no-install-recommends -y \
-          libpcap-dev make
-
       - name: Checkout
         uses: actions/checkout@v6
         with:

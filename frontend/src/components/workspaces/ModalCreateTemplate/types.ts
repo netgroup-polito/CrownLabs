@@ -15,8 +15,11 @@ export type TemplateForm = {
   name: string;
   description: string;
   environments: TemplateFormEnv[];
-  deleteAfter: string;
-  inactivityTimeout: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
   allowPublicExposure: boolean;
   nodeSelector?: Record<string, string> | null;
 };

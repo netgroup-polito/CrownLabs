@@ -117,6 +117,8 @@ jobs:
           username: ${{ secrets.HARBOR_REGISTRY_USERNAME }}
           password: ${{ secrets.HARBOR_REGISTRY_PASSWORD }}
         if: needs.configure.outputs.repo-push == 'true'
+        # we dont mind if this fails
+        continue-on-error: true
 
       - name: Configure the build-push-action parameters
         id: parameters
