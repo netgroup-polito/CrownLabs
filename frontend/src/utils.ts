@@ -75,9 +75,11 @@ export type Template = {
   allowPublicExposure: boolean;
   environmentList: Array<TemplateEnvironment>;
   hasMultipleEnvironments: boolean;
-  deleteAfter: string;
-  inactivityTimeout: string;
-  destroyAfterInactivity: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
 };
 
 export type Instance = {
@@ -97,6 +99,7 @@ export type Instance = {
   status: Phase2;
   url: string | null;
   timeStamp: string;
+  lastActivity: string;
   workspaceName: string;
   running: boolean;
   nodeSelector?: Record<string, string>;
@@ -108,6 +111,12 @@ export type Instance = {
   environments?: Array<InstanceEnvironment>;
   hasMultipleEnvironments?: boolean;
   resources: InstanceResources;
+  lastPoweredOffTimestamp: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
 };
 
 export type SharedVolume = {
@@ -282,7 +291,7 @@ export const convertToGiB = (sizeStr: string): number => {
   // Strip trailing 'i' and uppercase to normalise both X and Xi to the same prefix
   const unit = unitRaw.replace(/i$/i, '').toUpperCase();
   const round2 = (n: number) => Math.round(n * 100) / 100;
-  
+
   switch (unit) {
     case 'G':
       return round2(value);
@@ -331,7 +340,7 @@ export const camelize = (str: string) =>
 export const cleanupLabels = (s?: string) =>
   camelize(
     s?.replace('crownlabs.polito.it/', '').replace('crownlabsPolitoIt', '') ||
-      '',
+    '',
   );
 
 export function enumKeyFromVal<T extends Record<string, string | number>>(

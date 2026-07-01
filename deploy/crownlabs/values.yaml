@@ -29,9 +29,10 @@ frontend-app:
       containerdisks: crownlabs-standalone
     
     defaultTimeouts:
-      inactivityTimeout: "15d"
-      destroyAfterInactivity: "never"
-      deleteAfter: "never"
+      cleanup:
+        stopAfterInactivity: "15d"
+        deleteAfterInactivity: "never"
+        deleteAfterCreation: "never"
 
 qlkube:
   replicaCount: 1

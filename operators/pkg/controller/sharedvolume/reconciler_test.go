@@ -246,6 +246,11 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 								Spec: clv1alpha2.TemplateSpec{
 									WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 									EnvironmentList: []clv1alpha2.Environment{environment},
+									Cleanup: clv1alpha2.CleanupOptions{
+										DeleteAfterCreation:   "never",
+										StopAfterInactivity:   "never",
+										DeleteAfterInactivity: "never",
+									},
 								},
 							}
 							Expect(k8sClient.Create(ctx, &template)).To(Succeed())
@@ -272,6 +277,11 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 								Spec: clv1alpha2.TemplateSpec{
 									WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 									EnvironmentList: []clv1alpha2.Environment{environmentSV},
+									Cleanup: clv1alpha2.CleanupOptions{
+										DeleteAfterCreation:   "never",
+										StopAfterInactivity:   "never",
+										DeleteAfterInactivity: "never",
+									},
 								},
 							}
 							Expect(k8sClient.Create(ctx, &templateSV)).To(Succeed())

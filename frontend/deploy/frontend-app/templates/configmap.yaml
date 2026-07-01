@@ -21,3 +21,6 @@ data:
     window.VITE_APP_DEFAULT_INACTIVITY_TIMEOUT="{{ .Values.configuration.defaultTimeouts.inactivityTimeout }}";
     window.VITE_APP_DEFAULT_DESTROY_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.destroyAfterInactivity }}";
     window.VITE_APP_DEFAULT_DELETE_AFTER="{{ .Values.configuration.defaultTimeouts.deleteAfter }}";
+    window.VITE_APP_DEFAULT_STOP_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.stopAfterInactivity }}";
+    window.VITE_APP_DEFAULT_DELETE_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterInactivity }}";
+    window.VITE_APP_DEFAULT_DELETE_AFTER_CREATION="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterCreation }}";

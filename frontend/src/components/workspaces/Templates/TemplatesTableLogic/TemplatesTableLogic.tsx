@@ -292,16 +292,14 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
             value: environmentList,
           },
           { op: 'replace', path: '/spec/prettyName', value: t.name },
-          { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
           {
             op: 'replace',
-            path: '/spec/inactivityTimeout',
-            value: t.inactivityTimeout,
-          },
-          {
-            op: 'replace',
-            path: '/spec/destroyAfterInactivity',
-            value: t.destroyAfterInactivity,
+            path: '/spec/cleanup',
+            value: {
+              deleteAfterCreation: t.cleanup?.deleteAfterCreation,
+              stopAfterInactivity: t.cleanup?.stopAfterInactivity,
+              deleteAfterInactivity: t.cleanup?.deleteAfterInactivity,
+            },
           },
           {
             op: 'replace',
@@ -397,7 +395,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                     name: template.name,
                     nodeSelector: template.nodeSelector,
                     description: template.description ?? template.name,
-                    deleteAfter: template.deleteAfter,
+                    cleanup: template.cleanup,
                     allowPublicExposure: template.allowPublicExposure,
                     inactivityTimeout: template.inactivityTimeout,
                     destroyAfterInactivity: template.destroyAfterInactivity,

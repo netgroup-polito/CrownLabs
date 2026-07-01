@@ -37,17 +37,17 @@ import (
 var _ = Describe("Instautoctrl-expiration-unit", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		PersistentInstanceName    = "test-instance-persistent-unit-test-expiration"
-		NonPersistentInstanceName = "test-instance-non-persistent-unit-test-expiration"
-		WorkingNamespace          = "working-namespace-instautoctrl-test-expiration"
-		persistentTemplateName    = "test-template-persistent-unit-test-expiration"
-		nonPersistentTemplateName = "test-template-non-persistent-unit-test-expiration"
-		TenantName                = "test-tenant-unit-test-expiration"
-		CustomDeleteAfter         = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeout   = instautoctrl.NeverTimeoutValue
-		CustomDeleteAfter2        = "1m"
-		CustomInactivityTimeout2  = "2m"
-		tolerance                 = time.Minute
+		PersistentInstanceName     = "test-instance-persistent-unit-test-expiration"
+		NonPersistentInstanceName  = "test-instance-non-persistent-unit-test-expiration"
+		WorkingNamespace           = "working-namespace-instautoctrl-test-expiration"
+		persistentTemplateName     = "test-template-persistent-unit-test-expiration"
+		nonPersistentTemplateName  = "test-template-non-persistent-unit-test-expiration"
+		TenantName                 = "test-tenant-unit-test-expiration"
+		CustomDeleteAfter          = instautoctrl.NeverTimeoutValue
+		CustomStopAfterInactivity  = instautoctrl.NeverTimeoutValue
+		CustomDeleteAfter2         = "1m"
+		CustomStopAfterInactivity2 = "2m"
+		tolerance                  = time.Minute
 
 		timeout  = time.Second * 130
 		interval = time.Millisecond * 1000
@@ -95,6 +95,11 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   "never",
+				StopAfterInactivity:   "never",
+				DeleteAfterInactivity: "never",
+			},
 		}
 		templateNonPersistentEnvironment = clv1alpha2.TemplateSpec{
 			WorkspaceRef: clv1alpha2.GenericRef{},
@@ -114,8 +119,11 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfter2,
-			InactivityTimeout: CustomInactivityTimeout2,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   CustomDeleteAfter2,
+				StopAfterInactivity:   CustomStopAfterInactivity2,
+				DeleteAfterInactivity: "never",
+			},
 		}
 
 		persistentTemplate = clv1alpha2.Template{
@@ -298,7 +306,7 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 		ctx, _ = clctx.InstanceInto(ctx, currentInstance)
 		ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
 		ctx, _ = clctx.TenantInto(ctx, currentTenant)
-		remainingTime, err := r.CheckInstanceExpiration(ctx, currentTemplate.Spec.InactivityTimeout)
+		remainingTime, err := r.CheckInstanceExpiration(ctx, currentTemplate.Spec.Cleanup.DeleteAfterCreation)
 		Expect(err).ToNot(HaveOccurred())
 		deleteAfterDuration, err := time.ParseDuration(CustomDeleteAfter2)
 		Expect(err).ToNot(HaveOccurred())

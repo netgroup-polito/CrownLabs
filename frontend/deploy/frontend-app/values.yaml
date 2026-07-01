@@ -31,9 +31,10 @@ configuration:
     containerdisks: crownlabs-containerdisks
     
   defaultTimeouts:
-    inactivityTimeout: "15d"
-    destroyAfterInactivity: "never"
-    deleteAfter: "never"
+    cleanup:
+      stopAfterInactivity: "15d"
+      deleteAfterInactivity: "never"
+      deleteAfterCreation: "never"
 
 imagePullSecrets: []
 nameOverride: ""

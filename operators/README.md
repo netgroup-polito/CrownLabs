@@ -60,8 +60,6 @@ On the left you can see the controller (in blue) and the two CRDs used to descri
 
 ![Instance Operator Architecture](../documentation/instance-operator.svg)
 
-
-
 Upon the creation of a *Instance*, the operator triggers the creation of the following components:
 * Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, Ingress)
 * An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, Ingress) to regulate access to the VM.
@@ -154,24 +152,27 @@ You can find the full documentation [here](/operators/pkg/instautoctrl/README.md
 #### Instance Inactive Termination controller
 
 This controller periodically checks running Instances to determine if they are still in use or can be terminated because of inactivity.
-Each **Template** resource associated with an Instance defines an `InactivityTimeout` field, which represents the period of inactivity after which the Instance is considered unused.
-If omitted, this field is automatically added in the Template resource with a `never` value set by default, meaning that Instances created from that template will be ignored by this controller.
+Each **Template** resource associated with an Instance defines inactivity policy fields under the `cleanup` block; in particular `cleanup.stopAfterInactivity` represents the period of inactivity after which the Instance is considered unused.
+If omitted, `cleanup.stopAfterInactivity` defaults to `never`, meaning that Instances created from that template will be ignored by this controller.
 
 To evaluate whether an Instance is active, the controller relies on **Prometheus** metrics.
 It verifies whether the tenant has accessed the Instance recently, either through the frontend (by analyzing Ingress metrics) or via SSH (using a specific SSH bastion tracker metric).
 If activity is detected, the controller postpones the check.
-If no activity is recorded for a time longer than the `InactivityTimeout`, the process of inactivity handling begins.
-When an Instance has been marked as inactive, the controller starts sending email notifications to tenants, warning them that the Instance will be paused or deleted if they do not access it.
-The number of notifications sent is defined by the `inactiveTerminationMaxNumberOfAlerts` parameter in the Helm chart.
-Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**.
-After the final action, an additional email is sent to inform the tenant.
+If no activity is recorded for a time longer than `cleanup.stopAfterInactivity`, the process of inactivity handling begins:
+- **If email notifications are enabled** (`enableInactivityNotifications` is set to `true`), the controller sends warning email notifications to tenants, warning them that the Instance will be paused (if persistent) or deleted (if not persistent) if they do not access it. The number of notifications sent is defined by the `inactiveTerminationMaxNumberOfAlerts` parameter in the Helm chart. Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**, followed by a final notification email.
+- **If email notifications are disabled** (`enableInactivityNotifications` is set to `false`), the controller immediately takes action (i.e., **pauses persistent Instances** or **deletes non-persistent Instances**) when the inactivity threshold is exceeded, without sending any warning or confirmation emails.
+
+Additionally, for persistent Instances that are already paused/powered off, a destruction process is handled based on `cleanup.deleteAfterInactivity` (if it is set and different from `never`):
+- **If email notifications are enabled**, warning notifications are sent to the tenant before the Instance is permanently **destroyed** (deleted) to free up resources.
+- **If email notifications are disabled**, the Instance is immediately **destroyed** once the powered-off duration exceeds the `cleanup.deleteAfterInactivity` threshold, without sending warning emails.
+
 Both the controller and the email notifications can be enabled or disabled through the Helm chart using the `enableInstanceInactiveTermination` and `enableInactivityNotifications` parameters.
 In addition, the behavior can be customized using annotations. For example, the `crownlabs.polito.it/custom-number-alerts` annotation on a Template allows overriding the default number of notifications for a specific Instance type, while the `crownlabs.polito.it/instance-inactivity-ignore` annotation, set to `True` on a Namespace completely excludes its Instances from the inactivity termination logic.
 
 #### Instance Expiration controller
 While the Instance Inactive Termination Controller deletes Instances when these are not used for an extended period of time, this controller (_Instance Expiration Controller_) introduces an orthogonal feature, i.e., the capability to delete an Instance when its maximum lifespan has expired, no matter if the instance has been used or not.
-Each Template defines a `DeleteAfter` field that specifies how long an Instance can exist before it must be removed. When an Instance reaches this limit, the controller automatically deletes it.
-Analogously to the Instance Inactive Termination Controller, omitting the `DeleteAfter` field means it is automatically set to `never` by default, meaning that Instances created from that template will be ignored by this controller.
+Each Template defines `cleanup.deleteAfterCreation` which specifies how long an Instance can exist before it must be removed. When an Instance reaches this limit, the controller automatically deletes it.
+Analogously to the Instance Inactive Termination Controller, omitting `cleanup.deleteAfterCreation` means it defaults to `never`, meaning that Instances created from that template will be ignored by this controller.
 As with inactivity termination, this feature can be managed through Helm chart parameters: `enableInstanceExpiration` controls whether the controller is active, while `enableExpirationNotifications` enables or disables email alerts to inform tenants before deletion.
 This feature can be used when we know already that an Instance will not be needed after a given period; a possible example is the instance used to carry out an exam, which can be safely deleted when the exam has finished.
 The `crownlabs.polito.it/expiration-ignore` annotation, when set to `True`, allows to ignore all Instances in a Namespace, preventing them from being deleted due to expiration.
