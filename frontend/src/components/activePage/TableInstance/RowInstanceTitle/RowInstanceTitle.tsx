@@ -13,6 +13,7 @@ import { useApplyInstanceMutation } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { setInstancePrettyname } from '../../../../utilsLogic';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
+import InactivityIcon from '../../../common/InactivityIcon/InactivityIcon';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
 
@@ -248,6 +249,7 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                 </Text>
               )}
               {persistent && extended && <PersistentIcon />}
+              {extended && <InactivityIcon instance={instance} />}
               {nodeSelector && extended && (
                 <NodeSelectorIcon
                   isOnWorkspace={false}

@@ -72,12 +72,12 @@ func (r *InstanceInactiveTerminationReconciler) SetupWithManager(mgr ctrl.Manage
 		Watches(
 			&clv1alpha2.Template{},
 			createTemplateWatchHandlerWithTimeout(r.Client, func(t *clv1alpha2.Template) string {
-				if t.Spec.InactivityTimeout != NeverTimeoutValue {
-					return t.Spec.InactivityTimeout
+				if t.Spec.Cleanup.StopAfterInactivity != NeverTimeoutValue {
+					return t.Spec.Cleanup.StopAfterInactivity
 				}
-				return t.Spec.DestroyAfterInactivity
+				return t.Spec.Cleanup.DeleteAfterInactivity
 			}),
-			builder.WithPredicates(inactivityTimeoutChanged),
+			builder.WithPredicates(stopAfterInactivityChanged),
 		).
 		Watches(&corev1.Namespace{},
 			createNamespaceWatchHandlerWithIgnore(r.Client, forge.InstanceInactivityIgnoreNamespace),
@@ -139,30 +139,30 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return r.handlePoweredOffInstance(ctx, instance, tracer)
 	}
 
-	inactivityTimeout := template.Spec.InactivityTimeout
+	stopAfterInactivity := template.Spec.Cleanup.StopAfterInactivity
 	// If set to neverTimeoutValue, return without rescheduling
-	if inactivityTimeout == NeverTimeoutValue {
+	if stopAfterInactivity == NeverTimeoutValue {
 		dbgLog.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		return ctrl.Result{}, nil
 	}
 
-	inactivityTimeoutDuration, err := ParseDurationWithDays(ctx, inactivityTimeout)
+	stopAfterInactivityDuration, err := ParseDurationWithDays(ctx, stopAfterInactivity)
 	if err != nil {
-		log.Error(err, "failed to parse deleteAfter duration")
-		return ctrl.Result{}, fmt.Errorf("failed to parse inactivityTimeout duration %s: %w", inactivityTimeout, err)
+		log.Error(err, "failed to parse stopAfterInactivity duration")
+		return ctrl.Result{}, fmt.Errorf("failed to parse stopAfterInactivity duration %s: %w", stopAfterInactivity, err)
 	}
 
 	tracer.Step("labels checked")
 
 	// Update the last login time of the instance based on the Prometheus data
-	if err := r.UpdateInstanceLastLogin(ctx, inactivityTimeoutDuration); err != nil {
+	if err := r.UpdateInstanceLastLogin(ctx, stopAfterInactivityDuration); err != nil {
 		log.Error(err, "failed updating last login time of the instance")
 		return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
 	}
 
 	tracer.Step("instance last login updated")
 
-	remainingTime, err := r.GetRemainingInactivityTime(ctx, inactivityTimeoutDuration)
+	remainingTime, err := r.GetRemainingInactivityTime(ctx, stopAfterInactivityDuration)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
 		return ctrl.Result{}, err
@@ -324,7 +324,7 @@ func (r *InstanceInactiveTerminationReconciler) handleInactivityInstance(ctx con
 }
 
 // UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, inactivityTimeoutDuration time.Duration) error {
+func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, stopAfterInactivityDuration time.Duration) error {
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
 	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
@@ -340,20 +340,38 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 
 	// Get instance activity data
 	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
-	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, inactivityTimeoutDuration)
+	log.Info("Generated Nginx Prometheus query", "query", queryNginx)
+	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, stopAfterInactivityDuration)
+	log.Info("Nginx Prometheus query result", "lastActivityTime", lastActivityTimeNginx, "error", errNginx)
 
-	queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), instance.Namespace, instance.Name)
-	lastActivityTimeWebSSH, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, inactivityTimeoutDuration)
+	// Aggregate WebSSH activity times across all environments (find maximum)
+	var lastActivityTimeWebSSH time.Time
+	lastActivityTimeWebSSHFound := false
+	for envIdx := range instance.Status.Environments {
+		env := &instance.Status.Environments[envIdx]
+		queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), env.IP)
+		log.Info("Generated WebSSH Prometheus query", "query", queryWebSSH, "envIP", env.IP)
+		envActivityTime, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, stopAfterInactivityDuration)
+		log.Info("WebSSH Prometheus query result", "envIP", env.IP, "lastActivityTime", envActivityTime, "error", errWebSSH)
+		if errWebSSH == nil && !envActivityTime.IsZero() {
+			if !lastActivityTimeWebSSHFound || envActivityTime.After(lastActivityTimeWebSSH) {
+				lastActivityTimeWebSSH = envActivityTime
+				lastActivityTimeWebSSHFound = true
+			}
+		}
+	}
 
-	// Aggregate SSH activity times across all environments (find minimum non-zero)
+	// Aggregate SSH activity times across all environments (find maximum)
 	var lastActivityTimeSSH time.Time
 	lastActivityTimeSSHFound := false
 	for envIdx := range instance.Status.Environments {
 		env := &instance.Status.Environments[envIdx]
 		querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
-		envActivityTime, errSSH := r.Prometheus.GetLastActivityTime(querySSH, inactivityTimeoutDuration)
+		log.Info("Generated SSH Prometheus query", "query", querySSH, "envIP", env.IP)
+		envActivityTime, errSSH := r.Prometheus.GetLastActivityTime(querySSH, stopAfterInactivityDuration)
+		log.Info("SSH Prometheus query result", "envIP", env.IP, "lastActivityTime", envActivityTime, "error", errSSH)
 		if errSSH == nil && !envActivityTime.IsZero() {
-			if !lastActivityTimeSSHFound || envActivityTime.Before(lastActivityTimeSSH) {
+			if !lastActivityTimeSSHFound || envActivityTime.After(lastActivityTimeSSH) {
 				lastActivityTimeSSH = envActivityTime
 				lastActivityTimeSSHFound = true
 			}
@@ -361,10 +379,10 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 	}
 
 	// If all queries failed, return error
-	if errNginx != nil && !lastActivityTimeSSHFound && errWebSSH != nil {
+	if errNginx != nil && !lastActivityTimeSSHFound && !lastActivityTimeWebSSHFound {
 		return fmt.Errorf("failed retrieving last activity time from all queries: %w", errNginx)
 	}
-	if lastActivityTimeNginx.IsZero() && !lastActivityTimeSSHFound && lastActivityTimeWebSSH.IsZero() {
+	if lastActivityTimeNginx.IsZero() && !lastActivityTimeSSHFound && !lastActivityTimeWebSSHFound {
 		log.Info("No activity detected for the instance", "instance", instance.Name, "namespace", instance.Namespace)
 		return nil // No activity detected, do not update the last activity time
 	}
@@ -393,7 +411,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx cont
 }
 
 // GetRemainingInactivityTime checks if the Instance has to be terminated.
-func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx context.Context, inactivityTimeoutDuration time.Duration) (time.Duration, error) {
+func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx context.Context, stopAfterInactivityDuration time.Duration) (time.Duration, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-instance-termination")
 	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
@@ -408,7 +426,7 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityTime(ctx c
 	}
 
 	// Check if the instance has been inactive for longer than the timeout duration
-	remainingTime = inactivityTimeoutDuration - time.Since(lastLogin)
+	remainingTime = stopAfterInactivityDuration - time.Since(lastLogin)
 	if remainingTime <= 0 {
 		log.Info("Instance inactivity detected", "instance", instance.Name)
 		return 0, nil
@@ -572,16 +590,6 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 		log.Info("adding last powered off timestamp annotation to instance for the first time", "annotation", forge.LastPoweredOffTimestampAnnotation)
 		instance.Annotations[forge.LastPoweredOffTimestampAnnotation] = ""
 		updated = true
-	}
-
-	// Check and set the destroy-after-inactivity annotation from the template
-	template := clctx.TemplateFrom(ctx)
-	if template != nil {
-		if val, ok := instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"]; !ok || val != template.Spec.DestroyAfterInactivity {
-			log.Info("updating destroy-after-inactivity annotation", "annotation", "crownlabs.polito.it/destroy-after-inactivity", "value", template.Spec.DestroyAfterInactivity)
-			instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"] = template.Spec.DestroyAfterInactivity
-			updated = true
-		}
 	}
 
 	// Apply the patch only if something changed
@@ -932,25 +940,25 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityDestructio
 		return 0, false, fmt.Errorf("template not found in context")
 	}
 
-	destroyAfterInactivity := template.Spec.DestroyAfterInactivity
-	if destroyAfterInactivity == NeverTimeoutValue || destroyAfterInactivity == "" {
+	deleteAfterInactivity := template.Spec.Cleanup.DeleteAfterInactivity
+	if deleteAfterInactivity == NeverTimeoutValue || deleteAfterInactivity == "" {
 		return 0, false, nil
 	}
 
-	destroyAfterInactivityDuration, err := ParseDurationWithDays(ctx, destroyAfterInactivity)
+	deleteAfterInactivityDuration, err := ParseDurationWithDays(ctx, deleteAfterInactivity)
 	if err != nil {
-		return 0, false, fmt.Errorf("failed to parse destroyAfterInactivity duration %s: %w", destroyAfterInactivity, err)
+		return 0, false, fmt.Errorf("failed to parse deleteAfterInactivity duration %s: %w", deleteAfterInactivity, err)
 	}
 	poweredOffTimeStr := instance.Annotations[forge.LastPoweredOffTimestampAnnotation]
 	if poweredOffTimeStr == "" {
 		return 0, false, nil // No powered-off timestamp, nothing to calculate
 	}
 
-	// Store the destroyAfterInactivity value as an annotation for validation/visibility
+	// Store the deleteAfterInactivity value as an annotation for validation/visibility
 	if instance.Annotations == nil {
 		instance.Annotations = make(map[string]string)
 	}
-	instance.Annotations["crownlabs.polito.it/destroy-after-inactivity"] = destroyAfterInactivity
+	instance.Annotations["crownlabs.polito.it/delete-after-inactivity"] = deleteAfterInactivity
 
 	poweredOffTime, err := time.Parse(time.RFC3339, poweredOffTimeStr)
 	if err != nil {
@@ -958,7 +966,7 @@ func (r *InstanceInactiveTerminationReconciler) GetRemainingInactivityDestructio
 		return 0, false, err
 	}
 
-	remainingTime := destroyAfterInactivityDuration - time.Since(poweredOffTime)
+	remainingTime := deleteAfterInactivityDuration - time.Since(poweredOffTime)
 	return remainingTime, true, nil
 }
 
