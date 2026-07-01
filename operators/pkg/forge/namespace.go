@@ -48,19 +48,3 @@ func ConfigureWorkspaceNamespace(ns *corev1.Namespace, labels map[string]string)
 func GetTenantNamespaceName(tn *clv1alpha2.Tenant) string {
 	return fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 }
-
-// ConfigureTenantNamespace configures a namespace for a tenant.
-func ConfigureTenantNamespace(ns *corev1.Namespace, tn *clv1alpha2.Tenant, labels map[string]string) {
-	// Set the labels for the namespace
-	if ns.Labels == nil {
-		ns.Labels = make(map[string]string)
-	}
-
-	// Copy the provided labels
-	maps.Copy(ns.Labels, labels)
-
-	// Set tenant-specific labels
-	ns.Labels["crownlabs.polito.it/type"] = "tenant"
-	ns.Labels["crownlabs.polito.it/name"] = tn.Name
-	ns.Labels["crownlabs.polito.it/instance-resources-replication"] = "true"
-}

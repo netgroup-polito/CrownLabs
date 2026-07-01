@@ -82,6 +82,7 @@ func init() {
 func setupTenant(
 	mgr manager.Manager,
 	log logr.Logger,
+	tenantCommonNSLabels map[string]string,
 	targetLabel ctrlcommon.KVLabel,
 ) error {
 	var baseWorkspacesList []string
@@ -94,6 +95,7 @@ func setupTenant(
 		Client:                      mgr.GetClient(),
 		Scheme:                      mgr.GetScheme(),
 		TargetLabel:                 targetLabel,
+		TenantCommonNSLabels:        tenantCommonNSLabels,
 		TenantNSKeepAlive:           tenantNSKeepAlive,
 		TriggerReconcileChannel:     make(chan event.GenericEvent, 10),
 		MyDrivePVCsSize:             mydrivePVCsSize.Quantity,
