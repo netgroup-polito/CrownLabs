@@ -17,12 +17,9 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"time"
 
-	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/selection"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
@@ -59,17 +56,15 @@ func main() {
 	var metricsAddr string
 	var healthProbeAddr string
 	var enableLeaderElection bool
-	var tenantNamespaceLabelsStr string
-	var tenantSelectorLabelKey string
-	var gwAccessLabelKey string
+	var tenantNamespaceCommonLabelsStr string
+	var targetLabelStr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&tenantNamespaceLabelsStr, "tenant-namespace-labels", "", "A Kubernetes label selector string (exact-match only) parsed and converted into labels to stamp on tenant namespaces")
-	flag.StringVar(&tenantSelectorLabelKey, "tenant-selector-label-key", "", "The label key inside --tenant-namespace-labels used as tenant controller selector")
-	flag.StringVar(&gwAccessLabelKey, "gw-access-label-key", "gw-access", "The label key inside --tenant-namespace-labels for gateway access")
+	flag.StringVar(&tenantNamespaceCommonLabelsStr, "tenant-namespace-common-labels", "", "A comma-separated key=value list converted into common labels to stamp on tenant namespaces")
+	flag.StringVar(&targetLabelStr, "target-label", "", "Label selector in key=value format used by controllers to select managed resources")
 	flag.DurationVar(&reschedule.RequeueAfterMin, "reschedule-min", reschedule.RequeueAfterMin,
 		"Minimum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
@@ -119,36 +114,19 @@ func main() {
 		klog.Fatal(err, "Unable to create manager")
 	}
 
-	if tenantNamespaceLabelsStr == "" {
-		klog.Fatal("Missing required --tenant-namespace-labels")
-	}
-	if tenantSelectorLabelKey == "" {
-		klog.Fatal("Missing required --tenant-selector-label-key")
-	}
-	if gwAccessLabelKey == "" {
-		klog.Fatal("Missing required --gw-access-label-key")
-	}
-
-	tenantNamespaceLabels, err := parseExactMatchLabels(tenantNamespaceLabelsStr)
+	tenantNamespaceCommonLabels, err := forge.ParseAnnotations(tenantNamespaceCommonLabelsStr)
 	if err != nil {
-		klog.Fatal(err, "Unable to parse tenant namespace labels")
+		klog.Fatal(err, "Unable to parse tenant namespace common labels")
 	}
 
-	targetLabelValue, ok := tenantNamespaceLabels[tenantSelectorLabelKey]
-	if !ok {
-		klog.Fatal("Unable to extract tenant selector label", "missingKey", tenantSelectorLabelKey)
+	targetLabel, err := ctrlcommon.ParseLabel(targetLabelStr)
+	if err != nil {
+		klog.Fatal(err, "Unable to parse target label")
 	}
 
-	gwAccessValue, ok := tenantNamespaceLabels[gwAccessLabelKey]
-	if !ok {
-		klog.Fatal("Unable to extract gw-access label", "missingKey", gwAccessLabelKey)
-	}
-	log.Info("Gateway access label", "key", gwAccessLabelKey, "value", gwAccessValue)
-
-	targetLabel := ctrlcommon.NewLabel(tenantSelectorLabelKey, targetLabelValue)
 	log.Info("Selecting resources with label", "label", targetLabel.GetKey()+"="+targetLabel.GetValue())
 
-	tenantCommonNSLabels := forge.UpdateTenantResourceCommonLabels(tenantNamespaceLabels, targetLabel)
+	tenantNamespaceCommonLabels = forge.AddStaticTenantNamespaceLabels(tenantNamespaceCommonLabels)
 
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak = enableKeycloak && (enableTenant || enableWorkspace)
@@ -163,7 +141,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setupTenant(mgr, log, tenantNamespaceLabels, tenantCommonNSLabels, targetLabel)
+		err := setupTenant(mgr, log, tenantNamespaceCommonLabels, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}
@@ -234,34 +212,4 @@ func addOperatorProbes(mgr manager.Manager) error {
 	}
 
 	return nil
-}
-
-func parseExactMatchLabels(selectorString string) (map[string]string, error) {
-	selector, err := labels.Parse(selectorString)
-	if err != nil {
-		return nil, err
-	}
-
-	requirements, selectable := selector.Requirements()
-	if !selectable {
-		return nil, fmt.Errorf("label selector %q is not selectable", selectorString)
-	}
-
-	out := make(map[string]string, len(requirements))
-	for i := range requirements {
-		req := requirements[i]
-		values := req.ValuesUnsorted()
-
-		switch req.Operator() {
-		case selection.Equals, selection.DoubleEquals, selection.In:
-			if len(values) != 1 {
-				return nil, fmt.Errorf("selector requirement %q must have exactly one value", req.String())
-			}
-			out[req.Key()] = values[0]
-		default:
-			return nil, fmt.Errorf("selector requirement %q uses unsupported operator %q for map conversion", req.String(), req.Operator())
-		}
-	}
-
-	return out, nil
 }

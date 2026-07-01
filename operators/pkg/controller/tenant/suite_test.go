@@ -153,8 +153,10 @@ func DoesEventuallyExists(ctx context.Context, cl client.Client, objLookupKey cl
 var (
 	tenantTestTargetLabel = ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test")
 	tenantTestNSLabels    = map[string]string{
-		"crownlabs.polito.it/operator-selector": "test",
-		"crownlabs.polito.it/gw-access":         "crownlabs-main-production",
+		"crownlabs.polito.it/operator-selector":              "test",
+		"crownlabs.polito.it/gw-access":                      "crownlabs-main-production",
+		"crownlabs.polito.it/type":                           "tenant",
+		"crownlabs.polito.it/instance-resources-replication": "true",
 	}
 )
 

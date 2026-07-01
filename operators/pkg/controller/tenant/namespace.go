@@ -232,7 +232,7 @@ func (r *Reconciler) enforceResourceQuota(
 
 	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &rq, func() error {
 		// Configure the resource quota
-		forge.ConfigureTenantResourceQuota(&rq, &quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.targetLabel()))
+		forge.ConfigureTenantResourceQuota(&rq, &quota, forge.UpdateTenantResourceCommonLabels(rq.Labels, r.TargetLabel))
 
 		return ctrlutil.SetControllerReference(tn, &rq, r.Scheme)
 	}); err != nil {
@@ -271,7 +271,7 @@ func (r *Reconciler) enforceInstanceRoleBinding(
 
 	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &rb, func() error {
 		// Configure the role binding
-		forge.ConfigureTenantInstancesRoleBinding(&rb, tn, forge.UpdateTenantResourceCommonLabels(rb.Labels, r.targetLabel()))
+		forge.ConfigureTenantInstancesRoleBinding(&rb, tn, forge.UpdateTenantResourceCommonLabels(rb.Labels, r.TargetLabel))
 
 		return ctrlutil.SetControllerReference(tn, &rb, r.Scheme)
 	}); err != nil {
@@ -310,7 +310,7 @@ func (r *Reconciler) enforceDenyNetworkPolicy(
 
 	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, netPolDeny, func() error {
 		// Configure the network policy
-		forge.ConfigureTenantDenyNetworkPolicy(netPolDeny, forge.UpdateTenantResourceCommonLabels(netPolDeny.Labels, r.targetLabel()))
+		forge.ConfigureTenantDenyNetworkPolicy(netPolDeny, forge.UpdateTenantResourceCommonLabels(netPolDeny.Labels, r.TargetLabel))
 
 		return ctrlutil.SetControllerReference(tn, netPolDeny, r.Scheme)
 	})
@@ -332,7 +332,7 @@ func (r *Reconciler) enforceAllowNetworkPolicy(
 
 	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, netPolAllow, func() error {
 		// Configure the network policy
-		forge.ConfigureTenantAllowNetworkPolicy(netPolAllow, forge.UpdateTenantResourceCommonLabels(netPolAllow.Labels, r.targetLabel()))
+		forge.ConfigureTenantAllowNetworkPolicy(netPolAllow, forge.UpdateTenantResourceCommonLabels(netPolAllow.Labels, r.TargetLabel))
 
 		return ctrlutil.SetControllerReference(tn, netPolAllow, r.Scheme)
 	})

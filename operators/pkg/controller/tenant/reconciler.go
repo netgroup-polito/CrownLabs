@@ -65,10 +65,6 @@ type Reconciler struct {
 	Reschedule                  ctrlcommon.Rescheduler
 }
 
-func (r *Reconciler) targetLabel() ctrlcommon.KVLabel {
-	return r.TargetLabel
-}
-
 // Reconcile reconciles the state of a tenant resource.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx).WithValues("tenant", req.Name)
@@ -83,7 +79,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	if !r.targetLabel().IsIncluded(tn.Labels) {
+	if !r.TargetLabel.IsIncluded(tn.Labels) {
 		// the actual Tenant is not responsibility of this controller
 		log.Info("Tenant is not responsibility of this controller, skipping reconcile")
 		return ctrl.Result{}, nil
@@ -236,7 +232,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 
 // SetupWithManager registers a new controller for Tenant resources.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, log logr.Logger) error {
-	pred, err := r.targetLabel().GetPredicate()
+	pred, err := r.TargetLabel.GetPredicate()
 	if err != nil {
 		log.Error(err, "Error creating predicate for tenant controller")
 		return fmt.Errorf("error creating predicate for tenant controller: %w", err)

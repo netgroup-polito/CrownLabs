@@ -274,9 +274,7 @@ func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, 
 	labels = deepCopyLabels(labels)
 
 	maps.Copy(labels, tenantCommonNSLabels)
-	labels[LabelTypeKey] = labelTypeTenantValue
 	labels["crownlabs.polito.it/name"] = tenant.Name
-	labels["crownlabs.polito.it/instance-resources-replication"] = "true"
 
 	return labels
 }

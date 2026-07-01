@@ -17,7 +17,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -83,16 +82,9 @@ func init() {
 func setupTenant(
 	mgr manager.Manager,
 	log logr.Logger,
-	tenantNamespaceLabels map[string]string,
 	tenantCommonNSLabels map[string]string,
 	targetLabel ctrlcommon.KVLabel,
 ) error {
-	// Generic validation: ensure the targetLabel key exists in the original labels
-	_, ok := tenantNamespaceLabels[targetLabel.GetKey()]
-	if !ok {
-		return fmt.Errorf("required label key %q not found in tenant namespace labels", targetLabel.GetKey())
-	}
-
 	var baseWorkspacesList []string
 	if tenantBaseWorkspaces != "" {
 		baseWorkspacesList = strings.Split(tenantBaseWorkspaces, ",")

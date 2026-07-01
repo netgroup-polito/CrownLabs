@@ -39,7 +39,7 @@ func (r *Reconciler) handlePersonalWorkspace(ctx context.Context, tn *clv1alpha2
 	}
 	manageTemplatesRB := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: forge.ManageTemplatesRoleName, Namespace: tn.Status.PersonalNamespace.Name}}
 	if tn.Spec.PersonalWorkspace != nil {
-		forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tn, &manageTemplatesRB, forge.UpdateTenantResourceCommonLabels(manageTemplatesRB.Labels, r.targetLabel()))
+		forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tn, &manageTemplatesRB, forge.UpdateTenantResourceCommonLabels(manageTemplatesRB.Labels, r.TargetLabel))
 		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &manageTemplatesRB, func() error {
 			return ctrl.SetControllerReference(tn, &manageTemplatesRB, r.Scheme)
 		})

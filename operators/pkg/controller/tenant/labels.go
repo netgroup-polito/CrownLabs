@@ -32,7 +32,7 @@ func (r *Reconciler) enforceTenantBaseLabels(
 	labels := make(map[string]string)
 	maps.Copy(labels, tn.Labels)
 
-	labels = forge.TenantLabels(labels, tn, r.targetLabel())
+	labels = forge.TenantLabels(labels, tn, r.TargetLabel)
 
 	if err := r.enforcePreservingStatus(ctx, log, tn, func(t *clv1alpha2.Tenant) *clv1alpha2.Tenant {
 		t.Labels = labels

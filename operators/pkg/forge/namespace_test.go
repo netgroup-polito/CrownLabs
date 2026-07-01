@@ -51,7 +51,9 @@ var _ = Describe("Namespace forging", func() {
 
 		targetLabel = ctrlcommon.NewLabel("test-key", "test-value")
 		tenantNamespaceLabels = map[string]string{
-			"crownlabs.polito.it/gw-access": "crownlabs-main-production",
+			"crownlabs.polito.it/gw-access":                      "crownlabs-main-production",
+			"crownlabs.polito.it/type":                           "tenant",
+			"crownlabs.polito.it/instance-resources-replication": "true",
 		}
 	})
 

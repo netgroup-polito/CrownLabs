@@ -34,8 +34,8 @@ spec:
           image: "{{ .Values.image.repository }}:{{ include "operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "--tenant-namespace-labels={{ .Values.configurations.tenantNamespaceLabels }}"
-            - "--tenant-selector-label-key={{ .Values.configurations.tenantSelectorLabelKey }}"
+            - "--tenant-namespace-common-labels={{ .Values.configurations.targetLabel }},{{ .Values.configurations.tenantNamespaceCommonLabels }}"
+            - "--target-label={{ .Values.configurations.targetLabel }}"
             - "--keycloak-url={{ .Values.configurations.keycloak.url }}"
             - "--keycloak-realm={{ .Values.configurations.keycloak.realm }}"
             - "--keycloak-client-id=$(KEYCLOAK_TENANT_OPERATOR_CLIENT_ID)"
