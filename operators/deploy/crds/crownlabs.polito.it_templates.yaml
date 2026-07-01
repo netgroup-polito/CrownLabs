@@ -83,6 +83,7 @@ spec:
                     description: |-
                       The maximum lifetime of an Instance referencing the current Template.
                       Once this period is expired, the Instance will be automatically deleted
+                      regardless of whether it is still in use or not.
                       If set to "never", the instance will not be automatically terminated.
                     pattern: ^(never|[0-9]+[smhd])$
                     type: string
