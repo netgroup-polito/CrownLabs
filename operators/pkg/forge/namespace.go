@@ -48,4 +48,3 @@ func ConfigureWorkspaceNamespace(ns *corev1.Namespace, labels map[string]string)
 func GetTenantNamespaceName(tn *clv1alpha2.Tenant) string {
 	return fmt.Sprintf("tenant-%s", strings.ReplaceAll(tn.Name, ".", "-"))
 }
-
