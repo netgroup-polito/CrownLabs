@@ -42,6 +42,7 @@ type CleanupOptions struct {
 	// +kubebuilder:default="never"
 	// The maximum lifetime of an Instance referencing the current Template.
 	// Once this period is expired, the Instance will be automatically deleted
+	// regardless of whether it is still in use or not.
 	// If set to "never", the instance will not be automatically terminated.
 	DeleteAfterCreation string `json:"deleteAfterCreation"`
 
