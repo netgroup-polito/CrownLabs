@@ -27,8 +27,8 @@ configuration:
     templateName: mydrive
     workspaceName: utilities
   imagelist:
-    standalone: standalone-project-example
-    containerdisks: containerdisks-project-example
+    standalone: crownlabs-standalone
+    containerdisks: crownlabs-containerdisks
     
   defaultTimeouts:
     inactivityTimeout: "15d"

@@ -1,4 +1,4 @@
-import { getEnvVar } from '../../../env';
+import { VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS, VITE_APP_CROWNLABS_IMAGELIST_STANDALONE } from '../../../env';
 import { EnvironmentType, type ImagesQuery } from '../../../generated-types';
 import type { Template } from './ModalCreateTemplate';
 import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
 export const internalRegistry = 'harbor.ng.crownlabs.polito.it'; 
 export const imageListContainderDisksDefault = "harbor-containerdisks-pre-production";
 export const imageListStandaloneDefault = "harbor-standalone-pre-production";
-export const projectName = [getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'), getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS'), imageListStandaloneDefault, imageListContainderDisksDefault];
+export const projectName = [VITE_APP_CROWNLABS_IMAGELIST_STANDALONE, VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS, imageListStandaloneDefault, imageListContainderDisksDefault];
 export const defaultProjectNameVM = "crownlabs-containerdisks";
 export const defaultProjectNameContainer = "crownlabs-standalone";
 export const formItemLayout = {
@@ -113,14 +113,14 @@ export const useImageLists = (dataImages: ImagesQuery) => {
       
           const imageLists = getImageLists(dataImages);
           const internalImagesVM = imageLists.find(
-            list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS')
+            list => list.name === VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS
           ) || imageLists.find(
             list => list.name === imageListContainderDisksDefault
           );
           setProjectBaseNameVM(internalImagesVM?.projectBaseName || defaultProjectNameVM); 
       
           const internalImagesContainer = imageLists.find(
-            list => list.name === getEnvVar('VITE_APP_CROWNLABS_IMAGELIST_STANDALONE') 
+            list => list.name === VITE_APP_CROWNLABS_IMAGELIST_STANDALONE
           ) || imageLists.find(
             list => list.name === imageListStandaloneDefault
           );
