@@ -25,9 +25,10 @@ frontend-app:
       realm: <realm>
       providerUrl: https://auth.example.com/auth/
     defaultTimeouts:
-      inactivityTimeout: "15d"
-      destroyAfterInactivity: "never"
-      deleteAfter: "never"
+      cleanup:
+        stopAfterInactivity: "15d"
+        deleteAfterInactivity: "never"
+        deleteAfterCreation: "never"
 
 qlkube:
   replicaCount: 1

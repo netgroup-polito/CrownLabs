@@ -22,9 +22,11 @@ export const getDefaultTemplate = (resources: Resources): Template => {
     name: '',
     description: '',
     environments: [getDefaultTemplateEnvironment(resources, 0)],
-    deleteAfter: 'never',
-    inactivityTimeout: 'never',
-    destroyAfterInactivity: 'never',
+    cleanup: {
+      deleteAfterCreation: 'never',
+      stopAfterInactivity: 'never',
+      deleteAfterInactivity: 'never',
+    },
     allowPublicExposure: false,
   };
 };
