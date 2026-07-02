@@ -112,7 +112,7 @@ operator:
           password: ""
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks   
-    webhook:
+  webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
       baseWorkspaces: utilities
