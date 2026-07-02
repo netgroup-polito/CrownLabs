@@ -26,6 +26,9 @@ spec:
     - jsonPath: .status.phase
       name: Phase
       type: string
+    - jsonPath: .status.environments[0].expositionAccepted
+      name: Exposition Accepted
+      type: boolean
     - jsonPath: .status.environments[0].url
       name: URL
       priority: 10
@@ -218,6 +221,13 @@ spec:
                           format: date-time
                           type: string
                       type: object
+                    expositionAccepted:
+                      default: false
+                      description: |-
+                        Whether the Gateway or any other entity has accepted the exposition of the Instance to the outside world.
+                        This is required for the Instance to be exposed to the outside world.
+                        If not set, the Instance will not be exposed to the outside world.
+                      type: boolean
                     initialReadyTime:
                       description: |-
                         The amount of time the Instance required to become ready for the first time

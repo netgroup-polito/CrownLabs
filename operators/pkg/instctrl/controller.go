@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -49,23 +50,16 @@ type InstanceReconciler struct {
 	Scheme                    *runtime.Scheme
 	EventsRecorder            record.EventRecorder
 	NamespaceWhitelist        metav1.LabelSelector
-	ServiceUrls               ServiceUrls
+	ExpositionConfig          forge.ExpositionConfig
 	ContainerEnvOpts          forge.ContainerEnvOpts
 	WebSSHMasterPublicKey     []byte
 	PublicExposureOpts        forge.PublicExposureOpts
 	MirrorPVCStorageClassName string
-	EnableAuthentication      bool
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
-}
-
-// ServiceUrls holds URL parameters for the instance reconciler.
-type ServiceUrls struct {
-	WebsiteBaseURL   string
-	InstancesAuthURL string
 }
 
 // calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
@@ -327,10 +321,10 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	if urlNeeded {
 		// Enforce the ingress to access the GUI
 		// Use the configured website base URL
-		host := r.ServiceUrls.WebsiteBaseURL
+		host := r.ExpositionConfig.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
-		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
+		instance.Status.URL = forge.ExpositionGuiStatusInstanceURL(host, instance)
 	} else {
 		instance.Status.URL = ""
 	}
@@ -377,6 +371,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
+		Owns(&gatewayv1.HTTPRoute{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).

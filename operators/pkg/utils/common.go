@@ -32,6 +32,8 @@ import (
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
+// (removed dns1123/allowed regexps: simplified parsing below)
+
 // ParseDockerDirectory returns a valid Docker image directory.
 func ParseDockerDirectory(name string) string {
 	reg := regexp.MustCompile("[^a-zA-Z0-9]+")
