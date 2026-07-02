@@ -2,7 +2,7 @@ import type { FC } from 'react';
 import { useState, useContext, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Modal, Form, Input, InputNumber, Select, Tooltip, Checkbox, Collapse, theme, Typography, Space, Flex } from 'antd';
 import { Button } from 'antd';
-import type { CreateTemplateMutation } from '../../../generated-types';
+import type { CreateTemplateMutation, ImagesQuery } from '../../../generated-types';
 import { InfoCircleOutlined, CheckSquareFilled, CloseSquareFilled } from '@ant-design/icons';
 import type { RuleObject } from 'antd/es/form';
 import {
@@ -19,14 +19,14 @@ import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { makeGuiSharedVolume } from '../../../utilsLogic';
 import { cleanupLabels, type SharedVolume } from '../../../utils';
 import { EnvironmentList } from './EnvironmentList';
-import type { Image, Interval, TemplateForm } from './types';
+import type { Interval, TemplateForm } from './types';
 import {
+
   formItemLayout,
   getDefaultTemplate,
-  getImageLists,
   getImageNameNoVer,
-  getImagesFromList,
   internalRegistry,
+  useImageLists,
 } from './utils';
 
 const { Text } = Typography;
@@ -135,6 +135,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     fetchPolicy: 'network-only',
     skip: !shouldFetchSharedVolumes,
   });
+  
 
   const validateName = async (_: unknown, name: string) => {
     if (template) { // we are editing an existing template, not creating a new one
@@ -184,39 +185,40 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     variables: { workspaceNamespace },
   });
 
-  const [availableImages, setAvailableImages] = useState<Image[]>([]);
+  
+    const { 
+      availableImagesVM, 
+      availableImagesContainer, 
+      projectBaseNameVM,
+      projectBaseNameContainer
+    } = useImageLists(dataImages?? {} as ImagesQuery);
 
-  useEffect(() => {
-    if (!dataImages) {
-      setAvailableImages([]);
-      return;
-    }
-
-    const imageLists = getImageLists(dataImages);
-    const internalImages = imageLists.find(
-      list => list.registryName === internalRegistry,
-    );
-
-    if (!internalImages) {
-      setAvailableImages([]);
-      return;
-    }
-
-    setAvailableImages(getImagesFromList(internalImages));
-  }, [dataImages]);
 
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
     if (envType === EnvironmentType.VirtualMachine) {
-      // For VMs, use the selected image from internal registry
-      const selectedImage = availableImages.find(
+      
+      const selectedImage = availableImagesVM.find(
+        i => getImageNameNoVer(i.name) === image,
+      );
+
+      
+      if (selectedImage) {
+        return `${internalRegistry}/${projectBaseNameVM}/${selectedImage.name}`;
+      }
+    } else if (envType === EnvironmentType.Standalone) {
+      
+      const selectedImage = availableImagesContainer.find(
         i => getImageNameNoVer(i.name) === image,
       );
 
       if (selectedImage) {
-        return `${internalRegistry}/${selectedImage.name}`;
+        return `${internalRegistry}/${projectBaseNameContainer}/${selectedImage.name}`;
       }
     }
+
+    
+
     // For other types, use the external image
     let finalImage = image;
     // If it doesn't include a registry, default to internal registry
@@ -304,7 +306,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       console.error('ModalCreateTemplate validation error:', error);
     }
   };
-
+  
   const [timeouts, setTimeouts] = useState(
     {
       stopAfterInactivity: template
@@ -692,18 +694,19 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   </>
 
   const environmentListForm = <>
-    <EnvironmentList
-      availableImages={availableImages}
-      resources={{
-        cpu: cpuInterval,
-        ram: ramInterval,
-        disk: diskInterval,
-      }}
-      sharedVolumes={sharedVolumes}
-      setInfoNumberTemplate={setInfoNumberTemplate}
-      isPersonal={isPersonal === undefined ? false : isPersonal}
-    /></>
-
+  <EnvironmentList
+          availableImagesVM={availableImagesVM}
+          availableImagesContainer={availableImagesContainer}
+          resources={{
+            cpu: cpuInterval,
+            ram: ramInterval,
+            disk: diskInterval,
+          }}
+          sharedVolumes={sharedVolumes}
+          setInfoNumberTemplate={setInfoNumberTemplate}
+          isPersonal={isPersonal === undefined ? false : isPersonal}
+        /></>
+  
 
 
 

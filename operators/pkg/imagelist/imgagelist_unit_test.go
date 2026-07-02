@@ -23,7 +23,11 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	imagelist "github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 )
 
@@ -118,5 +122,33 @@ var _ = Describe("Requestor", func() {
 			"name": "ubuntu-server-base",
 			"tags": []string{"v1.1"},
 		}}))
+	})
+})
+
+var _ = Describe("DefaultImageListSaver", func() {
+	It("creates an ImageList with empty images while keeping registry and project base name", func() {
+		scheme := runtime.NewScheme()
+		err := clv1alpha1.AddToScheme(scheme)
+		Expect(err).NotTo(HaveOccurred())
+
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).Build()
+		ctx := context.Background()
+
+		saver, err := imagelist.NewDefaultImageListSaver(ctx, "harbor-containerdisks-crownlabs", fakeClient, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+
+		err = saver.CreateOrUpdateImageList(
+			"harbor.ng.crownlabs.polito.it",
+			"crownlabs-containerdisks",
+			[]clv1alpha1.ImageListItem{},
+		)
+		Expect(err).NotTo(HaveOccurred())
+
+		created := &clv1alpha1.ImageList{}
+		err = fakeClient.Get(ctx, client.ObjectKey{Name: "harbor-containerdisks-crownlabs"}, created)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(created.Spec.RegistryName).To(Equal("harbor.ng.crownlabs.polito.it"))
+		Expect(created.Spec.ProjectBaseName).To(Equal("crownlabs-containerdisks"))
+		Expect(created.Spec.Images).To(BeEmpty())
 	})
 })

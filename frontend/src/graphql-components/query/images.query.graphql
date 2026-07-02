@@ -1,7 +1,11 @@
 query images {
   imageList: itPolitoCrownlabsV1alpha1ImageListList {
     images: items {
+      metadata {
+        name
+      }
       spec {
+        projectBaseName
         registryName
         images {
           name

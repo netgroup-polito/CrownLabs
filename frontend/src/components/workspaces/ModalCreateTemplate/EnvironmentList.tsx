@@ -26,7 +26,8 @@ const getDefaultEnvironment = (envCount: number): TemplateFormEnv => {
 };
 
 interface IEnvironmentLabelProps {
-  availableImages: Image[];
+  availableImagesVM: Image[];
+  availableImagesContainer: Image[];
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
@@ -34,7 +35,8 @@ interface IEnvironmentLabelProps {
 }
 
 export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
-  availableImages,
+  availableImagesVM,
+  availableImagesContainer,
   resources,
   sharedVolumes,
   isPersonal,
@@ -126,7 +128,8 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
                   <Environment
                     restField={restField}
                     parentFormName={name}
-                    availableImages={availableImages}
+                    availableImagesVM={availableImagesVM}
+                    availableImagesContainer={availableImagesContainer}
                     resources={resources}
                     sharedVolumes={sharedVolumes}
                     isPersonal={isPersonal}
