@@ -257,6 +257,7 @@ export type EnvironmentRefInput = {
 
 export enum EnvironmentType {
   CloudVm = 'CloudVM',
+  LocalVm = 'LocalVM',
   Container = 'Container',
   Standalone = 'Standalone',
   VirtualMachine = 'VirtualMachine'

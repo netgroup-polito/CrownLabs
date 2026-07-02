@@ -17,7 +17,6 @@ package forge_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -96,9 +95,17 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
 		})
-		It("Should set the correct datavolume template", func() {
-			Expect(spec.DataVolumeTemplates).To(ContainElement(
-				forge.DataVolumeTemplate(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name, &environment)))
+	})
+
+	Describe("The forge.DataVolume function", func() {
+		It("Should forge the correct standalone DataVolume", func() {
+			dv := forge.DataVolume("my-disk", "my-namespace", &environment)
+
+			Expect(dv.Name).To(Equal("my-disk"))
+			Expect(dv.Namespace).To(Equal("my-namespace"))
+
+			Expect(dv.Spec.PVC.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
+			Expect(dv.Spec.PVC.Resources.Requests[corev1.ResourceStorage]).To(Equal(environment.Resources.Disk))
 		})
 	})
 
@@ -335,42 +342,4 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			}),
 		)
 	})
-
-	Describe("The forge.DataVolumeTemplate function", func() {
-		var dataVolumeTemplate virtv1.DataVolumeTemplateSpec
-		const name = "kubernetes-volume"
-
-		JustBeforeEach(func() {
-			dataVolumeTemplate = forge.DataVolumeTemplate(name, &environment)
-		})
-
-		Context("The DataVolumeTemplate is forged", func() {
-
-			When("Environment type is VM", func() {
-				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassVM })
-
-				It("Should target the correct image registry", func() {
-					Expect(dataVolumeTemplate.Spec.Source.Registry.URL).To(PointTo(BeIdenticalTo("docker://" + image)))
-				})
-			})
-
-			When("Environment type is CloudVM", func() {
-				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
-
-				It("Should target the correct http url", func() {
-					Expect(dataVolumeTemplate.Spec.Source.HTTP.URL).To(BeIdenticalTo(image))
-				})
-			})
-
-			It("Should have the correct name", func() {
-				Expect(dataVolumeTemplate.GetName()).To(BeIdenticalTo(name))
-			})
-
-			It("Should request the correct disk size", func() {
-				Expect(dataVolumeTemplate.Spec.PVC.Resources.Requests).To(Equal(
-					corev1.ResourceList{corev1.ResourceStorage: resource.MustParse(disk)}))
-			})
-		})
-	})
-
 })

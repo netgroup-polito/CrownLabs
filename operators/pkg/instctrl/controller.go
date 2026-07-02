@@ -305,7 +305,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		innCtx = clctx.VolumeMountInfosInto(innCtx, mountInfos)
 
 		switch tmplEnv.EnvironmentType {
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
 			if err := r.EnforceVMEnvironment(innCtx); err != nil {
 				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 				return err
