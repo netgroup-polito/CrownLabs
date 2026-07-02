@@ -11,6 +11,8 @@ configurations:
     instance: true
     sharedvolume: true
     pmp: false
+    keycloak: true
+    webhooks: false
     imageList: false
 
   targetLabel: crownlabs.polito.it/operator-selector=production
