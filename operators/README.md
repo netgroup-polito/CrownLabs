@@ -634,7 +634,7 @@ The ConfigMap should contain a YAML array of registry configurations:
 - name: dockerhub
   type: docker
   url: https://registry.hub.docker.com
-  advertised: docker.io
+  registryName: docker.io
   imageListName: imagelist-docker
   username: ""
   password: ""
@@ -642,7 +642,7 @@ The ConfigMap should contain a YAML array of registry configurations:
 - name: harbor
   type: harbor
   url: https://harbor.example.com
-  advertised: harbor.example.com
+  registryName: harbor.example.com
   imageListName: imagelist-harbor
   project: crownlabs-container-disks
   username: admin
