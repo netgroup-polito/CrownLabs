@@ -31,7 +31,7 @@ import (
 // Saver defines the interface for objects responsible for saving image lists to Kubernetes resources.
 type Saver interface {
 	// CreateOrUpdateImageList creates a new ImageList resource or updates an existing one with the provided images from a specific registry.
-	CreateOrUpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
+	CreateOrUpdateImageList(registryName, projectBaseName string, images []clv1alpha1.ImageListItem) error
 }
 
 // RegisteredSavers holds the list of all registered image list savers.
@@ -56,12 +56,12 @@ func NewDefaultImageListSaver(ctx context.Context, name string, k8sClient client
 }
 
 // CreateOrUpdateImageList creates a new ImageList or updates an existing one with the provided images.
-func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error {
-	s.log.V(1).Info("creating or updating ImageList", "registryName", registryName, "imageCount", len(images))
+func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName, projectBaseName string, images []clv1alpha1.ImageListItem) error {
+	s.log.V(1).Info("creating or updating ImageList", "registryName", registryName, "projectBaseName", projectBaseName, "imageCount", len(images))
 
 	persistedImages := images
 	if len(images) == 0 {
-		s.log.Info("no images found; persisting empty ImageList", "name", s.name, "registryName", registryName)
+		s.log.Info("no images found; persisting empty ImageList", "name", s.name, "registryName", registryName, "projectBaseName", projectBaseName)
 		persistedImages = []clv1alpha1.ImageListItem{}
 	}
 
@@ -77,8 +77,9 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 					Name: s.name,
 				},
 				Spec: clv1alpha1.ImageListSpec{
-					RegistryName: registryName,
-					Images:       persistedImages,
+					RegistryName:    registryName,
+					Images:          persistedImages,
+					ProjectBaseName: projectBaseName,
 				},
 			}
 
@@ -87,7 +88,7 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 				return fmt.Errorf("failed to create ImageList: %w", err)
 			}
 
-			s.log.Info("ImageList created successfully", "name", s.name, "registryName", registryName, "imageCount", len(images))
+			s.log.Info("ImageList created successfully", "name", s.name, "registryName", registryName, "projectBaseName", projectBaseName, "imageCount", len(images))
 			return nil
 		}
 
@@ -97,8 +98,9 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 
 	// Update existing ImageList
 	imageList.Spec = clv1alpha1.ImageListSpec{
-		RegistryName: registryName,
-		Images:       persistedImages,
+		RegistryName:    registryName,
+		Images:          persistedImages,
+		ProjectBaseName: projectBaseName,
 	}
 
 	if err := s.client.Update(s.ctx, imageList); err != nil {
@@ -106,6 +108,6 @@ func (s *DefaultImageListSaver) CreateOrUpdateImageList(registryName string, ima
 		return fmt.Errorf("failed to update ImageList: %w", err)
 	}
 
-	s.log.Info("ImageList updated successfully", "name", s.name, "registryName", registryName, "imageCount", len(images))
+	s.log.Info("ImageList updated successfully", "name", s.name, "registryName", registryName, "projectBaseName", projectBaseName, "imageCount", len(images))
 	return nil
 }

@@ -24,6 +24,10 @@ frontend-app:
       clientId: <client-id>
       realm: <realm>
       providerUrl: https://auth.example.com/auth/
+    imagelist:
+      standalone: crownlabs-standalone
+      containerdisks: crownlabs-standalone
+    
     defaultTimeouts:
       cleanup:
         stopAfterInactivity: "15d"
@@ -80,7 +84,7 @@ operator:
       pmp: true
       keycloak: true
       webhooks: true
-      imageList: true
+      imageList: false
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -92,29 +96,22 @@ operator:
     imageList:
       updateInterval: 600
       registries:
-        # - name: docker-registry
-        #   type: docker
-        #   url: http://docker-registry.docker-registry:5000
-        #   advertised: registry.internal.crownlabs.polito.it
-        #   username: ""
-        #   password: ""
-        #  imageListName: crownlabs-virtual-machine-images-test
-        - name: harbor-registry-2-standalone
+        - name: harbor-registry-standalone
           type: harbor
           url: http://harbor-core.harbor:80
-          advertised: harbor.ng.crownlabs.polito.it
+          registryName: harbor.ng.crownlabs.polito.it
           username: ""
           password: ""
           imageListName: harbor-standalone
           project: crownlabs-standalone
-        - name: harbor-registry-1-containerdisks
+        - name: harbor-registry-containerdisks
           type: harbor
           url: http://harbor-core.harbor:80
-          advertised: harbor.ng.crownlabs.polito.it
+          registryName: harbor.ng.crownlabs.polito.it
           username: ""
           password: ""
           imageListName: harbor-containerdisks
-          project: crownlabs-containerdisks
+          project: crownlabs-containerdisks   
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin

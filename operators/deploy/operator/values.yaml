@@ -13,7 +13,7 @@ configurations:
     pmp: false
     keycloak: true
     webhooks: false
-    imageList: true
+    imageList: false
 
   targetLabel: crownlabs.polito.it/operator-selector=production
   keycloak:
@@ -47,29 +47,27 @@ configurations:
   maxConcurrentShVolReconciles: 1
   sharedVolumeOptions:
     storageClass: rook-nfs
-
-  # Image list configuration
   imageList:
     configFile: /etc/config/registries.yaml
     updateInterval: 600
     registries:
-        - name: harbor-registry-2-standalone
+        - name: harbor-registry-standalone
           type: harbor
           url: http://harbor-core.harbor:80
-          advertised: harbor.crownlabs.polito.it
+          registryName: harbor.ng.crownlabs.polito.it
           username: ""
           password: ""
           imageListName: harbor-standalone
           project: crownlabs-standalone
-        - name: harbor-registry-1-containerdisks
+        - name: harbor-registry-containerdisks
           type: harbor
           url: http://harbor-core.harbor:80
-          advertised: harbor.crownlabs.polito.it
+          registryName: harbor.ng.crownlabs.polito.it
           username: ""
           password: ""
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
-  
+    
   pvcMirrorProvisioner:  
     provisionerName: pmp.crownlabs.polito.it
     storageClass:
