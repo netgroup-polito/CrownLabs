@@ -32,6 +32,9 @@ type ImageListSpec struct {
 	// The host name that can be used to access the registry.
 	RegistryName string `json:"registryName"`
 
+	// The base name of the project in which the images are stored.
+	ProjectBaseName string `json:"projectBaseName,omitempty"`
+
 	// The list of VM images currently available in CrownLabs.
 	Images []ImageListItem `json:"images"`
 }

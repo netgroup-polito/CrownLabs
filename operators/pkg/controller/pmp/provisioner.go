@@ -165,6 +165,12 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 		return nil, controller.ProvisioningFinished, &controller.IgnoredError{Reason: "PV's CSI spec is missing"}
 	}
 
+	// Compare actual and requested VolumeMode
+	if ptr.Deref(originPV.Spec.VolumeMode, corev1.PersistentVolumeFilesystem) != ptr.Deref(mirrorPVC.Spec.VolumeMode, corev1.PersistentVolumeFilesystem) {
+		p.Logger.Error(errStopProvision, "Requested PVC's VolumeMode differs from the actual in the origin PV")
+		return nil, controller.ProvisioningFinished, &controller.IgnoredError{Reason: "Requested PVC's VolumeMode differs from the actual in the origin PV"}
+	}
+
 	// Create mirror PV
 	pv := &corev1.PersistentVolume{
 		ObjectMeta: metav1.ObjectMeta{
@@ -186,6 +192,7 @@ func (p *PvcMirrorProvisioner) Provision(ctx context.Context, options controller
 			},
 			MountOptions:     originPV.Spec.MountOptions,
 			StorageClassName: options.StorageClass.Name,
+			VolumeMode:       originPV.Spec.VolumeMode,
 		},
 	}
 
@@ -232,5 +239,10 @@ func (p *PvcMirrorProvisioner) Start(ctx context.Context) error {
 // ShouldDelete is the DeletionGuard interface function that returns whether deleting the PV should be attempted.
 func (p *PvcMirrorProvisioner) ShouldDelete(context.Context, *corev1.PersistentVolume) bool {
 	// If needed, checks to be done before deleting a PV can be added here
+	return true
+}
+
+// SupportsBlock is the BlockProvisioner interface function that returns whether this provisioner supports block volume provisioning.
+func (p *PvcMirrorProvisioner) SupportsBlock(context.Context) bool {
 	return true
 }
