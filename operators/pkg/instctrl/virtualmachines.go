@@ -65,18 +65,22 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	template := clctx.TemplateFrom(ctx)
 	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
-	dvName := forge.NamespacedNameWithSuffix(instance, environment.Name).Name
-
 	// Init the DataVolume object with the correct name and namespace
 	dv := cdiv1beta1.DataVolume{
 		ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name),
+	}
+
+	forgedDV, err := forge.DataVolumeSpec(environment)
+	if err != nil {
+		log.Error(err, "failed to forge datavolume", "datavolume", klog.KObj(&dv))
+		return err
 	}
 
 	// CreateOrUpdate the DataVolume, setting the Spec only if the DataVolume is being created for the first time.
 	resDV, errDV := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
 		if dv.CreationTimestamp.IsZero() {
 			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
-			dv.Spec = forge.DataVolume(dvName, instance.Namespace, environment).Spec
+			dv.Spec = forgedDV
 		}
 		// Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
 		return ctrl.SetControllerReference(instance, &dv, r.Scheme)

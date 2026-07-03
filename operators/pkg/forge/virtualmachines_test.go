@@ -22,6 +22,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -34,6 +35,8 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		templateName      = "test-template"
 		instanceNamespace = "tenant-tester"
 		image             = "internal/registry/image:v1.0"
+		localVMImage      = "golden-images/debian-nginx-raw-block"
+		invalidLocalImage = "golden-images/debian/nginx/raw-block"
 		cpu               = 2
 		cpuReserved       = 25
 		memory            = "1250M"
@@ -97,15 +100,42 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 	})
 
-	Describe("The forge.DataVolume function", func() {
-		It("Should forge the correct standalone DataVolume", func() {
-			dv := forge.DataVolume("my-disk", "my-namespace", &environment)
+	Describe("The forge.DataVolumeSpec function", func() {
+		It("Should forge the correct standalone DataVolumeSpec", func() {
+			dvSpec, err := forge.DataVolumeSpec(&environment)
 
-			Expect(dv.Name).To(Equal("my-disk"))
-			Expect(dv.Namespace).To(Equal("my-namespace"))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dvSpec.PVC).NotTo(BeNil())
 
-			Expect(dv.Spec.PVC.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
-			Expect(dv.Spec.PVC.Resources.Requests[corev1.ResourceStorage]).To(Equal(environment.Resources.Disk))
+			Expect(dvSpec.PVC.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
+			Expect(dvSpec.PVC.Resources.Requests[corev1.ResourceStorage]).To(Equal(environment.Resources.Disk))
+		})
+	})
+
+	Describe("The forge.DataVolumeSourceForge function", func() {
+		It("Should forge the correct LocalVM PVC source", func() {
+			environment.EnvironmentType = clv1alpha2.ClassLocalVM
+			environment.Image = localVMImage
+
+			source, err := forge.DataVolumeSourceForge(&environment)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(source).To(Equal(&cdiv1beta1.DataVolumeSource{
+				PVC: &cdiv1beta1.DataVolumeSourcePVC{
+					Namespace: "golden-images",
+					Name:      "debian-nginx-raw-block",
+				},
+			}))
+		})
+
+		It("Should fail on malformed LocalVM image names", func() {
+			environment.EnvironmentType = clv1alpha2.ClassLocalVM
+			environment.Image = invalidLocalImage
+
+			source, err := forge.DataVolumeSourceForge(&environment)
+
+			Expect(err).To(HaveOccurred())
+			Expect(source).To(BeNil())
 		})
 	})
 
