@@ -20,6 +20,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,6 +39,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
@@ -66,6 +68,19 @@ func main() {
 	publicExposureCommonAnnotationRaw := ""
 	publicExposureCommonLabelsRaw := ""
 	mirrorStorageClass := ""
+
+	// Prometheus monitoring flags (needed for periodic lastActivity tracking)
+	prometheusURL := flag.String("monitoring-prometheus-url", "", "Prometheus URL for activity tracking")
+	prometheusNginxAvailability := flag.String("monitoring-nginx-availability", "", "Prometheus query for Nginx availability")
+	prometheusBastionSSHAvailability := flag.String("monitoring-bastion-ssh-availability", "", "Prometheus query for Bastion SSH availability")
+	prometheusWebSSHAvailability := flag.String("monitoring-web-ssh-availability", "", "Prometheus query for WebSSH availability")
+	prometheusNginxData := flag.String("monitoring-nginx-data", "", "Prometheus query for Nginx data")
+	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", "", "Prometheus query for SSH data")
+	prometheusWebSSHData := flag.String("monitoring-web-ssh-data", "", "Prometheus query for WebSSH data")
+	queryStep := flag.Duration("prometheus-query-step", 5*time.Minute, "Prometheus query step")
+	minLastActivityRequeueTime := flag.Duration("min-last-activity-requeue-time", 1*time.Hour, "Minimum requeue interval for lastActivity refresh")
+	maxLastActivityRequeueTime := flag.Duration("max-last-activity-requeue-time", 24*time.Hour, "Maximum requeue interval for lastActivity refresh")
+	activityCheckTimeout := flag.Duration("activity-check-timeout", 3*time.Second, "Timeout for Prometheus health checks during activity tracking")
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -154,6 +169,22 @@ func main() {
 
 	log.Info("Public exposure configuration", "ipPool", publicExposureOpts.IPPool, "commonAnnotations", publicExposureOpts.CommonAnnotations, "commonLabels", publicExposureOpts.CommonLabels, "loadBalancerIPsKey", publicExposureOpts.LoadBalancerIPsKey)
 
+	// Create Prometheus client for periodic lastActivity tracking (optional — only if URL is provided)
+	var prometheus instautoctrl.PrometheusClientInterface
+	if *prometheusURL != "" {
+		prometheus, err = instautoctrl.NewPrometheusObj(
+			*prometheusURL,
+			*prometheusNginxAvailability, *prometheusBastionSSHAvailability, *prometheusWebSSHAvailability,
+			*prometheusNginxData, *prometheusBastionSSHData, *prometheusWebSSHData,
+			*queryStep,
+		)
+		if err != nil {
+			log.Error(err, "unable to create Prometheus client for activity tracking")
+			os.Exit(1)
+		}
+		log.Info("Prometheus client created for activity tracking")
+	}
+
 	// Configure the Instance controller
 	const instanceCtrlName = "Instance"
 
@@ -170,16 +201,20 @@ func main() {
 	}
 
 	if err = (&instctrl.InstanceReconciler{
-		Client:                    mgr.GetClient(),
-		Scheme:                    mgr.GetScheme(),
-		EventsRecorder:            mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist:        nsWhitelist,
-		ServiceUrls:               svcUrls,
-		ContainerEnvOpts:          containerEnvOpts,
-		WebSSHMasterPublicKey:     pubKeyBytes,
-		PublicExposureOpts:        publicExposureOpts,
-		MirrorPVCStorageClassName: mirrorStorageClass,
-		EnableAuthentication:      *enableAuth,
+		Client:                     mgr.GetClient(),
+		Scheme:                     mgr.GetScheme(),
+		EventsRecorder:             mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:         nsWhitelist,
+		ServiceUrls:                svcUrls,
+		ContainerEnvOpts:           containerEnvOpts,
+		WebSSHMasterPublicKey:      pubKeyBytes,
+		PublicExposureOpts:         publicExposureOpts,
+		MirrorPVCStorageClassName:  mirrorStorageClass,
+		EnableAuthentication:       *enableAuth,
+		Prometheus:                 prometheus,
+		MinActivityRequeueTime:     *minLastActivityRequeueTime,
+		MaxLastActivityRequeueTime: *maxLastActivityRequeueTime,
+		ActivityCheckTimeout:       *activityCheckTimeout,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

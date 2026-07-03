@@ -229,6 +229,8 @@ instance-operator:
       secretName: registry-credentials
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
+    minLastActivityRequeueTime: "1h"
+    maxLastActivityRequeueTime: "2h"
     monitoring:
       prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
       queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})

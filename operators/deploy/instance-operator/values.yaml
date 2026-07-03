@@ -22,6 +22,8 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
+  minLastActivityRequeueTime: "1h"
+  maxLastActivityRequeueTime: "2h"
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
