@@ -108,7 +108,44 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(dvSpec.PVC).NotTo(BeNil())
 
 			Expect(dvSpec.PVC.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
+			Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeFilesystem))
 			Expect(dvSpec.PVC.Resources.Requests[corev1.ResourceStorage]).To(Equal(environment.Resources.Disk))
+		})
+
+		When("the environment is a CloudVM", func() {
+			BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
+
+			It("Should use block volume mode", func() {
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dvSpec.PVC).NotTo(BeNil())
+				Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeBlock))
+			})
+		})
+
+		When("the environment is a LocalVM", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassLocalVM
+				environment.Image = localVMImage
+			})
+
+			It("Should use block volume mode", func() {
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dvSpec.PVC).NotTo(BeNil())
+				Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeBlock))
+			})
+
+			It("Should propagate source validation errors", func() {
+				environment.Image = invalidLocalImage
+
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).To(HaveOccurred())
+				Expect(dvSpec).To(Equal(cdiv1beta1.DataVolumeSpec{}))
+			})
 		})
 	})
 
