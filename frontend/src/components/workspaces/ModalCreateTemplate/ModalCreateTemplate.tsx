@@ -109,6 +109,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   });
 
   const [form] = Form.useForm<TemplateForm>();
+  const environments = Form.useWatch('environments', form);
+  const isPersistent = (environments ?? form.getFieldValue('environments') ?? template?.environments)?.some(env => env?.persistent) ?? false;
+
   const stopInputRef = useRef<React.ComponentRef<typeof InputNumber>>(null);
   const deleteInactivityInputRef = useRef<React.ComponentRef<typeof InputNumber>>(null);
   const deleteCreationInputRef = useRef<React.ComponentRef<typeof InputNumber>>(null);
@@ -256,7 +259,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       description: template.description || template.name,
       cleanup: {
         stopAfterInactivity: timeouts.stopAfterInactivity.value === 0 ? 'never' : `${timeouts.stopAfterInactivity.value}${timeouts.stopAfterInactivity.unit}`,
-        deleteAfterInactivity: timeouts.deleteAfterInactivity.value === 0 ? 'never' : `${timeouts.deleteAfterInactivity.value}${timeouts.deleteAfterInactivity.unit}`,
+        deleteAfterInactivity: (!isPersistent || timeouts.deleteAfterInactivity.value === 0) ? 'never' : `${timeouts.deleteAfterInactivity.value}${timeouts.deleteAfterInactivity.unit}`,
         deleteAfterCreation: timeouts.deleteAfterCreation.value === 0 ? 'never' : `${timeouts.deleteAfterCreation.value}${timeouts.deleteAfterCreation.unit}`,
       },
       environments: template.environments.map(env => ({
@@ -622,7 +625,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       {...formItemLayout}>
 
       <div className="flex flex-1 w-full items-center justify-between">
-        <Tooltip title={<><p>Instances based on this template are deleted if they're not powered on within this time.</p> <b>Set 0 to disable the feature.</b></>}>
+        <Tooltip title={<><p>Instances based on this template are deleted if they're not powered on within this time.</p> {isPersistent ? <b>Set 0 to disable the feature.</b> : <b>Not applicable for non-persistent instances.</b>}</>}>
           <InfoCircleOutlined className='ml-2' />
         </Tooltip>
         <div className="flex gap-4 items-center">
@@ -631,16 +634,17 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             onChange={value => handleTimeoutValueChange(value, 'deleteAfterInactivity')}
             onBlur={e => handleTimeoutInputSync(e, 'deleteAfterInactivity')}
             min={0}
-            defaultValue={timeouts.deleteAfterInactivity.value}
+            value={!isPersistent ? 0 : timeouts.deleteAfterInactivity.value}
+            disabled={!isPersistent}
           />
 
           <Select
             style={{ width: 130 }}
             onChange={value => handleTimeUnitChange(value, 'deleteAfterInactivity')}
-            disabled={isTimeUnitDisabled('deleteAfterInactivity')}
+            disabled={!isPersistent || isTimeUnitDisabled('deleteAfterInactivity')}
             placeholder="Select Time unit"
             getPopupContainer={trigger => trigger.parentElement || document.body}
-            defaultValue={parseTimeoutString(template?.cleanup?.deleteAfterInactivity).unit}
+            value={!isPersistent ? 'd' : timeouts.deleteAfterInactivity.unit}
           >
             {TimeUnitOptions.map(option => (
               <Select.Option key={option.value} value={option.value}>
@@ -837,7 +841,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             children: automaticInstanceSavingResource,
             style: panelStyle,
             forceRender: true,
-            extra: <><Text keyboard>Stop <StatusIcon active={!isTimeUnitDisabled('stopAfterInactivity')} /></Text> <Text keyboard>Delete <StatusIcon active={!isTimeUnitDisabled('deleteAfterInactivity')} /></Text> <Text keyboard>Expire <StatusIcon active={!isTimeUnitDisabled('deleteAfterCreation')} /></Text></>
+            extra: <><Text keyboard>Stop <StatusIcon active={!isTimeUnitDisabled('stopAfterInactivity')} /></Text> <Text keyboard delete={!isPersistent}>Delete <StatusIcon active={isPersistent && !isTimeUnitDisabled('deleteAfterInactivity')} /></Text> <Text keyboard>Expire <StatusIcon active={!isTimeUnitDisabled('deleteAfterCreation')} /></Text></>
           },
           {
             key: '3',
