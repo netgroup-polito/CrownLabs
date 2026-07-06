@@ -462,7 +462,6 @@ func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
 		return nil
 	}
 	if lastActivityNginx.IsZero() && !webSSHFound && !sshFound {
-		log.Info("riga 465, no update")
 		return nil
 	}
 
@@ -478,7 +477,6 @@ func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
 	// Only patch if the new activity time differs from the current one
 	newStr := maxActivity.Format(time.RFC3339)
 	if instance.Annotations != nil && instance.Annotations[forge.LastActivityAnnotation] == newStr {
-		log.Info("Nothing to update")
 		return nil
 	}
 
@@ -488,7 +486,6 @@ func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
 			i.Annotations = make(map[string]string)
 		}
 		i.Annotations[forge.LastActivityAnnotation] = newStr
-		log.Info("riga 491: sta facendo la patch")
 		return i
 	}); err != nil {
 		log.Error(err, "failed patching lastActivity annotation")

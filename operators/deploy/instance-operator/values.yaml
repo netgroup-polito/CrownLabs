@@ -23,7 +23,7 @@ configurations:
     secretName: registry-credentials
   maxConcurrentReconciles: 1
   minLastActivityRequeueTime: "1h"
-  maxLastActivityRequeueTime: "2h"
+  maxLastActivityRequeueTime: "6h"
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
