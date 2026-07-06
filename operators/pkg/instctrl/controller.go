@@ -400,6 +400,7 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 // runs unconditionally for all instances, regardless of cleanup policy.
 // It only updates the annotation and does nothing else.
 func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
+	
 	if r.Prometheus == nil {
 		return nil // Activity tracking not configured
 	}
@@ -409,6 +410,7 @@ func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
+	log.Info("Checking updates for lastActivity")
 
 	// Only track activity for running instances
 	if !instance.Spec.Running {
@@ -476,6 +478,7 @@ func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
 	// Only patch if the new activity time differs from the current one
 	newStr := maxActivity.Format(time.RFC3339)
 	if instance.Annotations != nil && instance.Annotations[forge.LastActivityAnnotation] == newStr {
+		log.Info("Nothing to update")
 		return nil
 	}
 
