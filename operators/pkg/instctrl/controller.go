@@ -400,7 +400,6 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 // runs unconditionally for all instances, regardless of cleanup policy.
 // It only updates the annotation and does nothing else.
 func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
-	
 	if r.Prometheus == nil {
 		return nil // Activity tracking not configured
 	}
