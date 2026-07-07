@@ -143,9 +143,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               onClick={() => setSshModal(true)}
             >
               SSH
-              {/* Only show direct link button if there's exactly one environment */}
-              {(!instance.environments ||
-                instance.environments.length === 1) && (
+              {(!instance.environments || instance.environments.length === 1) ? (
                 <Button
                   disabled={sshDisabled}
                   type="link"
@@ -172,6 +170,25 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                     </Link>
                   }
                 ></Button>
+              ) : (
+                <Tooltip title="Direct link not supported for multiple environments (yet!)">
+                  <span className="inline-block cursor-not-allowed">
+                    <Button
+                      disabled
+                      type="link"
+                      className="ml-3 pointer-events-none"
+                      color="primary"
+                      variant="solid"
+                      shape="circle"
+                      size="small"
+                      icon={
+                        <span style={{ display: 'flex', alignItems: 'center', color: 'gray' }}>
+                          <ExportOutlined style={{ fontSize: 15 }} />
+                        </span>
+                      }
+                    ></Button>
+                  </span>
+                </Tooltip>
               )}
             </Button>
           </span>

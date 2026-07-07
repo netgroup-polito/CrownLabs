@@ -97,9 +97,10 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
 }) => {
   const canCreate = canCreateInstance(template, workspaceAvailableQuota);
 
-  const hasInactivity =
-    (template.inactivityTimeout && template.inactivityTimeout !== 'never') ||
-    (template.destroyAfterInactivity && template.destroyAfterInactivity !== 'never');
+  const stopTimeout = template.cleanup?.stopAfterInactivity ?? 'never';
+  const deleteTimeout = template.cleanup?.deleteAfterInactivity ?? 'never';
+  const deleteCreationTimeout = template.cleanup?.deleteAfterCreation ?? 'never';
+  const hasInactivity = (stopTimeout && stopTimeout !== 'never') || (deleteTimeout && deleteTimeout !== 'never') || (deleteCreationTimeout && deleteCreationTimeout !== 'never');
   const {
     data: labelsData,
     loading: loadingLabels,
@@ -288,19 +289,24 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                               <Tooltip
                                 title={
                                   <div className="text-left">
-                                    {(template.inactivityTimeout !== 'never' || template.destroyAfterInactivity !== 'never') && (
+                                    {(stopTimeout !== 'never' || deleteTimeout !== 'never' || deleteCreationTimeout !== 'never') && (
                                       <>
                                         These instances will be: <br />
                                       </>
                                     )}
-                                    {template.inactivityTimeout !== 'never' && (
+                                    {stopTimeout !== 'never' && (
                                       <>
-                                        - powered off after <b>{template.inactivityTimeout}</b> of inactivity<br />
+                                        ▸ powered off after <b>{stopTimeout}</b> of inactivity<br />
                                       </>
                                     )}
-                                    {template.destroyAfterInactivity !== 'never' && (
+                                    {deleteTimeout !== 'never' && (
                                       <>
-                                        - deleted after being stopped for <b>{template.destroyAfterInactivity}</b>
+                                        ▸ deleted after being stopped for <b>{deleteTimeout}</b><br />
+                                      </>
+                                    )}
+                                    {deleteCreationTimeout !== 'never' && (
+                                      <>
+                                        ▸ deleted after <b>{deleteCreationTimeout}</b> from creation
                                       </>
                                     )}
                                   </div>
@@ -380,26 +386,31 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                 <Tooltip
                   title={
                     <div className="text-left">
-                      {(template.inactivityTimeout !== 'never' || template.destroyAfterInactivity !== 'never') && (
+                      {(stopTimeout !== 'never' || deleteTimeout !== 'never' || deleteCreationTimeout !== 'never') && (
                         <>
                           These instances will be: <br />
                         </>
                       )}
-                      {template.inactivityTimeout !== 'never' && (
+                      {stopTimeout !== 'never' && (
                         <>
-                          - powered off after <b>{template.inactivityTimeout}</b> of inactivity<br />
+                          ▸ powered off after <b>{stopTimeout}</b> of inactivity<br />
                         </>
                       )}
-                      {template.destroyAfterInactivity !== 'never' && (
+                      {deleteTimeout !== 'never' && (
                         <>
-                          - deleted after being stopped for <b>{template.destroyAfterInactivity}</b>
+                          ▸ deleted after being stopped for <b>{deleteTimeout}</b><br />
+                        </>
+                      )}
+                      {deleteCreationTimeout !== 'never' && (
+                        <>
+                          ▸ deleted after <b>{deleteCreationTimeout}</b> from creation
                         </>
                       )}
                     </div>
                   }
                 >
-                  <div className="ml-3 flex items-center">
-                    <ClockCircleOutlined style={{ fontSize: '18px', color: '#f8cf8d' }} />
+                  <div className="ml-3 flex warning-color-fg items-center">
+                    <ClockCircleOutlined style={{ fontSize: '18px' }} />
                   </div>
                 </Tooltip>
               )}

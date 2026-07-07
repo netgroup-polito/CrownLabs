@@ -91,9 +91,11 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 			pvSource        corev1.PersistentVolumeSource
 			resRequirements corev1.VolumeResourceRequirements
 			origVolumeName  string
+			origVolumeMode  corev1.PersistentVolumeMode
 			pvcOrigPhase    corev1.PersistentVolumeClaimPhase
 			pvcAccessMode   corev1.PersistentVolumeAccessMode
 			mirrDataSrcRef  *corev1.TypedObjectReference
+			mirrVolumeMode  corev1.PersistentVolumeMode
 
 			isPVCOrigCreated bool
 			isPVOrigCreated  bool
@@ -175,12 +177,16 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 				},
 			}
 
-			isPVCOrigCreated = false
-			isPVOrigCreated = false
-
 			AddObject(&nsOrigin)
 			AddObject(&nsTarget)
 			AddObject(&sc)
+		})
+
+		BeforeEach(func() {
+			isPVCOrigCreated = false
+			isPVOrigCreated = false
+			origVolumeMode = corev1.PersistentVolumeFilesystem
+			mirrVolumeMode = corev1.PersistentVolumeFilesystem
 		})
 
 		JustBeforeEach(func() {
@@ -201,6 +207,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 					PersistentVolumeReclaimPolicy: corev1.PersistentVolumeReclaimDelete,
 					PersistentVolumeSource:        pvSource,
 					StorageClassName:              scName,
+					VolumeMode:                    &origVolumeMode,
 				},
 			}
 			pvcOrig = corev1.PersistentVolumeClaim{
@@ -230,6 +237,7 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 					DataSourceRef:    mirrDataSrcRef,
 					StorageClassName: &scName,
 					Resources:        resRequirements,
+					VolumeMode:       &mirrVolumeMode,
 				},
 			}
 			provisionOptions = controller.ProvisionOptions{
@@ -418,15 +426,33 @@ var _ = Describe("The PVC Mirror Provisioner methods", func() {
 											}
 										})
 
-										It("should successfully provision the mirror PV", func() {
-											ExpectNoError()
-											Expect(pvMirr).ToNot(BeNil())
-											Expect(pvMirr.Labels).To(HaveLen(3))
-											Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvLabel, pvOrigName))
-											Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNamespaceLabel, originNsName))
-											Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNameLabel, pvcOrigName))
-											Expect(pvMirr.Spec.CSI).ToNot(BeNil())
-											Expect(pvMirr.Spec.CSI.VolumeHandle).To(Equal("/nfs/path"))
+										When("the volumeModes (actual and requested) match", func() {
+											BeforeEach(func() {
+												origVolumeMode = corev1.PersistentVolumeFilesystem
+												mirrVolumeMode = corev1.PersistentVolumeFilesystem
+											})
+
+											It("should successfully provision the mirror PV", func() {
+												ExpectNoError()
+												Expect(pvMirr).ToNot(BeNil())
+												Expect(pvMirr.Labels).To(HaveLen(3))
+												Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvLabel, pvOrigName))
+												Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNamespaceLabel, originNsName))
+												Expect(pvMirr.Labels).To(HaveKeyWithValue(pmp.MirroredPvcNameLabel, pvcOrigName))
+												Expect(pvMirr.Spec.CSI).ToNot(BeNil())
+												Expect(pvMirr.Spec.CSI.VolumeHandle).To(Equal("/nfs/path"))
+											})
+										})
+
+										When("the volumeModes (actual and requested) don't match", func() {
+											BeforeEach(func() {
+												origVolumeMode = corev1.PersistentVolumeBlock
+												mirrVolumeMode = corev1.PersistentVolumeFilesystem
+											})
+
+											It("should return an ignored error", func() {
+												ExpectIgnoredError()
+											})
 										})
 									})
 

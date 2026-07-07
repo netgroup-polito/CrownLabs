@@ -15,9 +15,11 @@ export type TemplateForm = {
   name: string;
   description: string;
   environments: TemplateFormEnv[];
-  deleteAfter: string;
-  inactivityTimeout: string;
-  destroyAfterInactivity: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
   allowPublicExposure: boolean;
   nodeSelector?: Record<string, string> | null;
 };
@@ -67,6 +69,7 @@ export type Image = {
 };
 
 export type ImageList = {
+  projectBaseName?: string;
   name: string;
   registryName: string;
   images: Array<{
