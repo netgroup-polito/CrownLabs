@@ -32,7 +32,7 @@ type RegistryConfig struct {
 	Name          string `json:"name"`
 	Type          string `json:"type"`
 	URL           string `json:"url"`
-	Advertised    string `json:"advertised"`
+	RegistryName  string `json:"registryName"`
 	Username      string `json:"username"`
 	Password      string `json:"password"`
 	ImageListName string `json:"imageListName"`
@@ -176,7 +176,7 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 		return fmt.Errorf("failed to initialize the image list saver: %w", err)
 	}
 
-	imageListUpdater := NewUpdater([]Requestor{requestor}, regConfig.ImageListName, imageListSaver, regConfig.Advertised, log.WithName(regConfig.Name).WithName("updater"))
+	imageListUpdater := NewUpdater([]Requestor{requestor}, regConfig.ImageListName, regConfig.Project, imageListSaver, regConfig.RegistryName, log.WithName(regConfig.Name).WithName("updater"))
 	if err := imageListUpdater.Update(ctx); err != nil {
 		return fmt.Errorf("failed to update the ImageList resource: %w", err)
 	}
@@ -212,7 +212,7 @@ func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *Regist
 		return nil, fmt.Errorf("failed to initialize the image list saver: %w", err)
 	}
 
-	imageListUpdater := NewUpdater([]Requestor{requestor}, regConfig.ImageListName, imageListSaver, regConfig.Advertised, log.WithName(regConfig.Name).WithName("updater"))
+	imageListUpdater := NewUpdater([]Requestor{requestor}, regConfig.ImageListName, regConfig.Project, imageListSaver, regConfig.RegistryName, log.WithName(regConfig.Name).WithName("updater"))
 	if err := imageListUpdater.Update(ctx); err != nil {
 		return nil, fmt.Errorf("failed to update the ImageList resource: %w", err)
 	}

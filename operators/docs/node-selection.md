@@ -55,7 +55,8 @@ This can be done as follows (this refers to a template called `vscode-rust` in n
       uid: ba307d8c-fb40-4d3c-b6cd-7721dba8c388
     spec:
       allowPublicExposure: false
-      deleteAfter: 30d
+      cleanup:
+        deleteAfterCreation: 30d
       environmentList:
       - containerStartupOptions:
           contentPath: /vscode/workspace

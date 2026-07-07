@@ -27,19 +27,21 @@ import (
 // Updater manages the process of updating ImageList resources with image data from requestors.
 type Updater struct {
 	Requestor         []Requestor
-	RegistryAdvName   string
+	RegistryName      string
 	ImageListBaseName string
 	ImageListSaver    Saver
+	ProjectBaseName   string
 	Log               logr.Logger
 }
 
 // NewUpdater creates a new Updater instance.
-func NewUpdater(requestor []Requestor, imageListBase string, imageListSaver Saver, registryAdv string, log logr.Logger) *Updater {
+func NewUpdater(requestor []Requestor, imageListBase, projectBaseName string, imageListSaver Saver, registryName string, log logr.Logger) *Updater {
 	return &Updater{
 		Requestor:         requestor,
 		ImageListBaseName: imageListBase,
-		RegistryAdvName:   registryAdv,
+		RegistryName:      registryName,
 		ImageListSaver:    imageListSaver,
+		ProjectBaseName:   projectBaseName,
 		Log:               log,
 	}
 }
@@ -64,8 +66,8 @@ func (u *Updater) Update(ctx context.Context) error {
 
 	// Save images using the configured saver
 	if u.ImageListSaver != nil {
-		if err := u.ImageListSaver.CreateOrUpdateImageList(u.RegistryAdvName, imageListItems); err != nil {
-			u.Log.Error(err, "failed to save data as ImageList", "registry", u.RegistryAdvName)
+		if err := u.ImageListSaver.CreateOrUpdateImageList(u.RegistryName, u.ProjectBaseName, imageListItems); err != nil {
+			u.Log.Error(err, "failed to save data as ImageList", "registry", u.RegistryName)
 			return err
 		}
 	}

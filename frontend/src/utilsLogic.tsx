@@ -98,9 +98,14 @@ export const makeGuiTemplate = (
     name: tq.alias.name ?? '',
     gui: hasGUI,
     description: tq.original.spec?.description ?? '',
-    deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
-    inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
-    destroyAfterInactivity: tq.original.spec?.destroyAfterInactivity ?? 'never',
+    cleanup: {
+      deleteAfterCreation:
+        (tq.original.spec)?.cleanup?.deleteAfterCreation ?? 'never',
+      stopAfterInactivity:
+        (tq.original.spec)?.cleanup?.stopAfterInactivity ?? 'never',
+      deleteAfterInactivity:
+        (tq.original.spec)?.cleanup?.deleteAfterInactivity ?? 'never',
+    },
     persistent: hasPersistent,
     nodeSelector: tq.original.spec?.nodeSelector,
     resources: {
@@ -400,6 +405,10 @@ export const makeGuiInstance = (
     status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url || '',
     timeStamp: metadata?.creationTimestamp || '',
+    lastActivity:
+      (metadata?.annotations as Record<string, string> | undefined)?.[
+        'crownlabsPolitoItLastActivity'
+      ] || '',
     tenantId: tenantName || '',
     tenantNamespace: tenantNamespace || '',
     workspaceName: workspaceName,
@@ -416,6 +425,15 @@ export const makeGuiInstance = (
       cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
       memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
       disk: environments.reduce((acc, env) => acc + env.quota.disk, 0),
+    },
+    lastPoweredOffTimestamp:
+      (metadata?.annotations as Record<string, string> | undefined)?.[
+        'crownlabsPolitoItLastPoweredOffTimestamp'
+      ] || '',
+    cleanup: {
+      deleteAfterCreation: templateSpec?.cleanup?.deleteAfterCreation ?? 'never',
+      stopAfterInactivity: templateSpec?.cleanup?.stopAfterInactivity ?? 'never',
+      deleteAfterInactivity: templateSpec?.cleanup?.deleteAfterInactivity ?? 'never',
     },
   };
 };
@@ -719,9 +737,11 @@ export const getTemplatesMapped = (
       allowPublicExposure,
       environmentList: environmentList,
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
-      deleteAfter: '',
-      inactivityTimeout: '',
-      destroyAfterInactivity: '',
+      cleanup: {
+        deleteAfterCreation: '',
+        stopAfterInactivity: '',
+        deleteAfterInactivity: '',
+      },
     };
   });
 };
@@ -779,10 +799,10 @@ const makeNotificationContent = (
                 {status === Phase2.Ready
                   ? ' running'
                   : status === Phase2.Off
-                  ? ' stopped'
-                  : status === 'Deleted'
-                  ? ' deleted'
-                  : ''}
+                    ? ' stopped'
+                    : status === UpdateType.Deleted
+                      ? ' deleted'
+                      : ''}
               </i>
             </div>
             {instanceUrl && (
@@ -826,7 +846,7 @@ export const notifyStatus = (
     notify(
       'warning',
       `${namespace}/${name}/deleted`,
-      makeNotificationContent(templateName, prettyName || name, 'Deleted'),
+      makeNotificationContent(templateName, prettyName || name, UpdateType.Deleted),
     );
     return;
   }
@@ -841,31 +861,31 @@ export const notifyStatus = (
     }
   }
 
-    switch (status) {
-      case Phase2.Off:
-        if (!instance.spec?.running) {
-          notify(
-            'warning',
-            `${namespace}/${name}/stopped`,
-            makeNotificationContent(templateName, prettyName || name, status),
-          );
-        }
-        break;
-      case Phase2.Ready:
-        if (instance.spec?.running) {
-          notify(
-            'success',
-            `${namespace}/${name}/ready`,
-            makeNotificationContent(
-              templateName,
-              prettyName || name,
-              status,
-              iUrl,
-            ),
-          );
-        }
-        break;
-    }
+  switch (status) {
+    case Phase2.Off:
+      if (!instance.spec?.running) {
+        notify(
+          'warning',
+          `${namespace}/${name}/stopped`,
+          makeNotificationContent(templateName, prettyName || name, status),
+        );
+      }
+      break;
+    case Phase2.Ready:
+      if (instance.spec?.running) {
+        notify(
+          'success',
+          `${namespace}/${name}/ready`,
+          makeNotificationContent(
+            templateName,
+            prettyName || name,
+            status,
+            iUrl,
+          ),
+        );
+      }
+      break;
+  }
 };
 
 export const filterUser = (instance: Instance, search: string) => {

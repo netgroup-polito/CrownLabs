@@ -122,6 +122,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
+				Cleanup: clv1alpha2.CleanupOptions{
+					DeleteAfterCreation:   "never",
+					StopAfterInactivity:   "never",
+					DeleteAfterInactivity: "never",
+				},
 			},
 		}
 		instance = clv1alpha2.Instance{
