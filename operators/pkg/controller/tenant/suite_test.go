@@ -18,7 +18,6 @@ package tenant_test
 import (
 	"context"
 	"fmt"
-	"maps"
 	"testing"
 	"time"
 
@@ -116,11 +115,17 @@ var _ = JustBeforeEach(func() {
 	cl = builder.WithObjects(objects...).WithStatusSubresource(objects...).Build()
 
 	tenantReconciler = tenant.Reconciler{
-		Client:                      cl,
-		Scheme:                      scheme.Scheme,
-		KeycloakActor:               keycloakActor,
-		TargetLabel:                 tenantTestTargetLabel,
-		TenantCommonNSLabels:        maps.Clone(tenantTestNSLabels),
+		Client:        cl,
+		Scheme:        scheme.Scheme,
+		KeycloakActor: keycloakActor,
+		TargetLabel:   ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test"),
+		TenantCommonNSLabels: map[string]string{
+			"crownlabs.polito.it/operator-selector":              "test",
+			"crownlabs.polito.it/gw-access":                      "crownlabs-main-production",
+			"crownlabs.polito.it/type":                           "tenant",
+			"crownlabs.polito.it/instance-resources-replication": "true",
+			"crownlabs.polito.it/managed-by":                     "tenant",
+		},
 		TenantNSKeepAlive:           24 * time.Hour,
 		WaitUserVerification:        true,
 		SandboxClusterRole:          "test-sandbox-editor",
@@ -148,17 +153,6 @@ func DoesEventuallyExists(ctx context.Context, cl client.Client, objLookupKey cl
 		return err == nil
 	}, timeout, interval).Should(expectedStatus)
 }
-
-var (
-	tenantTestTargetLabel = ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test")
-	tenantTestNSLabels    = map[string]string{
-		"crownlabs.polito.it/operator-selector":              "test",
-		"crownlabs.polito.it/gw-access":                      "crownlabs-main-production",
-		"crownlabs.polito.it/type":                           "tenant",
-		"crownlabs.polito.it/instance-resources-replication": "true",
-		"crownlabs.polito.it/managed-by":                     "tenant",
-	}
-)
 
 func addObjToObjectsList(obj client.Object) {
 	for _, o := range objects {

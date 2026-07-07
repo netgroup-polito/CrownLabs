@@ -37,6 +37,7 @@ import (
 
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -140,11 +141,11 @@ var _ = Describe("Namespace management", func() {
 				Client:        localCl,
 				Scheme:        scheme.Scheme,
 				KeycloakActor: keycloakActor,
-				TargetLabel:   tenantTestTargetLabel,
+				TargetLabel:   ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test"),
 				TenantCommonNSLabels: map[string]string{
-					tenantTestTargetLabel.GetKey():   tenantTestTargetLabel.GetValue(),
-					"crownlabs.polito.it/type":       "tenant",
-					"crownlabs.polito.it/managed-by": "tenant",
+					"crownlabs.polito.it/operator-selector": "test",
+					"crownlabs.polito.it/type":              "tenant",
+					"crownlabs.polito.it/managed-by":        "tenant",
 				},
 				TenantNSKeepAlive:           24 * time.Hour,
 				WaitUserVerification:        true,
