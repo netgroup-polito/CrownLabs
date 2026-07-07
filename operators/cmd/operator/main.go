@@ -114,7 +114,7 @@ func main() {
 		klog.Fatal(err, "Unable to create manager")
 	}
 
-	tenantNamespaceCommonLabels, err := forge.ParseAnnotations(tenantNamespaceCommonLabelsStr)
+	tenantNamespaceCommonLabels, err := forge.MapFromKVString(tenantNamespaceCommonLabelsStr)
 	if err != nil {
 		klog.Fatal(err, "Unable to parse tenant namespace common labels")
 	}
@@ -124,9 +124,11 @@ func main() {
 		klog.Fatal(err, "Unable to parse target label")
 	}
 
+	tenantNamespaceCommonLabels[targetLabel.GetKey()] = targetLabel.GetValue()
+
 	log.Info("Selecting resources with label", "label", targetLabel.GetKey()+"="+targetLabel.GetValue())
 
-	tenantNamespaceCommonLabels = forge.AddStaticTenantNamespaceLabels(tenantNamespaceCommonLabels)
+	tenantNamespaceCommonLabels = forge.StaticTenantNamespaceLabels(tenantNamespaceCommonLabels)
 
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak = enableKeycloak && (enableTenant || enableWorkspace)

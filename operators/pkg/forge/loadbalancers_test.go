@@ -311,7 +311,7 @@ var _ = Describe("LoadBalancers forging", func() {
 		})
 	})
 
-	Describe("The forge.ParseAnnotations function", func() {
+	Describe("The forge.MapFromKVString function", func() {
 		var (
 			result map[string]string
 			err    error
@@ -319,7 +319,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("An empty string is provided", func() {
 			JustBeforeEach(func() {
-				result, err = forge.ParseAnnotations("")
+				result, err = forge.MapFromKVString("")
 			})
 
 			It("Should return an empty map", func() {
@@ -330,7 +330,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("A single key=value pair is provided", func() {
 			JustBeforeEach(func() {
-				result, err = forge.ParseAnnotations("metallb.universe.tf/ip-pool=public")
+				result, err = forge.MapFromKVString("metallb.universe.tf/ip-pool=public")
 			})
 
 			It("Should parse it correctly", func() {
@@ -342,7 +342,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("Multiple key=value pairs are provided", func() {
 			JustBeforeEach(func() {
-				result, err = forge.ParseAnnotations("metallb.universe.tf/allow-shared-ip=pe,metallb.universe.tf/address-pool=public")
+				result, err = forge.MapFromKVString("metallb.universe.tf/allow-shared-ip=pe,metallb.universe.tf/address-pool=public")
 			})
 
 			It("Should parse all pairs correctly", func() {
@@ -355,7 +355,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("A pair without '=' is provided", func() {
 			JustBeforeEach(func() {
-				result, err = forge.ParseAnnotations("invalidformat")
+				result, err = forge.MapFromKVString("invalidformat")
 			})
 
 			It("Should return an error", func() {
@@ -365,7 +365,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("A pair with an empty key is provided", func() {
 			JustBeforeEach(func() {
-				result, err = forge.ParseAnnotations("=value")
+				result, err = forge.MapFromKVString("=value")
 			})
 
 			It("Should return an error", func() {
@@ -375,7 +375,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("A value contains '='", func() {
 			JustBeforeEach(func() {
-				result, err = forge.ParseAnnotations("key=val=ue")
+				result, err = forge.MapFromKVString("key=val=ue")
 			})
 
 			It("Should treat only the first '=' as separator", func() {
@@ -386,7 +386,7 @@ var _ = Describe("LoadBalancers forging", func() {
 
 		When("Pairs have surrounding whitespace", func() {
 			JustBeforeEach(func() {
-				result, err = forge.ParseAnnotations(" key1 = val1 , key2 = val2 ")
+				result, err = forge.MapFromKVString(" key1 = val1 , key2 = val2 ")
 			})
 
 			It("Should trim whitespace from keys and values", func() {

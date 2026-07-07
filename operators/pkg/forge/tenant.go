@@ -45,8 +45,8 @@ func UpdateTenantResourceCommonLabels(labels map[string]string, targetLabel ctrl
 	return labels
 }
 
-// AddStaticTenantNamespaceLabels adds the static labels used to stamp tenant namespaces.
-func AddStaticTenantNamespaceLabels(labels map[string]string) map[string]string {
+// StaticTenantNamespaceLabels adds the static labels used to stamp tenant namespaces.
+func StaticTenantNamespaceLabels(labels map[string]string) map[string]string {
 	labels = deepCopyLabels(labels)
 	labels[LabelTypeKey] = labelTypeTenantValue
 	labels[LabelManagedByKey] = labelManagedByTenantValue

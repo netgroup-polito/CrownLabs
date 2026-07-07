@@ -35,6 +35,8 @@ const (
 	LabelTemplateKey = "crownlabs.polito.it/template"
 	// LabelTenantKey is the key of the label identifying the tenant name.
 	LabelTenantKey = "crownlabs.polito.it/tenant"
+	// LabelNameKey is the key of the label identifying the resource name.
+	LabelNameKey = "crownlabs.polito.it/name"
 	// LabelPersistentKey is the key of the label identifying if any environment is persistent.
 	LabelPersistentKey = "crownlabs.polito.it/persistent"
 	// LabelComponentKey is the key of the label identifying the component name.
@@ -274,7 +276,7 @@ func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, 
 	labels = deepCopyLabels(labels)
 
 	maps.Copy(labels, tenantCommonNSLabels)
-	labels["crownlabs.polito.it/name"] = tenant.Name
+	labels[LabelNameKey] = tenant.Name
 
 	return labels
 }

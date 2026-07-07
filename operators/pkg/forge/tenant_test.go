@@ -263,4 +263,35 @@ var _ = Describe("Tenant forging", func() {
 			Expect(resultAnnotations).To(HaveKeyWithValue(forge.AuthorizationAnnotationKey, strings.ReplaceAll(forge.MyDriveAuthorizationAnnotationValue, "{tenant-id}", tenantName)))
 		})
 	})
+
+	Describe("The forge.StaticTenantNamespaceLabels function", func() {
+		It("Should append static labels to empty map", func() {
+			resultLabels := forge.StaticTenantNamespaceLabels(map[string]string{})
+
+			Expect(resultLabels).To(HaveLen(2))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+		})
+
+		It("Should append static labels to nil map", func() {
+			resultLabels := forge.StaticTenantNamespaceLabels(nil)
+
+			Expect(resultLabels).To(HaveLen(2))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+		})
+
+		It("Should preserve existing labels and add static ones", func() {
+			inputLabels := map[string]string{
+				"custom-label": "custom-value",
+			}
+
+			resultLabels := forge.StaticTenantNamespaceLabels(inputLabels)
+
+			Expect(resultLabels).To(HaveLen(3))
+			Expect(resultLabels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(resultLabels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+		})
+	})
 })

@@ -41,7 +41,6 @@ import (
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 const (
@@ -121,7 +120,7 @@ var _ = JustBeforeEach(func() {
 		Scheme:                      scheme.Scheme,
 		KeycloakActor:               keycloakActor,
 		TargetLabel:                 tenantTestTargetLabel,
-		TenantCommonNSLabels:        forge.UpdateTenantResourceCommonLabels(maps.Clone(tenantTestNSLabels), tenantTestTargetLabel),
+		TenantCommonNSLabels:        maps.Clone(tenantTestNSLabels),
 		TenantNSKeepAlive:           24 * time.Hour,
 		WaitUserVerification:        true,
 		SandboxClusterRole:          "test-sandbox-editor",
@@ -157,6 +156,7 @@ var (
 		"crownlabs.polito.it/gw-access":                      "crownlabs-main-production",
 		"crownlabs.polito.it/type":                           "tenant",
 		"crownlabs.polito.it/instance-resources-replication": "true",
+		"crownlabs.polito.it/managed-by":                     "tenant",
 	}
 )
 

@@ -135,14 +135,14 @@ func main() {
 	log.Info("PublicExposureIPPool", "pool", ipPool)
 
 	// Parse common annotations
-	commonAnnotations, err := forge.ParseAnnotations(publicExposureCommonAnnotationRaw)
+	commonAnnotations, err := forge.MapFromKVString(publicExposureCommonAnnotationRaw)
 	if err != nil {
 		log.Error(err, "Invalid public exposure common annotations")
 		os.Exit(1)
 	}
 
 	// Parse common labels
-	commonLabels, err := forge.ParseAnnotations(publicExposureCommonLabelsRaw)
+	commonLabels, err := forge.MapFromKVString(publicExposureCommonLabelsRaw)
 	if err != nil {
 		log.Error(err, "Invalid public exposure common labels")
 		os.Exit(1)

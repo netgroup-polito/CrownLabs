@@ -140,8 +140,8 @@ func LastCharsOf(s string, many int) string {
 	return s
 }
 
-// ParseAnnotations parses a string like "key1=val1,key2=val2" into a map.
-func ParseAnnotations(raw string) (map[string]string, error) {
+// MapFromKVString parses a string like "key1=val1,key2=val2" into a map.
+func MapFromKVString(raw string) (map[string]string, error) {
 	annotations := make(map[string]string)
 	if raw == "" {
 		return annotations, nil
