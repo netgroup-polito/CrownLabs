@@ -145,76 +145,62 @@ var _ = Describe("Ingresses", func() {
 					}, "3600"),
 				}),
 			)
-			When("EnvironmentType is different from ClassStandalone", func() {
-				DescribeTable("Correctly populates the annotations set",
-					func(c InstanceGUIAnnotationsCase) {
-						Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
-					},
-					Entry("When the input annotations map is nil and RewriteURL false", InstanceGUIAnnotationsCase{
-						Annotations:    nil,
-						Environment:    clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: false},
-						ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{}, "3600"),
-					}),
-					Entry("When the input annotations map is nil and RewriteURL true", InstanceGUIAnnotationsCase{
-						Annotations: nil,
-						Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: true},
-						ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-							"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
-						}, "3600"),
-					}),
-					Entry("When the input labels map already contains the expected values and RewriteURL false", InstanceGUIAnnotationsCase{
-						Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-							"user/key": "user/value",
-						}, "3600"),
-						Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: false},
-						ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-							"user/key": "user/value",
-						}, "3600"),
-					}),
-					Entry("When the input labels map already contains the expected values and RewriteURL true", InstanceGUIAnnotationsCase{
-						Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-							"user/key": "user/value",
-						}, "3600"),
-						Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: true},
-						ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-							"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
-							"user/key": "user/value",
-						}, "3600"),
-					}),
-					Entry("When the input labels map contains ClassCloudVM and RewriteURL true", InstanceGUIAnnotationsCase{
-						Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-							"user/key": "user/value",
-						}, "3600"),
-						Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: true},
-						ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-							"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
-							"user/key": "user/value",
-						}, "3600"),
-					}),
-					Entry("When the input labels map contains ClassVM and RewriteURL true", InstanceGUIAnnotationsCase{
-						Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-							"user/key": "user/value",
-						}, "3600"),
-						Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassVM, RewriteURL: true},
-						ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-							"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
-							"user/key": "user/value",
-						}, "3600"),
-					}),
-					Entry("When the input labels map contains ClassLocalVM and RewriteURL true", InstanceGUIAnnotationsCase{
-						Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
-							"user/key": "user/value",
-						}, "3600"),
-						Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassLocalVM, RewriteURL: true},
-						ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
-							"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
-							"user/key": "user/value",
-						}, "3600"),
-					}),
-				)
-			})
 		})
 
+		When("EnvironmentType is different from ClassStandalone", func() {
+			DescribeTable("Correctly populates the annotations set",
+				func(c InstanceGUIAnnotationsCase) {
+					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
+				},
+				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
+					Annotations: nil,
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+					}, "3600"),
+				}),
+				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains ClassCloudVM", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains ClassVM", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains ClassLocalVM", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassLocalVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+			)
+		})
 	})
 
 	Describe("The forge.IngressAuthenticationAnnotations function", func() {
