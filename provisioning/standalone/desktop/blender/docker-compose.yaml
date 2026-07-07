@@ -2,7 +2,7 @@
 services:
   newdesktop:
     build: .
-    image: crownlabs/standalone-vnc-blender:v0.1.0
+    image: crownlabs/standalone-vnc-blender:v0.1.1
     restart: unless-stopped
     ports:
       - "8090:8080"

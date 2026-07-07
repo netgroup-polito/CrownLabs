@@ -1,4 +1,4 @@
-FROM crownlabs/standalone-vnc-base:v0.1.0
+FROM crownlabs/standalone-vnc-base:v0.1.1
 
 ARG BLENDER_VERSION_MAJOR="4.5"
 ARG BLENDER_VERSION_MINOR="4"

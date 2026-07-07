@@ -45,6 +45,15 @@ func UpdateTenantResourceCommonLabels(labels map[string]string, targetLabel ctrl
 	return labels
 }
 
+// StaticTenantNamespaceLabels adds the static labels used to stamp tenant namespaces.
+func StaticTenantNamespaceLabels(labels map[string]string) map[string]string {
+	labels = deepCopyLabels(labels)
+	labels[LabelTypeKey] = labelTypeTenantValue
+	labels[LabelManagedByKey] = labelManagedByTenantValue
+
+	return labels
+}
+
 // UpdateMyDrivePVCAnnotations updates the annotations for myDrive PVC.
 func UpdateMyDrivePVCAnnotations(annotations map[string]string, tenantName string) map[string]string {
 	if annotations == nil {

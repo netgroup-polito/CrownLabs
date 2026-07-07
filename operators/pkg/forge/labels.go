@@ -35,6 +35,8 @@ const (
 	LabelTemplateKey = "crownlabs.polito.it/template"
 	// LabelTenantKey is the key of the label identifying the tenant name.
 	LabelTenantKey = "crownlabs.polito.it/tenant"
+	// LabelNameKey is the key of the label identifying the resource name.
+	LabelNameKey = "crownlabs.polito.it/name"
 	// LabelPersistentKey is the key of the label identifying if any environment is persistent.
 	LabelPersistentKey = "crownlabs.polito.it/persistent"
 	// LabelComponentKey is the key of the label identifying the component name.
@@ -71,6 +73,7 @@ const (
 	labelManagedByWorkspaceValue = "workspace"
 	labelManagedByShVolValue     = "sharedvolume"
 	labelTypeWorkspaceValue      = "workspace"
+	labelTypeTenantValue         = "tenant"
 	labelTypeSandboxValue        = "sandbox"
 
 	labelAllowInstanceAccessKey   = "crownlabs.polito.it/allow-instance-access"
@@ -268,6 +271,16 @@ func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLab
 	return labels
 }
 
+// TenantNamespaceLabels receives in input a set of labels and returns the updated set for a tenant namespace.
+func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, tenantCommonNSLabels map[string]string) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	maps.Copy(labels, tenantCommonNSLabels)
+	labels[LabelNameKey] = tenant.Name
+
+	return labels
+}
+
 // deepCopyLabels creates a copy of the labels map.
 func deepCopyLabels(input map[string]string) map[string]string {
 	output := map[string]string{}
@@ -313,6 +326,7 @@ func InstanceNameFromLabels(labels map[string]string) (string, bool) {
 }
 
 // UpdateWorkspaceResourceCommonLabels updates the common labels for resources managed by the workspace controller.
+// Note: uses nil check instead of deepCopyLabels for performance optimization (lightweight function with minimal overhead).
 func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel ctrlcommon.KVLabel) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)

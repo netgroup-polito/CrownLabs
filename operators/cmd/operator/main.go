@@ -32,6 +32,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var (
@@ -55,13 +56,15 @@ func main() {
 	var metricsAddr string
 	var healthProbeAddr string
 	var enableLeaderElection bool
+	var tenantNamespaceCommonLabelsStr string
 	var targetLabelStr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&targetLabelStr, "target-label", "", "The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value")
+	flag.StringVar(&tenantNamespaceCommonLabelsStr, "tenant-namespace-common-labels", "", "A comma-separated key=value list converted into common labels to stamp on tenant namespaces")
+	flag.StringVar(&targetLabelStr, "target-label", "", "Label selector in key=value format used by controllers to select managed resources")
 	flag.DurationVar(&reschedule.RequeueAfterMin, "reschedule-min", reschedule.RequeueAfterMin,
 		"Minimum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
@@ -111,11 +114,21 @@ func main() {
 		klog.Fatal(err, "Unable to create manager")
 	}
 
+	tenantNamespaceCommonLabels, err := forge.MapFromKVString(tenantNamespaceCommonLabelsStr)
+	if err != nil {
+		klog.Fatal(err, "Unable to parse tenant namespace common labels")
+	}
+
 	targetLabel, err := ctrlcommon.ParseLabel(targetLabelStr)
 	if err != nil {
 		klog.Fatal(err, "Unable to parse target label")
 	}
-	log.Info("Selecting resources with label", "label", targetLabelStr)
+
+	tenantNamespaceCommonLabels[targetLabel.GetKey()] = targetLabel.GetValue()
+
+	log.Info("Selecting resources with label", "label", targetLabel.GetKey()+"="+targetLabel.GetValue())
+
+	tenantNamespaceCommonLabels = forge.StaticTenantNamespaceLabels(tenantNamespaceCommonLabels)
 
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak = enableKeycloak && (enableTenant || enableWorkspace)
@@ -130,7 +143,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setupTenant(mgr, log, targetLabel)
+		err := setupTenant(mgr, log, tenantNamespaceCommonLabels, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}

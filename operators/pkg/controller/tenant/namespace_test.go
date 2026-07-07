@@ -37,6 +37,9 @@ import (
 
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var (
@@ -119,6 +122,59 @@ var _ = Describe("Namespace management", func() {
 			Expect(netPol.Spec.Ingress).To(HaveLen(1))
 			Expect(netPol.Spec.Ingress[0].From).To(HaveLen(1))
 			Expect(netPol.Spec.Ingress[0].From[0].NamespaceSelector.MatchLabels).To(HaveKeyWithValue("crownlabs.polito.it/allow-instance-access", "true"))
+		})
+	})
+
+	Context("When the reconciler is set up with an empty common labels map", func() {
+		It("Should create the personal namespace with only target and static labels", func() {
+			testTenant := tnResource.DeepCopy()
+			testTenant.Status.PersonalNamespace.Created = false
+			testTenant.Status.PersonalNamespace.Name = ""
+
+			localCl := fake.NewClientBuilder().
+				WithScheme(scheme.Scheme).
+				WithObjects(testTenant).
+				WithStatusSubresource(testTenant).
+				Build()
+
+			localReconciler := tenant.Reconciler{
+				Client:        localCl,
+				Scheme:        scheme.Scheme,
+				KeycloakActor: keycloakActor,
+				TargetLabel:   ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test"),
+				TenantCommonNSLabels: map[string]string{
+					"crownlabs.polito.it/operator-selector": "test",
+					"crownlabs.polito.it/type":              "tenant",
+					"crownlabs.polito.it/managed-by":        "tenant",
+				},
+				TenantNSKeepAlive:           24 * time.Hour,
+				WaitUserVerification:        true,
+				SandboxClusterRole:          "test-sandbox-editor",
+				BaseWorkspaces:              []string{"base-ws1"},
+				MyDrivePVCsNamespace:        "mydrive-pvcs",
+				MyDrivePVCsSize:             resource.MustParse("5Gi"),
+				MyDrivePVCsStorageClassName: "nfs",
+			}
+
+			_, err := localReconciler.Reconcile(ctx, reconcile.Request{
+				NamespacedName: types.NamespacedName{
+					Name: testTenant.Name,
+				},
+			})
+			Expect(err).ToNot(HaveOccurred())
+
+			namespace := &corev1.Namespace{}
+			err = localCl.Get(ctx, client.ObjectKey{Name: "tenant-" + tnName}, namespace)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(namespace.Labels).To(HaveLen(4))
+			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(namespace.Labels).To(HaveKeyWithValue(forge.LabelNameKey, tnName))
+			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
+
+			Expect(namespace.Labels).ToNot(HaveKey("crownlabs.polito.it/gw-access"))
+			Expect(namespace.Labels).ToNot(HaveKey("crownlabs.polito.it/instance-resources-replication"))
 		})
 	})
 
