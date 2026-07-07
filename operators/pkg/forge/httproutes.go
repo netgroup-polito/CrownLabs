@@ -161,7 +161,7 @@ func BuildRewriteFilterForEnvironment(environment *clv1alpha2.Environment) gatew
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 		return BuildRewriteFilter(StandaloneRewriteEndpoint)
-	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
+	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
 		return BuildRewriteFilter(GUIRewriteEndpoint)
 	default:
 		return gatewayv1.HTTPRouteFilter{}
@@ -197,7 +197,7 @@ func ExpositionGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", ExpositionInstancePrefix, instance.UID, environment.Name)
 		}
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", ExpositionInstancePrefix, instance.UID, environment.Name), "/")
-	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM:
+	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", ExpositionInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
 	}
 	return ""

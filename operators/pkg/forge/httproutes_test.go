@@ -123,16 +123,34 @@ var _ = Describe("HTTPRoute helpers", func() {
 				Expect(f.URLRewrite).To(BeNil())
 			})
 
-			It("returns standalone rewrite when requested", func() {
+			It("returns standalone rewrite when requested and environment is standalone", func() {
 				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassStandalone, true, ""))
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.StandaloneRewriteEndpoint))
 			})
 
-			It("returns GUI rewrite for cloud VM types", func() {
+			It("returns GUI rewrite when requested and environment is cloud VM", func() {
 				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassCloudVM, true, ""))
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
+			})
+
+			It("returns GUI rewrite when requested and environment is local VM", func() {
+				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassLocalVM, true, ""))
+				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
+			})
+
+			It("returns GUI rewrite when requested and environment is VM", func() {
+				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassVM, true, ""))
+				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
+			})
+
+			It("returns empty filter for unknown environment type", func() {
+				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.EnvironmentType("unknown"), true, ""))
+				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterType("")))
+				Expect(f.URLRewrite).To(BeNil())
 			})
 		})
 
@@ -185,6 +203,27 @@ var _ = Describe("HTTPRoute helpers", func() {
 			env.RewriteURL = false
 			p := forge.ExpositionGUIPath(&instance, &env)
 			Expect(p).To(Equal("/instance/" + instanceUID + "/" + env.Name))
+		})
+
+		It("ExpositionGUIPath returns the GUI path for local VMs", func() {
+			env.EnvironmentType = clv1alpha2.ClassLocalVM
+			env.RewriteURL = true
+			p := forge.ExpositionGUIPath(&instance, &env)
+			Expect(p).To(Equal("/instance/" + instanceUID + "/" + env.Name + "/(.*)"))
+		})
+
+		It("ExpositionGUIPath returns the GUI path for cloud VMs", func() {
+			env.EnvironmentType = clv1alpha2.ClassCloudVM
+			env.RewriteURL = true
+			p := forge.ExpositionGUIPath(&instance, &env)
+			Expect(p).To(Equal("/instance/" + instanceUID + "/" + env.Name + "/(.*)"))
+		})
+
+		It("ExpositionGUIPath returns the GUI path for VMs", func() {
+			env.EnvironmentType = clv1alpha2.ClassVM
+			env.RewriteURL = true
+			p := forge.ExpositionGUIPath(&instance, &env)
+			Expect(p).To(Equal("/instance/" + instanceUID + "/" + env.Name + "/(.*)"))
 		})
 
 		It("ExpositionGuiStatusURL composes the expected status URL", func() {

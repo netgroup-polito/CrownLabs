@@ -63,7 +63,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	}
 
 	// No need to create HTTPRoute resources in case of gui-less VMs.
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
+	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
 		return nil
 	}
 
@@ -132,7 +132,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	}
 
 	// No need to create ingress resources in case of gui-less VMs
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) && !environment.GuiEnabled {
+	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM) || environment.EnvironmentType == clv1alpha2.ClassLocalVM && !environment.GuiEnabled {
 		return nil
 	}
 

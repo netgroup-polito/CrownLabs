@@ -122,6 +122,26 @@ var _ = Describe("Exposition helpers", func() {
 				Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
 			})
 
+			It("returns without creating resources if env index out of range", func() {
+				index = 10
+				ctx = clctx.EnvironmentIndexInto(ctx, index)
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(HaveOccurred())
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
+			})
+
+			It("does not create HTTPRoute when no service is available", func() {
+				reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects().Build(), serviceClusterIP: ""}
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
+			})
+
 			It("if HTTPRouted is created but not yet accepted and Ingress is present, leaves both present but ExpositionAccepted to false", func() {
 				ingress := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
 				httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
@@ -148,7 +168,7 @@ var _ = Describe("Exposition helpers", func() {
 				Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
 			})
 
-			It("skips creating HTTPRoute for GUI-less VMs", func() {
+			It("skips creating HTTPRoute for GUI-less ClassVMs", func() {
 				environment.EnvironmentType = clv1alpha2.ClassVM
 				environment.GuiEnabled = false
 				ctx, _ = clctx.EnvironmentInto(ctx, &environment)
@@ -160,23 +180,15 @@ var _ = Describe("Exposition helpers", func() {
 				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
 			})
 
-			It("returns without creating resources if env index out of range", func() {
-				index = 10
-				ctx = clctx.EnvironmentIndexInto(ctx, index)
+			It("skips creating Ingress for GUI-less CloudVMs", func() {
+				environment.EnvironmentType = clv1alpha2.ClassCloudVM
+				environment.GuiEnabled = false
+				ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 
 				err := reconciler.EnforceInstanceExposition(ctx)
 				Expect(err).ToNot(HaveOccurred())
 
-				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(HaveOccurred())
-				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
-			})
-
-			It("does not create HTTPRoute when no service is available", func() {
-				reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects().Build(), serviceClusterIP: ""}
-
-				err := reconciler.EnforceInstanceExposition(ctx)
-				Expect(err).ToNot(HaveOccurred())
-
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
 				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
 			})
 		})
@@ -217,8 +229,20 @@ var _ = Describe("Exposition helpers", func() {
 				Expect(ing.Annotations).To(HaveKey("nginx.ingress.kubernetes.io/auth-signin"))
 			})
 
-			It("skips creating Ingress for GUI-less VMs", func() {
+			It("skips creating Ingress for GUI-less ClassVMs", func() {
 				environment.EnvironmentType = clv1alpha2.ClassVM
+				environment.GuiEnabled = false
+				ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
+				Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
+			})
+
+			It("skips creating Ingress for GUI-less CloudVMs", func() {
+				environment.EnvironmentType = clv1alpha2.ClassCloudVM
 				environment.GuiEnabled = false
 				ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 
@@ -235,6 +259,46 @@ var _ = Describe("Exposition helpers", func() {
 				err := reconciler.EnforceInstanceExposition(ctx)
 				Expect(err).ToNot(HaveOccurred())
 
+				Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
+			})
+		})
+
+		Context("the environment is GUI-less", func() {
+			BeforeEach(func() { environment.GuiEnabled = false })
+
+			It("skips creating HTTPRoute or Ingress for GUI-less ClassVMs", func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+				ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
+				Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
+			})
+
+			It("skips creating HTTPRoute or Ingress for GUI-less LocalVMs", func() {
+				environment.EnvironmentType = clv1alpha2.ClassLocalVM
+				ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
+				Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
+			})
+
+			It("skips creating HTTPRoute or Ingress for GUI-less CloudVMs", func() {
+				environment.EnvironmentType = clv1alpha2.ClassCloudVM
+				ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
 				Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
 			})
 		})
