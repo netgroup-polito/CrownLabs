@@ -17,12 +17,12 @@ package forge_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -35,6 +35,8 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		templateName      = "test-template"
 		instanceNamespace = "tenant-tester"
 		image             = "internal/registry/image:v1.0"
+		localVMImage      = "golden-images/debian-nginx-raw-block"
+		invalidLocalImage = "golden-images/debian/nginx/raw-block"
 		cpu               = 2
 		cpuReserved       = 25
 		memory            = "1250M"
@@ -96,9 +98,81 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
 		})
-		It("Should set the correct datavolume template", func() {
-			Expect(spec.DataVolumeTemplates).To(ContainElement(
-				forge.DataVolumeTemplate(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name, &environment)))
+	})
+
+	Describe("The forge.DataVolumeSpec function", func() {
+		It("Should forge the correct standalone DataVolumeSpec", func() {
+			dvSpec, err := forge.DataVolumeSpec(&environment)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dvSpec.PVC).NotTo(BeNil())
+
+			Expect(dvSpec.PVC.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
+			Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeFilesystem))
+			Expect(dvSpec.PVC.Resources.Requests[corev1.ResourceStorage]).To(Equal(environment.Resources.Disk))
+		})
+
+		When("the environment is a CloudVM", func() {
+			BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
+
+			It("Should use block volume mode", func() {
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dvSpec.PVC).NotTo(BeNil())
+				Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeBlock))
+			})
+		})
+
+		When("the environment is a LocalVM", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassLocalVM
+				environment.Image = localVMImage
+			})
+
+			It("Should use block volume mode", func() {
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dvSpec.PVC).NotTo(BeNil())
+				Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeBlock))
+			})
+
+			It("Should propagate source validation errors", func() {
+				environment.Image = invalidLocalImage
+
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).To(HaveOccurred())
+				Expect(dvSpec).To(Equal(cdiv1beta1.DataVolumeSpec{}))
+			})
+		})
+	})
+
+	Describe("The forge.DataVolumeSourceForge function", func() {
+		It("Should forge the correct LocalVM PVC source", func() {
+			environment.EnvironmentType = clv1alpha2.ClassLocalVM
+			environment.Image = localVMImage
+
+			source, err := forge.DataVolumeSourceForge(&environment)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(source).To(Equal(&cdiv1beta1.DataVolumeSource{
+				PVC: &cdiv1beta1.DataVolumeSourcePVC{
+					Namespace: "golden-images",
+					Name:      "debian-nginx-raw-block",
+				},
+			}))
+		})
+
+		It("Should fail on malformed LocalVM image names", func() {
+			environment.EnvironmentType = clv1alpha2.ClassLocalVM
+			environment.Image = invalidLocalImage
+
+			source, err := forge.DataVolumeSourceForge(&environment)
+
+			Expect(err).To(HaveOccurred())
+			Expect(source).To(BeNil())
 		})
 	})
 
@@ -335,42 +409,4 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			}),
 		)
 	})
-
-	Describe("The forge.DataVolumeTemplate function", func() {
-		var dataVolumeTemplate virtv1.DataVolumeTemplateSpec
-		const name = "kubernetes-volume"
-
-		JustBeforeEach(func() {
-			dataVolumeTemplate = forge.DataVolumeTemplate(name, &environment)
-		})
-
-		Context("The DataVolumeTemplate is forged", func() {
-
-			When("Environment type is VM", func() {
-				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassVM })
-
-				It("Should target the correct image registry", func() {
-					Expect(dataVolumeTemplate.Spec.Source.Registry.URL).To(PointTo(BeIdenticalTo("docker://" + image)))
-				})
-			})
-
-			When("Environment type is CloudVM", func() {
-				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
-
-				It("Should target the correct http url", func() {
-					Expect(dataVolumeTemplate.Spec.Source.HTTP.URL).To(BeIdenticalTo(image))
-				})
-			})
-
-			It("Should have the correct name", func() {
-				Expect(dataVolumeTemplate.GetName()).To(BeIdenticalTo(name))
-			})
-
-			It("Should request the correct disk size", func() {
-				Expect(dataVolumeTemplate.Spec.PVC.Resources.Requests).To(Equal(
-					corev1.ResourceList{corev1.ResourceStorage: resource.MustParse(disk)}))
-			})
-		})
-	})
-
 })

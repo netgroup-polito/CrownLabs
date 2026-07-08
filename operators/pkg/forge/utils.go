@@ -139,3 +139,26 @@ func LastCharsOf(s string, many int) string {
 	}
 	return s
 }
+
+// MapFromKVString parses a string like "key1=val1,key2=val2" into a map.
+func MapFromKVString(raw string) (map[string]string, error) {
+	annotations := make(map[string]string)
+	if raw == "" {
+		return annotations, nil
+	}
+
+	pairs := strings.Split(raw, ",")
+	for _, pair := range pairs {
+		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("invalid annotation format: %s", pair)
+		}
+		key := strings.TrimSpace(kv[0])
+		value := strings.TrimSpace(kv[1])
+		if key == "" {
+			return nil, fmt.Errorf("empty annotation key in: %s", pair)
+		}
+		annotations[key] = value
+	}
+	return annotations, nil
+}

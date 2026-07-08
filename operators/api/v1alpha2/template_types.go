@@ -19,7 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone";"LocalVM"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
@@ -34,6 +34,8 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
+	// ClassLocalVM -> the environment is constituted by a Virtual Machine started from a local Golden Image.
+	ClassLocalVM EnvironmentType = "LocalVM"
 )
 
 // CleanupOptions defines the automatic actions to enforce termination policies.
@@ -108,7 +110,7 @@ type Environment struct {
 	Image string `json:"image"`
 
 	// The type of environment to be instantiated, among VirtualMachine,
-	// Container, CloudVM and Standalone.
+	// Container, CloudVM, LocalVM and Standalone.
 	EnvironmentType EnvironmentType `json:"environmentType"`
 
 	// +kubebuilder:default=true

@@ -29,6 +29,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
@@ -348,6 +349,66 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	Context("The environment is persistent", func() {
 		BeforeEach(func() { environment.Persistent = true })
+
+		Context("DataVolume enforcement", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+			})
+
+			When("the DataVolume is not yet present", func() {
+				It("Should create the DataVolume with the expected spec", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
+
+					expectedSpec, specErr := forge.DataVolumeSpec(&environment)
+					Expect(specErr).NotTo(HaveOccurred())
+					Expect(dv.Spec).To(Equal(expectedSpec))
+					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+				})
+			})
+
+			When("the DataVolume is already present", func() {
+				var existingDV cdiv1beta1.DataVolume
+
+				BeforeEach(func() {
+					existingDV = cdiv1beta1.DataVolume{
+						ObjectMeta: forge.NamespacedNameToObjectMeta(objectNameEnv),
+						Spec: cdiv1beta1.DataVolumeSpec{
+							PVC: &corev1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany},
+							},
+						},
+					}
+					existingDV.SetCreationTimestamp(metav1.NewTime(time.Now()))
+					clientBuilder.WithObjects(&existingDV)
+				})
+
+				It("Should keep the existing DataVolume spec", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
+					Expect(dv.Spec).To(Equal(existingDV.Spec))
+					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+				})
+			})
+
+			When("the environment image is invalid", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassLocalVM
+					environment.Image = "invalid-localvm-image"
+				})
+
+				It("Should return an error before creating the DataVolume", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).To(HaveOccurred())
+					Expect(kerrors.IsNotFound(reconciler.Get(ctx, objectNameEnv, &dv))).To(BeTrue())
+				})
+			})
+		})
 
 		ContextBody := func(envType clv1alpha2.EnvironmentType) {
 			BeforeEach(func() {
