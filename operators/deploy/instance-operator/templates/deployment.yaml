@@ -152,7 +152,6 @@ spec:
             - "--min-last-activity-requeue-time={{ .Values.configurations.automation.minLastActivityRequeueTime }}"
             - "--max-last-activity-requeue-time={{ .Values.configurations.automation.maxLastActivityRequeueTime }}"
             - "--last-activity-check-threshold={{ .Values.configurations.automation.lastActivityCheckThreshold }}"
-            - "--last-activity-check-requeue-time={{ .Values.configurations.automation.lastActivityCheckRequeueTime }}"
             - --max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}
             - --max-concurrent-reconciles-inactive-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}
             - --max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}

@@ -58,7 +58,6 @@ type InstanceInactiveTerminationReconciler struct {
 	MinLastActivityRequeueTime      time.Duration
 	MaxLastActivityRequeueTime      time.Duration
 	LastActivityCheckThreshold      time.Duration
-	LastActivityCheckRequeueTime    time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -116,9 +115,13 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 	ctxForActivity, _ := clctx.InstanceInto(ctx, &instForActivity)
 
+	if skippedActivityCheck, dueToThreshold := r.shouldSkipDueToThreshold(ctxForActivity, &instForActivity); skippedActivityCheck && dueToThreshold {
+		return ctrl.Result{RequeueAfter: r.LastActivityCheckThreshold}, nil
+	}
+
 	// Periodically refresh the lastActivity annotation from Prometheus.
 	// This runs for ALL instances regardless of cleanup policy configuration.
-	skippedActivityCheck, err := r.UpdateLastActivity(ctxForActivity)
+	_, err := r.UpdateLastActivity(ctxForActivity)
 	if err != nil {
 		log.Error(err, "failed to update last activity annotation")
 		// Non-fatal: do not block reconciliation
@@ -130,9 +133,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	if skip {
 		if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
 			requeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
-			if skippedActivityCheck {
-				requeue = r.LastActivityCheckRequeueTime
-			}
 			return ctrl.Result{RequeueAfter: requeue}, err
 		}
 		return ctrl.Result{}, err
@@ -176,9 +176,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		dbgLog.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
 			requeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
-			if skippedActivityCheck {
-				requeue = r.LastActivityCheckRequeueTime
-			}
 			return ctrl.Result{RequeueAfter: requeue}, nil
 		}
 		return ctrl.Result{}, nil
@@ -218,9 +215,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// Ensure we also requeue for periodic lastActivity refresh
 	if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
 		activityRequeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
-		if skippedActivityCheck {
-			activityRequeue = r.LastActivityCheckRequeueTime
-		}
 		if activityRequeue < requeueTime {
 			requeueTime = activityRequeue
 		}
@@ -365,7 +359,7 @@ func (r *InstanceInactiveTerminationReconciler) handleInactivityInstance(ctx con
 	return ctrl.Result{}, false, nil
 }
 
-func (r *InstanceInactiveTerminationReconciler) shouldSkipActivityUpdate(ctx context.Context, instance *clv1alpha2.Instance) (skip, dueToThreshold bool) {
+func (r *InstanceInactiveTerminationReconciler) shouldSkipDueToThreshold(ctx context.Context, instance *clv1alpha2.Instance) (skip, dueToThreshold bool) {
 	if r.Prometheus == nil {
 		return true, false // Activity tracking not configured
 	}
@@ -389,11 +383,6 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return false, fmt.Errorf("instance not found in context")
-	}
-
-	skip, dueToThreshold := r.shouldSkipActivityUpdate(ctx, instance)
-	if skip {
-		return dueToThreshold, nil
 	}
 
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")

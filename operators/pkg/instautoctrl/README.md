@@ -77,7 +77,7 @@ The controller uses **Prometheus** to do this check:
 
 Note: a single query on Prometheus cannot return more than **11000 data points**. The `queryStep` Helm parameter controls the resolution of the Prometheus range query used to detect the latest access. Activity refreshes use `maxLastActivityRequeueTime` as their lookback window, so with the default `30s` step and a `6h` lookback the query returns about 720 points per series, well below the Prometheus limit.
 
-The last-activity refresh is performed at the beginning of the inactivity reconciliation, before any action is taken on the instance. Reconciliations are also periodically requeued with a randomized interval between `minLastActivityRequeueTime` and `maxLastActivityRequeueTime` to avoid querying Prometheus for all instances at the same time. If the same instance was checked less than `lastActivityCheckThreshold` ago, the Prometheus query is skipped and the instance is requeued after `lastActivityCheckRequeueTime`.
+The last-activity refresh is performed at the beginning of the inactivity reconciliation, before any action is taken on the instance. Reconciliations are also periodically requeued with a randomized interval between `minLastActivityRequeueTime` and `maxLastActivityRequeueTime` to avoid querying Prometheus for all instances at the same time. If the same instance was checked less than `lastActivityCheckThreshold` ago, the Prometheus query is skipped and the instance is requeued after `lastActivityCheckThreshold`.
 
 After this check, the **crownlabs.polito.it/last-activity** is updated with the most recent timestamp.
 If the last access is above the max threshold (defined with the `cleanup.stopAfterInactivity` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval - `inactiveTerminationNotificationInterval` parameter in the Helm chart.
@@ -162,7 +162,6 @@ Main automation parameters:
 * **minLastActivityRequeueTime**: minimum randomized requeue interval for periodic last-activity refreshes.
 * **maxLastActivityRequeueTime**: maximum randomized requeue interval for periodic last-activity refreshes, also used as the Prometheus lookback window for activity queries.
 * **lastActivityCheckThreshold**: minimum interval before querying Prometheus again for the same instance.
-* **lastActivityCheckRequeueTime**: requeue interval used when a last-activity check is skipped because it was performed recently.
 
 
 Main monitoring parameters:

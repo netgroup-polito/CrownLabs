@@ -245,7 +245,6 @@ instance-operator:
       minLastActivityRequeueTime: "15m"
       maxLastActivityRequeueTime: "20m"
       lastActivityCheckThreshold: "10s"
-      lastActivityCheckRequeueTime: "20s"
       enableInstanceSubmission: true
       enableInstanceTermination: true
       enableInstanceInactiveTermination: true

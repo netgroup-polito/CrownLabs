@@ -84,7 +84,6 @@ func main() {
 	minLastActivityRequeueTime := flag.Duration("min-last-activity-requeue-time", 1*time.Hour, "Minimum requeue interval for lastActivity refresh")
 	maxLastActivityRequeueTime := flag.Duration("max-last-activity-requeue-time", 6*time.Hour, "Maximum requeue interval for lastActivity refresh")
 	lastActivityCheckThreshold := flag.Duration("last-activity-check-threshold", 10*time.Second, "Threshold before checking Prometheus again")
-	lastActivityCheckRequeueTime := flag.Duration("last-activity-check-requeue-time", 20*time.Second, "Requeue interval for lastActivity refresh")
 
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 24*time.Hour, "The interval to check the status of Instances that require it")
@@ -212,7 +211,6 @@ func main() {
 			MinLastActivityRequeueTime:      *minLastActivityRequeueTime,
 			MaxLastActivityRequeueTime:      *maxLastActivityRequeueTime,
 			LastActivityCheckThreshold:      *lastActivityCheckThreshold,
-			LastActivityCheckRequeueTime:    *lastActivityCheckRequeueTime,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)
