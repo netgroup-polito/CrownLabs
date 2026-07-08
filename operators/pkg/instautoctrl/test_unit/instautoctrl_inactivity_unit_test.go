@@ -432,7 +432,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 	})
 
-	Describe("Testing UpdateInstanceLastLogin function", func() {
+	Describe("Testing UpdateLastActivity function", func() {
 		It("should update the last login time of the instance", func() {
 
 			r := &instautoctrl.InstanceInactiveTerminationReconciler{
@@ -459,9 +459,8 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
 			err := r.SetupInstanceAnnotations(ctx)
 			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
-			stopAfterInactivityDuration := time.Hour * 24 * 14
-			err = r.UpdateInstanceLastLogin(ctx, stopAfterInactivityDuration)
-			Expect(err).ToNot(HaveOccurred(), "UpdateInstanceLastLogin should not return an error")
+			_, err = r.UpdateLastActivity(ctx)
+			Expect(err).ToNot(HaveOccurred(), "UpdateLastActivity should not return an error")
 
 			By("Checking that the instance has been updated")
 			Eventually(func() bool {

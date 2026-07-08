@@ -17,8 +17,6 @@ package instctrl
 
 import (
 	"context"
-	"fmt"
-	"math/rand"
 	"reflect"
 	"strconv"
 	"time"
@@ -42,7 +40,6 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -58,16 +55,6 @@ type InstanceReconciler struct {
 	PublicExposureOpts        forge.PublicExposureOpts
 	MirrorPVCStorageClassName string
 	EnableAuthentication      bool
-
-	// Prometheus is the client used to query activity metrics.
-	// If nil, the periodic lastActivity update is skipped.
-	Prometheus instautoctrl.PrometheusClientInterface
-	// MinActivityRequeueTime is the minimum requeue interval for periodic lastActivity refresh.
-	MinActivityRequeueTime time.Duration
-	// MaxLastActivityRequeueTime is the maximum requeue interval for periodic lastActivity refresh.
-	MaxLastActivityRequeueTime time.Duration
-	// ActivityCheckTimeout is the timeout for Prometheus health checks during activity tracking.
-	ActivityCheckTimeout time.Duration
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -276,20 +263,6 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	tracer.Step("instance environments enforced")
 	log.Info("instance environments correctly enforced")
 
-	// Periodically refresh the lastActivity annotation from Prometheus.
-	// This runs for ALL instances regardless of cleanup policy configuration.
-	if err := r.updateLastActivity(ctx); err != nil {
-		log.Error(err, "failed to update last activity annotation")
-		// Non-fatal: do not fail the entire reconciliation
-	}
-	tracer.Step("last activity checked")
-
-	// Schedule a periodic re-reconcile with a randomized interval to keep
-	// the lastActivity annotation fresh without thundering-herd effects.
-	if r.Prometheus != nil && r.MinActivityRequeueTime > 0 {
-		requeue := randomRequeueInterval(r.MinActivityRequeueTime, r.MaxLastActivityRequeueTime)
-		return ctrl.Result{RequeueAfter: requeue}, nil
-	}
 	return ctrl.Result{}, nil
 }
 
@@ -393,119 +366,6 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 			metricInitialReadyTimesLabelPersistent:  strconv.FormatBool(environment.Persistent),
 		}).Observe(duration.Seconds())
 	}
-}
-
-// updateLastActivity queries Prometheus for instance activity metrics and
-// patches the lastActivity annotation. This is a lightweight check that
-// runs unconditionally for all instances, regardless of cleanup policy.
-// It only updates the annotation and does nothing else.
-func (r *InstanceReconciler) updateLastActivity(ctx context.Context) error {
-	if r.Prometheus == nil {
-		return nil // Activity tracking not configured
-	}
-
-	log := ctrl.LoggerFrom(ctx).WithName("update-last-activity")
-	instance := clctx.InstanceFrom(ctx)
-	if instance == nil {
-		return fmt.Errorf("instance not found in context")
-	}
-	log.Info("Checking updates for lastActivity")
-
-	// Only track activity for running instances
-	if !instance.Spec.Running {
-		return nil
-	}
-
-	// Check Prometheus health
-	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx, r.ActivityCheckTimeout)
-	if err != nil || !healthy {
-		log.V(1).Info("Prometheus not healthy, skipping activity update", "error", err)
-		return nil // Non-fatal: do not block reconciliation
-	}
-
-	// Use the max requeue time as the Prometheus lookback window
-	lookback := r.MaxLastActivityRequeueTime
-
-	// Query Nginx activity
-	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
-	lastActivityNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, lookback)
-
-	// Query WebSSH activity across all environments (find maximum)
-	var lastActivityWebSSH time.Time
-	webSSHFound := false
-	for envIdx := range instance.Status.Environments {
-		env := &instance.Status.Environments[envIdx]
-		q := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), env.IP)
-		t, errWebSSH := r.Prometheus.GetLastActivityTime(q, lookback)
-		if errWebSSH == nil && !t.IsZero() && (!webSSHFound || t.After(lastActivityWebSSH)) {
-			lastActivityWebSSH = t
-			webSSHFound = true
-		}
-	}
-
-	// Query SSH activity across all environments (find maximum)
-	var lastActivitySSH time.Time
-	sshFound := false
-	for envIdx := range instance.Status.Environments {
-		env := &instance.Status.Environments[envIdx]
-		q := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
-		t, errSSH := r.Prometheus.GetLastActivityTime(q, lookback)
-		if errSSH == nil && !t.IsZero() && (!sshFound || t.After(lastActivitySSH)) {
-			lastActivitySSH = t
-			sshFound = true
-		}
-	}
-
-	// If all queries failed or returned no data, skip silently
-	if errNginx != nil && !webSSHFound && !sshFound {
-		log.V(1).Info("No activity data available from any source")
-		return nil
-	}
-	if lastActivityNginx.IsZero() && !webSSHFound && !sshFound {
-		return nil
-	}
-
-	// Compute the most recent activity timestamp
-	maxActivity := lastActivityNginx
-	if lastActivitySSH.After(maxActivity) {
-		maxActivity = lastActivitySSH
-	}
-	if lastActivityWebSSH.After(maxActivity) {
-		maxActivity = lastActivityWebSSH
-	}
-
-	// Only patch if the new activity time differs from the current one
-	newStr := maxActivity.Format(time.RFC3339)
-	if instance.Annotations != nil && instance.Annotations[forge.LastActivityAnnotation] == newStr {
-		return nil
-	}
-
-	// Patch the instance with the updated lastActivity annotation
-	if err := utils.PatchObject(ctx, r.Client, instance, func(i *clv1alpha2.Instance) *clv1alpha2.Instance {
-		if i.Annotations == nil {
-			i.Annotations = make(map[string]string)
-		}
-		i.Annotations[forge.LastActivityAnnotation] = newStr
-		return i
-	}); err != nil {
-		log.Error(err, "failed patching lastActivity annotation")
-		return err
-	}
-
-	log.Info("Updated lastActivity annotation", "lastActivity", newStr)
-	return nil
-}
-
-// randomRequeueInterval returns a random duration between min and max,
-// used to stagger periodic lastActivity checks across instances and
-// avoid thundering-herd effects on Prometheus.
-func randomRequeueInterval(minVal, maxVal time.Duration) time.Duration {
-	if maxVal <= minVal {
-		return minVal
-	}
-	delta := maxVal - minVal
-	//nolint:gosec // Cryptographic randomness is not needed for scheduling jitter
-	return minVal + time.Duration(rand.Int63n(int64(delta)))
 }
 
 // SetupWithManager registers a new controller for Instance resources.

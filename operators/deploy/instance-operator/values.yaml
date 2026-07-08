@@ -22,8 +22,7 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
-  minLastActivityRequeueTime: "1h"
-  maxLastActivityRequeueTime: "6h"
+
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
@@ -36,6 +35,10 @@ configurations:
   mailTemplateDir: /etc/crownmail/templates
   mailConfigDir: /etc/crownmail/configs
   automation:
+    minLastActivityRequeueTime: "1h"
+    maxLastActivityRequeueTime: "6h"
+    lastActivityCheckThreshold: "10s"
+    lastActivityCheckRequeueTime: "20s"
     enableInstanceSubmission: true
     enableInstanceTermination: true
     enableInstanceInactiveTermination: true

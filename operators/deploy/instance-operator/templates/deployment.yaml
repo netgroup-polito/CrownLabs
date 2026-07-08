@@ -53,17 +53,7 @@ spec:
             - '--public-exposure-common-labels={{ .Values.configurations.publicExposure.commonLabels | join "," }}'
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
             - "--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}"
-            - "--min-last-activity-requeue-time={{ .Values.configurations.minLastActivityRequeueTime }}"
-            - "--max-last-activity-requeue-time={{ .Values.configurations.maxLastActivityRequeueTime }}"
-            - --monitoring-prometheus-url={{ .Values.configurations.monitoring.prometheusURL }}
-            - --monitoring-nginx-availability={{ .Values.configurations.monitoring.queryNginxAvailable }}
-            - --monitoring-bastion-ssh-availability={{ .Values.configurations.monitoring.queryBastionSSHAvailable }}
-            - --monitoring-web-ssh-availability={{ .Values.configurations.monitoring.queryWebSSHAvailable }}
-            - --monitoring-nginx-data={{ .Values.configurations.monitoring.queryNginxData }}
-            - --monitoring-bastion-ssh-data={{ .Values.configurations.monitoring.queryBastionSSHData }}
-            - --monitoring-web-ssh-data={{ .Values.configurations.monitoring.queryWebSSHData }}
-            - --prometheus-query-step={{ .Values.configurations.monitoring.queryStep }}
-            - --activity-check-timeout=3s
+
           ports:
             - name: op-metrics
               containerPort: 8080
@@ -159,6 +149,10 @@ spec:
             - --monitoring-bastion-ssh-data={{ .Values.configurations.monitoring.queryBastionSSHData}}
             - --monitoring-web-ssh-data={{ .Values.configurations.monitoring.queryWebSSHData}}
             - --prometheus-query-step={{ .Values.configurations.monitoring.queryStep }}
+            - "--min-last-activity-requeue-time={{ .Values.configurations.automation.minLastActivityRequeueTime }}"
+            - "--max-last-activity-requeue-time={{ .Values.configurations.automation.maxLastActivityRequeueTime }}"
+            - "--last-activity-check-threshold={{ .Values.configurations.automation.lastActivityCheckThreshold }}"
+            - "--last-activity-check-requeue-time={{ .Values.configurations.automation.lastActivityCheckRequeueTime }}"
             - --max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}
             - --max-concurrent-reconciles-inactive-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}
             - --max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}

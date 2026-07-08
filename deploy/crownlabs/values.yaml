@@ -229,8 +229,7 @@ instance-operator:
       secretName: registry-credentials
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
-    minLastActivityRequeueTime: "1h"
-    maxLastActivityRequeueTime: "6h"
+
     monitoring:
       prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
       queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
@@ -243,6 +242,10 @@ instance-operator:
     mailTemplateDir: /etc/crownmail/templates
     mailConfigDir: /etc/crownmail/configs
     automation:
+      minLastActivityRequeueTime: "1h"
+      maxLastActivityRequeueTime: "6h"
+      lastActivityCheckThreshold: "10s"
+      lastActivityCheckRequeueTime: "20s"
       enableInstanceSubmission: true
       enableInstanceTermination: true
       enableInstanceInactiveTermination: true

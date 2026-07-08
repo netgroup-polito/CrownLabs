@@ -18,6 +18,7 @@ package instautoctrl
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"strconv"
 	"time"
 
@@ -54,6 +55,10 @@ type InstanceInactiveTerminationReconciler struct {
 	MailClient                      *mail.Client
 	Prometheus                      PrometheusClientInterface
 	MarginTime                      time.Duration
+	MinLastActivityRequeueTime      time.Duration
+	MaxLastActivityRequeueTime      time.Duration
+	LastActivityCheckThreshold      time.Duration
+	LastActivityCheckRequeueTime    time.Duration
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
@@ -101,9 +106,35 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
 
+	// Fetch instance to update last login
+	var instForActivity clv1alpha2.Instance
+	if err := r.Get(ctx, req.NamespacedName, &instForActivity); err != nil {
+		if !kerrors.IsNotFound(err) {
+			log.Error(err, "failed retrieving instance")
+		}
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+	ctxForActivity, _ := clctx.InstanceInto(ctx, &instForActivity)
+
+	// Periodically refresh the lastActivity annotation from Prometheus.
+	// This runs for ALL instances regardless of cleanup policy configuration.
+	skippedActivityCheck, err := r.UpdateLastActivity(ctxForActivity)
+	if err != nil {
+		log.Error(err, "failed to update last activity annotation")
+		// Non-fatal: do not block reconciliation
+	}
+	tracer.Step("last activity checked")
+
 	// Check if the reconciliation should be skipped based on the selector label and namespace labels.
 	skip, err := r.CheckSkipReconciliation(ctx, req.Namespace)
 	if skip {
+		if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
+			requeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
+			if skippedActivityCheck {
+				requeue = r.LastActivityCheckRequeueTime
+			}
+			return ctrl.Result{RequeueAfter: requeue}, err
+		}
 		return ctrl.Result{}, err
 	}
 
@@ -154,14 +185,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	tracer.Step("labels checked")
 
-	// Update the last login time of the instance based on the Prometheus data
-	if err := r.UpdateInstanceLastLogin(ctx, stopAfterInactivityDuration); err != nil {
-		log.Error(err, "failed updating last login time of the instance")
-		return ctrl.Result{RequeueAfter: r.NotificationInterval}, err
-	}
-
-	tracer.Step("instance last login updated")
-
 	remainingTime, err := r.GetRemainingInactivityTime(ctx, stopAfterInactivityDuration)
 	if err != nil {
 		log.Error(err, "failed checking instance termination")
@@ -184,6 +207,18 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// Calculate requeue time at the instance inactive deadline time: if the instance is not yet to be terminated, we requeue it after the remaining time
 	// Let's add margin time to the remaining time to avoid requeueing just before the deadline, avoiding a double requeue
 	requeueTime := remainingTime + r.MarginTime
+
+	// Ensure we also requeue for periodic lastActivity refresh
+	if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
+		activityRequeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
+		if skippedActivityCheck {
+			activityRequeue = r.LastActivityCheckRequeueTime
+		}
+		if activityRequeue < requeueTime {
+			requeueTime = activityRequeue
+		}
+	}
+
 	dbgLog.Info("requeueing instance")
 	return ctrl.Result{RequeueAfter: requeueTime}, nil
 }
@@ -323,91 +358,135 @@ func (r *InstanceInactiveTerminationReconciler) handleInactivityInstance(ctx con
 	return ctrl.Result{}, false, nil
 }
 
-// UpdateInstanceLastLogin updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateInstanceLastLogin(ctx context.Context, stopAfterInactivityDuration time.Duration) error {
-	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
+func (r *InstanceInactiveTerminationReconciler) shouldSkipActivityUpdate(ctx context.Context, instance *clv1alpha2.Instance) (skip, dueToThreshold bool) {
+	if r.Prometheus == nil {
+		return true, false // Activity tracking not configured
+	}
+
+	// Check if the threshold has passed since the last Prometheus check
+	if lastCheckStr, ok := instance.Annotations[forge.LastActivityCheckTimestampAnnotation]; ok {
+		if lastCheckTime, err := time.Parse(time.RFC3339, lastCheckStr); err == nil {
+			if time.Since(lastCheckTime) < r.LastActivityCheckThreshold {
+				log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
+				log.Info("Skipping activity update, threshold not reached", "threshold", r.LastActivityCheckThreshold)
+				return true, true
+			}
+		}
+	}
+
+	return false, false
+}
+
+// UpdateLastActivity updates the last login time of the instance in the annotations.
+func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.Context) (skippedDueToThreshold bool, err error) {
 	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
-		return fmt.Errorf("instance not found in context")
+		return false, fmt.Errorf("instance not found in context")
 	}
 
-	// Check Prometheus health first
+	skip, dueToThreshold := r.shouldSkipActivityUpdate(ctx, instance)
+	if skip {
+		return dueToThreshold, nil
+	}
+
+	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
+
+	log.Info("Checking updates for lastActivity")
+
+	// Check Prometheus health
 	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx, r.StatusCheckRequestTimeout)
 	if err != nil || !healthy {
-		log.Error(err, "Prometheus is not healthy")
-		return err
+		log.V(1).Info("Prometheus not healthy, skipping activity update", "error", err)
+		return false, nil // Non-fatal: do not block reconciliation
 	}
 
-	// Get instance activity data
+	// Calculate the lookback window based on the time elapsed since the last check.
+	// Use MaxLastActivityRequeueTime as a safe fallback for the first run or if parsing fails.
+	lookback := r.MaxLastActivityRequeueTime + r.MarginTime
+	if lastCheckStr, ok := instance.Annotations[forge.LastActivityCheckTimestampAnnotation]; ok {
+		if lastCheckTime, err := time.Parse(time.RFC3339, lastCheckStr); err == nil {
+			lookback = time.Since(lastCheckTime) + r.MarginTime
+		}
+	}
+
+	// Query Nginx activity
 	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
-	log.Info("Generated Nginx Prometheus query", "query", queryNginx)
-	lastActivityTimeNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, stopAfterInactivityDuration)
-	log.Info("Nginx Prometheus query result", "lastActivityTime", lastActivityTimeNginx, "error", errNginx)
+	lastActivityNginx, _ := r.Prometheus.GetLastActivityTime(queryNginx, lookback)
 
-	// Aggregate WebSSH activity times across all environments (find maximum)
-	var lastActivityTimeWebSSH time.Time
-	lastActivityTimeWebSSHFound := false
+	// Query WebSSH activity across all environments (find maximum)
+	var lastActivityWebSSH time.Time
+	webSSHFound := false
 	for envIdx := range instance.Status.Environments {
 		env := &instance.Status.Environments[envIdx]
-		queryWebSSH := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), env.IP)
-		log.Info("Generated WebSSH Prometheus query", "query", queryWebSSH, "envIP", env.IP)
-		envActivityTime, errWebSSH := r.Prometheus.GetLastActivityTime(queryWebSSH, stopAfterInactivityDuration)
-		log.Info("WebSSH Prometheus query result", "envIP", env.IP, "lastActivityTime", envActivityTime, "error", errWebSSH)
-		if errWebSSH == nil && !envActivityTime.IsZero() {
-			if !lastActivityTimeWebSSHFound || envActivityTime.After(lastActivityTimeWebSSH) {
-				lastActivityTimeWebSSH = envActivityTime
-				lastActivityTimeWebSSHFound = true
-			}
+		q := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), env.IP)
+		t, errWebSSH := r.Prometheus.GetLastActivityTime(q, lookback)
+		if errWebSSH == nil && !t.IsZero() && (!webSSHFound || t.After(lastActivityWebSSH)) {
+			lastActivityWebSSH = t
+			webSSHFound = true
 		}
 	}
 
-	// Aggregate SSH activity times across all environments (find maximum)
-	var lastActivityTimeSSH time.Time
-	lastActivityTimeSSHFound := false
+	// Query SSH activity across all environments (find maximum)
+	var lastActivitySSH time.Time
+	sshFound := false
 	for envIdx := range instance.Status.Environments {
 		env := &instance.Status.Environments[envIdx]
-		querySSH := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
-		log.Info("Generated SSH Prometheus query", "query", querySSH, "envIP", env.IP)
-		envActivityTime, errSSH := r.Prometheus.GetLastActivityTime(querySSH, stopAfterInactivityDuration)
-		log.Info("SSH Prometheus query result", "envIP", env.IP, "lastActivityTime", envActivityTime, "error", errSSH)
-		if errSSH == nil && !envActivityTime.IsZero() {
-			if !lastActivityTimeSSHFound || envActivityTime.After(lastActivityTimeSSH) {
-				lastActivityTimeSSH = envActivityTime
-				lastActivityTimeSSHFound = true
-			}
+		q := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
+		t, errSSH := r.Prometheus.GetLastActivityTime(q, lookback)
+		if errSSH == nil && !t.IsZero() && (!sshFound || t.After(lastActivitySSH)) {
+			lastActivitySSH = t
+			sshFound = true
 		}
 	}
 
-	// If all queries failed, return error
-	if errNginx != nil && !lastActivityTimeSSHFound && !lastActivityTimeWebSSHFound {
-		return fmt.Errorf("failed retrieving last activity time from all queries: %w", errNginx)
+	// Compute the most recent activity timestamp
+	maxActivity := lastActivityNginx
+	if lastActivitySSH.After(maxActivity) {
+		maxActivity = lastActivitySSH
 	}
-	if lastActivityTimeNginx.IsZero() && !lastActivityTimeSSHFound && !lastActivityTimeWebSSHFound {
-		log.Info("No activity detected for the instance", "instance", instance.Name, "namespace", instance.Namespace)
-		return nil // No activity detected, do not update the last activity time
-	}
-
-	var maxLastActivityTime time.Time
-	maxLastActivityTime = lastActivityTimeNginx
-	if lastActivityTimeSSH.After(maxLastActivityTime) {
-		maxLastActivityTime = lastActivityTimeSSH
-	}
-	if lastActivityTimeWebSSH.After(maxLastActivityTime) {
-		maxLastActivityTime = lastActivityTimeWebSSH
+	if lastActivityWebSSH.After(maxActivity) {
+		maxActivity = lastActivityWebSSH
 	}
 
-	// patch the instance with the new last activity time
-	patch := client.MergeFrom(instance.DeepCopy())
-	if instance.Annotations == nil {
-		instance.Annotations = make(map[string]string)
-	}
-	instance.Annotations[forge.LastActivityAnnotation] = maxLastActivityTime.Format(time.RFC3339)
-	instance.Annotations[forge.AlertAnnotationNum] = "0"
-	if err := r.Patch(ctx, instance, patch); err != nil {
-		return err
+	activityFound := !maxActivity.IsZero()
+	newStr := maxActivity.Format(time.RFC3339)
+
+	// Patch the instance with the updated lastActivity annotation and last check timestamp
+	if err := utils.PatchObject(ctx, r.Client, instance, func(i *clv1alpha2.Instance) *clv1alpha2.Instance {
+		if i.Annotations == nil {
+			i.Annotations = make(map[string]string)
+		}
+
+		// Update the check timestamp
+		i.Annotations[forge.LastActivityCheckTimestampAnnotation] = time.Now().Format(time.RFC3339)
+
+		if activityFound {
+			// Only update if it actually changed
+			if i.Annotations[forge.LastActivityAnnotation] != newStr {
+				i.Annotations[forge.LastActivityAnnotation] = newStr
+				i.Annotations[forge.AlertAnnotationNum] = "0"
+				log.Info("Updated lastActivity annotation", "lastActivity", newStr)
+			}
+		}
+		return i
+	}); err != nil {
+		log.Error(err, "failed updating instance last login")
+		return false, err
 	}
 
-	return nil
+	return false, nil
+}
+
+// randomRequeueInterval returns a random duration between min and max,
+// used to stagger periodic lastActivity checks across instances and
+// avoid thundering-herd effects on Prometheus.
+func randomRequeueInterval(minVal, maxVal time.Duration) time.Duration {
+	if maxVal <= minVal {
+		return minVal
+	}
+	delta := maxVal - minVal
+	//nolint:gosec // Cryptographic randomness is not needed for scheduling jitter
+	return minVal + time.Duration(rand.Int63n(int64(delta)))
 }
 
 // GetRemainingInactivityTime checks if the Instance has to be terminated.
