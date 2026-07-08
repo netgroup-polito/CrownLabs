@@ -35,8 +35,8 @@ configurations:
   mailTemplateDir: /etc/crownmail/templates
   mailConfigDir: /etc/crownmail/configs
   automation:
-    minLastActivityRequeueTime: "1h"
-    maxLastActivityRequeueTime: "6h"
+    minLastActivityRequeueTime: "15m"
+    maxLastActivityRequeueTime: "20m"
     lastActivityCheckThreshold: "10s"
     lastActivityCheckRequeueTime: "20s"
     enableInstanceSubmission: true
