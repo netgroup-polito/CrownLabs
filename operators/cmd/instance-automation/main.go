@@ -80,7 +80,7 @@ func main() {
 	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace="%s", exported_service=~"%s.*"}`, "Prometheus Query to retrieve metrics about the last (frontend) access to a specific instance.")
 	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (SSH) access to a specific instance.")
 	prometheusWebSSHData := flag.String("monitoring-web-ssh-data", `bastion_web_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (WebSSH) access to a specific instance.")
-	queryStep := flag.Duration("prometheus-query-step", 5*time.Minute, "The step to use when querying range data from Prometheus.")
+	queryStep := flag.Duration("prometheus-query-step", 30*time.Second, "The step to use when querying range data from Prometheus.")
 	minLastActivityRequeueTime := flag.Duration("min-last-activity-requeue-time", 1*time.Hour, "Minimum requeue interval for lastActivity refresh")
 	maxLastActivityRequeueTime := flag.Duration("max-last-activity-requeue-time", 6*time.Hour, "Maximum requeue interval for lastActivity refresh")
 	lastActivityCheckThreshold := flag.Duration("last-activity-check-threshold", 10*time.Second, "Threshold before checking Prometheus again")
