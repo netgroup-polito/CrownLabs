@@ -171,9 +171,16 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	}
 
 	stopAfterInactivity := template.Spec.Cleanup.StopAfterInactivity
-	// If set to neverTimeoutValue, return without rescheduling
+	// If set to neverTimeoutValue, return but schedule a requeue to keep refreshing activity
 	if stopAfterInactivity == NeverTimeoutValue {
 		dbgLog.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
+		if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
+			requeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
+			if skippedActivityCheck {
+				requeue = r.LastActivityCheckRequeueTime
+			}
+			return ctrl.Result{RequeueAfter: requeue}, nil
+		}
 		return ctrl.Result{}, nil
 	}
 
@@ -400,18 +407,12 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 		return false, nil // Non-fatal: do not block reconciliation
 	}
 
-	// Calculate the lookback window based on the time elapsed since the last check.
-	// Use MaxLastActivityRequeueTime as a safe fallback for the first run or if parsing fails.
-	lookback := r.MaxLastActivityRequeueTime + r.MarginTime
-	if lastCheckStr, ok := instance.Annotations[forge.LastActivityCheckTimestampAnnotation]; ok {
-		if lastCheckTime, err := time.Parse(time.RFC3339, lastCheckStr); err == nil {
-			lookback = time.Since(lastCheckTime) + r.MarginTime
-		}
-	}
+	// Use the max requeue time as the Prometheus lookback window
+	lookback := r.MaxLastActivityRequeueTime
 
 	// Query Nginx activity
 	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
-	lastActivityNginx, _ := r.Prometheus.GetLastActivityTime(queryNginx, lookback)
+	lastActivityNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, lookback)
 
 	// Query WebSSH activity across all environments (find maximum)
 	var lastActivityWebSSH time.Time
@@ -440,7 +441,10 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 	}
 
 	// Compute the most recent activity timestamp
-	maxActivity := lastActivityNginx
+	var maxActivity time.Time
+	if errNginx == nil && !lastActivityNginx.IsZero() {
+		maxActivity = lastActivityNginx
+	}
 	if lastActivitySSH.After(maxActivity) {
 		maxActivity = lastActivitySSH
 	}
