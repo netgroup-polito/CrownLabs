@@ -168,7 +168,10 @@ func (p *Prometheus) GetLastActivityTime(query string, interval time.Duration) (
 				continue
 			}
 			if sample.Value != prevValue {
-				lastChange = sample.Timestamp.Time()
+				changeTime := sample.Timestamp.Time()
+				if changeTime.After(lastChange) {
+					lastChange = changeTime
+				}
 				prevValue = sample.Value
 			}
 		}
