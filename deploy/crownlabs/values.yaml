@@ -27,7 +27,7 @@ frontend-app:
     imagelist:
       standalone: crownlabs-standalone
       containerdisks: crownlabs-standalone
-    
+
     defaultTimeouts:
       cleanup:
         stopAfterInactivity: "15d"
@@ -111,7 +111,7 @@ operator:
           username: ""
           password: ""
           imageListName: harbor-containerdisks
-          project: crownlabs-containerdisks   
+          project: crownlabs-containerdisks
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
