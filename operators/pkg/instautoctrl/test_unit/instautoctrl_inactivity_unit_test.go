@@ -459,7 +459,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
 			err := r.SetupInstanceAnnotations(ctx)
 			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
-			_, err = r.UpdateLastActivity(ctx)
+			err = r.UpdateLastActivity(ctx)
 			Expect(err).ToNot(HaveOccurred(), "UpdateLastActivity should not return an error")
 
 			By("Checking that the instance has been updated")

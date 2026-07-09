@@ -105,53 +105,60 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	tracer := trace.New("reconcile", trace.Field{Key: "instance", Value: req.NamespacedName})
 	ctx = ctrl.LoggerInto(trace.ContextWithTrace(ctx, tracer), log)
 
-	// Fetch instance to update last login
-	var instForActivity clv1alpha2.Instance
-	if err := r.Get(ctx, req.NamespacedName, &instForActivity); err != nil {
+	// Check namespace selector label to early abort reconciliation.
+	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, req.Namespace, r.NamespaceWhitelist.MatchLabels); !proceed {
+		if err != nil {
+			log.Error(err, "failed checking selector label")
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, nil
+	}
+
+	// Fetch instance
+	var instance clv1alpha2.Instance
+	if err := r.Get(ctx, req.NamespacedName, &instance); err != nil {
 		if !kerrors.IsNotFound(err) {
 			log.Error(err, "failed retrieving instance")
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
-	ctxForActivity, _ := clctx.InstanceInto(ctx, &instForActivity)
+	ctxForActivity, _ := clctx.InstanceInto(ctx, &instance)
 
-	if skippedActivityCheck, dueToThreshold := r.shouldSkipDueToThreshold(ctxForActivity, &instForActivity); skippedActivityCheck && dueToThreshold {
+	if skippedActivityCheck, dueToThreshold := r.shouldSkipDueToThreshold(ctxForActivity, &instance); skippedActivityCheck && dueToThreshold {
 		return ctrl.Result{RequeueAfter: r.LastActivityCheckThreshold}, nil
 	}
 
 	// Periodically refresh the lastActivity annotation from Prometheus.
 	// This runs for ALL instances regardless of cleanup policy configuration.
-	_, err := r.UpdateLastActivity(ctxForActivity)
+	err := r.UpdateLastActivity(ctxForActivity)
 	if err != nil {
 		log.Error(err, "failed to update last activity annotation")
-		// Non-fatal: do not block reconciliation
+		return ctrl.Result{}, err
 	}
 	tracer.Step("last activity checked")
 
-	// Check if the reconciliation should be skipped based on the selector label and namespace labels.
+	// Check if the reconciliation should be skipped based on the namespace labels.
 	skip, err := r.CheckSkipReconciliation(ctx, req.Namespace)
 	if skip {
 		if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
-			requeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
-			return ctrl.Result{RequeueAfter: requeue}, err
+			return r.nextRequeueResult(), err
 		}
 		return ctrl.Result{}, err
 	}
 
-	instance, template, tenant, err := GetInstanceTemplateTenant(ctx, req, r.Client)
-	if err != nil {
+	var template clv1alpha2.Template
+	if err := r.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), &template); err != nil {
 		if kerrors.IsNotFound(err) {
 			return ctrl.Result{}, nil
 		}
-		log.Error(err, "failed to retrieve instance/template/tenant")
+		log.Error(err, "failed to retrieve instance template")
 		return ctrl.Result{}, err
 	}
-	tracer.Step("instance, template and tenant retrieved")
+	tracer.Step("instance and template retrieved")
 
-	// Add the instance, template and tenant to the context
-	ctx, _ = clctx.InstanceInto(ctx, instance)
-	ctx, _ = clctx.TemplateInto(ctx, template)
-	ctx, _ = clctx.TenantInto(ctx, tenant)
+	// Add the instance and template to the context (Tenant is fetched on demand via GetTenantFromInstance)
+	ctx, _ = clctx.InstanceInto(ctx, &instance)
+	ctx, _ = clctx.TemplateInto(ctx, &template)
 
 	// Setup instance annotations
 	if err := r.SetupInstanceAnnotations(ctx); err != nil {
@@ -167,7 +174,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	// Checks if the instance is running, if not, we start the countdown for destruction for persistent instances.
 	if !instance.Spec.Running {
-		return r.handlePoweredOffInstance(ctx, instance, tracer)
+		return r.handlePoweredOffInstance(ctx, &instance, tracer)
 	}
 
 	stopAfterInactivity := template.Spec.Cleanup.StopAfterInactivity
@@ -175,8 +182,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	if stopAfterInactivity == NeverTimeoutValue {
 		dbgLog.Info("Instance marked as never stop", "name", instance.GetName(), "namespace", instance.GetNamespace())
 		if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
-			requeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
-			return ctrl.Result{RequeueAfter: requeue}, nil
+			return r.nextRequeueResult(), nil
 		}
 		return ctrl.Result{}, nil
 	}
@@ -200,7 +206,7 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	// Check if the instance has expired
 	if remainingTime <= 0 {
-		res, terminateEarly, err := r.handleInactivityInstance(ctx, instance)
+		res, terminateEarly, err := r.handleInactivityInstance(ctx, &instance)
 		if terminateEarly || err != nil {
 			return res, err
 		}
@@ -214,9 +220,9 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 
 	// Ensure we also requeue for periodic lastActivity refresh
 	if r.Prometheus != nil && r.MinLastActivityRequeueTime > 0 {
-		activityRequeue := randomRequeueInterval(r.MinLastActivityRequeueTime, r.MaxLastActivityRequeueTime)
-		if activityRequeue < requeueTime {
-			requeueTime = activityRequeue
+		activityResult := r.nextRequeueResult()
+		if activityResult.RequeueAfter < requeueTime {
+			requeueTime = activityResult.RequeueAfter
 		}
 	}
 
@@ -379,10 +385,10 @@ func (r *InstanceInactiveTerminationReconciler) shouldSkipDueToThreshold(ctx con
 }
 
 // UpdateLastActivity updates the last login time of the instance in the annotations.
-func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.Context) (skippedDueToThreshold bool, err error) {
+func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
-		return false, fmt.Errorf("instance not found in context")
+		return fmt.Errorf("instance not found in context")
 	}
 
 	log := ctrl.LoggerFrom(ctx).WithName("update-instance-last-login")
@@ -393,7 +399,7 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 	healthy, err := r.Prometheus.IsPrometheusHealthy(ctx, r.StatusCheckRequestTimeout)
 	if err != nil || !healthy {
 		log.V(1).Info("Prometheus not healthy, skipping activity update", "error", err)
-		return false, nil // Non-fatal: do not block reconciliation
+		return nil
 	}
 
 	// Use the max requeue time as the Prometheus lookback window
@@ -464,22 +470,21 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 		return i
 	}); err != nil {
 		log.Error(err, "failed updating instance last login")
-		return false, err
+		return err
 	}
 
-	return false, nil
+	return nil
 }
 
-// randomRequeueInterval returns a random duration between min and max,
-// used to stagger periodic lastActivity checks across instances and
-// avoid thundering-herd effects on Prometheus.
-func randomRequeueInterval(minVal, maxVal time.Duration) time.Duration {
-	if maxVal <= minVal {
-		return minVal
+// nextRequeueResult returns a ctrl.Result with a requeue time based on the activity check.
+func (r *InstanceInactiveTerminationReconciler) nextRequeueResult() ctrl.Result {
+	requeue := r.MinLastActivityRequeueTime
+	if r.MaxLastActivityRequeueTime > r.MinLastActivityRequeueTime {
+		delta := r.MaxLastActivityRequeueTime - r.MinLastActivityRequeueTime
+		//nolint:gosec // Cryptographic randomness is not needed for scheduling jitter
+		requeue += time.Duration(rand.Int63n(int64(delta)))
 	}
-	delta := maxVal - minVal
-	//nolint:gosec // Cryptographic randomness is not needed for scheduling jitter
-	return minVal + time.Duration(rand.Int63n(int64(delta)))
+	return ctrl.Result{RequeueAfter: requeue}
 }
 
 // GetRemainingInactivityTime checks if the Instance has to be terminated.
@@ -677,17 +682,9 @@ func (r *InstanceInactiveTerminationReconciler) SetupInstanceAnnotations(ctx con
 	return nil
 }
 
-// CheckSkipReconciliation checks if the reconciliation should be skipped based on the selector label and namespace labels.
+// CheckSkipReconciliation checks if the reconciliation should be skipped based on the namespace labels.
 func (r *InstanceInactiveTerminationReconciler) CheckSkipReconciliation(ctx context.Context, namespace string) (bool, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("check-skip-reconciliation-inactivity")
-
-	// Check the selector label, in order to know whether to perform or not reconciliation.
-	if proceed, err := utils.CheckSelectorLabel(ctx, r.Client, namespace, r.NamespaceWhitelist.MatchLabels); !proceed {
-		if err != nil {
-			err = fmt.Errorf("failed checking selector label: %w", err)
-		}
-		return true, err
-	}
 
 	var namespaceObj corev1.Namespace
 	if err := r.Get(ctx, types.NamespacedName{Name: namespace}, &namespaceObj); err != nil {
@@ -794,9 +791,10 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendWarningNotification(ct
 // SendInactivityWarning sends an inactivity warning email to the user and updates the instance annotations.
 func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx context.Context, instance *clv1alpha2.Instance) error {
 	log := ctrl.LoggerFrom(ctx)
-	tenant := clctx.TenantFrom(ctx)
-	if tenant == nil {
-		return fmt.Errorf("tenant not found in context")
+	tenant, err := GetTenantFromInstance(ctx, r.Client)
+	if err != nil {
+		log.Error(err, "failed getting tenant from instance")
+		return err
 	}
 
 	// Calculate the remaining time available for sending inactivity notifications
@@ -807,6 +805,7 @@ func (r *InstanceInactiveTerminationReconciler) SendInactivityWarning(ctx contex
 	}
 
 	if r.EnableInactivityNotifications {
+		ctx, _ = clctx.TenantInto(ctx, tenant)
 		if err := SendInactivityDetectionNotification(ctx, r.MailClient, remainingTime); err != nil {
 			log.Error(err, "failed sending notification email to user", "email", tenant.Spec.Email)
 			return err
@@ -841,12 +840,14 @@ func (r *InstanceInactiveTerminationReconciler) SendTerminationNotification(ctx 
 		return fmt.Errorf("instance not found in context")
 	}
 
-	tenant := clctx.TenantFrom(ctx)
-	if tenant == nil {
-		return fmt.Errorf("tenant not found in context")
+	tenant, err := GetTenantFromInstance(ctx, r.Client)
+	if err != nil {
+		log.Error(err, "failed getting tenant from instance")
+		return err
 	}
 
 	if r.EnableInactivityNotifications {
+		ctx, _ = clctx.TenantInto(ctx, tenant)
 		if err := SendInactivityTerminationNotification(ctx, r.MailClient, 0); err != nil {
 			return fmt.Errorf("failed sending termination notification email: %w", err)
 		}
@@ -969,12 +970,14 @@ func (r *InstanceInactiveTerminationReconciler) ShouldSendDestructionWarningNoti
 // SendDestructionWarning sends the destruction warning email to the user and updates the instance annotations.
 func (r *InstanceInactiveTerminationReconciler) SendDestructionWarning(ctx context.Context, instance *clv1alpha2.Instance, remainingTime time.Duration) error {
 	log := ctrl.LoggerFrom(ctx).WithName("SendDestructionWarning")
-	tenant := clctx.TenantFrom(ctx)
-	if tenant == nil {
-		return fmt.Errorf("tenant not found in context")
+	tenant, err := GetTenantFromInstance(ctx, r.Client)
+	if err != nil {
+		log.Error(err, "failed getting tenant from instance")
+		return err
 	}
 
 	// 1. Call the function to send the email that is in common.go.
+	ctx, _ = clctx.TenantInto(ctx, tenant)
 	if err := SendDestructionWarningNotification(ctx, r.MailClient, remainingTime); err != nil {
 		log.Error(err, "failed sending destruction notification email to user", "email", tenant.Spec.Email)
 		return fmt.Errorf("failed to send destruction warning email: %w", err)
@@ -1087,13 +1090,15 @@ func (r *InstanceInactiveTerminationReconciler) NotifyInstanceDeletion(ctx conte
 		return fmt.Errorf("instance not found in context")
 	}
 
-	tenant := clctx.TenantFrom(ctx)
-	if tenant == nil {
-		return fmt.Errorf("tenant not found in context")
+	tenant, err := GetTenantFromInstance(ctx, r.Client)
+	if err != nil {
+		log.Error(err, "failed getting tenant from instance")
+		return err
 	}
 
 	// Send the notification email
 	if r.EnableInactivityNotifications {
+		ctx, _ = clctx.TenantInto(ctx, tenant)
 		if err := SendDestructionNotification(ctx, r.MailClient); err != nil {
 			return fmt.Errorf("failed sending notification email: %w", err)
 		}
