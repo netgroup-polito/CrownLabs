@@ -109,3 +109,5 @@ webssh:
     keyName: webssh-master
 
 rbacResourcesName: crownlabs-instance-operator
+
+global: {}
