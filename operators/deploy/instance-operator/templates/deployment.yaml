@@ -53,6 +53,8 @@ spec:
             - '--public-exposure-common-labels={{ .Values.configurations.publicExposure.commonLabels | join "," }}'
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
             - "--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}"
+            - "--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gatewayApiMode }}"
+            - "--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default .Values.global.gatewayApiRefsValues }}"
           ports:
             - name: op-metrics
               containerPort: 8080

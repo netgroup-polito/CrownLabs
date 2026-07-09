@@ -5,6 +5,7 @@
 global:
   version: "" # default set while packaging
   gatewayApiMode: false
+  gatewayApiRefsValues: "crownlabs-production/crownlabs-main"
 
 createClusterRoles: true
 

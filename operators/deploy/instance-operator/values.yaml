@@ -11,6 +11,8 @@ configurations:
     websiteBaseUrl: crownlabs.example.com
     instancesAuthUrl: https://crownlabs.example.com/auth
     mirrorStorageClass: pvc-mirror
+    # gatewayApiMode: false
+    # gatewayApiRefsValues: "crownlabs-production/crownlabs-main"
   containerEnvironmentOptions:
     tag: ""
     contentToolsImg: crownlabs/content-tools
