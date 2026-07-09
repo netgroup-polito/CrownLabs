@@ -1,4 +1,4 @@
-{{- if .Values.global.gatewayApiMode }}
+{{- if .Values.global.gateway.gatewayApiMode }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -9,7 +9,7 @@ spec:
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: {{ .Values.httproute.gateway.name }}
+      name: {{ .Values.httproute.gateway.name | default .Values.global.gateway.name }}
       sectionName: https
 {{- if .Values.httproute.gateway.namespace }}
       namespace: {{ .Values.httproute.gateway.namespace }}

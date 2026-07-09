@@ -4,8 +4,10 @@
 
 global:
   version: "" # default set while packaging
-  gatewayApiMode: false
-  gatewayApiRefsValues: "crownlabs-production/crownlabs-main"
+  gateway:
+    gatewayApiMode: true
+    name: "crownlabs-main"
+    hostname: crownlabs.example.com
 
 createClusterRoles: true
 
@@ -76,6 +78,7 @@ operator:
     repository: crownlabs/operator
   rbacResourcesName: crownlabs-operator
   configurations:
+    tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
     targetLabel: crownlabs.polito.it/operator-selector=production
     features:
       tenant: true
@@ -215,7 +218,6 @@ instance-operator:
   configurations:
     generic:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
-      websiteBaseUrl: crownlabs.example.com
       instancesAuthUrl: https://crownlabs.example.com/auth
     containerEnvironmentOptions:
       tag: ""
@@ -289,12 +291,12 @@ bastion:
 # Gateway API core resources are rendered when gatewayAPI.enabled=true.
 # Application migration (Ingress vs HTTPRoute) remains controlled per app.
 gatewayAPI:
-  name: crownlabs-main
+  # name: crownlabs-main
   class: envoy-public
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
   listenerName: https
-  hostname: crownlabs.example.com
+  # hostname: crownlabs.example.com
   tls:
     certificateRefName: crownlabs-main-gw-cert
   allowedRoutesSimple:
