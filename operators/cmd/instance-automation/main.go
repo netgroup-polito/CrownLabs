@@ -83,7 +83,7 @@ func main() {
 	queryStep := flag.Duration("prometheus-query-step", 30*time.Second, "The step to use when querying range data from Prometheus.")
 	minLastActivityRequeueTime := flag.Duration("min-last-activity-requeue-time", 1*time.Hour, "Minimum requeue interval for lastActivity refresh")
 	maxLastActivityRequeueTime := flag.Duration("max-last-activity-requeue-time", 6*time.Hour, "Maximum requeue interval for lastActivity refresh")
-	lastActivityCheckThreshold := flag.Duration("last-activity-check-threshold", 10*time.Second, "Threshold before checking Prometheus again")
+	lastActivityCheckThreshold := flag.Duration("last-activity-check-threshold", 30*time.Second, "Threshold before checking Prometheus again")
 
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 24*time.Hour, "The interval to check the status of Instances that require it")
