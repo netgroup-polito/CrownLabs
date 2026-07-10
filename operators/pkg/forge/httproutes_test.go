@@ -61,7 +61,7 @@ var _ = Describe("HTTPRoute helpers", func() {
 		})
 	})
 
-	Describe("HHTTPRoute creation behavior", func() {
+	Describe("HTTPRoute creation behavior", func() {
 		It("HTTPRouteSpec builds correctly a route", func() {
 			tpl := forge.HTTPRouteTemplate{Path: "/instance/uid/env", ServiceName: "svc"}
 			expo := forge.ExpositionConfig{GatewayName: "gw", GatewayNamespace: "gw-ns"}
@@ -82,34 +82,34 @@ var _ = Describe("HTTPRoute helpers", func() {
 			Expect(spec.Rules[0].Filters).To(BeEmpty())
 		})
 
-		It("BuildParentReference sets name and namespace", func() {
-			p := forge.BuildParentReference("gw", "gw-ns")
+		It("ParentReference sets name and namespace", func() {
+			p := forge.ParentReference("gw", "gw-ns")
 			Expect(p.Name).To(Equal(gatewayv1.ObjectName("gw")))
 			Expect(*p.Namespace).To(Equal(gatewayv1.Namespace("gw-ns")))
 		})
 
-		It("BuildHTTPMatch constructs prefix path match", func() {
-			m := forge.BuildHTTPMatch("/instance/uid/env")
+		It("HTTPRouteMatch constructs prefix path match", func() {
+			m := forge.HTTPRouteMatch("/instance/uid/env")
 			Expect(*m.Path.Type).To(Equal(gatewayv1.PathMatchPathPrefix))
 			Expect(*m.Path.Value).To(Equal("/instance/uid/env"))
 		})
 
-		It("BuildBackendRef sets the backend name and numeric port", func() {
-			br := forge.BuildBackendRef("svc", 8080)
+		It("HTTPBackendRef sets the backend name and numeric port", func() {
+			br := forge.HTTPBackendRef("svc", 8080)
 			bo := br.BackendObjectReference
 			Expect(bo.Name).To(Equal(gatewayv1.ObjectName("svc")))
 			Expect(bo.Port).ToNot(BeNil())
 			Expect(*bo.Port).To(Equal(gatewayv1.PortNumber(8080)))
 		})
 
-		It("BuildTimeout returns the default durations", func() {
-			t := forge.BuildTimeout()
+		It("HTTPRouteTimeouts returns the default durations", func() {
+			t := forge.HTTPRouteTimeouts()
 			Expect(string(*t.Request)).To(Equal(forge.DefaultTimeoutSeconds))
 			Expect(string(*t.BackendRequest)).To(Equal(forge.DefaultTimeoutSeconds))
 		})
 
-		It("BuildRewriteFilter constructs a URLRewrite filter", func() {
-			f := forge.BuildRewriteFilter("/")
+		It("URLRewriteFilter constructs a URLRewrite filter", func() {
+			f := forge.URLRewriteFilter("/")
 			Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 			Expect(f.URLRewrite).ToNot(BeNil())
 			Expect(f.URLRewrite.Path).ToNot(BeNil())
@@ -117,51 +117,56 @@ var _ = Describe("HTTPRoute helpers", func() {
 			Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal("/"))
 		})
 
-		Context("BuildRewriteFilterForEnvironment cases", func() {
+		Context("HTTPRouteRuleFilters cases", func() {
 			makeEnv := func(t clv1alpha2.EnvironmentType, rewrite bool, name string) *clv1alpha2.Environment {
 				return &clv1alpha2.Environment{EnvironmentType: t, RewriteURL: rewrite, Name: name}
 			}
 
-			It("returns empty filter for nil environment", func() {
-				f := forge.BuildRewriteFilterForEnvironment(nil)
-				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterType("")))
-				Expect(f.URLRewrite).To(BeNil())
+			It("returns nil for nil environment", func() {
+				filters := forge.HTTPRouteRuleFilters(nil)
+				Expect(filters).To(BeNil())
 			})
 
-			It("returns empty filter when rewrite disabled", func() {
-				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassStandalone, false, ""))
-				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterType("")))
-				Expect(f.URLRewrite).To(BeNil())
+			It("returns nil when rewrite disabled", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassStandalone, false, ""))
+				Expect(filters).To(BeNil())
 			})
 
 			It("returns standalone rewrite when requested and environment is standalone", func() {
-				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassStandalone, true, ""))
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassStandalone, true, ""))
+				Expect(filters).To(HaveLen(1))
+				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.StandaloneRewriteEndpoint))
 			})
 
 			It("returns GUI rewrite when requested and environment is cloud VM", func() {
-				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassCloudVM, true, ""))
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassCloudVM, true, ""))
+				Expect(filters).To(HaveLen(1))
+				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
 			})
 
 			It("returns GUI rewrite when requested and environment is local VM", func() {
-				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassLocalVM, true, ""))
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassLocalVM, true, ""))
+				Expect(filters).To(HaveLen(1))
+				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
 			})
 
 			It("returns GUI rewrite when requested and environment is VM", func() {
-				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.ClassVM, true, ""))
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassVM, true, ""))
+				Expect(filters).To(HaveLen(1))
+				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
 			})
 
-			It("returns empty filter for unknown environment type", func() {
-				f := forge.BuildRewriteFilterForEnvironment(makeEnv(clv1alpha2.EnvironmentType("unknown"), true, ""))
-				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterType("")))
-				Expect(f.URLRewrite).To(BeNil())
+			It("returns nil for unknown environment type", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.EnvironmentType("unknown"), true, ""))
+				Expect(filters).To(BeNil())
 			})
 		})
 

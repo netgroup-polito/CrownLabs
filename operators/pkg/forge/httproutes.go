@@ -73,8 +73,8 @@ func ParseGatewayParent(raw string) (namespace, name string, err error) {
 
 // HTTPRouteSpec forges the specification of a Kubernetes HTTPRoute resource.
 func HTTPRouteSpec(tpl *HTTPRouteTemplate, expo *ExpositionConfig, environment *clv1alpha2.Environment, servicePort int32) gatewayv1.HTTPRouteSpec {
-	parentRef := BuildParentReference(expo.GatewayName, expo.GatewayNamespace)
-	rule := BuildRouteRule(tpl.Path, tpl.ServiceName, servicePort, environment)
+	parentRef := ParentReference(expo.GatewayName, expo.GatewayNamespace)
+	rule := HTTPRouteRule(tpl.Path, tpl.ServiceName, servicePort, environment)
 
 	spec := gatewayv1.HTTPRouteSpec{
 		CommonRouteSpec: gatewayv1.CommonRouteSpec{
@@ -86,8 +86,8 @@ func HTTPRouteSpec(tpl *HTTPRouteTemplate, expo *ExpositionConfig, environment *
 	return spec
 }
 
-// BuildParentReference creates the appropriate ParentReference for the provided gateway.
-func BuildParentReference(gatewayName, gatewayNamespace string) gatewayv1.ParentReference {
+// ParentReference creates the appropriate ParentReference for the provided gateway.
+func ParentReference(gatewayName, gatewayNamespace string) gatewayv1.ParentReference {
 	parent := gatewayv1.ParentReference{}
 
 	parent.Name = gatewayv1.ObjectName(gatewayName)
@@ -96,27 +96,24 @@ func BuildParentReference(gatewayName, gatewayNamespace string) gatewayv1.Parent
 	return parent
 }
 
-// BuildRouteRule constructs a complete HTTPRouteRule including match, backend reference and timeout filters.
-func BuildRouteRule(path, serviceName string, servicePort int32, environment *clv1alpha2.Environment) gatewayv1.HTTPRouteRule {
-	match := BuildHTTPMatch(path)
-	backendRef := BuildBackendRef(serviceName, servicePort)
-	timeout := BuildTimeout()
+// HTTPRouteRule constructs a complete HTTPRouteRule including match, backend reference and timeout filters.
+func HTTPRouteRule(path, serviceName string, servicePort int32, environment *clv1alpha2.Environment) gatewayv1.HTTPRouteRule {
+	match := HTTPRouteMatch(path)
+	backendRef := HTTPBackendRef(serviceName, servicePort)
+	timeout := HTTPRouteTimeouts()
 
 	rule := gatewayv1.HTTPRouteRule{
 		Matches:     []gatewayv1.HTTPRouteMatch{match},
 		BackendRefs: []gatewayv1.HTTPBackendRef{backendRef},
 		Timeouts:    timeout,
-	}
-
-	if rewriteFilter := BuildRewriteFilterForEnvironment(environment); rewriteFilter.Type != "" {
-		rule.Filters = []gatewayv1.HTTPRouteFilter{rewriteFilter}
+		Filters:     HTTPRouteRuleFilters(environment),
 	}
 
 	return rule
 }
 
-// BuildHTTPMatch prepares a path match for an HTTPRouteRule.
-func BuildHTTPMatch(path string) gatewayv1.HTTPRouteMatch {
+// HTTPRouteMatch prepares a path match for an HTTPRouteRule.
+func HTTPRouteMatch(path string) gatewayv1.HTTPRouteMatch {
 	pathMatchType := gatewayv1.PathMatchPathPrefix
 	pathValue := path
 
@@ -127,8 +124,8 @@ func BuildHTTPMatch(path string) gatewayv1.HTTPRouteMatch {
 	return match
 }
 
-// BuildBackendRef prepares a backend (i.e., a service) reference for an HTTPRouteRule.
-func BuildBackendRef(serviceName string, servicePort int32) gatewayv1.HTTPBackendRef {
+// HTTPBackendRef prepares a backend (i.e., a service) reference for an HTTPRouteRule.
+func HTTPBackendRef(serviceName string, servicePort int32) gatewayv1.HTTPBackendRef {
 	backendPort := gatewayv1.PortNumber(servicePort)
 
 	backendRef := gatewayv1.HTTPBackendRef{
@@ -143,8 +140,8 @@ func BuildBackendRef(serviceName string, servicePort int32) gatewayv1.HTTPBacken
 	return backendRef
 }
 
-// BuildTimeout returns the default timeouts for an HTTPRouteRule.
-func BuildTimeout() *gatewayv1.HTTPRouteTimeouts {
+// HTTPRouteTimeouts returns the default timeouts for an HTTPRouteRule.
+func HTTPRouteTimeouts() *gatewayv1.HTTPRouteTimeouts {
 	dur := gatewayv1.Duration(DefaultTimeoutSeconds)
 
 	timeouts := &gatewayv1.HTTPRouteTimeouts{
@@ -155,23 +152,23 @@ func BuildTimeout() *gatewayv1.HTTPRouteTimeouts {
 	return timeouts
 }
 
-// BuildRewriteFilterForEnvironment returns the rewrite filter for the given environment.
-func BuildRewriteFilterForEnvironment(environment *clv1alpha2.Environment) gatewayv1.HTTPRouteFilter {
+// HTTPRouteRuleFilters returns the slice of HTTPRouteFilters for the given environment.
+func HTTPRouteRuleFilters(environment *clv1alpha2.Environment) []gatewayv1.HTTPRouteFilter {
 	if environment == nil || !environment.RewriteURL {
-		return gatewayv1.HTTPRouteFilter{}
+		return nil
 	}
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		return BuildRewriteFilter(StandaloneRewriteEndpoint)
+		return []gatewayv1.HTTPRouteFilter{URLRewriteFilter(StandaloneRewriteEndpoint)}
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
-		return BuildRewriteFilter(GUIRewriteEndpoint)
+		return []gatewayv1.HTTPRouteFilter{URLRewriteFilter(GUIRewriteEndpoint)}
 	default:
-		return gatewayv1.HTTPRouteFilter{}
+		return nil
 	}
 }
 
-// BuildRewriteFilter returns an URLRewrite filter for the given target endpoint.
-func BuildRewriteFilter(target string) gatewayv1.HTTPRouteFilter {
+// URLRewriteFilter returns an URLRewrite filter for the given target endpoint.
+func URLRewriteFilter(target string) gatewayv1.HTTPRouteFilter {
 	rewriteType := gatewayv1.PrefixMatchHTTPPathModifier
 
 	filter := gatewayv1.HTTPRouteFilter{
