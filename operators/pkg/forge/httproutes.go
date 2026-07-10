@@ -101,13 +101,15 @@ func BuildRouteRule(path, serviceName string, servicePort int32, environment *cl
 	match := BuildHTTPMatch(path)
 	backendRef := BuildBackendRef(serviceName, servicePort)
 	timeout := BuildTimeout()
-	rewriteFilter := BuildRewriteFilterForEnvironment(environment)
 
 	rule := gatewayv1.HTTPRouteRule{
 		Matches:     []gatewayv1.HTTPRouteMatch{match},
 		BackendRefs: []gatewayv1.HTTPBackendRef{backendRef},
 		Timeouts:    timeout,
-		Filters:     []gatewayv1.HTTPRouteFilter{rewriteFilter},
+	}
+
+	if rewriteFilter := BuildRewriteFilterForEnvironment(environment); rewriteFilter.Type != "" {
+		rule.Filters = []gatewayv1.HTTPRouteFilter{rewriteFilter}
 	}
 
 	return rule
