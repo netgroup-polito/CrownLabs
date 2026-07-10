@@ -23,7 +23,6 @@ spec:
         - group: ""
           kind: Service
           name: {{ include "bastion.fullname" . }}-webssh
-          port:
-            number: {{ .Values.webssh.service.port }}
+          port: {{ .Values.webssh.service.port }}
           weight: 1
 {{- end }}
