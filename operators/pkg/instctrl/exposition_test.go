@@ -16,6 +16,7 @@ package instctrl_test
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
@@ -109,6 +110,17 @@ var _ = Describe("Exposition helpers", func() {
 			svc := corev1.Service{}
 			Expect(reconciler.Client.Get(ctx, serviceName, &svc)).To(Succeed())
 			Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
+		})
+
+		It("updates instance status with DNS name when Service is headless (ClusterIP is None)", func() {
+			reconciler.Client = FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: "None"}
+
+			err := reconciler.EnforceInstanceExposition(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			svc := corev1.Service{}
+			Expect(reconciler.Client.Get(ctx, serviceName, &svc)).To(Succeed())
+			Expect(instance.Status.Environments[index].IP).To(Equal(fmt.Sprintf("%s.%s.svc.cluster.local", serviceName.Name, serviceName.Namespace)))
 		})
 
 		Context("Gateway API mode enabled", func() {
