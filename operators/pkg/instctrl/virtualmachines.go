@@ -90,9 +90,7 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			return ctrl.SetControllerReference(instance, &dv, r.Scheme)
 		}
 		return nil
-
 	})
-
 	if errDV != nil {
 		log.Error(errDV, "failed to enforce datavolume", "datavolume", klog.KObj(&dv))
 		return errDV
