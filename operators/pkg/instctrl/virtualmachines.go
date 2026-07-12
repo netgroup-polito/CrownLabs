@@ -17,6 +17,7 @@ package instctrl
 import (
 	"context"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
@@ -83,7 +84,13 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			dv.Spec = forgedDV
 		}
 		// Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
-		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
+		// Used to ignore update of owner in case of DV already controlled by another object
+		if metav1.GetControllerOf(&dv) == nil {
+			// Set the owner reference when the DataVolume is not already controlled by another object.
+			return ctrl.SetControllerReference(instance, &dv, r.Scheme)
+		}
+		return nil
+
 	})
 
 	if errDV != nil {
