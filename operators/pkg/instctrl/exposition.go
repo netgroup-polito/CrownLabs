@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -295,7 +296,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionServiceAbsence(ctx context
 func (r *InstanceReconciler) getHTTPRouteAcceptedStatus(ctx context.Context, hr *gatewayv1.HTTPRoute) (bool, error) {
 	var route gatewayv1.HTTPRoute
 	if err := r.Get(ctx, types.NamespacedName{Namespace: hr.GetNamespace(), Name: hr.GetName()}, &route); err != nil {
-		return false, err
+		return false, client.IgnoreNotFound(err)
 	}
 
 	if len(route.Status.Parents) == 0 {
