@@ -83,6 +83,10 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
 			dv.Spec = forgedDV
 		}
+		if dv.Annotations == nil {
+			dv.Annotations = make(map[string]string)
+		}
+		dv.Annotations["cdi.kubevirt.io/storage.bind.immediate.requested"] = "true"
 		// Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
 		// Used to ignore update of owner in case of DV already controlled by another object
 		if metav1.GetControllerOf(&dv) == nil {
