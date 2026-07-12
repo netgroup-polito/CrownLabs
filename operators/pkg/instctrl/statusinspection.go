@@ -35,7 +35,8 @@ func (r *InstanceReconciler) RetrievePhaseFromVM(vm *virtv1.VirtualMachine, vmi 
 			return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
 		}
 		return clv1alpha2.EnvironmentPhaseStarting
-	case virtv1.VirtualMachineStatusProvisioning:
+	case virtv1.VirtualMachineStatusProvisioning,
+		virtv1.VirtualMachineStatusWaitingForVolumeBinding:
 		return clv1alpha2.EnvironmentPhaseImporting
 
 	case virtv1.VirtualMachineStatusStopping:
