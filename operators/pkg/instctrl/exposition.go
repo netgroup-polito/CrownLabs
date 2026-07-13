@@ -215,7 +215,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionServicePresence(ctx contex
 	log.V(utils.FromResult(res)).Info("object enforced", "service", klog.KObj(&service), "result", res)
 
 	if service.Spec.ClusterIP == "None" {
-		instance.Status.Environments[envIndex].IP = fmt.Sprintf("%s.%s.svc.cluster.local", service.Name, service.Namespace)
+		instance.Status.Environments[envIndex].IP = fmt.Sprintf("%s.%s", service.Name, service.Namespace)
 	} else {
 		instance.Status.Environments[envIndex].IP = service.Spec.ClusterIP
 	}

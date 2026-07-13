@@ -36,7 +36,7 @@ const (
 	StandaloneRewriteEndpoint = "/"
 
 	// GUIRewriteEndpoint -> the endpoint used to rewrite CloudVM/VM GUI URLs.
-	GUIRewriteEndpoint = "/gui"
+	GUIRewriteEndpoint = "/"
 )
 
 // HTTPRouteTemplate groups the minimal parameters required to forge an HTTPRouteSpec.
