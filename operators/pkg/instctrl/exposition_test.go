@@ -120,7 +120,7 @@ var _ = Describe("Exposition helpers", func() {
 
 			svc := corev1.Service{}
 			Expect(reconciler.Client.Get(ctx, serviceName, &svc)).To(Succeed())
-			Expect(instance.Status.Environments[index].IP).To(Equal(fmt.Sprintf("%s.%s", serviceName.Name, serviceName.Namespace)))
+			Expect(instance.Status.Environments[index].IP).To(Equal(fmt.Sprintf("%s.%s.svc.cluster.local", serviceName.Name, serviceName.Namespace)))
 		})
 
 		Context("Gateway API mode enabled", func() {
