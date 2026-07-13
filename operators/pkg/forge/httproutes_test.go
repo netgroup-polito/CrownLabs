@@ -74,7 +74,7 @@ var _ = Describe("HTTPRoute helpers", func() {
 		It("HTTPRouteSpec does not include empty filters when rewrite is disabled", func() {
 			tpl := forge.HTTPRouteTemplate{Path: "/instance/uid/env", ServiceName: "svc"}
 			expo := forge.ExpositionConfig{GatewayName: "gw", GatewayNamespace: "gw-ns"}
-			env := &clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM, RewriteURL: false}
+			env := &clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassStandalone, RewriteURL: false}
 			spec := forge.HTTPRouteSpec(&tpl, &expo, env, 8080)
 
 			Expect(spec).ToNot(BeNil())
