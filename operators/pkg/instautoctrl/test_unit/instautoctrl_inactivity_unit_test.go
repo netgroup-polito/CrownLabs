@@ -421,14 +421,12 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
 			ctx, _ = clctx.TenantInto(ctx, currentTenant)
 			By("Calling TerminateInstance function")
-			err := r.TerminateInstance(ctx)
+			var deleteInstance bool
+			err := r.TerminateInstance(ctx, &deleteInstance)
 			Expect(err).ToNot(HaveOccurred())
 
-			By("Checking that the instance has been deleted")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, InstanceLookupKey, currentInstance)
-				return kerrors.IsNotFound(err)
-			}, timeout, interval).Should(BeTrue(), "Instance should be deleted")
+			By("Checking that the delete flag has been set for non-persistent instance")
+			Expect(deleteInstance).To(BeTrue(), "deleteInstance flag should be set to true for non-persistent instances")
 		})
 	})
 
@@ -457,25 +455,15 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = clctx.TenantInto(ctx, currentTenant)
 
 			oldLastLogin := currentInstance.GetAnnotations()[forge.LastActivityAnnotation]
-			err := r.SetupInstanceAnnotations(ctx)
-			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
-			err = r.UpdateLastActivity(ctx)
+			r.EnsureAnnotations(ctx)
+			err := r.UpdateLastActivity(ctx)
 			Expect(err).ToNot(HaveOccurred(), "UpdateLastActivity should not return an error")
 
-			By("Checking that the instance has been updated")
-			Eventually(func() bool {
-				updatedInstance := &clv1alpha2.Instance{}
-				err := k8sClient.Get(ctx, InstanceLookupKey, updatedInstance)
-				if err != nil {
-					return false
-				}
-				annotations := updatedInstance.GetAnnotations()
-				newLoginTime, ok := annotations[forge.LastActivityAnnotation]
-				if !ok {
-					return false
-				}
-				return newLoginTime != oldLastLogin
-			}, timeout, interval).Should(BeTrue(), "Instance should be updated with a new last login time")
+			By("Checking that the instance has been updated in memory")
+			annotations := currentInstance.GetAnnotations()
+			newLoginTime, ok := annotations[forge.LastActivityAnnotation]
+			Expect(ok).To(BeTrue(), "LastActivityAnnotation should exist")
+			Expect(newLoginTime).ToNot(Equal(oldLastLogin), "Instance should be updated with a new last login time")
 		})
 	})
 
@@ -516,8 +504,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = clctx.TenantInto(ctx, currentTenant)
 
 			stopAfterInactivityDuration = time.Hour * 24 * 14
-			err := r.SetupInstanceAnnotations(ctx)
-			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
+			r.EnsureAnnotations(ctx)
 		})
 
 		It("should return remaining time if instance is still active", func() {
@@ -588,8 +575,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
 			ctx, _ = clctx.TenantInto(ctx, currentTenant)
 
-			err := r.SetupInstanceAnnotations(ctx)
-			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
+			r.EnsureAnnotations(ctx)
 		})
 
 		It("should return false if deleteAfterInactivity is NeverTimeoutValue", func() {
@@ -662,7 +648,7 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 		})
 	})
 
-	Describe("Testing SetupInstanceAnnotations function", func() {
+	Describe("Testing EnsureAnnotations function", func() {
 		var (
 			r               *instautoctrl.InstanceInactiveTerminationReconciler
 			ctx             context.Context
@@ -699,9 +685,8 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = clctx.TenantInto(ctx, currentTenant)
 		})
 
-		It("should add all missing annotations and patch", func() {
-			err := r.SetupInstanceAnnotations(ctx)
-			Expect(err).ToNot(HaveOccurred())
+		It("should add all missing annotations in-memory", func() {
+			r.EnsureAnnotations(ctx)
 
 			Expect(currentInstance.Annotations).To(HaveKeyWithValue(forge.AlertAnnotationNum, "0"))
 			Expect(currentInstance.Annotations).To(HaveKey(forge.LastActivityAnnotation))
@@ -830,13 +815,11 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 			ctx, _ = clctx.InstanceInto(ctx, currentInstance)
 			ctx, _ = clctx.TemplateInto(ctx, currentTemplate)
 			ctx, _ = clctx.TenantInto(ctx, currentTenant)
-			err := r.SetupInstanceAnnotations(ctx)
-			Expect(err).ToNot(HaveOccurred(), "SetupInstanceAnnotations should not return an error")
+			r.EnsureAnnotations(ctx)
 		})
 
 		It("should reset the AlertAnnotationNum to 0", func() {
-			err := r.ResetAnnotations(ctx)
-			Expect(err).ToNot(HaveOccurred())
+			r.EnsureAnnotations(ctx)
 			Expect(currentInstance.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
 		})
 
