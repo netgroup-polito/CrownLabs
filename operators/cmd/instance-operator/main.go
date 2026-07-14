@@ -33,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -55,17 +56,22 @@ func init() {
 
 	utilruntime.Must(virtv1.AddToScheme(rscheme))
 	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
+
+	utilruntime.Must(gatewayv1.Install(rscheme))
 }
 
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
-	svcUrls := instctrl.ServiceUrls{}
+	expositionCfg := forge.ExpositionConfig{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 	publicExposureOpts := forge.PublicExposureOpts{}
 	publicExposureIPPoolRaw := ""
 	publicExposureCommonAnnotationRaw := ""
 	publicExposureCommonLabelsRaw := ""
 	mirrorStorageClass := ""
+	enableAuth := true
+	gatewayAPIMode := false
+	gatewayAPIRefsValues := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -78,8 +84,8 @@ func main() {
 
 	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
 
-	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
+	flag.StringVar(&expositionCfg.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
+	flag.StringVar(&expositionCfg.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
@@ -97,7 +103,9 @@ func main() {
 
 	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
 
-	enableAuth := flag.Bool("enable-auth", true, "Enable adding authentication on the exposed resources")
+	flag.BoolVar(&enableAuth, "enable-auth", true, "Enable adding authentication on the exposed resources")
+	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
+	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -169,17 +177,32 @@ func main() {
 		log.Error(err, "no path provided for webssh public key")
 	}
 
+	// Populate exposition/gateway fields from flags
+	expositionCfg.EnableAuthentication = enableAuth
+	expositionCfg.GatewayAPIMode = gatewayAPIMode
+	log.Info("Gateway API mode selection", "enabled", gatewayAPIMode)
+	if gatewayAPIMode {
+		gwNs, gwName, err := forge.ParseGatewayParent(gatewayAPIRefsValues)
+		if err != nil {
+			log.Error(err, "invalid gateway parent format, expected 'namespace/name'")
+			os.Exit(1)
+		}
+		expositionCfg.GatewayName = gwName
+		expositionCfg.GatewayNamespace = gwNs
+	} else if gatewayAPIRefsValues != "" {
+		log.Info("Gateway parent provided but Gateway API mode is disabled")
+	}
+
 	if err = (&instctrl.InstanceReconciler{
 		Client:                    mgr.GetClient(),
 		Scheme:                    mgr.GetScheme(),
 		EventsRecorder:            mgr.GetEventRecorderFor(instanceCtrlName),
 		NamespaceWhitelist:        nsWhitelist,
-		ServiceUrls:               svcUrls,
+		ExpositionConfig:          expositionCfg,
 		ContainerEnvOpts:          containerEnvOpts,
 		WebSSHMasterPublicKey:     pubKeyBytes,
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
-		EnableAuthentication:      *enableAuth,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

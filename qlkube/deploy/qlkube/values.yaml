@@ -78,7 +78,8 @@ service:
   type: ClusterIP
   port: 8080
 
-global: {}
+global:
+  gateway: {}
 
 ingress:
   annotations:
@@ -92,8 +93,8 @@ ingress:
   secret: frontend-app-certificate
 
 httproute:
-  gateway:
-    name: crownlabs-main
+  gateway: {}
+    # name: crownlabs-main # defaults to global.gateway.name
 
 resources:
   limits:
