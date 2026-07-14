@@ -26,6 +26,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -69,6 +70,22 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 		return nil
 	}
 
+	var authMode string
+	var authSvcName, authNs, authPath string
+	var authPort int32
+
+	// Parse the authentication annotation before creating the HTTPRoute.
+	// This ensures we fail safely if the annotation is invalid, without leaving an unprotected HTTPRoute.
+	if r.ExpositionConfig.EnableAuthentication {
+		annot := instance.Annotations[forge.AuthServiceAnnotation]
+		service, ns, port, path, mode, err := forge.ParseAuthServiceAnnotation(annot, instance.Namespace, r.ExpositionConfig.GatewayAPIAuthService)
+		if err != nil {
+			log.Error(err, "invalid auth-service annotation", "annotation", annot)
+			return err
+		}
+		authMode, authSvcName, authNs, authPort, authPath = mode, service, ns, port, path
+	}
+
 	// Enforce the HTTPRoute presence
 	httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {
@@ -106,6 +123,26 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	if !accepted {
 		log.Info("httproute not yet accepted by the gateway", "httproute", klog.KObj(&httpRoute))
 		return nil
+	}
+
+	// Check if authentication should be enabled
+	if r.ExpositionConfig.EnableAuthentication {
+		if authMode == "none" {
+			if err := r.enforceInstanceExpositionSecurityPolicyAbsence(ctx); err != nil {
+				log.Error(err, "failed to remove securitypolicy", "httproute", klog.KObj(&httpRoute))
+				return err
+			}
+		} else {
+			if err := r.enforceInstanceExpositionSecurityPolicyPresence(ctx, authSvcName, authNs, authPort, authPath); err != nil {
+				log.Error(err, "failed to enforce securitypolicy presence", "httproute", klog.KObj(&httpRoute))
+				return err
+			}
+		}
+	} else {
+		if err := r.enforceInstanceExpositionSecurityPolicyAbsence(ctx); err != nil {
+			log.Error(err, "failed to remove securitypolicy", "httproute", klog.KObj(&httpRoute))
+			return err
+		}
 	}
 
 	// Destroy any Ingress
@@ -170,6 +207,12 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	// Update the instance status to mark the exposition as accepted a priori
 	// for Ingress-based exposition (Ingresses are considered accepted).
 	instance.Status.Environments[envIndex].ExpositionAccepted = true
+
+	// Destroy any SecurityPolicy
+	if err := r.enforceInstanceExpositionSecurityPolicyAbsence(ctx); err != nil {
+		log.Error(err, "failed to remove conflicting securitypolicy", "ingress", klog.KObj(&ingressGUI))
+		return err
+	}
 
 	// Destroy any HTTPRoute
 	if err := r.enforceInstanceExpositionHTTPRouteAbsence(ctx); err != nil {
@@ -244,6 +287,10 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	if err := r.enforceInstanceExpositionServiceAbsence(ctx); err != nil {
 		return err
 	}
+	// Enforce SecurityPolicy absence
+	if err := r.enforceInstanceExpositionSecurityPolicyAbsence(ctx); err != nil {
+		return err
+	}
 	// Enforce HTTPRoute absence
 	if err := r.enforceInstanceExpositionHTTPRouteAbsence(ctx); err != nil {
 		return err
@@ -312,4 +359,41 @@ func (r *InstanceReconciler) getHTTPRouteAcceptedStatus(ctx context.Context, hr 
 	}
 
 	return false, nil
+}
+
+// enforceInstanceExpositionSecurityPolicyPresence ensures the presence of the SecurityPolicy required to authenticate the HTTPRoute.
+func (r *InstanceReconciler) enforceInstanceExpositionSecurityPolicyPresence(ctx context.Context, serviceName, namespace string, port int32, path string) error {
+	log := ctrl.LoggerFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
+	environment := clctx.EnvironmentFrom(ctx)
+
+	policy := egv1alpha1.SecurityPolicy{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-auth-policy")}
+	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &policy, func() error {
+		if policy.CreationTimestamp.IsZero() {
+			policy.Spec = forge.SecurityPolicy(instance, environment, serviceName, namespace, port, path)
+		}
+		policy.SetLabels(forge.EnvironmentObjectLabels(policy.GetLabels(), instance, environment))
+
+		return ctrl.SetControllerReference(instance, &policy, r.Scheme)
+	})
+
+	if err != nil {
+		log.Error(err, "failed to create object", "securitypolicy", klog.KObj(&policy))
+		return err
+	}
+
+	log.V(utils.FromResult(res)).Info("object enforced", "securitypolicy", klog.KObj(&policy), "result", res)
+	return nil
+}
+
+// enforceInstanceExpositionSecurityPolicyAbsence removes the SecurityPolicy exposed resource for the environment.
+func (r *InstanceReconciler) enforceInstanceExpositionSecurityPolicyAbsence(ctx context.Context) error {
+	instance := clctx.InstanceFrom(ctx)
+	environment := clctx.EnvironmentFrom(ctx)
+
+	policy := egv1alpha1.SecurityPolicy{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-auth-policy")}
+	if err := utils.EnforceObjectAbsence(ctx, r.Client, &policy, "securitypolicy"); err != nil {
+		return err
+	}
+	return nil
 }

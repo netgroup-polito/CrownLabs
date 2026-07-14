@@ -28,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -63,6 +64,7 @@ var _ = BeforeSuite(func() {
 	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(gatewayv1.Install(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(egv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 
 	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
@@ -77,12 +79,13 @@ var _ = BeforeSuite(func() {
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
 		ReconcileDeferHook: GinkgoRecover,
 		ExpositionConfig: forge.ExpositionConfig{
-			WebsiteBaseURL:       "fakesite.com",
-			InstancesAuthURL:     "fake.com/auth",
-			EnableAuthentication: true,
-			GatewayAPIMode:       false,
-			GatewayName:          "fake-gw",
-			GatewayNamespace:     "fake-gw-ns",
+			WebsiteBaseURL:        "fakesite.com",
+			InstancesAuthURL:      "fake.com/auth",
+			EnableAuthentication:  true,
+			GatewayAPIMode:        false,
+			GatewayName:           "fake-gw",
+			GatewayNamespace:      "fake-gw-ns",
+			GatewayAPIAuthService: "oauth2-proxy.crownlabs:4180/auth",
 		},
 		ContainerEnvOpts: forge.ContainerEnvOpts{
 			ImagesTag:       "v0.1.2",

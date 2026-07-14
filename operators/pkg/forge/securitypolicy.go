@@ -28,6 +28,8 @@ import (
 )
 
 const (
+	// AuthServiceAnnotation is the annotation used to specify the authentication service for an instance.
+	AuthServiceAnnotation = "crownlabs.polito.it/auth-service"
 	// AuthAnnotationDisabled indicates that authentication should be disabled.
 	AuthAnnotationDisabled = "none"
 	// AuthAnnotationDefault indicates that default authentication should be used.
@@ -36,15 +38,16 @@ const (
 
 // ParseAuthServiceAnnotation parses the crownlabs.polito.it/auth-service annotation.
 // Expected formats:
-// - "" or "default" -> defaults (uses the provided default arguments)
+// - "" or "default" -> defaults (parses the defaultAuthString)
 // - "none" or "disabled" -> authentication disabled
 // - "serviceName.namespace:port/path" -> custom service (namespace, port, path are optional)
 // Returns serviceName, namespace, port, path, authMode ("none", "default", "custom"), and error.
-func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultService, defaultNamespace string, defaultPort int32, defaultPath string) (serviceName, namespace string, port int32, path string, mode string, err error) {
+func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultAuthString string) (serviceName, namespace string, port int32, path string, mode string, err error) {
 	raw = strings.TrimSpace(raw)
 
 	if raw == "" || raw == AuthAnnotationDefault {
-		return defaultService, defaultNamespace, defaultPort, defaultPath, "default", nil
+		serviceName, namespace, port, path, _, err = ParseAuthServiceAnnotation(defaultAuthString, tenantNamespace, "")
+		return serviceName, namespace, port, path, "default", err
 	}
 
 	if raw == AuthAnnotationDisabled || raw == "disabled" {
@@ -89,49 +92,44 @@ func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultService, defaultNam
 	return serviceName, namespace, port, path, "custom", nil
 }
 
-// SecurityPolicy forges the Envoy Gateway SecurityPolicy resource.
-func SecurityPolicy(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, serviceName, namespace string, port int32, path string) egv1alpha1.SecurityPolicy {
+// SecurityPolicy forges the SecurityPolicy required to expose the HTTPRoute to an external auth service.
+func SecurityPolicy(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, serviceName, namespace string, port int32, path string) egv1alpha1.SecurityPolicySpec {
 	// targetRouteName is the HTTPRoute that exposes the environment.
 	targetRouteName := fmt.Sprintf("%v-%v", instance.Name, environment.Name)
 
-	sp := egv1alpha1.SecurityPolicy{
-		ObjectMeta: ObjectMetaWithSuffix(instance, environment.Name),
-		Spec: egv1alpha1.SecurityPolicySpec{
-			PolicyTargetReferences: egv1alpha1.PolicyTargetReferences{
-				TargetRefs: []gwapiv1a2.LocalPolicyTargetReferenceWithSectionName{
-					{
-						LocalPolicyTargetReference: gwapiv1a2.LocalPolicyTargetReference{
-							Group: gwapiv1a2.Group("gateway.networking.k8s.io"),
-							Kind:  gwapiv1a2.Kind("HTTPRoute"),
-							Name:  gwapiv1a2.ObjectName(targetRouteName),
-						},
+	sp := egv1alpha1.SecurityPolicySpec{
+		PolicyTargetReferences: egv1alpha1.PolicyTargetReferences{
+			TargetRefs: []gwapiv1a2.LocalPolicyTargetReferenceWithSectionName{
+				{
+					LocalPolicyTargetReference: gwapiv1a2.LocalPolicyTargetReference{
+						Group: gwapiv1a2.Group("gateway.networking.k8s.io"),
+						Kind:  gwapiv1a2.Kind("HTTPRoute"),
+						Name:  gwapiv1a2.ObjectName(targetRouteName),
 					},
-				},
-			},
-			ExtAuth: &egv1alpha1.ExtAuth{
-				HeadersToExtAuth: []string{
-					"Cookie",
-					"Authorization",
-				},
-				HTTP: &egv1alpha1.HTTPExtAuthService{
-					BackendRefs: []egv1alpha1.BackendRef{
-						{
-							BackendObjectReference: gatewayv1.BackendObjectReference{
-								Group:     ptr.To(gatewayv1.Group("")),
-								Kind:      ptr.To(gatewayv1.Kind("Service")),
-								Name:      gatewayv1.ObjectName(serviceName),
-								Namespace: ptr.To(gatewayv1.Namespace(namespace)),
-								Port:      ptr.To(gatewayv1.PortNumber(port)),
-							},
-						},
-					},
-					Path: ptr.To(path),
 				},
 			},
 		},
+		ExtAuth: &egv1alpha1.ExtAuth{
+			HeadersToExtAuth: []string{
+				"Cookie",
+				"Authorization",
+			},
+			HTTP: &egv1alpha1.HTTPExtAuthService{
+				BackendRefs: []egv1alpha1.BackendRef{
+					{
+						BackendObjectReference: gatewayv1.BackendObjectReference{
+							Group:     ptr.To(gatewayv1.Group("")),
+							Kind:      ptr.To(gatewayv1.Kind("Service")),
+							Name:      gatewayv1.ObjectName(serviceName),
+							Namespace: ptr.To(gatewayv1.Namespace(namespace)),
+							Port:      ptr.To(gatewayv1.PortNumber(port)),
+						},
+					},
+				},
+				Path: ptr.To(path),
+			},
+		},
 	}
-
-	sp.SetLabels(EnvironmentObjectLabels(sp.GetLabels(), instance, environment))
 
 	return sp
 }

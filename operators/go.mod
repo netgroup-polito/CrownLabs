@@ -7,6 +7,7 @@ require (
 	github.com/Nerzal/gocloak/v7 v7.11.0
 	github.com/dgrijalva/jwt-go/v4 v4.0.0-preview1
 	github.com/dustinkirkland/golang-petname v0.0.0-20231002161417-6a283f1aaaf2
+	github.com/envoyproxy/gateway v1.1.0
 	github.com/go-logr/logr v1.4.3
 	github.com/go-logr/stdr v1.2.2
 	github.com/go-resty/resty/v2 v2.12.0
@@ -44,6 +45,7 @@ require (
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/emicklei/go-restful/v3 v3.13.0 // indirect
+	github.com/evanphx/json-patch v5.9.0+incompatible // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/fxamacker/cbor/v2 v2.9.0 // indirect

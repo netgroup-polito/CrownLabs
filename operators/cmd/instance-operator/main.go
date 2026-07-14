@@ -34,6 +34,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -58,6 +59,7 @@ func init() {
 	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
 
 	utilruntime.Must(gatewayv1.Install(rscheme))
+	utilruntime.Must(egv1alpha1.AddToScheme(rscheme))
 }
 
 func main() {
@@ -86,6 +88,7 @@ func main() {
 
 	flag.StringVar(&expositionCfg.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&expositionCfg.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
+	flag.StringVar(&expositionCfg.GatewayAPIAuthService, "gateway-api-auth-service", "oauth2-proxy.crownlabs:4180/auth", "The default authentication service for Gateway API in format serviceName.namespace:port/path")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")

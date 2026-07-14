@@ -47,12 +47,13 @@ type HTTPRouteTemplate struct {
 
 // ExpositionConfig holds gateway information used by HTTPRouteSpec.
 type ExpositionConfig struct {
-	WebsiteBaseURL       string
-	InstancesAuthURL     string
-	EnableAuthentication bool
-	GatewayAPIMode       bool
-	GatewayName          string
-	GatewayNamespace     string
+	WebsiteBaseURL        string
+	InstancesAuthURL      string
+	EnableAuthentication  bool
+	GatewayAPIMode        bool
+	GatewayName           string
+	GatewayNamespace      string
+	GatewayAPIAuthService string
 }
 
 // ParseGatewayParent parses a gateway parent reference of the form
