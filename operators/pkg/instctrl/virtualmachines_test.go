@@ -417,12 +417,15 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					clientBuilder.WithObjects(&existingDV)
 				})
 
-				It("Should not fail and should preserve the existing controller owner", func() {
+				It("Should not fail and should steal the controller owner from the VirtualMachine", func() {
 					var dv cdiv1beta1.DataVolume
 
 					Expect(err).ToNot(HaveOccurred())
 					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
-					Expect(dv.GetOwnerReferences()).To(ContainElement(metav1.OwnerReference{
+
+					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+
+					Expect(dv.GetOwnerReferences()).ToNot(ContainElement(metav1.OwnerReference{
 						APIVersion:         virtv1.GroupVersion.String(),
 						Kind:               "VirtualMachine",
 						Name:               objectNameEnv.Name,
