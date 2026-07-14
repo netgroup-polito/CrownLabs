@@ -83,13 +83,18 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
 			dv.Spec = forgedDV
 		}
-		// Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
-		// Used to ignore update of owner in case of DV already controlled by another object
-		if metav1.GetControllerOf(&dv) == nil {
-			// Set the owner reference when the DataVolume is not already controlled by another object.
-			return ctrl.SetControllerReference(instance, &dv, r.Scheme)
+		// Filter the OwnerReferences to remove any controller that is not the current instance, to avoid "stealing" the resource from other controllers.
+		var filteredOwners []metav1.OwnerReference
+		for _, owner := range dv.OwnerReferences {
+			if owner.Controller != nil && *owner.Controller && owner.UID != instance.UID {
+				// If the owner is a controller and it is not the current instance, we skip it.
+				continue
+			}
+			filteredOwners = append(filteredOwners, owner)
 		}
-		return nil
+		dv.OwnerReferences = filteredOwners
+
+		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
 	})
 	if errDV != nil {
 		log.Error(errDV, "failed to enforce datavolume", "datavolume", klog.KObj(&dv))
@@ -115,6 +120,10 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
 		if vm.CreationTimestamp.IsZero() {
 			vm.Spec = forge.VirtualMachineSpec(instance, template, environment, mountInfos)
+		}
+		// If DataVolumeTemplates are present, they are removed from the VM specifications, as they are not needed anymore. In fact, the DataVolume is already created and managed by the controller.
+		if len(vm.Spec.DataVolumeTemplates) > 0 {
+			vm.Spec.DataVolumeTemplates = nil
 		}
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)
