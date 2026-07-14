@@ -80,7 +80,10 @@ func main() {
 	prometheusNginxData := flag.String("monitoring-nginx-data", `nginx_ingress_controller_requests{exported_namespace="%s", exported_service=~"%s.*"}`, "Prometheus Query to retrieve metrics about the last (frontend) access to a specific instance.")
 	prometheusBastionSSHData := flag.String("monitoring-bastion-ssh-data", `bastion_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (SSH) access to a specific instance.")
 	prometheusWebSSHData := flag.String("monitoring-web-ssh-data", `bastion_web_ssh_connections{destination_ip=%q}`, "Prometheus Query to retrieve metrics about the last (WebSSH) access to a specific instance.")
-	queryStep := flag.Duration("prometheus-query-step", 5*time.Minute, "The step to use when querying range data from Prometheus.")
+	queryStep := flag.Duration("prometheus-query-step", 30*time.Second, "The step to use when querying range data from Prometheus.")
+	minLastActivityRequeueTime := flag.Duration("min-last-activity-requeue-time", 1*time.Hour, "Minimum requeue interval for lastActivity refresh")
+	maxLastActivityRequeueTime := flag.Duration("max-last-activity-requeue-time", 6*time.Hour, "Maximum requeue interval for lastActivity refresh")
+	lastActivityCheckThreshold := flag.Duration("last-activity-check-threshold", 30*time.Second, "Threshold before checking Prometheus again")
 
 	instanceTerminationStatusCheckTimeout := flag.Duration("instance-termination-status-check-timeout", 3*time.Second, "The maximum time to wait for the status check for Instances that require it")
 	instanceTerminationStatusCheckInterval := flag.Duration("instance-termination-status-check-interval", 24*time.Hour, "The interval to check the status of Instances that require it")
@@ -205,6 +208,9 @@ func main() {
 			NotificationInterval:            *instanceInactiveTerminationNotificationInterval,
 			DestructionNotificationInterval: *inactiveDestructionNotificationInterval,
 			MarginTime:                      *marginTime,
+			MinLastActivityRequeueTime:      *minLastActivityRequeueTime,
+			MaxLastActivityRequeueTime:      *maxLastActivityRequeueTime,
+			LastActivityCheckThreshold:      *lastActivityCheckThreshold,
 		}).SetupWithManager(mgr, *maxConcurrentInactiveTerminationReconciles); err != nil {
 			log.Error(err, "unable to create controller", "controller", instanceInactiveTermination)
 			os.Exit(1)

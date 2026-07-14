@@ -15,7 +15,6 @@
 package instctrl_test
 
 import (
-	"path/filepath"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -28,7 +27,7 @@ import (
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/envtest"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -48,14 +47,8 @@ func TestAPIs(t *testing.T) {
 var (
 	instanceReconciler instctrl.InstanceReconciler
 	k8sClient          client.Client
-	testEnv            = envtest.Environment{
-		CRDDirectoryPaths: []string{
-			filepath.Join("..", "..", "deploy", "crds"),
-			filepath.Join("..", "..", "tests", "crds"),
-		},
-		ErrorIfCRDPathMissing: true,
-	}
-	whiteListMap = map[string]string{"production": "true"}
+	testEnv            = *tests.ForgeEnvtestEnv(true)
+	whiteListMap       = map[string]string{"production": "true"}
 )
 
 var _ = BeforeSuite(func() {
@@ -69,6 +62,7 @@ var _ = BeforeSuite(func() {
 	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(virtv1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
 	Expect(cdiv1beta1.AddToScheme(scheme.Scheme)).NotTo(HaveOccurred())
+	Expect(gatewayv1.Install(scheme.Scheme)).NotTo(HaveOccurred())
 
 	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
@@ -82,9 +76,13 @@ var _ = BeforeSuite(func() {
 		EventsRecorder:     record.NewFakeRecorder(1024),
 		NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
 		ReconcileDeferHook: GinkgoRecover,
-		ServiceUrls: instctrl.ServiceUrls{
-			WebsiteBaseURL:   "fakesite.com",
-			InstancesAuthURL: "fake.com/auth",
+		ExpositionConfig: forge.ExpositionConfig{
+			WebsiteBaseURL:       "fakesite.com",
+			InstancesAuthURL:     "fake.com/auth",
+			EnableAuthentication: true,
+			GatewayAPIMode:       false,
+			GatewayName:          "fake-gw",
+			GatewayNamespace:     "fake-gw-ns",
 		},
 		ContainerEnvOpts: forge.ContainerEnvOpts{
 			ImagesTag:       "v0.1.2",

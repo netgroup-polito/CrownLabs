@@ -98,6 +98,9 @@ const (
 	// LastActivityAnnotation -> timestamp of the last access detected to the instance.
 	LastActivityAnnotation = "crownlabs.polito.it/last-activity"
 
+	// LastActivityCheckTimestampAnnotation -> timestamp of the last time Prometheus was queried for activity.
+	LastActivityCheckTimestampAnnotation = "crownlabs.polito.it/last-activity-check-timestamp"
+
 	// LastNotificationTimestampAnnotation -> timestamp of the last notification sent to the tenant.
 	LastNotificationTimestampAnnotation = "crownlabs.polito.it/last-notification-timestamp"
 

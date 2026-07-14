@@ -1,7 +1,11 @@
 import { type FC, useContext, useState, useCallback, useMemo } from 'react';
 import { Modal, Typography } from 'antd';
 import { Button } from 'antd';
-import { type Instance, WorkspaceRole } from '../../../../utils';
+import {
+  formatRelativeDate,
+  type Instance,
+  WorkspaceRole,
+} from '../../../../utils';
 import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
 import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
@@ -80,7 +84,10 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
   const closeExposureModal = useCallback(() => setShowExposureModal(false), []);
 
   const timeValue = useMemo(() => formatElapsedTime(now, instance.timeStamp, 'unknown'), [now, instance.timeStamp]);
-  const lastAccessValue = useMemo(() => formatElapsedTime(now, instance.lastActivity, '-'), [now, instance.lastActivity]);
+  const lastAccessValue = useMemo(
+    () => formatRelativeDate(instance.lastActivity, now),
+    [instance.lastActivity, now],
+  );
 
   const fieldsDropdown = useMemo(() => ({
     instance,

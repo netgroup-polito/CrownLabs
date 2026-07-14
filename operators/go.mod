@@ -33,6 +33,7 @@ require (
 	kubevirt.io/api v1.2.0
 	kubevirt.io/containerized-data-importer-api v1.58.3
 	sigs.k8s.io/controller-runtime v0.21.0
+	sigs.k8s.io/gateway-api v1.3.0
 	sigs.k8s.io/sig-storage-lib-external-provisioner/v13 v13.0.0
 	sigs.k8s.io/yaml v1.6.0
 )

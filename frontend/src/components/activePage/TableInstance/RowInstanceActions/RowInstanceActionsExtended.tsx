@@ -130,69 +130,75 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
           </Button>
         </Popover>
 
-        <Tooltip
-          title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
-        >
-          <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
-            <Button
-              disabled={sshDisabled}
-              className={`hidden mr-3 xl:inline-block ${
-                sshDisabled ? 'pointer-events-none' : ''
-              }`}
-              shape="round"
-              onClick={() => setSshModal(true)}
+          <span className="hidden mr-3 xl:inline-flex items-center">
+            <Tooltip
+              title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
             >
-              SSH
-              {(!instance.environments || instance.environments.length === 1) ? (
+              <span className={sshDisabled ? 'cursor-not-allowed' : ''}>
                 <Button
                   disabled={sshDisabled}
-                  type="link"
-                  className="ml-3"
-                  color="primary"
-                  variant="solid"
-                  shape="circle"
-                  size="small"
-                  icon={
-                    <Link
-                      to={buildSSHLink(getFirstEnvironmentName())}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        color: 'inherit',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
-                        <ExportOutlined style={{ fontSize: 15 }} />
-                      </span>
-                    </Link>
-                  }
-                ></Button>
-              ) : (
-                <Tooltip title="Direct link not supported for multiple environments (yet!)">
-                  <span className="inline-block cursor-not-allowed">
-                    <Button
-                      disabled
-                      type="link"
-                      className="ml-3 pointer-events-none"
-                      color="primary"
-                      variant="solid"
-                      shape="circle"
-                      size="small"
-                      icon={
-                        <span style={{ display: 'flex', alignItems: 'center', color: 'gray' }}>
+                  className={`${
+                    sshDisabled ? 'pointer-events-none' : ''
+                  }`}
+                  shape="round"
+                  onClick={() => setSshModal(true)}
+                >
+                  SSH
+                </Button>
+              </span>
+            </Tooltip>
+            {(!instance.environments || instance.environments.length === 1) ? (
+              <Tooltip title={sshDisabled ? getSSHTooltipText(status === Phase2.Ready, environmentType!) : "Direct SSH Connection"}>
+                <span className={`ml-1 ${sshDisabled ? 'cursor-not-allowed inline-block' : 'inline-block'}`}>
+                  <Button
+                    disabled={sshDisabled}
+                    type="link"
+                    className={`${sshDisabled ? 'pointer-events-none' : ''}`}
+                    color="primary"
+                    variant="solid"
+                    shape="circle"
+                    size="small"
+                    icon={
+                      <Link
+                        to={buildSSHLink(getFirstEnvironmentName())}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={e => e.stopPropagation()}
+                        style={{
+                          color: 'inherit',
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
                           <ExportOutlined style={{ fontSize: 15 }} />
                         </span>
-                      }
-                    ></Button>
-                  </span>
-                </Tooltip>
-              )}
-            </Button>
+                      </Link>
+                    }
+                  ></Button>
+                </span>
+              </Tooltip>
+            ) : (
+              <Tooltip title="Direct link not supported for multiple environments (yet!)">
+                <span className="inline-block cursor-not-allowed ml-1">
+                  <Button
+                    disabled
+                    type="link"
+                    className="pointer-events-none"
+                    color="primary"
+                    variant="solid"
+                    shape="circle"
+                    size="small"
+                    icon={
+                      <span style={{ display: 'flex', alignItems: 'center', color: 'gray' }}>
+                        <ExportOutlined style={{ fontSize: 15 }} />
+                      </span>
+                    }
+                  ></Button>
+                </span>
+              </Tooltip>
+            )}
           </span>
-        </Tooltip>
 
         {instance.allowPublicExposure && (
           <Tooltip title={getPublicExposureTooltipText()}>

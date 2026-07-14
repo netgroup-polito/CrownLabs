@@ -241,12 +241,13 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                 {title}
               </Text>
               {extended && (
-                <Text
-                  className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block"
-                  ellipsis
-                >
-                  <i>{templatePrettyName}</i>
-                </Text>
+                <Tooltip title={(templatePrettyName && templatePrettyName.length > 15) ? templatePrettyName : undefined}>
+                  <Text
+                    className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block"
+                  >
+                    <i>{(templatePrettyName && templatePrettyName.length > 15) ? `${templatePrettyName.substring(0, 15)}...` : templatePrettyName}</i>
+                  </Text>
+                </Tooltip>
               )}
               {persistent && extended && <PersistentIcon />}
               {extended && <InactivityIcon instance={instance} />}

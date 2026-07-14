@@ -37,22 +37,24 @@ spec:
           image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
-            - "--website-base-url={{ .Values.configurations.generic.websiteBaseUrl }}"
-            - "--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}"
-            - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
-            - "--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}"
-            - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
-            - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
-            - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
-            - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
-            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
-            - "--webbastion-master-key-path=/webbastion-key/{{ .Values.webssh.masterKey.keyName }}.pub"
+            - '--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}'
+            - '--website-base-url={{ .Values.configurations.generic.websiteBaseUrl | default .Values.global.gateway.hostname }}'
+            - '--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}'
+            - '--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}'
+            - '--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}'
+            - '--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}'
+            - '--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}'
+            - '--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}'
+            - '--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}'
+            - '--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}'
+            - '--webbastion-master-key-path=/webbastion-key/{{ .Values.webssh.masterKey.keyName }}.pub'
             - '--public-exposure-ip-pool={{ .Values.configurations.publicExposure.ipPool | join "," }}'
             - '--public-exposure-common-annotations={{ .Values.configurations.publicExposure.commonAnnotations | join "," }}'
             - '--public-exposure-common-labels={{ .Values.configurations.publicExposure.commonLabels | join "," }}'
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
-            - "--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}"
+            - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
+            - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
+            - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
           ports:
             - name: op-metrics
               containerPort: 8080
@@ -148,6 +150,9 @@ spec:
             - --monitoring-bastion-ssh-data={{ .Values.configurations.monitoring.queryBastionSSHData}}
             - --monitoring-web-ssh-data={{ .Values.configurations.monitoring.queryWebSSHData}}
             - --prometheus-query-step={{ .Values.configurations.monitoring.queryStep }}
+            - "--min-last-activity-requeue-time={{ .Values.configurations.automation.minLastActivityRequeueTime }}"
+            - "--max-last-activity-requeue-time={{ .Values.configurations.automation.maxLastActivityRequeueTime }}"
+            - "--last-activity-check-threshold={{ .Values.configurations.automation.lastActivityCheckThreshold }}"
             - --max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}
             - --max-concurrent-reconciles-inactive-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}
             - --max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}

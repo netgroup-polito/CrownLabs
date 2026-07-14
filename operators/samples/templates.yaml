@@ -53,7 +53,7 @@ spec:
   prettyName: Dark coffee
   description: Too strong to keep it running for a long time
   environmentList:
-    - name: dark-coffee-1
+    - name: dark-coffee
       environmentType: Container
       image: registry.crownlabs.example.com/coffee/dark:strongest
       guiEnabled: false
@@ -78,9 +78,8 @@ spec:
   prettyName: Visual Studio Code - Python (marketplace disabled)
   description: A template about vscode
   environmentList:
-    - name: vscode-environment
+    - name: vscode-env
       environmentType: Standalone
-      mode: Standard
       mountMyDriveVolume: false
       image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-python:1.0.5
       containerStartupOptions:
@@ -106,10 +105,9 @@ spec:
   prettyName: vscode c-cpp persistent
   description: A template about vscode
   environmentList:
-    - name: vscode-environment
+    - name: vscode-env
       mountMyDriveVolume: false
       environmentType: Standalone
-      mode: Standard
       image: harbor.crownlabs.polito.it/crownlabs-standalone/vscode-c-cpp:1.0.5
       containerStartupOptions:
         contentPath: /config/workspace
@@ -132,10 +130,9 @@ spec:
   prettyName: jupyterlab
   description: A template about vscode
   environmentList:
-    - name: jupyterlab-environment
+    - name: jupyter-env
       mountMyDriveVolume: false
       environmentType: Standalone
-      mode: Standard
       image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
       containerStartupOptions:
         contentPath: /home/crownlabs

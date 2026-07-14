@@ -225,6 +225,49 @@ export function makeListToggler<T>(
 export const JSONDeepCopy = <T>(obj: T) =>
   obj && (JSON.parse(JSON.stringify(obj)) as T);
 
+export function formatRelativeDate(value?: string, now = new Date()): string {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const diffDays = Math.floor(
+    (today.getTime() - targetDay.getTime()) / 86400000,
+  );
+
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 30) return `${diffDays} days ago`;
+
+  const years =
+    today.getFullYear() -
+    targetDay.getFullYear() -
+    (today.getMonth() < targetDay.getMonth() ||
+    (today.getMonth() === targetDay.getMonth() &&
+      today.getDate() < targetDay.getDate())
+      ? 1
+      : 0);
+
+  if (years > 0) return `${years} ${years === 1 ? 'year' : 'years'} ago`;
+
+  const months =
+    today.getFullYear() * 12 +
+    today.getMonth() -
+    (targetDay.getFullYear() * 12 + targetDay.getMonth()) -
+    (today.getDate() < targetDay.getDate() ? 1 : 0);
+
+  const normalizedMonths = Math.max(1, months);
+  return `${normalizedMonths} ${
+    normalizedMonths === 1 ? 'month' : 'months'
+  } ago`;
+}
+
 export type WorkspaceEntry = { role: Role; name: string };
 
 export type UserAccountPage = {

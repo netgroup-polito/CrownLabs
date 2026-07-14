@@ -93,7 +93,9 @@ run-instance: generate ## Run the instance operator locally
 				--container-env-sidecars-tag=v0.14.5\
 				--public-exposure-ip-pool="172.18.0.240-172.18.0.248,172.18.0.249,172.18.0.250/30"\
 				--public-exposure-common-annotations="metallb.universe.tf/allow-shared-ip=pe"\
-				--public-exposure-loadbalancer-ips-key="metallb.universe.tf/loadBalancerIPs"
+				--public-exposure-loadbalancer-ips-key="metallb.universe.tf/loadBalancerIPs"\
+				--gateway-api-mode=true\
+				--gateway-api-refs-values="my-ns/my-gateway"
 
 .PHONY: run-instance-automation
 run-instance-automation: generate ## Run the instance automation controller locally

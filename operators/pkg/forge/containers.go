@@ -187,13 +187,13 @@ func StandaloneContainer(instance *clv1alpha2.Instance, environment *clv1alpha2.
 	standaloneContainer := AppContainer(environment, volumeMountPath, mountInfos)
 	AddTCPPortToContainer(&standaloneContainer, GUIPortName, GUIPortNumber)
 
-	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_BASE_PATH", IngressGUICleanPath(instance, environment))
+	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_BASE_PATH", ExpositionGUICleanPath(instance, environment))
 	AddEnvVariableToContainer(&standaloneContainer, "CROWNLABS_LISTEN_PORT", strconv.Itoa(GUIPortNumber))
 
 	if environment.RewriteURL {
 		SetContainerReadinessHTTPProbe(&standaloneContainer, GUIPortName, "/")
 	} else {
-		SetContainerReadinessHTTPProbe(&standaloneContainer, GUIPortName, IngressGUIPath(instance, environment))
+		SetContainerReadinessHTTPProbe(&standaloneContainer, GUIPortName, ExpositionGUIPath(instance, environment))
 	}
 
 	return standaloneContainer

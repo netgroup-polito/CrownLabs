@@ -17,25 +17,29 @@
 The **Instance Automation Controller** (`instautoctrl` package) handles all automation tasks related to Instances, covering four main areas: instance inactivity management, instance expiration handling, instance termination processes, and instance submission workflows.
 
 The package includes four different controllers:
+
 - Instance Inactive Controller
 - Instance Expiration Controller
 - Instance Termination Controller
 - Instance Submission Controller
 
-
 ## Instance Inactive Termination Controller
+
 This controller monitors instances and automates actions based on their inactivity status.
 If no activity is detected for a period longer than `cleanup.stopAfterInactivity` defined in the associated `Template`:
+
 - **If email notifications are enabled** (`enableInactivityNotifications` is set to `true`), the controller sends warning notifications to the tenant. If the tenant does not access the instance, it is eventually paused (if persistent) or deleted (if non-persistent) after the configured number of alerts are sent.
 - **If email notifications are disabled** (`enableInactivityNotifications` is set to `false`), the controller immediately pauses (if persistent) or deletes (if non-persistent) the instance when the timer expires, without sending warning notifications.
 
 Similarly, for persistent instances that are already paused/powered off, a destruction process is handled based on `cleanup.deleteAfterInactivity` (if it is set and different from `never`):
+
 - **If email notifications are enabled**, warning notifications are sent to the tenant before the instance is permanently **destroyed** (deleted) to free up resources.
 - **If email notifications are disabled**, the instance is immediately **destroyed** once the powered-off duration exceeds the threshold, without any warning emails.
 
 The `cleanup.stopAfterInactivity` and `cleanup.deleteAfterInactivity` fields are set to `never` by default, meaning that instances will be ignored by the respective logic if omitted.
 
 However, if desired, default timeouts can be configured at the Helm chart level under the frontend-app configuration (`frontend-app.configuration.defaultTimeouts` parameter, as defined in the `values.yaml` files under `deploy/crownlabs/` and `frontend/deploy/frontend-app/`):
+
 ```yaml
 defaultTimeouts:
   cleanup:
@@ -43,9 +47,11 @@ defaultTimeouts:
     deleteAfterInactivity: "never"
     deleteAfterCreation: "never"
 ```
+
 These values serve as the default settings for the cleanup options when instances and templates are handled.
 
 ### Detailed Behavior
+
 The controller begins by retrieving all the active **Instances**.
 For each instance, it determines whether it should be monitored or not.
 
@@ -59,30 +65,34 @@ If the interval has passed, a new email is sent; otherwise, the notification is 
 
 Next, the controller checks whether the instance is inactive by comparing its last activity timestamp with the `cleanup.stopAfterInactivity` value specified in the Template.
 If the instance is found to be inactive (meaning the remaining time is zero or less), the controller takes action based on whether email notifications are enabled:
+
 - **If email notifications are enabled** (`enableInactivityNotifications` is set to `true`), a series of notification emails are sent to the instance owner. Once the number of alerts reaches a configurable threshold (defined via `inactiveTerminationMaxNumberOfAlerts` in the Chart or via `crownlabs.polito.it/custom-number-alerts` annotation), CrownLabs takes action by pausing the instance if it is persistent, or deleting it if it is non-persistent.
 - **If email notifications are disabled** (`enableInactivityNotifications` is set to `false`), CrownLabs immediately takes action (pausing the persistent instance or deleting the non-persistent instance) as soon as the inactivity threshold is exceeded, without sending warning or confirmation emails.
-On the other hand, if the instance is still active (the remaining time is greater than zero), the controller evaluates the remaining time and reschedules the inactivity check when it expires (a one-minute margin is added to the timer to be sure the timer is actually expired).
+  On the other hand, if the instance is still active (the remaining time is greater than zero), the controller evaluates the remaining time and reschedules the inactivity check when it expires (a one-minute margin is added to the timer to be sure the timer is actually expired).
 
 Finally, if the instance has been paused and the user restarts it, the `crownlabs.polito.it/number-alerts-sent` annotation is reset and the `crownlabs.polito.it/last-activity` annotation is updated.
 The controller then evaluates the new remaining time, and the entire monitoring process begins again.
 This mechanism relies on the `crownlabs.polito.it/last-running` annotation to detect if the instance has been restarted after being paused.
 
-
 ### Inactivity detection
+
 The controller focuses on one point: understanding if the **Instance** is being used (and it should not be deleted) or it is not being used (and it should be deleted).
 An Instance can be accessed by the Crownlabs Frontend or via SSH.
 The controller uses **Prometheus** to do this check:
-* It uses Nginx metrics to verify the last access to the Frontend
-* It uses a custom metric (called **bastion_ssh_connections**) to monitor the SSH accesses. Read [here](../../README.md#bastion-ssh-tracker) for more info on how SSH connections are monitored.
 
-Note: a single query on Prometheus cannot return more than **11000 data points**. In order to cover all the scenarios, a new parameter `queryStep` has been defined in the Helm Chart to modify the query resolution (query step), based on the `cleanup.stopAfterInactivity` value selected.
+- It uses Nginx metrics to verify the last access to the Frontend
+- It uses a custom metric (called **bastion_ssh_connections**) to monitor the SSH accesses. Read [here](../../README.md#bastion-ssh-tracker) for more info on how SSH connections are monitored.
+
+Note: a single query on Prometheus cannot return more than **11000 data points**. The `queryStep` Helm parameter controls the resolution of the Prometheus range query used to detect the latest access. Activity refreshes use `maxLastActivityRequeueTime` as their lookback window, so with the default `30s` step and a `6h` lookback the query returns about 720 points per series, well below the Prometheus limit.
+
+The last-activity refresh is performed at the beginning of the inactivity reconciliation, before any action is taken on the instance. Reconciliations are also periodically requeued with a randomized interval between `minLastActivityRequeueTime` and `maxLastActivityRequeueTime` to avoid querying Prometheus for all instances at the same time. If the same instance was checked less than `lastActivityCheckThreshold` ago, the Prometheus query is skipped and the instance is requeued after `lastActivityCheckThreshold`.
 
 After this check, the **crownlabs.polito.it/last-activity** is updated with the most recent timestamp.
 If the last access is above the max threshold (defined with the `cleanup.stopAfterInactivity` field in the **Template** resource), the Instance is declared as **inactive** and (if enabled) email notifications start to be sent at regular interval - `inactiveTerminationNotificationInterval` parameter in the Helm chart.
 After the maximum time of notifications, the Instance is stopped.
 
-
 ### Watch and Predicates for the reconciler
+
 The **InstanceInactiveTerminationReconciler** is set to watch and react to events related to the following resources in an efficient way:
 
 - **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
@@ -112,8 +122,8 @@ Once the instance lifespan expires, the controller sends a warning email to the 
 The controller adds a new `crownlabs.polito.it/expiring-warning-notification-timestamp` annotation to store the timestamp of the warning notification. This annotation is used to determine whether the required interval has elapsed since the warning notification, thereby allowing the deletion of the Instance if necessary.
 After the `notificationInterval` time has passed since the warning, the controller proceeds to delete the Instance and sends a second email to the tenant confirming that the Instance has been deleted.
 
-
 ### Watch and Predicates for the reconciler
+
 The **InstanceExpirationReconciler** is set to watch and react to events related to the following resources in an efficient way:
 
 - **Instances**: if an Instance has been stopped and the user restart is, the reconciler on that Instance must be triggered again to restart the monitoring process. There is a predicate filter (**instanceTriggered**) to let the reconciler reschedule the Instance.
@@ -121,51 +131,54 @@ The **InstanceExpirationReconciler** is set to watch and react to events related
 - **Namespaces**: if a `Namespace` is set to be monitored (`ExpirationIgnoreNamespace != true`), all the Instance of that `Namespace` must be reconciled to evaluate the remaining time of the instance. There is a predicate filter (called **expirationIgnoreNamespace**) to let the reconciler reschedule the Instance if a new `Namespace` has to be checked.
 
 ### Labels and Annotations
-* **crownlabs.polito.it/expiration-ignore**: `Namespace` label used to ignore the expiration for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
-* **crownlabs.polito.it/expiring-warning-notification-timestamp**: Instance annotation that stores the timestamp of the warning notification sent to the `Tenant`. If it is present, it means that the warning notification has already been sent, therefore the Instance is ready to be deleted after the notification interval.
+
+- **crownlabs.polito.it/expiration-ignore**: `Namespace` label used to ignore the expiration for all the Instances of the entire `Namespace`. Default value (if omitted) is `false`.
+- **crownlabs.polito.it/expiring-warning-notification-timestamp**: Instance annotation that stores the timestamp of the warning notification sent to the `Tenant`. If it is present, it means that the warning notification has already been sent, therefore the Instance is ready to be deleted after the notification interval.
 
 ## Instance Termination Controller
+
 This controller specifically focuses on instance termination in **exam scenarios**.
 It first verifies whether the instance’s public endpoint is still responding by performing an HTTP check.
 If the endpoint is found to be unreachable, the controller proceeds to initiate the termination process for that instance.
 
-
 ## Instance Submission Controller
+
 This controller automates **exam submission** workflows by creating a ZIP archive of the instance’s persistent volume, which contains the VM disk.
 Once the archive is created, it is uploaded to a configured submission endpoint.
 This process is used during exams to collect student submissions in a reproducible and traceable way, ensuring consistency and accountability.
 
-
 ## Helm Chart
 
-The Instance Automation Controller is deployed together with the the Instance Operator as a secondary deployment. The Helm chart for the Instance Operator has been updated to include the deployment of the new Instance Automation controller. 
+The Instance Automation Controller is deployed together with the the Instance Operator as a secondary deployment. The Helm chart for the Instance Operator has been updated to include the deployment of the new Instance Automation controller.
 
 Main controller parameters:
 
-* **mailTemplateDir**: path to the directory containing the crownmail templates.
-* **mailConfigDir**: path to the directory containing the crownmail configuration files.
+- **mailTemplateDir**: path to the directory containing the crownmail templates.
+- **mailConfigDir**: path to the directory containing the crownmail configuration files.
 
 Main automation parameters:
 
-* **enableInstanceSubmission**: flag to enable the Instance Submission controller.
-* **enableInstanceTermination**: flag to enable the Instance Termination controller.
-* **enableInstanceInactiveTermination**: flag to enable the Instance Inactive Termination controller.
-* **enableInstanceExpiration**: flag to enable the Instance Expiration controller.
-* **inactiveTerminationMaxNumberOfAlerts**:  maximum number of email notifications to send to the Tenant before deleting/pausing the Instance.
-* **enableInactivityNotifications**: flag to enable the notification for the Instance Inactive Termination controller.
-* **enableExpirationNotifications**: flag to enable the notification for the Instance Expiration Termination controller.
-* **inactiveTerminationNotificationInterval**: time interval between two consecutive email notifications.
-* **expirationNotificationInterval**: time interval between the warning notification and the Instance deletion.
-* **marginTime**: margin time (in minutes) added when calculating the remaining time for inactivity and expiration checks.
-
+- **enableInstanceSubmission**: flag to enable the Instance Submission controller.
+- **enableInstanceTermination**: flag to enable the Instance Termination controller.
+- **enableInstanceInactiveTermination**: flag to enable the Instance Inactive Termination controller.
+- **enableInstanceExpiration**: flag to enable the Instance Expiration controller.
+- **inactiveTerminationMaxNumberOfAlerts**: maximum number of email notifications to send to the Tenant before deleting/pausing the Instance.
+- **enableInactivityNotifications**: flag to enable the notification for the Instance Inactive Termination controller.
+- **enableExpirationNotifications**: flag to enable the notification for the Instance Expiration Termination controller.
+- **inactiveTerminationNotificationInterval**: time interval between two consecutive email notifications.
+- **expirationNotificationInterval**: time interval between the warning notification and the Instance deletion.
+- **marginTime**: margin time (in minutes) added when calculating the remaining time for inactivity and expiration checks.
+- **minLastActivityRequeueTime**: minimum randomized requeue interval for periodic last-activity refreshes.
+- **maxLastActivityRequeueTime**: maximum randomized requeue interval for periodic last-activity refreshes, also used as the Prometheus lookback window for activity queries.
+- **lastActivityCheckThreshold**: minimum interval before querying Prometheus again for the same instance.
 
 Main monitoring parameters:
 
-* **prometheusURL**: URL of the Prometheus service in the cluster.
-* **queryNginxAvailable**: query to verify if the external ingress is available and is correctly collecting metrics.
-* **queryBastionSSHAvailable**: query to verify if the custom SSH bastion tracker is available and is correctly collecting metrics.
-* **queryWebSSHAvailable**: query to verify if the WebSSH (SSH through a new browser terminal) metrics are available.
-* **queryNginxData**: query to retrieve info about an Instance access through frontend.
-* **queryBastionSSHData**: query to retrieve info about an Instance access through SSH.
-* **queryWebSSHData**: query to retrieve info about an Instance access through WebSSH.
-* **queryStep**: step to use in the Prometheus query to retrieve data.
+- **prometheusURL**: URL of the Prometheus service in the cluster.
+- **queryNginxAvailable**: query to verify if the external ingress is available and is correctly collecting metrics.
+- **queryBastionSSHAvailable**: query to verify if the custom SSH bastion tracker is available and is correctly collecting metrics.
+- **queryWebSSHAvailable**: query to verify if the WebSSH (SSH through a new browser terminal) metrics are available.
+- **queryNginxData**: query to retrieve info about an Instance access through frontend.
+- **queryBastionSSHData**: query to retrieve info about an Instance access through SSH.
+- **queryWebSSHData**: query to retrieve info about an Instance access through WebSSH.
+- **queryStep**: step to use in the Prometheus range query to retrieve activity data. The default is `30s`; with the default `maxLastActivityRequeueTime` of `6h`, this stays well below the 11000 samples per query limit.
