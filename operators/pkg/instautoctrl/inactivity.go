@@ -17,6 +17,7 @@ package instautoctrl
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -140,6 +141,18 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 	// ── 3. Defer: patch instance object + delete if flagged ──
 	var deleteInstance bool
 	defer func(original *clv1alpha2.Instance) {
+		// Delete instance if flagged by a handler.
+		if deleteInstance {
+			if deleteErr := r.Delete(ctx, &instance); deleteErr != nil && !kerrors.IsNotFound(deleteErr) {
+				log.Error(deleteErr, "failed to delete instance")
+				err = deleteErr
+			} else if deleteErr == nil {
+				tracer.Step("instance deleted")
+				log.Info("Instance deleted", "instance", instance.Name)
+			}
+			return
+		}
+
 		// Patch annotations and spec if changed.
 		annotationsChanged := !reflect.DeepEqual(original.Annotations, instance.Annotations)
 		specChanged := !reflect.DeepEqual(original.Spec, instance.Spec)
@@ -149,16 +162,6 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 				err = patchErr
 			} else {
 				tracer.Step("instance patched")
-			}
-		}
-		// Delete instance if flagged by a handler.
-		if deleteInstance {
-			if deleteErr := r.Delete(ctx, &instance); deleteErr != nil && !kerrors.IsNotFound(deleteErr) {
-				log.Error(deleteErr, "failed to delete instance")
-				err = deleteErr
-			} else if deleteErr == nil {
-				tracer.Step("instance deleted")
-				log.Info("Instance deleted", "instance", instance.Name)
 			}
 		}
 	}(instance.DeepCopy())
@@ -402,10 +405,15 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 
 	// Use the max requeue time as the Prometheus lookback window
 	lookback := r.MaxLastActivityRequeueTime
+	var queryErrors []error
 
 	// Query Nginx activity
 	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
 	lastActivityNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, lookback)
+	if errNginx != nil {
+		log.Error(errNginx, "failed querying Nginx activity")
+		queryErrors = append(queryErrors, fmt.Errorf("failed querying Nginx activity: %w", errNginx))
+	}
 
 	// Query WebSSH activity across all environments (find maximum)
 	var lastActivityWebSSH time.Time
@@ -414,7 +422,12 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 		env := &instance.Status.Environments[envIdx]
 		q := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), env.IP)
 		t, errWebSSH := r.Prometheus.GetLastActivityTime(q, lookback)
-		if errWebSSH == nil && !t.IsZero() && (!webSSHFound || t.After(lastActivityWebSSH)) {
+		if errWebSSH != nil {
+			log.Error(errWebSSH, "failed querying WebSSH activity", "environmentIP", env.IP)
+			queryErrors = append(queryErrors, fmt.Errorf("failed querying WebSSH activity for environment %q: %w", env.IP, errWebSSH))
+			continue
+		}
+		if !t.IsZero() && (!webSSHFound || t.After(lastActivityWebSSH)) {
 			lastActivityWebSSH = t
 			webSSHFound = true
 		}
@@ -427,7 +440,12 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 		env := &instance.Status.Environments[envIdx]
 		q := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
 		t, errSSH := r.Prometheus.GetLastActivityTime(q, lookback)
-		if errSSH == nil && !t.IsZero() && (!sshFound || t.After(lastActivitySSH)) {
+		if errSSH != nil {
+			log.Error(errSSH, "failed querying SSH activity", "environmentIP", env.IP)
+			queryErrors = append(queryErrors, fmt.Errorf("failed querying SSH activity for environment %q: %w", env.IP, errSSH))
+			continue
+		}
+		if !t.IsZero() && (!sshFound || t.After(lastActivitySSH)) {
 			lastActivitySSH = t
 			sshFound = true
 		}
@@ -448,15 +466,24 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 	activityFound := !maxActivity.IsZero()
 	newStr := maxActivity.Format(time.RFC3339)
 
-	// Update annotations in-memory (the Reconcile's defer func handles the actual patch)
-	instance.Annotations[forge.LastActivityCheckTimestampAnnotation] = time.Now().Format(time.RFC3339)
-
+	// Preserve activity found by successful queries even if another source failed.
+	// The Reconcile's defer func handles the actual patch.
 	if activityFound {
 		if instance.Annotations[forge.LastActivityAnnotation] != newStr {
 			instance.Annotations[forge.LastActivityAnnotation] = newStr
 			instance.Annotations[forge.AlertAnnotationNum] = "0"
 			log.Info("Updated lastActivity annotation", "lastActivity", newStr)
 		}
+	}
+
+	hasQueryErrors := len(queryErrors) > 0
+	if activityFound || !hasQueryErrors {
+		instance.Annotations[forge.LastActivityCheckTimestampAnnotation] = time.Now().Format(time.RFC3339)
+	}
+
+	// If there were any query errors, return an aggregated error to indicate that the activity update was not fully successful.
+	if hasQueryErrors {
+		return fmt.Errorf("one or more activity queries failed: %w", errors.Join(queryErrors...))
 	}
 
 	return nil
