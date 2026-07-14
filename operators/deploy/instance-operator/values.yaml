@@ -24,6 +24,7 @@ configurations:
     url: registry.crownlabs.example.com
     secretName: registry-credentials
   maxConcurrentReconciles: 1
+
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
@@ -32,10 +33,13 @@ configurations:
     queryNginxData: nginx_ingress_controller_requests{exported_namespace="%s", exported_service=~"%s.*"}
     queryBastionSSHData: bastion_ssh_connections{destination_ip="%s"}
     queryWebSSHData: bastion_web_ssh_connections{destination_ip="%s"}
-    queryStep: 5m
+    queryStep: 30s
   mailTemplateDir: /etc/crownmail/templates
   mailConfigDir: /etc/crownmail/configs
   automation:
+    minLastActivityRequeueTime: "1h"
+    maxLastActivityRequeueTime: "6h"
+    lastActivityCheckThreshold: "30s"
     enableInstanceSubmission: true
     enableInstanceTermination: true
     enableInstanceInactiveTermination: true

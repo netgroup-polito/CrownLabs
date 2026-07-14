@@ -518,12 +518,29 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 	Context("Testing destruction after inactivity", func() {
 		It("Should delete the persistent instance if destroy timer is exceeded", func() {
-			By("Getting current instance")
+			By("Updating template with deleteAfterInactivity")
+			currentTemplate := &clv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
+					return err
+				}
+				currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "100h"
+				return k8sClient.Update(ctx, currentTemplate)
+			}, timeout, interval).Should(Succeed())
+
+			By("Waiting for the updated template to be observed by the manager cache")
+			Eventually(func() string {
+				observedTemplate := &clv1alpha2.Template{}
+				if err := k8sClient.Get(ctx, templateLookupKey, observedTemplate); err != nil {
+					return ""
+				}
+				return observedTemplate.Spec.Cleanup.DeleteAfterInactivity
+			}, timeout, interval).Should(Equal("100h"))
+
+			By("Setting instance as powered off with an expired destruction timestamp")
 			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
-
-			By("Setting instance as powered off and old timestamp")
 			Eventually(func() error {
 				if err := k8sClient.Get(ctx, instanceLookupKey, currentInstance); err != nil {
 					return err
@@ -534,17 +551,6 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				}
 				currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Add(-150 * time.Hour).Format(time.RFC3339)
 				return k8sClient.Update(ctx, currentInstance)
-			}, timeout, interval).Should(Succeed())
-
-			By("Updating template with deleteAfterInactivity")
-			currentTemplate := &clv1alpha2.Template{}
-			templateLookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
-			Eventually(func() error {
-				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
-					return err
-				}
-				currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "100h"
-				return k8sClient.Update(ctx, currentTemplate)
 			}, timeout, interval).Should(Succeed())
 
 			By("Checking the instance is deleted")

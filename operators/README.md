@@ -126,6 +126,18 @@ But more specifically:
 - for Containers, the mirror PVCs are directly mounted on the `Pod` as `VolumeMount`.
 - for Virtual Machines, the mirror PVCs are attached to the `Pod`: then, to use them in the VM, cloud-init is used to add the mount point to the VM's `/etc/fstab` file and the machine tries to mount it using the virtio Filesystem.
 
+### Instance Activity Tracking
+
+To provide a consistent and up-to-date view of instance utilization, the Instance Operator performs a periodic, lightweight check on all running instances.
+This feature queries Prometheus to retrieve the latest usage metrics (evaluating traffic from Nginx, WebSSH, and direct SSH connections) and updates the `crownlabs.polito.it/last-activity` annotation on the Instance resource accordingly. 
+
+Key aspects of this feature include:
+- **Universal tracking:** The activity of all instances is monitored, regardless of whether inactivity or cleanup policies are configured in their respective templates.
+- **Randomized reconciliation (Jitter):** To prevent "thundering herd" effects on Prometheus when a large number of instances are running, the operator schedules the next activity check at a randomized interval defined by the `minLastActivityRequeueTime` and `maxLastActivityRequeueTime` Helm parameters.
+- **Non-blocking behavior:** If Prometheus is unreachable or queries fail, the operator silently skips the activity update without disrupting the core reconciliation flow of the instance.
+
+This mechanism acts as a reliable source of truth for the instance's last activity, which can then be safely consumed by the Instance Automation Operator (or other external tools) for lifecycle management.
+
 ### Build from source
 
 The Instance Operator requires Golang 1.16 and `make`. To build the operator:
