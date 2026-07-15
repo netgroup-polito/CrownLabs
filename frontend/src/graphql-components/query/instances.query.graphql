@@ -12,7 +12,6 @@ query ownedInstances($tenantNamespace: String!) {
         annotations
       }
       status {
-        ip
         phase
         url
         nodeName

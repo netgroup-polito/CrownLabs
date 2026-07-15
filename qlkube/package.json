@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "IN_CLUSTER=false nodemon --inspect src/index.js",
+    "dev-local-cluster": "IN_CLUSTER=false USE_LOCAL_CLUSTER=true NODE_TLS_REJECT_UNAUTHORIZED=0 nodemon --inspect src/index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "check-format-lint": "eslint src",
     "pre-commit": "lint-staged",

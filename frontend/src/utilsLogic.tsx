@@ -117,7 +117,7 @@ export const makeGuiTemplate = (
       disk:
         aggregatedResources.diskSum > 0
           ? `${aggregatedResources.diskSum}G`
-          : '',
+          : '0G',
     },
     environmentList: environmentList.map(env => ({
       name: env?.name ?? '',
@@ -141,7 +141,7 @@ export const makeGuiTemplate = (
       resources: {
         cpu: env?.resources?.cpu ?? 0,
         memory: env?.resources?.memory ?? '',
-        disk: env?.resources?.disk ?? '',
+        disk: env?.resources?.disk ?? '0Gi',
         reservedCPUPercentage: env?.resources?.reservedCPUPercentage ?? 50,
       },
     })),
@@ -401,7 +401,7 @@ export const makeGuiInstance = (
     templateName: templateName,
     templateId: makeTemplateKey(templateName, workspaceName),
     environmentType: environmentType || EnvironmentType.CloudVm,
-    ip: primaryStatus?.ip ?? status?.ip ?? '',
+    ip: primaryStatus?.ip ?? '',
     status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url || '',
     timeStamp: metadata?.creationTimestamp || '',
