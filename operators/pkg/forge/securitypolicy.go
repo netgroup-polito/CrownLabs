@@ -21,10 +21,11 @@ import (
 	"strings"
 
 	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
-	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"k8s.io/utils/ptr"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
+
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 const (
@@ -36,22 +37,35 @@ const (
 	AuthAnnotationDefault = "default"
 )
 
+// AuthServiceInfo contains the details of a parsed authentication service.
+type AuthServiceInfo struct {
+	ServiceName string
+	Namespace   string
+	Port        int32
+	Path        string
+	Mode        string
+}
+
 // ParseAuthServiceAnnotation parses the crownlabs.polito.it/auth-service annotation.
 // Expected formats:
 // - "" or "default" -> defaults (parses the defaultAuthString)
 // - "none" or "disabled" -> authentication disabled
 // - "serviceName.namespace:port/path" -> custom service (namespace, port, path are optional)
-// Returns serviceName, namespace, port, path, authMode ("none", "default", "custom"), and error.
-func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultAuthString string) (serviceName, namespace string, port int32, path string, mode string, err error) {
+// Returns AuthServiceInfo and error.
+func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultAuthString string) (*AuthServiceInfo, error) {
 	raw = strings.TrimSpace(raw)
 
 	if raw == "" || raw == AuthAnnotationDefault {
-		serviceName, namespace, port, path, _, err = ParseAuthServiceAnnotation(defaultAuthString, tenantNamespace, "")
-		return serviceName, namespace, port, path, "default", err
+		info, err := ParseAuthServiceAnnotation(defaultAuthString, tenantNamespace, "")
+		if err != nil {
+			return nil, err
+		}
+		info.Mode = "default"
+		return info, nil
 	}
 
 	if raw == AuthAnnotationDisabled || raw == "disabled" {
-		return "", "", 0, "", "none", nil
+		return &AuthServiceInfo{Mode: "none"}, nil
 	}
 
 	// Regex to parse [serviceName][.namespace][:port][/path]
@@ -60,36 +74,43 @@ func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultAuthString string) 
 	// Group 3: namespace (optional)
 	// Group 5: port (optional)
 	// Group 6: /path (optional)
-	re := regexp.MustCompile(`^([a-zA-Z0-9-]+)(\.([a-zA-Z0-9-]+))?(:([0-9]+))?(/.*)?$`)
+	re := regexp.MustCompile(`^([a-zA-Z0-9-]+)(\.([a-zA-Z0-9-]+))?(:(\d+))?(/.*)?$`)
 	matches := re.FindStringSubmatch(raw)
 
 	if matches == nil {
-		return "", "", 0, "", "", fmt.Errorf("invalid auth-service annotation format: %q", raw)
+		return nil, fmt.Errorf("invalid auth-service annotation format: %q", raw)
 	}
 
-	serviceName = matches[1]
-	namespace = matches[3]
+	serviceName := matches[1]
+	namespace := matches[3]
 	if namespace == "" {
 		namespace = tenantNamespace
 	}
 
+	var port int32
 	portStr := matches[5]
 	if portStr != "" {
-		p, e := strconv.Atoi(portStr)
+		p, e := strconv.ParseUint(portStr, 10, 16)
 		if e != nil {
-			return "", "", 0, "", "", fmt.Errorf("invalid port in auth-service annotation: %q", portStr)
+			return nil, fmt.Errorf("invalid port in auth-service annotation: %q", portStr)
 		}
 		port = int32(p)
 	} else {
 		port = 80 // Default port for custom service
 	}
 
-	path = matches[6]
+	path := matches[6]
 	if path == "" {
 		path = "/check" // Default path for custom service if not specified
 	}
 
-	return serviceName, namespace, port, path, "custom", nil
+	return &AuthServiceInfo{
+		ServiceName: serviceName,
+		Namespace:   namespace,
+		Port:        port,
+		Path:        path,
+		Mode:        "custom",
+	}, nil
 }
 
 // SecurityPolicy forges the SecurityPolicy required to expose the HTTPRoute to an external auth service.

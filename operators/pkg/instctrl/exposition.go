@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 
+	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -26,7 +27,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
-	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -78,12 +78,16 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	// This ensures we fail safely if the annotation is invalid, without leaving an unprotected HTTPRoute.
 	if r.ExpositionConfig.EnableAuthentication {
 		annot := instance.Annotations[forge.AuthServiceAnnotation]
-		service, ns, port, path, mode, err := forge.ParseAuthServiceAnnotation(annot, instance.Namespace, r.ExpositionConfig.GatewayAPIAuthService)
+		authInfo, err := forge.ParseAuthServiceAnnotation(annot, instance.Namespace, r.ExpositionConfig.GatewayAPIAuthService)
 		if err != nil {
 			log.Error(err, "invalid auth-service annotation", "annotation", annot)
 			return err
 		}
-		authMode, authSvcName, authNs, authPort, authPath = mode, service, ns, port, path
+		authMode = authInfo.Mode
+		authSvcName = authInfo.ServiceName
+		authNs = authInfo.Namespace
+		authPort = authInfo.Port
+		authPath = authInfo.Path
 	}
 
 	// Enforce the HTTPRoute presence
