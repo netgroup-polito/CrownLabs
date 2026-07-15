@@ -137,7 +137,7 @@ var _ = Describe("HTTPRoute helpers", func() {
 				Expect(filters).To(HaveLen(1))
 				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.StandaloneRewriteEndpoint))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
 			})
 
 			It("returns GUI rewrite when requested and environment is cloud VM", func() {
@@ -145,7 +145,7 @@ var _ = Describe("HTTPRoute helpers", func() {
 				Expect(filters).To(HaveLen(1))
 				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
 			})
 
 			It("returns GUI rewrite when requested and environment is local VM", func() {
@@ -153,7 +153,7 @@ var _ = Describe("HTTPRoute helpers", func() {
 				Expect(filters).To(HaveLen(1))
 				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
 			})
 
 			It("returns GUI rewrite when requested and environment is VM", func() {
@@ -161,7 +161,7 @@ var _ = Describe("HTTPRoute helpers", func() {
 				Expect(filters).To(HaveLen(1))
 				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.GUIRewriteEndpoint))
+				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
 			})
 
 			It("returns nil for unknown environment type", func() {

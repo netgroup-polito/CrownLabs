@@ -32,11 +32,8 @@ const (
 	// DefaultTimeoutSeconds -> the default timeout as a Gateway API Duration string (GEP-2257 format).
 	DefaultTimeoutSeconds = "3600s"
 
-	// StandaloneRewriteEndpoint -> the endpoint used to rewrite standalone GUI URLs.
-	StandaloneRewriteEndpoint = ""
-
-	// GUIRewriteEndpoint -> the endpoint used to rewrite CloudVM/VM GUI URLs.
-	GUIRewriteEndpoint = ""
+	// URLRewriteEndpoint -> the endpoint used to rewrite GUI URLs.
+	URLRewriteEndpoint = ""
 )
 
 // HTTPRouteTemplate groups the minimal parameters required to forge an HTTPRouteSpec.
@@ -157,17 +154,21 @@ func HTTPRouteRuleFilters(environment *clv1alpha2.Environment) []gatewayv1.HTTPR
 	if environment == nil {
 		return nil
 	}
+
+	filters := []gatewayv1.HTTPRouteFilter{URLRewriteFilter(URLRewriteEndpoint)}
+
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		if !environment.RewriteURL {
-			return nil
+		if environment.RewriteURL {
+			return filters
 		}
-		return []gatewayv1.HTTPRouteFilter{URLRewriteFilter(StandaloneRewriteEndpoint)}
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
-		return []gatewayv1.HTTPRouteFilter{URLRewriteFilter(GUIRewriteEndpoint)}
+		return filters
 	default:
 		return nil
 	}
+
+	return nil
 }
 
 // URLRewriteFilter returns an URLRewrite filter for the given target endpoint.
