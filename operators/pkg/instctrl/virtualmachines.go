@@ -82,7 +82,6 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
 			dv.Spec = forgedDV
 		}
-		
 		// Remove the owner
 		dv.OwnerReferences = nil
 
