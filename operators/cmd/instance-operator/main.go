@@ -74,6 +74,7 @@ func main() {
 	enableAuth := true
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
+	gatewayAPIAuthServiceRaw := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -88,7 +89,7 @@ func main() {
 
 	flag.StringVar(&expositionCfg.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
 	flag.StringVar(&expositionCfg.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
-	flag.StringVar(&expositionCfg.GatewayAPIAuthService, "gateway-api-auth-service", "oauth2-proxy.crownlabs:4180/auth", "The default authentication service for Gateway API in format serviceName.namespace:port/path")
+	flag.StringVar(&gatewayAPIAuthServiceRaw, "gateway-api-auth-service", "oauth2-proxy.crownlabs:4180/auth", "The default authentication service for Gateway API in format serviceName.namespace:port/path")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
@@ -192,6 +193,15 @@ func main() {
 		}
 		expositionCfg.GatewayName = gwName
 		expositionCfg.GatewayNamespace = gwNs
+
+		if enableAuth {
+			defaultAuth, err := forge.ParseAuthServiceAnnotation(gatewayAPIAuthServiceRaw, "default", nil)
+			if err != nil {
+				log.Error(err, "invalid default gateway-api-auth-service format", "error", err)
+				os.Exit(1)
+			}
+			expositionCfg.GatewayAPIAuthService = defaultAuth
+		}
 	} else if gatewayAPIRefsValues != "" {
 		log.Info("Gateway parent provided but Gateway API mode is disabled")
 	}

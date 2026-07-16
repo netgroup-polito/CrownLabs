@@ -48,24 +48,21 @@ type AuthServiceInfo struct {
 
 // ParseAuthServiceAnnotation parses the crownlabs.polito.it/auth-service annotation.
 // Expected formats:
-// - "" or "default" -> defaults (parses the defaultAuthString)
-// - "none" or "disabled" -> authentication disabled
-// - "serviceName.namespace:port/path" -> custom service (namespace, port, path are optional)
-// Returns AuthServiceInfo and error.
-func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultAuthString string) (*AuthServiceInfo, error) {
-	raw = strings.TrimSpace(raw)
-
-	if raw == "" || raw == AuthAnnotationDefault {
-		info, err := ParseAuthServiceAnnotation(defaultAuthString, tenantNamespace, "")
-		if err != nil {
-			return nil, err
-		}
-		info.Mode = "default"
-		return info, nil
+// - "none" -> disables authentication
+// - "" -> uses default authentication service
+// - "serviceName:port/path" -> custom service, uses tenant namespace, defaults to port 80 and /check if omitted
+// - "serviceName.namespace:port/path" -> custom service in custom namespace, defaults to port 80 and /check if omitted.
+func ParseAuthServiceAnnotation(annotation, defaultNs string, defaultAuth *AuthServiceInfo) (*AuthServiceInfo, error) {
+	annotation = strings.TrimSpace(annotation)
+	if annotation == AuthAnnotationDisabled || annotation == "disabled" {
+		return &AuthServiceInfo{Mode: "none"}, nil
 	}
 
-	if raw == AuthAnnotationDisabled || raw == "disabled" {
-		return &AuthServiceInfo{Mode: "none"}, nil
+	if annotation == "" || annotation == AuthAnnotationDefault {
+		if defaultAuth == nil {
+			return nil, fmt.Errorf("no authentication service configured")
+		}
+		return defaultAuth, nil
 	}
 
 	// Regex to parse [serviceName][.namespace][:port][/path]
@@ -75,16 +72,16 @@ func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultAuthString string) 
 	// Group 5: port (optional)
 	// Group 6: /path (optional)
 	re := regexp.MustCompile(`^([a-zA-Z0-9-]+)(\.([a-zA-Z0-9-]+))?(:(\d+))?(/.*)?$`)
-	matches := re.FindStringSubmatch(raw)
+	matches := re.FindStringSubmatch(annotation)
 
 	if matches == nil {
-		return nil, fmt.Errorf("invalid auth-service annotation format: %q", raw)
+		return nil, fmt.Errorf("invalid auth-service annotation format: %q", annotation)
 	}
 
 	serviceName := matches[1]
 	namespace := matches[3]
 	if namespace == "" {
-		namespace = tenantNamespace
+		namespace = defaultNs
 	}
 
 	var port int32
@@ -113,44 +110,51 @@ func ParseAuthServiceAnnotation(raw, tenantNamespace, defaultAuthString string) 
 	}, nil
 }
 
-// SecurityPolicy forges the SecurityPolicy required to expose the HTTPRoute to an external auth service.
-func SecurityPolicy(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, serviceName, namespace string, port int32, path string) egv1alpha1.SecurityPolicySpec {
-	// targetRouteName is the HTTPRoute that exposes the environment.
+// SecurityPolicySpec forges the specification of a Kubernetes SecurityPolicy resource.
+func SecurityPolicySpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, serviceName, namespace string, port int32, path string) egv1alpha1.SecurityPolicySpec {
 	targetRouteName := fmt.Sprintf("%v-%v", instance.Name, environment.Name)
 
-	sp := egv1alpha1.SecurityPolicySpec{
-		PolicyTargetReferences: egv1alpha1.PolicyTargetReferences{
-			TargetRefs: []gwapiv1a2.LocalPolicyTargetReferenceWithSectionName{
-				{
-					LocalPolicyTargetReference: gwapiv1a2.LocalPolicyTargetReference{
-						Group: gwapiv1a2.Group("gateway.networking.k8s.io"),
-						Kind:  gwapiv1a2.Kind("HTTPRoute"),
-						Name:  gwapiv1a2.ObjectName(targetRouteName),
-					},
+	return egv1alpha1.SecurityPolicySpec{
+		PolicyTargetReferences: SecurityPolicyTargetRefs(targetRouteName),
+		ExtAuth:                SecurityPolicyExtAuth(serviceName, namespace, port, path),
+	}
+}
+
+// SecurityPolicyTargetRefs creates PolicyTargetReferences pointing to the target route.
+func SecurityPolicyTargetRefs(routeName string) egv1alpha1.PolicyTargetReferences {
+	return egv1alpha1.PolicyTargetReferences{
+		TargetRefs: []gwapiv1a2.LocalPolicyTargetReferenceWithSectionName{
+			{
+				LocalPolicyTargetReference: gwapiv1a2.LocalPolicyTargetReference{
+					Group: gwapiv1a2.Group("gateway.networking.k8s.io"),
+					Kind:  gwapiv1a2.Kind("HTTPRoute"),
+					Name:  gwapiv1a2.ObjectName(routeName),
 				},
-			},
-		},
-		ExtAuth: &egv1alpha1.ExtAuth{
-			HeadersToExtAuth: []string{
-				"Cookie",
-				"Authorization",
-			},
-			HTTP: &egv1alpha1.HTTPExtAuthService{
-				BackendRefs: []egv1alpha1.BackendRef{
-					{
-						BackendObjectReference: gatewayv1.BackendObjectReference{
-							Group:     ptr.To(gatewayv1.Group("")),
-							Kind:      ptr.To(gatewayv1.Kind("Service")),
-							Name:      gatewayv1.ObjectName(serviceName),
-							Namespace: ptr.To(gatewayv1.Namespace(namespace)),
-							Port:      ptr.To(gatewayv1.PortNumber(port)),
-						},
-					},
-				},
-				Path: ptr.To(path),
 			},
 		},
 	}
+}
 
-	return sp
+// SecurityPolicyExtAuth creates ExtAuth specification targeting the authentication service.
+func SecurityPolicyExtAuth(serviceName, namespace string, port int32, path string) *egv1alpha1.ExtAuth {
+	return &egv1alpha1.ExtAuth{
+		HeadersToExtAuth: []string{
+			"Cookie",
+			"Authorization",
+		},
+		HTTP: &egv1alpha1.HTTPExtAuthService{
+			BackendRefs: []egv1alpha1.BackendRef{
+				{
+					BackendObjectReference: gatewayv1.BackendObjectReference{
+						Group:     ptr.To(gatewayv1.Group("")),
+						Kind:      ptr.To(gatewayv1.Kind("Service")),
+						Name:      gatewayv1.ObjectName(serviceName),
+						Namespace: ptr.To(gatewayv1.Namespace(namespace)),
+						Port:      ptr.To(gatewayv1.PortNumber(port)),
+					},
+				},
+			},
+			Path: ptr.To(path),
+		},
+	}
 }

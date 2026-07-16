@@ -29,16 +29,25 @@ import (
 var _ = Describe("SecurityPolicy forging", func() {
 	Describe("ParseAuthServiceAnnotation", func() {
 		const (
-			tenantNamespace   = "tenant-test"
-			defService        = "oauth2-proxy"
-			defNamespace      = "crownlabs"
-			defPort           = int32(4180)
-			defPath           = "/auth"
-			defaultAuthString = "oauth2-proxy.crownlabs:4180/auth"
+			tenantNamespace = "tenant-test"
+			defService      = "oauth2-proxy"
+			defNamespace    = "crownlabs"
+			defPort         = int32(4180)
+			defPath         = "/auth"
+		)
+
+		var (
+			defaultAuth = &forge.AuthServiceInfo{
+				ServiceName: defService,
+				Namespace:   defNamespace,
+				Port:        defPort,
+				Path:        defPath,
+				Mode:        "default",
+			}
 		)
 
 		It("Should return default values for empty string", func() {
-			info, err := forge.ParseAuthServiceAnnotation("", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("default"))
 			Expect(info.ServiceName).To(Equal(defService))
@@ -48,7 +57,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should return default values for 'default' string", func() {
-			info, err := forge.ParseAuthServiceAnnotation("default", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("default", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("default"))
 			Expect(info.ServiceName).To(Equal(defService))
@@ -58,7 +67,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should return none for 'none' string", func() {
-			info, err := forge.ParseAuthServiceAnnotation("none", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("none", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("none"))
 			Expect(info.ServiceName).To(BeEmpty())
@@ -68,7 +77,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should return none for 'disabled' string", func() {
-			info, err := forge.ParseAuthServiceAnnotation("disabled", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("disabled", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("none"))
 			Expect(info.ServiceName).To(BeEmpty())
@@ -78,7 +87,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should parse full custom service", func() {
-			info, err := forge.ParseAuthServiceAnnotation("my-auth.custom-ns:8080/check-auth", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("my-auth.custom-ns:8080/check-auth", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("custom"))
 			Expect(info.ServiceName).To(Equal("my-auth"))
@@ -88,7 +97,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should parse custom service without namespace, using tenant namespace", func() {
-			info, err := forge.ParseAuthServiceAnnotation("exam-agent:9000/auth", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("exam-agent:9000/auth", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("custom"))
 			Expect(info.ServiceName).To(Equal("exam-agent"))
@@ -98,7 +107,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should parse custom service without port, defaulting to 80", func() {
-			info, err := forge.ParseAuthServiceAnnotation("exam-agent.custom-ns/auth", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("exam-agent.custom-ns/auth", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("custom"))
 			Expect(info.ServiceName).To(Equal("exam-agent"))
@@ -108,7 +117,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should parse custom service without path, defaulting to /check", func() {
-			info, err := forge.ParseAuthServiceAnnotation("exam-agent.custom-ns:9000", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("exam-agent.custom-ns:9000", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("custom"))
 			Expect(info.ServiceName).To(Equal("exam-agent"))
@@ -118,7 +127,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should parse minimalist custom service", func() {
-			info, err := forge.ParseAuthServiceAnnotation("simple-agent", tenantNamespace, defaultAuthString)
+			info, err := forge.ParseAuthServiceAnnotation("simple-agent", tenantNamespace, defaultAuth)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(info.Mode).To(Equal("custom"))
 			Expect(info.ServiceName).To(Equal("simple-agent"))
@@ -128,7 +137,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 		})
 
 		It("Should fail on invalid port", func() {
-			_, err := forge.ParseAuthServiceAnnotation("exam-agent:invalid/auth", tenantNamespace, defaultAuthString)
+			_, err := forge.ParseAuthServiceAnnotation("exam-agent:invalid/auth", tenantNamespace, defaultAuth)
 			Expect(err).To(HaveOccurred())
 		})
 	})
@@ -145,7 +154,7 @@ var _ = Describe("SecurityPolicy forging", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: "test-instance", Namespace: "tenant-test", UID: "1234"},
 			}
 			environment = &clv1alpha2.Environment{Name: "gui", EnvironmentType: clv1alpha2.ClassVM}
-			sp = forge.SecurityPolicy(instance, environment, "my-auth", "custom-ns", 8080, "/check")
+			sp = forge.SecurityPolicySpec(instance, environment, "my-auth", "custom-ns", 8080, "/check")
 		})
 
 		It("Should configure the TargetRefs correctly", func() {

@@ -53,7 +53,7 @@ type ExpositionConfig struct {
 	GatewayAPIMode        bool
 	GatewayName           string
 	GatewayNamespace      string
-	GatewayAPIAuthService string
+	GatewayAPIAuthService *AuthServiceInfo
 }
 
 // ParseGatewayParent parses a gateway parent reference of the form
