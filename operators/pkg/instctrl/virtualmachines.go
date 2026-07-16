@@ -17,7 +17,6 @@ package instctrl
 import (
 	"context"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
@@ -83,16 +82,9 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
 			dv.Spec = forgedDV
 		}
-		// Filter the OwnerReferences to remove any controller that is not the current instance, to avoid "stealing" the resource from other controllers.
-		var filteredOwners []metav1.OwnerReference
-		for _, owner := range dv.OwnerReferences {
-			if owner.Controller != nil && *owner.Controller && owner.UID != instance.UID {
-				// If the owner is a controller and it is not the current instance, we skip it.
-				continue
-			}
-			filteredOwners = append(filteredOwners, owner)
-		}
-		dv.OwnerReferences = filteredOwners
+		
+		// Remove the owner
+		dv.OwnerReferences = nil
 
 		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
 	})

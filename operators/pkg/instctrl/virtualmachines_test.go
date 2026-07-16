@@ -417,7 +417,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					clientBuilder.WithObjects(&existingDV)
 				})
 
-				It("Should not fail and should steal the controller owner from the VirtualMachine", func() {
+				It("Should replace the VirtualMachine controller owner with the Instance owner", func() {
 					var dv cdiv1beta1.DataVolume
 
 					Expect(err).ToNot(HaveOccurred())
