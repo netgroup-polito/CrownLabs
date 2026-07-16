@@ -27,8 +27,10 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -846,6 +848,67 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(instance.Status.PublicExposure).To(BeNil())
 				})
 			})
+		})
+	})
+
+	Context("Gateway API exposition handling", func() {
+		BeforeEach(func() {
+			instanceReconciler.ExpositionConfig.GatewayAPIMode = true
+			testName = "test-gwapi-exposition"
+			runInstance = true
+			for i := range environmentList {
+				environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
+				environmentList[i].GuiEnabled = true
+			}
+		})
+
+		AfterEach(func() {
+			instanceReconciler.ExpositionConfig.GatewayAPIMode = false
+		})
+
+		It("Should correctly create HTTPRoute and transition ExpositionAccepted when accepted by Gateway", func() {
+			// Run reconciler for the first time
+			Expect(RunReconciler()).To(Succeed())
+
+			// Verify Service is created, HTTPRoute is created, and Ingress is NOT created
+			var svc corev1.Service
+			var route gatewayv1.HTTPRoute
+			var ing netv1.Ingress
+			for _, env := range template.Spec.EnvironmentList {
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &svc)).To(Succeed())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &route)).To(Succeed())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ing)).To(FailBecauseNotFound())
+			}
+
+			// Verify ExpositionAccepted is initially false
+			Expect(instance.Status.Environments).To(HaveLen(2))
+			Expect(instance.Status.Environments[0].ExpositionAccepted).To(BeFalse())
+
+			// Simulate Gateway Controller accepting the route
+			for _, env := range template.Spec.EnvironmentList {
+				var r gatewayv1.HTTPRoute
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &r)).To(Succeed())
+				r.Status.Parents = []gatewayv1.RouteParentStatus{{
+					ControllerName: "gateway.networking.k8s.io/gateway-controller",
+					ParentRef: gatewayv1.ParentReference{
+						Name:      "fake-gw",
+						Namespace: ptr.To(gatewayv1.Namespace("fake-gw-ns")),
+					},
+					Conditions: []metav1.Condition{{
+						Type:               string(gatewayv1.RouteConditionAccepted),
+						Status:             metav1.ConditionTrue,
+						Reason:             "Accepted",
+						LastTransitionTime: metav1.Now(),
+					}},
+				}}
+				Expect(k8sClient.Status().Update(ctx, &r)).To(Succeed())
+			}
+
+			// Reconcile again after route acceptance
+			Expect(RunReconciler()).To(Succeed())
+
+			// Verify ExpositionAccepted is now true
+			Expect(instance.Status.Environments[0].ExpositionAccepted).To(BeTrue())
 		})
 	})
 })
