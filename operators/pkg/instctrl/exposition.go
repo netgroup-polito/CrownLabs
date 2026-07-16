@@ -40,7 +40,7 @@ func (r *InstanceReconciler) EnforceInstanceExposition(ctx context.Context) erro
 	instance := clctx.InstanceFrom(ctx)
 
 	if instance.Spec.Running && r.ExpositionConfig.GatewayAPIMode {
-		return r.enforceInstanceExpositionHTTPRoutePresence(ctx)
+		return r.enforceHTTPRoutePresence(ctx)
 	}
 	if instance.Spec.Running && !r.ExpositionConfig.GatewayAPIMode {
 		return r.enforceInstanceExpositionIngressPresence(ctx)
@@ -49,8 +49,8 @@ func (r *InstanceReconciler) EnforceInstanceExposition(ctx context.Context) erro
 	return r.enforceInstanceExpositionAbsence(ctx)
 }
 
-// enforceInstanceExpositionHTTPRoutePresence ensures the presence of the HTTPRoute required to expose an environment.
-func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx context.Context) error {
+// enforceHTTPRoutePresence ensures the presence of the HTTPRoute required to expose an environment.
+func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
@@ -127,7 +127,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	authEnabled := r.ExpositionConfig.EnableAuthentication && (authInfo != nil && authInfo.Mode != "none")
 
 	if authEnabled {
-		if err := r.enforceInstanceExpositionSecurityPolicyPresence(ctx, authInfo.ServiceName, authInfo.Namespace, authInfo.Port, authInfo.Path); err != nil {
+		if err := r.enforceInstanceExpositionSecurityPolicyPresence(ctx, authInfo); err != nil {
 			log.Error(err, "failed to enforce securitypolicy presence", "httproute", klog.KObj(&httpRoute))
 			return err
 		}
@@ -208,7 +208,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	}
 
 	// Destroy any HTTPRoute
-	if err := r.enforceInstanceExpositionHTTPRouteAbsence(ctx); err != nil {
+	if err := r.enforceHTTPRouteAbsence(ctx); err != nil {
 		log.Error(err, "failed to remove conflicting httproute", "ingress", klog.KObj(&ingressGUI))
 		return err
 	}
@@ -259,7 +259,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionServicePresence(ctx contex
 }
 
 // enforceInstanceExpositionSecurityPolicyPresence ensures the presence of the SecurityPolicy required to authenticate the HTTPRoute.
-func (r *InstanceReconciler) enforceInstanceExpositionSecurityPolicyPresence(ctx context.Context, serviceName, namespace string, port int32, path string) error {
+func (r *InstanceReconciler) enforceInstanceExpositionSecurityPolicyPresence(ctx context.Context, authInfo *forge.AuthServiceInfo) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
@@ -267,7 +267,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionSecurityPolicyPresence(ctx
 	policy := egv1alpha1.SecurityPolicy{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-auth-policy")}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &policy, func() error {
 		if policy.CreationTimestamp.IsZero() {
-			policy.Spec = forge.SecurityPolicySpec(instance, environment, serviceName, namespace, port, path)
+			policy.Spec = forge.SecurityPolicySpec(instance, environment, authInfo)
 		}
 		policy.SetLabels(forge.EnvironmentObjectLabels(policy.GetLabels(), instance, environment))
 
@@ -310,7 +310,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 		return err
 	}
 	// Enforce HTTPRoute absence
-	if err := r.enforceInstanceExpositionHTTPRouteAbsence(ctx); err != nil {
+	if err := r.enforceHTTPRouteAbsence(ctx); err != nil {
 		return err
 	}
 	// Enforce Ingress absence
@@ -321,8 +321,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	return nil
 }
 
-// enforceInstanceExpositionHTTPRouteAbsence removes the HTTPRoute exposed resource for the environment.
-func (r *InstanceReconciler) enforceInstanceExpositionHTTPRouteAbsence(ctx context.Context) error {
+// enforceHTTPRouteAbsence removes the HTTPRoute exposed resource for the environment.
+func (r *InstanceReconciler) enforceHTTPRouteAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 

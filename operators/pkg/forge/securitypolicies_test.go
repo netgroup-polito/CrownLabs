@@ -154,7 +154,12 @@ var _ = Describe("SecurityPolicy forging", func() {
 				ObjectMeta: metav1.ObjectMeta{Name: "test-instance", Namespace: "tenant-test", UID: "1234"},
 			}
 			environment = &clv1alpha2.Environment{Name: "gui", EnvironmentType: clv1alpha2.ClassVM}
-			sp = forge.SecurityPolicySpec(instance, environment, "my-auth", "custom-ns", 8080, "/check")
+			sp = forge.SecurityPolicySpec(instance, environment, &forge.AuthServiceInfo{
+				ServiceName: "my-auth",
+				Namespace:   "custom-ns",
+				Port:        8080,
+				Path:        "/check",
+			})
 		})
 
 		It("Should configure the TargetRefs correctly", func() {

@@ -111,12 +111,12 @@ func ParseAuthServiceAnnotation(annotation, defaultNs string, defaultAuth *AuthS
 }
 
 // SecurityPolicySpec forges the specification of a Kubernetes SecurityPolicy resource.
-func SecurityPolicySpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, serviceName, namespace string, port int32, path string) egv1alpha1.SecurityPolicySpec {
+func SecurityPolicySpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, authInfo *AuthServiceInfo) egv1alpha1.SecurityPolicySpec {
 	targetRouteName := fmt.Sprintf("%v-%v", instance.Name, environment.Name)
 
 	return egv1alpha1.SecurityPolicySpec{
 		PolicyTargetReferences: SecurityPolicyTargetRefs(targetRouteName),
-		ExtAuth:                SecurityPolicyExtAuth(serviceName, namespace, port, path),
+		ExtAuth:                SecurityPolicyExtAuth(authInfo.ServiceName, authInfo.Namespace, authInfo.Port, authInfo.Path),
 	}
 }
 

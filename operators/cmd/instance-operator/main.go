@@ -200,6 +200,10 @@ func main() {
 				log.Error(err, "invalid default gateway-api-auth-service format", "error", err)
 				os.Exit(1)
 			}
+			if defaultAuth == nil || defaultAuth.Mode == "none" {
+				log.Error(nil, "default gateway-api-auth-service cannot be empty or 'none' when authentication is enabled")
+				os.Exit(1)
+			}
 			expositionCfg.GatewayAPIAuthService = defaultAuth
 		}
 	} else if gatewayAPIRefsValues != "" {
