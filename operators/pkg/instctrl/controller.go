@@ -26,7 +26,9 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/trace"
@@ -366,18 +368,30 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
 
-	return ctrl.NewControllerManagedBy(mgr).
+	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
-		Owns(&gatewayv1.HTTPRoute{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
-		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).
-		WithOptions(controller.Options{
-			MaxConcurrentReconciles: concurrency,
-		}).
+		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
+
+	if r.ExpositionConfig.GatewayAPIMode {
+		bld = bld.Owns(&gatewayv1.HTTPRoute{})
+
+		securityPolicy := &unstructured.Unstructured{}
+		securityPolicy.SetGroupVersionKind(schema.GroupVersionKind{
+			Group:   "gateway.envoyproxy.io",
+			Version: "v1alpha1",
+			Kind:    "SecurityPolicy",
+		})
+		bld = bld.Owns(securityPolicy)
+	}
+
+	return bld.WithOptions(controller.Options{
+		MaxConcurrentReconciles: concurrency,
+	}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Instance")).
 		Complete(r)
 }
