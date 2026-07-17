@@ -53,7 +53,9 @@ var mockProm *mocks.MockPrometheusClientInterface
 
 func TestInstautoctrl(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Instautoctrl Suite")
+	suiteConfig, reporterConfig := GinkgoConfiguration()
+	suiteConfig.RandomizeAllSpecs = false
+	RunSpecs(t, "Instautoctrl Suite", suiteConfig, reporterConfig)
 }
 
 var _ = BeforeSuite(func() {
