@@ -391,13 +391,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const NodeSelectorOptionMap: { [key: string]: string } = {
     'NodeSelectorDisabled': 'Automatic',
-    'SelectAnyNode': 'Let user choose',
-    'FixedSelection': 'Fixed Labels',
+    'SelectAnyNode': 'Chosen by user',
+    'FixedSelection': 'On selected nodes',
   };
   const nodeSelectorTooltips: { [key: string]: string } = {
-    'NodeSelectorDisabled': 'No node selection constraints will be applied',
-    'SelectAnyNode': 'User can select any node available in the cluster when creating an instance based on this template',
-    'FixedSelection': 'Select specific node labels to constrain where instances can run',
+    'NodeSelectorDisabled': 'Kubernetes will select the best node for your job',
+    'SelectAnyNode': 'Kubernetes will run your job on the node(s) selected by the user when the instance is created',
+    'FixedSelection': 'Kubernetes will run your job on the node(s) selected by the workspace admin when the template is created',
   };
 
   const [nodeSelectorMode, setNodeSelectorMode] = useState<string>(NodeSelectorOptionMap['NodeSelectorDisabled']);
