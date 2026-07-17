@@ -21,14 +21,13 @@ import (
 	"strconv"
 	"time"
 
+	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/utils/trace"
@@ -378,15 +377,8 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
 
 	if r.ExpositionConfig.GatewayAPIMode {
-		bld = bld.Owns(&gatewayv1.HTTPRoute{})
-
-		securityPolicy := &unstructured.Unstructured{}
-		securityPolicy.SetGroupVersionKind(schema.GroupVersionKind{
-			Group:   "gateway.envoyproxy.io",
-			Version: "v1alpha1",
-			Kind:    "SecurityPolicy",
-		})
-		bld = bld.Owns(securityPolicy)
+		bld = bld.Owns(&gatewayv1.HTTPRoute{}).
+			Owns(&egv1alpha1.SecurityPolicy{})
 	}
 
 	return bld.WithOptions(controller.Options{
