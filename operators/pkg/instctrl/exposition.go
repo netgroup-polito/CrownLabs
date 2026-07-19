@@ -70,8 +70,6 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 		return nil
 	}
 
-
-
 	// Enforce the HTTPRoute presence
 	httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {

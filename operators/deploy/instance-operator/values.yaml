@@ -5,6 +5,16 @@
 replicaCount: 1
 replicaCountAutomation: 1
 
+securityPolicyTemplate:
+  enabled: true
+  extAuth:
+    failOpen: false
+    http:
+      backendRef:
+        name: oauth2-proxy
+        namespace: crownlabs
+        port: 4180
+
 configurations:
   generic:
     whitelistLabels: crownlabs.polito.it/operator-selector=production

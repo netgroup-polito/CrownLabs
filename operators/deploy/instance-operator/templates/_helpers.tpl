@@ -80,3 +80,14 @@ The tag to be used for image exporter container for VM snapshots
 {{- define "instance-operator.containerExportImageTag" -}}
 {{- .Values.configurations.containerVmSnapshots.exportImageTag | default ( include "instance-operator.version" . ) }}
 {{- end }}
+
+{{/*
+The instances authentication URL to be used by the operator
+*/}}
+{{- define "instance-operator.instancesAuthUrl" -}}
+{{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false) (.Values.securityPolicyTemplate.enabled | default false) }}
+{{- printf "%s/%s-auth-template" .Release.Namespace (include "instance-operator.fullname" .) }}
+{{- else }}
+{{- .Values.configurations.generic.instancesAuthUrl }}
+{{- end }}
+{{- end }}

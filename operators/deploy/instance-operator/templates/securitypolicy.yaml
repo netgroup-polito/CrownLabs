@@ -1,0 +1,23 @@
+{{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false) (.Values.securityPolicyTemplate.enabled | default false) }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ include "instance-operator.fullname" . }}-auth-template
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+spec:
+  targetRefs: []
+  extAuth:
+    failOpen: {{ .Values.securityPolicyTemplate.extAuth.failOpen | default false }}
+    headersToExtAuth:
+      - Cookie
+      - Authorization
+    http:
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.name | default "oauth2-proxy" | quote }}
+          namespace: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.namespace | default .Release.Namespace | quote }}
+          port: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.port | default 4180 }}
+{{- end }}

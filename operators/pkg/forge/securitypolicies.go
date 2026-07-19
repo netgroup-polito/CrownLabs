@@ -19,7 +19,6 @@ import (
 	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-
 // SecurityPolicySpec forges the specification of a Kubernetes SecurityPolicy resource.
 func SecurityPolicySpec(targetRouteName string, templateSpec *egv1alpha1.SecurityPolicySpec) egv1alpha1.SecurityPolicySpec {
 	if templateSpec == nil {
