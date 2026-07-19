@@ -377,8 +377,11 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
 
 	if r.ExpositionConfig.GatewayAPIMode {
-		bld = bld.Owns(&gatewayv1.HTTPRoute{}).
-			Owns(&egv1alpha1.SecurityPolicy{})
+		bld = bld.Owns(&gatewayv1.HTTPRoute{})
+
+		if r.ExpositionConfig.EnableAuthentication && r.ExpositionConfig.GatewayAPISecurityPolicySpec != nil {
+			bld = bld.Owns(&egv1alpha1.SecurityPolicy{})
+		}
 	}
 
 	return bld.WithOptions(controller.Options{

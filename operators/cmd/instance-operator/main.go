@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"path/filepath"
@@ -24,6 +25,7 @@ import (
 	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
@@ -32,6 +34,7 @@ import (
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -74,7 +77,7 @@ func main() {
 	enableAuth := true
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
-	gatewayAPIAuthServiceRaw := ""
+	instancesAuthURLRaw := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -88,8 +91,7 @@ func main() {
 	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
 
 	flag.StringVar(&expositionCfg.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&expositionCfg.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
-	flag.StringVar(&gatewayAPIAuthServiceRaw, "gateway-api-auth-service", "oauth2-proxy.crownlabs:4180/auth", "The default authentication service for Gateway API in format serviceName.namespace:port/path")
+	flag.StringVar(&instancesAuthURLRaw, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy) or the SecurityPolicy template in namespace/name format for Gateway API")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
@@ -195,19 +197,31 @@ func main() {
 		expositionCfg.GatewayNamespace = gwNs
 
 		if enableAuth {
-			defaultAuth, err := forge.ParseAuthServiceAnnotation(gatewayAPIAuthServiceRaw, "default", nil)
+			policyNs, policyName, err := forge.ParseGatewayParent(instancesAuthURLRaw)
 			if err != nil {
-				log.Error(err, "invalid default gateway-api-auth-service format", "error", err)
+				log.Error(err, "invalid default instances-auth-url format, expected 'namespace/name' when Gateway API mode is enabled")
 				os.Exit(1)
 			}
-			if defaultAuth == nil || defaultAuth.Mode == "none" {
-				log.Error(nil, "default gateway-api-auth-service cannot be empty or 'none' when authentication is enabled")
+			// Create a direct client to fetch the template before the manager starts.
+			cl, err := client.New(mgr.GetConfig(), client.Options{Scheme: rscheme})
+			if err != nil {
+				log.Error(err, "unable to create direct kubernetes client")
 				os.Exit(1)
 			}
-			expositionCfg.GatewayAPIAuthService = defaultAuth
+			var templatePolicy egv1alpha1.SecurityPolicy
+			err = cl.Get(context.Background(), types.NamespacedName{Namespace: policyNs, Name: policyName}, &templatePolicy)
+			if err != nil {
+				log.Error(err, "unable to fetch gateway api security policy template", "namespace", policyNs, "name", policyName)
+				os.Exit(1)
+			}
+			log.Info("Successfully fetched SecurityPolicy template Spec", "namespace", policyNs, "name", policyName, "spec", templatePolicy.Spec)
+			expositionCfg.GatewayAPISecurityPolicySpec = &templatePolicy.Spec
 		}
-	} else if gatewayAPIRefsValues != "" {
-		log.Info("Gateway parent provided but Gateway API mode is disabled")
+	} else {
+		if gatewayAPIRefsValues != "" {
+			log.Info("Gateway parent provided but Gateway API mode is disabled")
+		}
+		expositionCfg.InstancesAuthURL = instancesAuthURLRaw
 	}
 
 	if err = (&instctrl.InstanceReconciler{

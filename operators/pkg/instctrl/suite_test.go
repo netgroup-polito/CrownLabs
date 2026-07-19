@@ -24,6 +24,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/textlogger"
+	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -85,12 +86,24 @@ var _ = BeforeSuite(func() {
 			GatewayAPIMode:       false,
 			GatewayName:          "fake-gw",
 			GatewayNamespace:     "fake-gw-ns",
-			GatewayAPIAuthService: &forge.AuthServiceInfo{
-				ServiceName: "oauth2-proxy",
-				Namespace:   "crownlabs",
-				Port:        4180,
-				Path:        "/auth",
-				Mode:        "custom",
+			GatewayAPISecurityPolicySpec: &egv1alpha1.SecurityPolicySpec{
+				ExtAuth: &egv1alpha1.ExtAuth{
+					HeadersToExtAuth: []string{"Cookie", "Authorization"},
+					HTTP: &egv1alpha1.HTTPExtAuthService{
+						BackendRefs: []egv1alpha1.BackendRef{
+							{
+								BackendObjectReference: gatewayv1.BackendObjectReference{
+									Group:     ptr.To(gatewayv1.Group("")),
+									Kind:      ptr.To(gatewayv1.Kind("Service")),
+									Name:      gatewayv1.ObjectName("oauth2-proxy"),
+									Namespace: ptr.To(gatewayv1.Namespace("crownlabs")),
+									Port:      ptr.To(gatewayv1.PortNumber(4180)),
+								},
+							},
+						},
+						Path: ptr.To("/auth"),
+					},
+				},
 			},
 		},
 		ContainerEnvOpts: forge.ContainerEnvOpts{

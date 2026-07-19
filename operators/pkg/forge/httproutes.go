@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"strings"
 
+	egv1alpha1 "github.com/envoyproxy/gateway/api/v1alpha1"
 	"k8s.io/utils/ptr"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
@@ -47,13 +48,13 @@ type HTTPRouteTemplate struct {
 
 // ExpositionConfig holds gateway information used by HTTPRouteSpec.
 type ExpositionConfig struct {
-	WebsiteBaseURL        string
-	InstancesAuthURL      string
-	EnableAuthentication  bool
-	GatewayAPIMode        bool
-	GatewayName           string
-	GatewayNamespace      string
-	GatewayAPIAuthService *AuthServiceInfo
+	WebsiteBaseURL               string
+	InstancesAuthURL             string
+	EnableAuthentication         bool
+	GatewayAPIMode               bool
+	GatewayName                  string
+	GatewayNamespace             string
+	GatewayAPISecurityPolicySpec *egv1alpha1.SecurityPolicySpec
 }
 
 // ParseGatewayParent parses a gateway parent reference of the form
