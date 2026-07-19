@@ -19,21 +19,13 @@ import (
 	gwapiv1a2 "sigs.k8s.io/gateway-api/apis/v1alpha2"
 )
 
-const (
-	// AuthServiceAnnotation is the annotation used to specify the authentication service for an instance.
-	AuthServiceAnnotation = "crownlabs.polito.it/auth-service"
-	// AuthAnnotationDisabled indicates that authentication should be disabled.
-	AuthAnnotationDisabled = "none"
-	// AuthAnnotationDefault indicates that default authentication should be used.
-	AuthAnnotationDefault = "default"
-)
 
 // SecurityPolicySpec forges the specification of a Kubernetes SecurityPolicy resource.
 func SecurityPolicySpec(targetRouteName string, templateSpec *egv1alpha1.SecurityPolicySpec) egv1alpha1.SecurityPolicySpec {
-	var spec egv1alpha1.SecurityPolicySpec
-	if templateSpec != nil {
-		spec = *templateSpec.DeepCopy()
+	if templateSpec == nil {
+		panic("Unexpected empty templatePolSpec")
 	}
+	spec := *templateSpec.DeepCopy()
 	spec.PolicyTargetReferences = SecurityPolicyTargetRefs(targetRouteName)
 	return spec
 }

@@ -34,7 +34,6 @@ import (
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -202,12 +201,9 @@ func main() {
 				log.Error(err, "invalid default instances-auth-url format, expected 'namespace/name' when Gateway API mode is enabled")
 				os.Exit(1)
 			}
-			// Create a direct client to fetch the template before the manager starts.
-			cl, err := client.New(mgr.GetConfig(), client.Options{Scheme: rscheme})
-			if err != nil {
-				log.Error(err, "unable to create direct kubernetes client")
-				os.Exit(1)
-			}
+			// mgr.GetClient() cannot be used here because the manager's cache is only started
+			// asynchronously later (via mgr.Start) and cached reads would fail at this point.
+			cl := mgr.GetAPIReader()
 			var templatePolicy egv1alpha1.SecurityPolicy
 			err = cl.Get(context.Background(), types.NamespacedName{Namespace: policyNs, Name: policyName}, &templatePolicy)
 			if err != nil {

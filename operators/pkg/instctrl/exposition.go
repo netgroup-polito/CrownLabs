@@ -112,10 +112,7 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 	}
 
 	// Check if authentication should be enabled
-	annot := instance.Annotations[forge.AuthServiceAnnotation]
-	authEnabled := r.ExpositionConfig.EnableAuthentication &&
-		r.ExpositionConfig.GatewayAPISecurityPolicySpec != nil &&
-		(annot != forge.AuthAnnotationDisabled && annot != "disabled")
+	authEnabled := r.ExpositionConfig.EnableAuthentication
 
 	if authEnabled {
 		if err := r.enforceInstanceExpositionSecurityPolicyPresence(ctx); err != nil {
@@ -256,11 +253,9 @@ func (r *InstanceReconciler) enforceInstanceExpositionSecurityPolicyPresence(ctx
 	environment := clctx.EnvironmentFrom(ctx)
 
 	targetRouteName := forge.ObjectMetaWithSuffix(instance, environment.Name).Name
-	policy := egv1alpha1.SecurityPolicy{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-auth-policy")}
+	policy := egv1alpha1.SecurityPolicy{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &policy, func() error {
-		if policy.CreationTimestamp.IsZero() {
-			policy.Spec = forge.SecurityPolicySpec(targetRouteName, r.ExpositionConfig.GatewayAPISecurityPolicySpec)
-		}
+		policy.Spec = forge.SecurityPolicySpec(targetRouteName, r.ExpositionConfig.GatewayAPISecurityPolicySpec)
 		policy.SetLabels(forge.EnvironmentObjectLabels(policy.GetLabels(), instance, environment))
 
 		return ctrl.SetControllerReference(instance, &policy, r.Scheme)
@@ -354,7 +349,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionSecurityPolicyAbsence(ctx 
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
-	policy := egv1alpha1.SecurityPolicy{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name+"-auth-policy")}
+	policy := egv1alpha1.SecurityPolicy{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &policy, "securitypolicy"); err != nil {
 		return err
 	}

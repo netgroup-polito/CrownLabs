@@ -379,7 +379,7 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 	if r.ExpositionConfig.GatewayAPIMode {
 		bld = bld.Owns(&gatewayv1.HTTPRoute{})
 
-		if r.ExpositionConfig.EnableAuthentication && r.ExpositionConfig.GatewayAPISecurityPolicySpec != nil {
+		if r.ExpositionConfig.EnableAuthentication {
 			bld = bld.Owns(&egv1alpha1.SecurityPolicy{})
 		}
 	}
