@@ -57,18 +57,18 @@ type ExpositionConfig struct {
 	GatewayAPISecurityPolicySpec *egv1alpha1.SecurityPolicySpec
 }
 
-// ParseGatewayParent parses a gateway parent reference of the form
+// ParseNamespacedName parses a reference of the form
 // "namespace/name" and returns the two components. Returns an error on invalid input.
-func ParseGatewayParent(raw string) (namespace, name string, err error) {
+func ParseNamespacedName(raw string) (namespace, name string, err error) {
 	raw = strings.TrimSpace(raw)
 	parts := strings.Split(raw, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("invalid gateway parent reference: %q", raw)
+		return "", "", fmt.Errorf("invalid namespaced name reference: %q", raw)
 	}
 	trim := strings.TrimSpace
 	namespace, name = trim(parts[0]), trim(parts[1])
 	if namespace == "" || name == "" {
-		return "", "", fmt.Errorf("invalid gateway parent reference, empty namespace or name: %q", raw)
+		return "", "", fmt.Errorf("invalid namespaced name reference, empty namespace or name: %q", raw)
 	}
 	return namespace, name, nil
 }

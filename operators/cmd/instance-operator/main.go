@@ -187,7 +187,7 @@ func main() {
 	expositionCfg.GatewayAPIMode = gatewayAPIMode
 	log.Info("Gateway API mode selection", "enabled", gatewayAPIMode)
 	if gatewayAPIMode {
-		gwNs, gwName, err := forge.ParseGatewayParent(gatewayAPIRefsValues)
+		gwNs, gwName, err := forge.ParseNamespacedName(gatewayAPIRefsValues)
 		if err != nil {
 			log.Error(err, "invalid gateway parent format, expected 'namespace/name'")
 			os.Exit(1)
@@ -196,7 +196,7 @@ func main() {
 		expositionCfg.GatewayNamespace = gwNs
 
 		if enableAuth {
-			policyNs, policyName, err := forge.ParseGatewayParent(instancesAuthURLRaw)
+			policyNs, policyName, err := forge.ParseNamespacedName(instancesAuthURLRaw)
 			if err != nil {
 				log.Error(err, "invalid default instances-auth-url format, expected 'namespace/name' when Gateway API mode is enabled")
 				os.Exit(1)
