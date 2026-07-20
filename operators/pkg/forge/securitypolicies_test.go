@@ -88,5 +88,34 @@ var _ = Describe("SecurityPolicy forging", func() {
 			Expect(*backend.Namespace).To(Equal(gatewayv1.Namespace("custom-ns")))
 			Expect(*backend.Port).To(Equal(gatewayv1.PortNumber(8080)))
 		})
+
+		Context("with OIDC template spec", func() {
+			BeforeEach(func() {
+				templateSpec = &egv1alpha1.SecurityPolicySpec{
+					OIDC: &egv1alpha1.OIDC{
+						Provider: egv1alpha1.OIDCProvider{
+							Issuer: "https://auth.example.com",
+						},
+						ClientID: "k8s",
+						ClientSecret: gatewayv1.SecretObjectReference{
+							Name:      "my-secret",
+							Namespace: ptr.To(gatewayv1.Namespace("crownlabs")),
+						},
+						RedirectURL: ptr.To("%REQ(x-forwarded-proto)%://%REQ(:authority)%/app/instauth/callback"),
+					},
+				}
+				targetRouteName := forge.ObjectMetaWithSuffix(instance, environment.Name).Name
+				sp = forge.SecurityPolicySpec(targetRouteName, templateSpec)
+			})
+
+			It("Should configure the OIDC service correctly based on templateSpec", func() {
+				Expect(sp.OIDC).ToNot(BeNil())
+				Expect(sp.OIDC.Provider.Issuer).To(Equal("https://auth.example.com"))
+				Expect(sp.OIDC.ClientID).To(Equal("k8s"))
+				Expect(sp.OIDC.ClientSecret.Name).To(Equal(gatewayv1.ObjectName("my-secret")))
+				Expect(*sp.OIDC.ClientSecret.Namespace).To(Equal(gatewayv1.Namespace("crownlabs")))
+				Expect(*sp.OIDC.RedirectURL).To(Equal("%REQ(x-forwarded-proto)%://%REQ(:authority)%/app/instauth/callback"))
+			})
+		})
 	})
 })

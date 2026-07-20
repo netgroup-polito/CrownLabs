@@ -8,6 +8,7 @@ metadata:
     {{- include "instance-operator.labels" . | nindent 4 }}
 spec:
   targetRefs: []
+  {{- if .Values.securityPolicyTemplate.extAuth }}
   extAuth:
     failOpen: {{ .Values.securityPolicyTemplate.extAuth.failOpen | default false }}
     headersToExtAuth:
@@ -20,4 +21,16 @@ spec:
           name: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.name | default "oauth2-proxy" | quote }}
           namespace: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.namespace | default .Release.Namespace | quote }}
           port: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.port | default 4180 }}
+  {{- else if .Values.securityPolicyTemplate.oidc }}
+  oidc:
+    provider:
+      issuer: {{ .Values.securityPolicyTemplate.oidc.provider.issuer | quote }}
+    clientID: {{ .Values.securityPolicyTemplate.oidc.clientID | quote }}
+    clientSecret:
+      name: {{ .Values.securityPolicyTemplate.oidc.clientSecret.name | quote }}
+      namespace: {{ .Values.securityPolicyTemplate.oidc.clientSecret.namespace | default .Release.Namespace | quote }}
+    {{- if .Values.securityPolicyTemplate.oidc.redirectURL }}
+    redirectURL: {{ .Values.securityPolicyTemplate.oidc.redirectURL | quote }}
+    {{- end }}
+  {{- end }}
 {{- end }}
