@@ -83,7 +83,7 @@ global:
 
 ingress:
   annotations:
-    nginx.ingress.kubernetes.io/custom-http-errors: "418" # Lost in the migration from Ingress to Gateway API
+    nginx.ingress.kubernetes.io/custom-http-errors: "418"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
 

@@ -19,10 +19,9 @@ spec:
         - path:
             type: PathPrefix
             value: {{ .Values.webssh.httproute.path }}
-{{- with .Values.webssh.httproute.timeouts }}
       timeouts:
-        {{- toYaml . | nindent 8 }}
-{{- end }}
+        request: {{ .Values.webssh.httproute.timeouts.request | default "600s" }}
+        backendRequest: {{ .Values.webssh.httproute.timeouts.backendRequest | default "600s" }}
       backendRefs:
         - group: ""
           kind: Service
