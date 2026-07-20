@@ -133,6 +133,9 @@ webssh:
   httproute:
     gateway: {}
       # name: crownlabs-main # defaults to global.gateway.name
+    timeouts:
+      request: 600s
+      backendRequest: 600s
   service:
     type: ClusterIP
     port: 8085
