@@ -31,8 +31,6 @@ spec:
     clientSecret:
       name: {{ .clientSecret.name | quote }}
       namespace: {{ .clientSecret.namespace | default $.Release.Namespace | quote }}
-    {{- with .redirectURL }}
-    redirectURL: {{ . | quote }}
-    {{- end }}
+    redirectURL: {{ .redirectURL | quote }}
   {{- end }}
 {{- end }}
