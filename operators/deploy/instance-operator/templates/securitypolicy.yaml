@@ -1,4 +1,6 @@
-{{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false) (.Values.securityPolicyTemplate.enabled | default false) }}
+{{- $gatewayApiMode := .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false -}}
+{{- $template := .Values.securityPolicyTemplate -}}
+{{- if and $gatewayApiMode ($template.enabled | default false) }}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
@@ -8,9 +10,9 @@ metadata:
     {{- include "instance-operator.labels" . | nindent 4 }}
 spec:
   targetRefs: []
-  {{- if .Values.securityPolicyTemplate.extAuth }}
+  {{- with $template.extAuth }}
   extAuth:
-    failOpen: {{ .Values.securityPolicyTemplate.extAuth.failOpen | default false }}
+    failOpen: {{ .failOpen | default false }}
     headersToExtAuth:
       - Cookie
       - Authorization
@@ -18,19 +20,19 @@ spec:
       backendRefs:
         - group: ""
           kind: Service
-          name: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.name | default "oauth2-proxy" | quote }}
-          namespace: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.namespace | default .Release.Namespace | quote }}
-          port: {{ .Values.securityPolicyTemplate.extAuth.http.backendRef.port | default 4180 }}
-  {{- else if .Values.securityPolicyTemplate.oidc }}
+          name: {{ .http.backendRef.name | default "oauth2-proxy" | quote }}
+          namespace: {{ .http.backendRef.namespace | default $.Release.Namespace | quote }}
+          port: {{ .http.backendRef.port | default 4180 }}
+  {{- else with $template.oidc }}
   oidc:
     provider:
-      issuer: {{ .Values.securityPolicyTemplate.oidc.provider.issuer | quote }}
-    clientID: {{ .Values.securityPolicyTemplate.oidc.clientID | quote }}
+      issuer: {{ .provider.issuer | quote }}
+    clientID: {{ .clientID | quote }}
     clientSecret:
-      name: {{ .Values.securityPolicyTemplate.oidc.clientSecret.name | quote }}
-      namespace: {{ .Values.securityPolicyTemplate.oidc.clientSecret.namespace | default .Release.Namespace | quote }}
-    {{- if .Values.securityPolicyTemplate.oidc.redirectURL }}
-    redirectURL: {{ .Values.securityPolicyTemplate.oidc.redirectURL | quote }}
+      name: {{ .clientSecret.name | quote }}
+      namespace: {{ .clientSecret.namespace | default $.Release.Namespace | quote }}
+    {{- with .redirectURL }}
+    redirectURL: {{ . | quote }}
     {{- end }}
   {{- end }}
 {{- end }}
