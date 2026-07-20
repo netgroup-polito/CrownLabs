@@ -73,6 +73,12 @@ configurations:
         password: ""
         imageListName: harbor-containerdisks
         project: crownlabs-containerdisks
+      - name: snapshots-workspace
+        type: instancesnapshot
+        namespace: cldprog-5-block-vms-tests
+        registryName: harbor.ng.crownlabs.polito.it
+        imageListName: public-snapshots
+        project: crownlabs-snapshots
 
   pvcMirrorProvisioner:
     provisionerName: pmp.crownlabs.polito.it

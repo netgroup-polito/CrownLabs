@@ -21,12 +21,19 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
+	batchv1 "k8s.io/api/batch/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2/textlogger"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // Requestor defines the interface for objects responsible to retrieve the list of images from upstream sources.
@@ -599,6 +606,182 @@ func (r *HarborImageListRequestor) mapRepositoriesToPaths(repositories []map[str
 		paths[i] = fmt.Sprintf("/api/v2.0/projects/%s/repositories/%s/artifacts", r.projectName, repoName)
 	}
 	return paths
+}
+
+// InstanceSnapshotImageListRequestor retrieves image data from completed InstanceSnapshot resources in a Kubernetes namespace.
+type InstanceSnapshotImageListRequestor struct {
+	k8sClient    client.Client
+	namespace    string
+	registryName string
+	projectName  string
+	initialized  bool
+	log          logr.Logger
+}
+
+// NewInstanceSnapshotImageListRequestor creates a new InstanceSnapshotImageListRequestor instance.
+func NewInstanceSnapshotImageListRequestor(k8sClient client.Client, namespace, registryName, projectName string, log logr.Logger) *InstanceSnapshotImageListRequestor {
+	return &InstanceSnapshotImageListRequestor{
+		k8sClient:    k8sClient,
+		namespace:    namespace,
+		registryName: registryName,
+		projectName:  projectName,
+		initialized:  false,
+		log:          log,
+	}
+}
+
+// Initialize validates the requestor configuration.
+func (r *InstanceSnapshotImageListRequestor) Initialize(_, _, _ string) (bool, error) {
+	if r.k8sClient == nil {
+		return false, fmt.Errorf("kubernetes client is required")
+	}
+	if r.namespace == "" {
+		return false, fmt.Errorf("namespace is required")
+	}
+	if r.projectName == "" {
+		return false, fmt.Errorf("project is required")
+	}
+
+	r.initialized = true
+	return true, nil
+}
+
+// GetImageList retrieves image names and tags from completed InstanceSnapshots.
+func (r *InstanceSnapshotImageListRequestor) GetImageList(ctx context.Context) ([]map[string]interface{}, error) {
+	if !r.initialized {
+		return nil, fmt.Errorf("InstanceSnapshot requestor is not initialized")
+	}
+
+	snapshots := &clv1alpha2.InstanceSnapshotList{}
+	if err := r.k8sClient.List(ctx, snapshots, client.InNamespace(r.namespace)); err != nil {
+		return nil, fmt.Errorf("failed to list InstanceSnapshots in namespace %s: %w", r.namespace, err)
+	}
+
+	versionsByImage := map[string]map[string]struct{}{}
+
+	for i := range snapshots.Items {
+		snapshot := &snapshots.Items[i]
+		if snapshot.Status.Phase != clv1alpha2.Completed {
+			r.log.V(1).Info("skipping non-completed InstanceSnapshot", "name", snapshot.Name, "namespace", snapshot.Namespace, "phase", snapshot.Status.Phase)
+			continue
+		}
+
+		job := &batchv1.Job{}
+		key := types.NamespacedName{Name: snapshot.Name, Namespace: snapshot.Namespace}
+		if err := r.k8sClient.Get(ctx, key, job); err != nil {
+			if kerrors.IsNotFound(err) {
+				r.log.Info("skipping InstanceSnapshot because the snapshot job was not found", "name", snapshot.Name, "namespace", snapshot.Namespace)
+				continue
+			}
+			return nil, fmt.Errorf("failed to get snapshot job %s/%s: %w", snapshot.Namespace, snapshot.Name, err)
+		}
+
+		imageName, version, ok := r.imageListEntryFromSnapshotJob(job, snapshot.Spec.ImageName)
+		if !ok {
+			r.log.Info("skipping InstanceSnapshot because the snapshot job destination is missing or invalid", "name", snapshot.Name, "namespace", snapshot.Namespace)
+			continue
+		}
+
+		if versionsByImage[imageName] == nil {
+			versionsByImage[imageName] = map[string]struct{}{}
+		}
+		versionsByImage[imageName][version] = struct{}{}
+	}
+
+	return r.imageListDataFromVersionsMap(versionsByImage), nil
+}
+
+func (r *InstanceSnapshotImageListRequestor) imageListDataFromVersionsMap(versionsByImage map[string]map[string]struct{}) []map[string]interface{} {
+	names := make([]string, 0, len(versionsByImage))
+	for name := range versionsByImage {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+
+	out := make([]map[string]interface{}, 0, len(names))
+	for _, name := range names {
+		versions := make([]string, 0, len(versionsByImage[name]))
+		for version := range versionsByImage[name] {
+			versions = append(versions, version)
+		}
+		sort.Strings(versions)
+		out = append(out, map[string]interface{}{
+			"name": name,
+			"tags": versions,
+		})
+	}
+
+	return out
+}
+
+func (r *InstanceSnapshotImageListRequestor) imageListEntryFromSnapshotJob(job *batchv1.Job, snapshotImageName string) (imageName, version string, ok bool) {
+	for i := range job.Spec.Template.Spec.Containers {
+		for _, arg := range job.Spec.Template.Spec.Containers[i].Args {
+			destination, found := strings.CutPrefix(arg, "--destination=")
+			if !found {
+				continue
+			}
+
+			refName, tag, hasTag := splitTaggedImageReference(destination)
+			if !hasTag {
+				return "", "", false
+			}
+
+			imagePath := r.stripImageRegistry(refName)
+			relativeImageName, hasProject := r.stripImageProject(imagePath, snapshotImageName)
+			if !hasProject || relativeImageName == "" {
+				return "", "", false
+			}
+
+			return relativeImageName, tag, true
+		}
+	}
+
+	return "", "", false
+}
+
+func splitTaggedImageReference(imageRef string) (name, tag string, ok bool) {
+	lastSlash := strings.LastIndex(imageRef, "/")
+	lastColon := strings.LastIndex(imageRef, ":")
+	if lastColon == -1 || lastColon < lastSlash {
+		return "", "", false
+	}
+
+	name = imageRef[:lastColon]
+	tag = imageRef[lastColon+1:]
+	return name, tag, name != "" && tag != ""
+}
+
+func (r *InstanceSnapshotImageListRequestor) stripImageRegistry(imagePath string) string {
+	if r.registryName != "" {
+		if stripped, found := strings.CutPrefix(imagePath, r.registryName+"/"); found {
+			return stripped
+		}
+	}
+
+	firstSlash := strings.Index(imagePath, "/")
+	if firstSlash == -1 {
+		return imagePath
+	}
+
+	firstComponent := imagePath[:firstSlash]
+	if strings.Contains(firstComponent, ".") || strings.Contains(firstComponent, ":") || firstComponent == "localhost" {
+		return imagePath[firstSlash+1:]
+	}
+
+	return imagePath
+}
+
+func (r *InstanceSnapshotImageListRequestor) stripImageProject(imagePath, snapshotImageName string) (imageName string, ok bool) {
+	if stripped, found := strings.CutPrefix(imagePath, r.projectName+"/"); found {
+		return stripped, true
+	}
+
+	if imagePath == snapshotImageName {
+		return imagePath, true
+	}
+
+	return "", false
 }
 
 // GetMapKeys returns the keys from the provided map[string]interface{}.

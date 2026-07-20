@@ -27,7 +27,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-// RegistryConfig contains the configuration for a single registry endpoint.
+// RegistryConfig contains the configuration for a single image list source.
 type RegistryConfig struct {
 	Name          string `json:"name"`
 	Type          string `json:"type"`
@@ -36,7 +36,8 @@ type RegistryConfig struct {
 	Username      string `json:"username"`
 	Password      string `json:"password"`
 	ImageListName string `json:"imageListName"`
-	Project       string `json:"project,omitempty"` // Only for Harbor
+	Project       string `json:"project,omitempty"`   // For Harbor and InstanceSnapshot
+	Namespace     string `json:"namespace,omitempty"` // Only for InstanceSnapshot
 }
 
 // UpdateResult represents the result of updating a single image list.
@@ -161,6 +162,14 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 		}
 		RequestersSharedData["harbor_project_name"] = regConfig.Project
 		requestor = NewHarborImageListRequestor(log.WithName(regConfig.Name).WithName("harborRequestor"))
+	case "instancesnapshot", "instancesnapshots", "instanceSnapshot":
+		if regConfig.Namespace == "" {
+			return fmt.Errorf("namespace is required for InstanceSnapshot image list source")
+		}
+		if regConfig.Project == "" {
+			return fmt.Errorf("project is required for InstanceSnapshot image list source")
+		}
+		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, regConfig.Project, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
 	default:
 		return fmt.Errorf("unsupported registry type: %s", regConfig.Type)
 	}
@@ -197,6 +206,14 @@ func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *Regist
 		}
 		RequestersSharedData["harbor_project_name"] = regConfig.Project
 		requestor = NewHarborImageListRequestor(log.WithName(regConfig.Name).WithName("harborRequestor"))
+	case "instancesnapshot", "instancesnapshots", "instanceSnapshot":
+		if regConfig.Namespace == "" {
+			return nil, fmt.Errorf("namespace is required for InstanceSnapshot image list source")
+		}
+		if regConfig.Project == "" {
+			return nil, fmt.Errorf("project is required for InstanceSnapshot image list source")
+		}
+		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, regConfig.Project, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
 	default:
 		return nil, fmt.Errorf("unsupported registry type: %s", regConfig.Type)
 	}

@@ -23,11 +23,15 @@ import (
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	batchv1 "k8s.io/api/batch/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	imagelist "github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 )
 
@@ -152,3 +156,125 @@ var _ = Describe("DefaultImageListSaver", func() {
 		Expect(created.Spec.Images).To(BeEmpty())
 	})
 })
+
+var _ = Describe("InstanceSnapshot ImageList source", func() {
+	It("creates an ImageList from completed InstanceSnapshots using the related job destination tag", func() {
+		scheme := runtime.NewScheme()
+		Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
+		Expect(batchv1.AddToScheme(scheme)).To(Succeed())
+
+		ctx := context.Background()
+		namespace := "workspace-a"
+		completedSnapshot := &clv1alpha2.InstanceSnapshot{
+			ObjectMeta: metav1.ObjectMeta{Name: "snapshot-a", Namespace: namespace},
+			Spec: clv1alpha2.InstanceSnapshotSpec{
+				ImageName: "snapshot-image",
+			},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Completed},
+		}
+		processingSnapshot := &clv1alpha2.InstanceSnapshot{
+			ObjectMeta: metav1.ObjectMeta{Name: "snapshot-b", Namespace: namespace},
+			Spec: clv1alpha2.InstanceSnapshotSpec{
+				ImageName: "ignored-image",
+			},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Processing},
+		}
+		snapshotJob := buildSnapshotJob(namespace, "snapshot-a", "harbor-core.harbor:80/tenant-a/snapshot-image:20260720t101010")
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(completedSnapshot, processingSnapshot, snapshotJob).
+			Build()
+
+		items, err := imagelist.ProcessSingleRegistryConfigWithItems(ctx, &imagelist.RegistryConfig{
+			Name:          "snapshot-source",
+			Type:          "instancesnapshot",
+			Namespace:     namespace,
+			RegistryName:  "harbor.ng.crownlabs.polito.it",
+			ImageListName: "snapshot-images",
+			Project:       "tenant-a",
+		}, fakeClient, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(items).To(Equal([]clv1alpha1.ImageListItem{{
+			Name:     "snapshot-image",
+			Versions: []string{"20260720t101010"},
+		}}))
+
+		created := &clv1alpha1.ImageList{}
+		err = fakeClient.Get(ctx, client.ObjectKey{Name: "snapshot-images"}, created)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(created.Spec.RegistryName).To(Equal("harbor.ng.crownlabs.polito.it"))
+		Expect(created.Spec.ProjectBaseName).To(Equal("tenant-a"))
+		Expect(created.Spec.Images).To(Equal(items))
+	})
+
+	It("deduplicates versions from completed InstanceSnapshots", func() {
+		scheme := runtime.NewScheme()
+		Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
+		Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
+		Expect(batchv1.AddToScheme(scheme)).To(Succeed())
+
+		ctx := context.Background()
+		namespace := "workspace-a"
+		snapshotA := &clv1alpha2.InstanceSnapshot{
+			ObjectMeta: metav1.ObjectMeta{Name: "snapshot-a", Namespace: namespace},
+			Spec: clv1alpha2.InstanceSnapshotSpec{
+				ImageName: "snapshot-image",
+			},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Completed},
+		}
+		snapshotB := &clv1alpha2.InstanceSnapshot{
+			ObjectMeta: metav1.ObjectMeta{Name: "snapshot-b", Namespace: namespace},
+			Spec: clv1alpha2.InstanceSnapshotSpec{
+				ImageName: "snapshot-image",
+			},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Completed},
+		}
+
+		fakeClient := fake.NewClientBuilder().
+			WithScheme(scheme).
+			WithObjects(
+				snapshotA,
+				snapshotB,
+				buildSnapshotJob(namespace, "snapshot-a", "harbor-core.harbor:80/tenant-a/snapshot-image:20260720t101010"),
+				buildSnapshotJob(namespace, "snapshot-b", "harbor-core.harbor:80/tenant-a/snapshot-image:20260720t101010"),
+			).
+			Build()
+
+		items, err := imagelist.ProcessSingleRegistryConfigWithItems(ctx, &imagelist.RegistryConfig{
+			Name:          "snapshot-source",
+			Type:          "instancesnapshot",
+			Namespace:     namespace,
+			RegistryName:  "harbor.ng.crownlabs.polito.it",
+			ImageListName: "snapshot-images",
+			Project:       "tenant-a",
+		}, fakeClient, logr.Discard())
+		Expect(err).NotTo(HaveOccurred())
+		Expect(items).To(Equal([]clv1alpha1.ImageListItem{{
+			Name:     "snapshot-image",
+			Versions: []string{"20260720t101010"},
+		}}))
+
+		created := &clv1alpha1.ImageList{}
+		err = fakeClient.Get(ctx, client.ObjectKey{Name: "snapshot-images"}, created)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(created.Spec.ProjectBaseName).To(Equal("tenant-a"))
+	})
+})
+
+func buildSnapshotJob(namespace, name, destination string) *batchv1.Job {
+	return &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+		Spec: batchv1.JobSpec{
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name: "docker-pusher",
+						Args: []string{"--destination=" + destination},
+					}},
+				},
+			},
+		},
+	}
+}
