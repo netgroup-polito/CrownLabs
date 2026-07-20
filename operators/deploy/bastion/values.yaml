@@ -117,8 +117,8 @@ sshKeysSecret:
 rbacResourcesName: crownlabs-bastion
 
 webssh:
+  expositionEnabled: true
   ingress:
-    enabled: true
     annotations:
       #cert-manager.io/cluster-issuer: letsencrypt-production
       nginx.ingress.kubernetes.io/custom-http-errors: "418"
