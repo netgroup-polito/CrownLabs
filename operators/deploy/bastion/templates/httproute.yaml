@@ -18,7 +18,7 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ .Values.webssh.ingress.path }}
+            value: {{ .Values.webssh.httproute.path }}
 {{- with .Values.webssh.httproute.timeouts }}
       timeouts:
         {{- toYaml . | nindent 8 }}

@@ -133,6 +133,7 @@ webssh:
   httproute:
     gateway: {}
       # name: crownlabs-main # defaults to global.gateway.name
+    path: /webssh
     timeouts:
       request: 600s
       backendRequest: 600s
