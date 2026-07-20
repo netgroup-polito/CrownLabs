@@ -18,11 +18,10 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ .Values.ingress.path }}
-{{- with .Values.webssh.httproute.timeouts }}
+            value: {{ .Values.httproute.path }}
       timeouts:
-        {{- toYaml . | nindent 8 }}
-{{- end }}
+        request: {{ .Values.httproute.timeouts.request | default "600s" }}
+        backendRequest: {{ .Values.httproute.timeouts.backendRequest | default "600s" }}
       backendRefs:
         - group: ""
           kind: Service
