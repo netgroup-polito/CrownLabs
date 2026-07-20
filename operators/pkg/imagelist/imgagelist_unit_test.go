@@ -193,11 +193,10 @@ var _ = Describe("InstanceSnapshot ImageList source", func() {
 			Namespace:     namespace,
 			RegistryName:  "harbor.ng.crownlabs.polito.it",
 			ImageListName: "snapshot-images",
-			Project:       "tenant-a",
 		}, fakeClient, logr.Discard())
 		Expect(err).NotTo(HaveOccurred())
 		Expect(items).To(Equal([]clv1alpha1.ImageListItem{{
-			Name:     "snapshot-image",
+			Name:     "tenant-a/snapshot-image",
 			Versions: []string{"20260720t101010"},
 		}}))
 
@@ -205,11 +204,11 @@ var _ = Describe("InstanceSnapshot ImageList source", func() {
 		err = fakeClient.Get(ctx, client.ObjectKey{Name: "snapshot-images"}, created)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(created.Spec.RegistryName).To(Equal("harbor.ng.crownlabs.polito.it"))
-		Expect(created.Spec.ProjectBaseName).To(Equal("tenant-a"))
+		Expect(created.Spec.ProjectBaseName).To(BeEmpty())
 		Expect(created.Spec.Images).To(Equal(items))
 	})
 
-	It("deduplicates versions from completed InstanceSnapshots", func() {
+	It("keeps snapshots from different tenants as distinct image paths", func() {
 		scheme := runtime.NewScheme()
 		Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
 		Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
@@ -238,7 +237,7 @@ var _ = Describe("InstanceSnapshot ImageList source", func() {
 				snapshotA,
 				snapshotB,
 				buildSnapshotJob(namespace, "snapshot-a", "harbor-core.harbor:80/tenant-a/snapshot-image:20260720t101010"),
-				buildSnapshotJob(namespace, "snapshot-b", "harbor-core.harbor:80/tenant-a/snapshot-image:20260720t101010"),
+				buildSnapshotJob(namespace, "snapshot-b", "harbor-core.harbor:80/tenant-b/snapshot-image:20260720t111111"),
 			).
 			Build()
 
@@ -248,18 +247,23 @@ var _ = Describe("InstanceSnapshot ImageList source", func() {
 			Namespace:     namespace,
 			RegistryName:  "harbor.ng.crownlabs.polito.it",
 			ImageListName: "snapshot-images",
-			Project:       "tenant-a",
 		}, fakeClient, logr.Discard())
 		Expect(err).NotTo(HaveOccurred())
-		Expect(items).To(Equal([]clv1alpha1.ImageListItem{{
-			Name:     "snapshot-image",
-			Versions: []string{"20260720t101010"},
-		}}))
+		Expect(items).To(Equal([]clv1alpha1.ImageListItem{
+			{
+				Name:     "tenant-a/snapshot-image",
+				Versions: []string{"20260720t101010"},
+			},
+			{
+				Name:     "tenant-b/snapshot-image",
+				Versions: []string{"20260720t111111"},
+			},
+		}))
 
 		created := &clv1alpha1.ImageList{}
 		err = fakeClient.Get(ctx, client.ObjectKey{Name: "snapshot-images"}, created)
 		Expect(err).NotTo(HaveOccurred())
-		Expect(created.Spec.ProjectBaseName).To(Equal("tenant-a"))
+		Expect(created.Spec.ProjectBaseName).To(BeEmpty())
 	})
 })
 

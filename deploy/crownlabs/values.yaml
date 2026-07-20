@@ -152,7 +152,6 @@ operator:
           namespace: cldprog-5-block-vms-tests
           registryName: harbor.ng.crownlabs.polito.it
           imageListName: public-snapshots
-          project: crownlabs-snapshots
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin

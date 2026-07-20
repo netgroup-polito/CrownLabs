@@ -36,7 +36,7 @@ type RegistryConfig struct {
 	Username      string `json:"username"`
 	Password      string `json:"password"`
 	ImageListName string `json:"imageListName"`
-	Project       string `json:"project,omitempty"`   // For Harbor and InstanceSnapshot
+	Project       string `json:"project,omitempty"`   // Only for Harbor
 	Namespace     string `json:"namespace,omitempty"` // Only for InstanceSnapshot
 }
 
@@ -166,10 +166,7 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 		if regConfig.Namespace == "" {
 			return fmt.Errorf("namespace is required for InstanceSnapshot image list source")
 		}
-		if regConfig.Project == "" {
-			return fmt.Errorf("project is required for InstanceSnapshot image list source")
-		}
-		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, regConfig.Project, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
+		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
 	default:
 		return fmt.Errorf("unsupported registry type: %s", regConfig.Type)
 	}
@@ -210,10 +207,7 @@ func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *Regist
 		if regConfig.Namespace == "" {
 			return nil, fmt.Errorf("namespace is required for InstanceSnapshot image list source")
 		}
-		if regConfig.Project == "" {
-			return nil, fmt.Errorf("project is required for InstanceSnapshot image list source")
-		}
-		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, regConfig.Project, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
+		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
 	default:
 		return nil, fmt.Errorf("unsupported registry type: %s", regConfig.Type)
 	}

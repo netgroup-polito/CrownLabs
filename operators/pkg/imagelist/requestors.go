@@ -613,18 +613,16 @@ type InstanceSnapshotImageListRequestor struct {
 	k8sClient    client.Client
 	namespace    string
 	registryName string
-	projectName  string
 	initialized  bool
 	log          logr.Logger
 }
 
 // NewInstanceSnapshotImageListRequestor creates a new InstanceSnapshotImageListRequestor instance.
-func NewInstanceSnapshotImageListRequestor(k8sClient client.Client, namespace, registryName, projectName string, log logr.Logger) *InstanceSnapshotImageListRequestor {
+func NewInstanceSnapshotImageListRequestor(k8sClient client.Client, namespace, registryName string, log logr.Logger) *InstanceSnapshotImageListRequestor {
 	return &InstanceSnapshotImageListRequestor{
 		k8sClient:    k8sClient,
 		namespace:    namespace,
 		registryName: registryName,
-		projectName:  projectName,
 		initialized:  false,
 		log:          log,
 	}
@@ -637,9 +635,6 @@ func (r *InstanceSnapshotImageListRequestor) Initialize(_, _, _ string) (bool, e
 	}
 	if r.namespace == "" {
 		return false, fmt.Errorf("namespace is required")
-	}
-	if r.projectName == "" {
-		return false, fmt.Errorf("project is required")
 	}
 
 	r.initialized = true
@@ -728,8 +723,8 @@ func (r *InstanceSnapshotImageListRequestor) imageListEntryFromSnapshotJob(job *
 			}
 
 			imagePath := r.stripImageRegistry(refName)
-			relativeImageName, hasProject := r.stripImageProject(imagePath, snapshotImageName)
-			if !hasProject || relativeImageName == "" {
+			relativeImageName := r.stripSnapshotImagePath(imagePath, snapshotImageName)
+			if relativeImageName == "" {
 				return "", "", false
 			}
 
@@ -772,16 +767,20 @@ func (r *InstanceSnapshotImageListRequestor) stripImageRegistry(imagePath string
 	return imagePath
 }
 
-func (r *InstanceSnapshotImageListRequestor) stripImageProject(imagePath, snapshotImageName string) (imageName string, ok bool) {
-	if stripped, found := strings.CutPrefix(imagePath, r.projectName+"/"); found {
-		return stripped, true
+func (r *InstanceSnapshotImageListRequestor) stripSnapshotImagePath(imagePath, snapshotImageName string) string {
+	if imagePath == "" {
+		return ""
 	}
 
-	if imagePath == snapshotImageName {
-		return imagePath, true
+	if snapshotImageName == "" {
+		return imagePath
 	}
 
-	return "", false
+	if imagePath == snapshotImageName || strings.HasSuffix(imagePath, "/"+snapshotImageName) {
+		return imagePath
+	}
+
+	return ""
 }
 
 // GetMapKeys returns the keys from the provided map[string]interface{}.
