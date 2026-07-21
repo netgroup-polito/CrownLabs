@@ -192,7 +192,7 @@ func (r *InstanceReconciler) GetEnvironmentResolvedIP(ctx context.Context, names
 			continue
 		}
 
-		if candidate == nil || pod.CreationTimestamp.Time.After(candidate.CreationTimestamp.Time) {
+		if candidate == nil || pod.CreationTimestamp.After(candidate.CreationTimestamp.Time) {
 			candidate = pod
 		}
 	}
