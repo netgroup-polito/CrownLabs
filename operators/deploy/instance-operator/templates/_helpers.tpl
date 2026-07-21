@@ -82,12 +82,19 @@ The tag to be used for image exporter container for VM snapshots
 {{- end }}
 
 {{/*
-The instances authentication URL to be used by the operator
+The instances authentication reference to be used by the operator
 */}}
-{{- define "instance-operator.instancesAuthUrl" -}}
+{{- define "instance-operator.instancesAuthRef" -}}
 {{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false) (.Values.securityPolicyTemplate.enabled | default false) }}
 {{- printf "%s/%s-auth-template" .Release.Namespace (include "instance-operator.fullname" .) }}
 {{- else }}
-{{- .Values.configurations.generic.instancesAuthUrl }}
+{{- .Values.configurations.generic.instancesAuthRef | default .Values.configurations.generic.instancesAuthUrl }}
 {{- end }}
+{{- end }}
+
+{{/*
+The instances authentication URL to be used by the operator
+*/}}
+{{- define "instance-operator.instancesAuthUrl" -}}
+{{- include "instance-operator.instancesAuthRef" . }}
 {{- end }}

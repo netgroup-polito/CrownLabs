@@ -77,6 +77,7 @@ func main() {
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
 	instancesAuthURLRaw := ""
+	instancesAuthRefRaw := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -90,7 +91,8 @@ func main() {
 	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
 
 	flag.StringVar(&expositionCfg.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&instancesAuthURLRaw, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy) or the SecurityPolicy template in namespace/name format for Gateway API")
+	flag.StringVar(&instancesAuthRefRaw, "instances-auth-ref", "", "The reference for user instances authentication: namespace/name for Gateway API mode SecurityPolicy template, or base URL for Ingress mode")
+	flag.StringVar(&instancesAuthURLRaw, "instances-auth-url", "", "The base URL for user instances authentication or SecurityPolicy template in namespace/name format (deprecated, use --instances-auth-ref)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
@@ -182,6 +184,11 @@ func main() {
 		log.Error(err, "no path provided for webssh public key")
 	}
 
+	instancesAuthRef := instancesAuthRefRaw
+	if instancesAuthRef == "" {
+		instancesAuthRef = instancesAuthURLRaw
+	}
+
 	// Populate exposition/gateway fields from flags
 	expositionCfg.EnableAuthentication = enableAuth
 	expositionCfg.GatewayAPIMode = gatewayAPIMode
@@ -196,9 +203,9 @@ func main() {
 		expositionCfg.GatewayNamespace = gwNs
 
 		if enableAuth {
-			policyNs, policyName, err := forge.ParseNamespacedName(instancesAuthURLRaw)
+			policyNs, policyName, err := forge.ParseNamespacedName(instancesAuthRef)
 			if err != nil {
-				log.Error(err, "invalid default instances-auth-url format, expected 'namespace/name' when Gateway API mode is enabled")
+				log.Error(err, "invalid instances-auth-ref format, expected 'namespace/name' when Gateway API mode and authentication are enabled")
 				os.Exit(1)
 			}
 			// mgr.GetClient() cannot be used here because the manager's cache is only started
@@ -212,12 +219,14 @@ func main() {
 			}
 			log.Info("Successfully fetched SecurityPolicy template Spec", "namespace", policyNs, "name", policyName, "spec", templatePolicy.Spec)
 			expositionCfg.GatewayAPISecurityPolicySpec = &templatePolicy.Spec
+		} else {
+			log.Info("Authentication disabled for Gateway API mode; skipping SecurityPolicy template retrieval")
 		}
 	} else {
 		if gatewayAPIRefsValues != "" {
 			log.Info("Gateway parent provided but Gateway API mode is disabled")
 		}
-		expositionCfg.InstancesAuthURL = instancesAuthURLRaw
+		expositionCfg.InstancesAuthURL = instancesAuthRef
 	}
 
 	if err = (&instctrl.InstanceReconciler{

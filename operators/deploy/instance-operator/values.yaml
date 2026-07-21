@@ -31,9 +31,11 @@ securityPolicyTemplate:
 
 configurations:
   generic:
+    enableAuthentication: true
     whitelistLabels: crownlabs.polito.it/operator-selector=production
     # websiteBaseUrl: crownlabs.example.com # defaults to global.gateway.hostname
     instancesAuthUrl: https://crownlabs.example.com/auth
+    # instancesAuthRef: https://crownlabs.example.com/auth
     mirrorStorageClass: pvc-mirror
     # gatewayApiMode: false # defaults to global.gateway.gatewayApiMode
     # gatewayApiRefsValues: "crownlabs-production/crownlabs-main" # defaults to .Release.Namespace/global.gateway.name
