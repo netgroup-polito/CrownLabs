@@ -279,6 +279,7 @@ export type EnvironmentsListItem = {
    * in case it is not contacted from another CrownLabs Instance).
    */
   ip?: Maybe<Scalars['String']['output']>;
+  resolvedIP?: Maybe<Scalars['String']['output']>;
   /**
    * The name identifying the specific environment.
    * It is equivalent to the name of a template's environment.
@@ -308,6 +309,7 @@ export type EnvironmentsListItemInput = {
    * in case it is not contacted from another CrownLabs Instance).
    */
   ip?: InputMaybe<Scalars['String']['input']>;
+  resolvedIP?: InputMaybe<Scalars['String']['input']>;
   /**
    * The name identifying the specific environment.
    * It is equivalent to the name of a template's environment.
