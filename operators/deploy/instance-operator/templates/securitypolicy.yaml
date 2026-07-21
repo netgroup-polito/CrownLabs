@@ -1,6 +1,4 @@
-{{- $gatewayApiMode := .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false -}}
-{{- $template := .Values.securityPolicyTemplate -}}
-{{- if and $gatewayApiMode ($template.enabled | default false) }}
+{{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false) (.Values.securityPolicyTemplate.enabled | default false) }}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:
@@ -10,27 +8,5 @@ metadata:
     {{- include "instance-operator.labels" . | nindent 4 }}
 spec:
   targetRefs: []
-  {{- with $template.extAuth }}
-  extAuth:
-    failOpen: {{ .failOpen | default false }}
-    headersToExtAuth:
-      - Cookie
-      - Authorization
-    http:
-      backendRefs:
-        - group: ""
-          kind: Service
-          name: {{ .http.backendRef.name | default "oauth2-proxy" | quote }}
-          namespace: {{ .http.backendRef.namespace | default $.Release.Namespace | quote }}
-          port: {{ .http.backendRef.port | default 4180 }}
-  {{- else with $template.oidc }}
-  oidc:
-    provider:
-      issuer: {{ .provider.issuer | quote }}
-    clientID: {{ .clientID | quote }}
-    clientSecret:
-      name: {{ .clientSecret.name | quote }}
-      namespace: {{ .clientSecret.namespace | default $.Release.Namespace | quote }}
-    redirectURL: {{ .redirectURL | quote }}
-  {{- end }}
+  {{- toYaml .Values.securityPolicyTemplate.spec | nindent 2 }}
 {{- end }}
