@@ -1,4 +1,15 @@
 {{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false) (.Values.securityPolicyTemplate.enabled | default false) }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.securityPolicyTemplate.spec.oidc.clientSecret.name | default "secpol-dummy-secret" }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  client-secret: "dummy"
+---
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:

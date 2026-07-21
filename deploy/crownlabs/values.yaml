@@ -222,8 +222,8 @@ instance-operator:
         provider:
           issuer: https://auth.ng.crownlabs.polito.it/realms/crownlabs
         clientID: k8s
-        # clientSecret:
-        #   name: my-awesome-secret
+        clientSecret:
+          name: secpol-dummy-secret
         #   namespace: crownlabs
         redirectURL: "%REQ(x-forwarded-proto)%://%REQ(:authority)%/app/instauth/callback"
       # extAuth:
