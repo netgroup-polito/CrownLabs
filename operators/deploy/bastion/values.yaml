@@ -125,7 +125,7 @@ webssh:
       nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
       nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
       nginx.ingress.kubernetes.io/websocket-services: '{{ include "bastion.fullname" . }}-webssh'
-      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k" 
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
     hostname: crownlabs.example.com
     path: /webssh
     pathType: Prefix
