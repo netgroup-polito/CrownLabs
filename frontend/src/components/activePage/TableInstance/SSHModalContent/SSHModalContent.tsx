@@ -86,7 +86,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
                           copyable
                           className="text-center"
                         >
-                          {getSshCommand(env.ip)}
+                          {getSshCommand(env.name)}
                         </Text>
                         <Link
                           to={buildSSHLink(env.name)}
