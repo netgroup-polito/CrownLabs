@@ -134,6 +134,9 @@ type InstanceStatusEnv struct {
 	// in case it is not contacted from another CrownLabs Instance).
 	IP string `json:"ip,omitempty"`
 
+	// The observed IP address of the environment (the real VM/Pod IP).
+	ResolvedIP string `json:"resolvedIP,omitempty"`
+
 	// The amount of time the Instance required to become ready for the first time
 	// upon creation.
 	InitialReadyTime string `json:"initialReadyTime,omitempty"`

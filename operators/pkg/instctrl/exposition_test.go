@@ -123,6 +123,57 @@ var _ = Describe("Exposition helpers", func() {
 			Expect(instance.Status.Environments[index].IP).To(Equal(fmt.Sprintf("%s.%s", serviceName.Name, serviceName.Namespace)))
 		})
 
+		It("updates instance status with ResolvedIP when Service is headless and Pod exists (Container)", func() {
+			// Mock pod for container environment
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("%s-xxxxx", serviceName.Name),
+					Namespace: serviceName.Namespace,
+					Labels:    forge.EnvironmentSelectorLabels(&instance, &environment),
+				},
+				Status: corev1.PodStatus{
+					PodIP: "10.244.50.60",
+				},
+			}
+			reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(pod).Build(), serviceClusterIP: "None"}
+
+			err := reconciler.EnforceInstanceExposition(ctx)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(instance.Status.Environments[index].ResolvedIP).To(Equal("10.244.50.60"))
+		})
+
+		It("updates instance status with ResolvedIP when Service is headless and VM pod exists", func() {
+			// Mock environment as VM
+			vmEnv := clv1alpha2.Environment{Name: "vm-env", EnvironmentType: clv1alpha2.ClassVM}
+			vmInstance := instance
+			vmInstance.Status.Environments = []clv1alpha2.InstanceStatusEnv{{}}
+			vmServiceName := forge.NamespacedNameWithSuffix(&vmInstance, vmEnv.Name)
+
+			pod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("virt-launcher-%s-xxxxx", vmServiceName.Name),
+					Namespace: vmServiceName.Namespace,
+					Labels:    forge.EnvironmentSelectorLabels(&vmInstance, &vmEnv),
+				},
+				Status: corev1.PodStatus{
+					PodIP: "10.244.100.200",
+				},
+			}
+			reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(pod).Build(), serviceClusterIP: "None"}
+
+			vmCtx := ctrl.LoggerInto(context.Background(), logr.Discard())
+			vmCtx, _ = clctx.InstanceInto(vmCtx, &vmInstance)
+			vmCtx, _ = clctx.EnvironmentInto(vmCtx, &vmEnv)
+			vmCtx, _ = clctx.TemplateInto(vmCtx, &template)
+			vmCtx = clctx.EnvironmentIndexInto(vmCtx, 0)
+
+			err := reconciler.EnforceInstanceExposition(vmCtx)
+			Expect(err).ToNot(HaveOccurred())
+
+			Expect(vmInstance.Status.Environments[0].ResolvedIP).To(Equal("10.244.100.200"))
+		})
+
 		Context("Gateway API mode enabled", func() {
 			BeforeEach(func() { reconciler.ExpositionConfig.GatewayAPIMode = true })
 

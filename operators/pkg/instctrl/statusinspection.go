@@ -169,3 +169,19 @@ func (r *InstanceReconciler) podScheduleStatusIntoInstance(ctx context.Context, 
 	delete(instance.Status.NodeSelector, "kubevirt.io/schedulable")
 	return
 }
+
+// GetEnvironmentResolvedIP inspects the underlying Pod matching the given selector to retrieve its actual IP address.
+func (r *InstanceReconciler) GetEnvironmentResolvedIP(ctx context.Context, namespace string, selector map[string]string) string {
+	podList := corev1.PodList{}
+	if err := r.List(ctx, &podList, client.InNamespace(namespace), client.MatchingLabels(selector)); err == nil {
+		for i := range podList.Items {
+			pod := &podList.Items[i]
+			if pod.DeletionTimestamp == nil &&
+				pod.Status.Phase != corev1.PodFailed &&
+				pod.Status.PodIP != "" {
+				return pod.Status.PodIP
+			}
+		}
+	}
+	return ""
+}
