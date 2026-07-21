@@ -220,7 +220,7 @@ instance-operator:
     spec:
       oidc:
         provider:
-          issuer: https://auth.crownlabs.example.com/auth/realms/crownlabs
+          issuer: https://auth.ng.crownlabs.polito.it/realms/crownlabs
         clientID: k8s
         # clientSecret:
         #   name: my-awesome-secret
