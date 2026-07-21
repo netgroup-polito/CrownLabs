@@ -54,7 +54,6 @@ export type InstanceEnvironment = {
   name: string;
   phase?: Phase2;
   ip?: string;
-  resolvedIP?: string;
   guiEnabled?: boolean;
   persistent?: boolean;
   environmentType?: EnvironmentType;

@@ -32,7 +32,6 @@ query ownedInstances($tenantNamespace: String!) {
           phase
           ip
           initialReadyTime
-          resolvedIP
         }
       }
       spec {

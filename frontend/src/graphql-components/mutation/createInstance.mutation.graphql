@@ -42,7 +42,6 @@ mutation createInstance(
         phase
         ip
         initialReadyTime
-        resolvedIP
       }
     }
     spec {

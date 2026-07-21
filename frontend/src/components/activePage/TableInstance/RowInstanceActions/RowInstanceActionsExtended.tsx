@@ -94,8 +94,8 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                   <Text>{env.name}</Text>
                   <p className="m-0 text-right">
                     <strong>IP: </strong>
-                    <Text type="warning" copyable={!!env.resolvedIP}>
-                      {env.resolvedIP ?? 'unknown'}
+                    <Text type="warning" copyable={!!env.ip}>
+                      {env.ip ?? 'unknown'}
                     </Text>
                   </p>
                 </div>

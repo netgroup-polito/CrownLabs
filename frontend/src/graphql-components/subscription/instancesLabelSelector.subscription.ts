@@ -34,7 +34,6 @@ export default gql`
             phase
             ip
             initialReadyTime
-            resolvedIP
           }
         }
         spec {

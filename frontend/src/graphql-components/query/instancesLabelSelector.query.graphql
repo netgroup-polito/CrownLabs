@@ -27,7 +27,6 @@ query instancesLabelSelector($labels: String) {
           name
           phase
           ip
-          resolvedIP
         }
       }
       spec {

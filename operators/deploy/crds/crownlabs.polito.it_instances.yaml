@@ -263,10 +263,6 @@ spec:
                       - Failed
                       - CreationLoopBackoff
                       type: string
-                    resolvedIP:
-                      description: The observed IP address of the environment (the
-                        real VM/Pod IP).
-                      type: string
                   required:
                   - name
                   type: object

@@ -112,7 +112,7 @@ var _ = Describe("Exposition helpers", func() {
 			Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
 		})
 
-		It("updates instance status with DNS name when Service is headless (ClusterIP is None)", func() {
+		It("updates instance status with empty string when Service is headless and no Pod exists", func() {
 			reconciler.Client = FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: "None"}
 
 			err := reconciler.EnforceInstanceExposition(ctx)
@@ -120,10 +120,10 @@ var _ = Describe("Exposition helpers", func() {
 
 			svc := corev1.Service{}
 			Expect(reconciler.Client.Get(ctx, serviceName, &svc)).To(Succeed())
-			Expect(instance.Status.Environments[index].IP).To(Equal(fmt.Sprintf("%s.%s", serviceName.Name, serviceName.Namespace)))
+			Expect(instance.Status.Environments[index].IP).To(Equal(""))
 		})
 
-		It("updates instance status with ResolvedIP when Service is headless and Pod exists (Container)", func() {
+		It("updates instance status with Pod IP when Service is headless and Pod exists (Container)", func() {
 			// Mock pod for container environment
 			pod := &corev1.Pod{
 				ObjectMeta: metav1.ObjectMeta{
@@ -140,10 +140,10 @@ var _ = Describe("Exposition helpers", func() {
 			err := reconciler.EnforceInstanceExposition(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(instance.Status.Environments[index].ResolvedIP).To(Equal("10.244.50.60"))
+			Expect(instance.Status.Environments[index].IP).To(Equal("10.244.50.60"))
 		})
 
-		It("updates instance status with ResolvedIP when Service is headless and VM pod exists", func() {
+		It("updates instance status with Pod IP when Service is headless and VM pod exists", func() {
 			// Mock environment as VM
 			vmEnv := clv1alpha2.Environment{Name: "vm-env", EnvironmentType: clv1alpha2.ClassVM}
 			vmInstance := instance
@@ -171,7 +171,7 @@ var _ = Describe("Exposition helpers", func() {
 			err := reconciler.EnforceInstanceExposition(vmCtx)
 			Expect(err).ToNot(HaveOccurred())
 
-			Expect(vmInstance.Status.Environments[0].ResolvedIP).To(Equal("10.244.100.200"))
+			Expect(vmInstance.Status.Environments[0].IP).To(Equal("10.244.100.200"))
 		})
 
 		Context("Gateway API mode enabled", func() {

@@ -16,7 +16,6 @@ package instctrl
 
 import (
 	"context"
-	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
@@ -215,12 +214,9 @@ func (r *InstanceReconciler) enforceInstanceExpositionServicePresence(ctx contex
 	log.V(utils.FromResult(res)).Info("object enforced", "service", klog.KObj(&service), "result", res)
 
 	if service.Spec.ClusterIP == "None" {
-		dnsName := fmt.Sprintf("%s.%s", service.Name, service.Namespace)
-		instance.Status.Environments[envIndex].IP = dnsName
-		instance.Status.Environments[envIndex].ResolvedIP = r.GetEnvironmentResolvedIP(ctx, service.Namespace, service.Spec.Selector)
+		instance.Status.Environments[envIndex].IP = r.GetEnvironmentResolvedIP(ctx, service.Namespace, service.Spec.Selector)
 	} else {
 		instance.Status.Environments[envIndex].IP = service.Spec.ClusterIP
-		instance.Status.Environments[envIndex].ResolvedIP = service.Spec.ClusterIP
 	}
 	return &service, nil
 }
@@ -239,7 +235,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	}
 
 	instance.Status.Environments[envIndex].IP = ""
-	instance.Status.Environments[envIndex].ResolvedIP = ""
 
 	// Mark exposition as not accepted when enforcing absence.
 	instance.Status.Environments[envIndex].ExpositionAccepted = false
