@@ -140,6 +140,7 @@ webssh:
   service:
     type: ClusterIP
     port: 8085
+    appProtocol: kubernetes.io/ws
   masterKey:
     secretName: crownlabs-bastion-web-master-key
     type: ed25519
