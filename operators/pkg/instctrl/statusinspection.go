@@ -178,6 +178,7 @@ func (r *InstanceReconciler) GetEnvironmentResolvedIP(ctx context.Context, names
 			pod := &podList.Items[i]
 			if pod.DeletionTimestamp == nil &&
 				pod.Status.Phase != corev1.PodFailed &&
+				pod.Status.Phase != corev1.PodSucceeded &&
 				pod.Status.PodIP != "" {
 				return pod.Status.PodIP
 			}

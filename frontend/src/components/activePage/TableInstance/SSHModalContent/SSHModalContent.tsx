@@ -48,7 +48,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
   const getEnvDnsName = (envName?: string) => {
     const eName = envName || getFirstEnvironmentName();
     if (name && namespace) {
-      return `${name}-${eName}.${namespace}`;
+      return `${name.replace(/\./g, '-')}-${eName}.${namespace}`;
     }
     return instanceIp;
   };
