@@ -98,3 +98,15 @@ The instances authentication URL to be used by the operator
 {{- define "instance-operator.instancesAuthUrl" -}}
 {{- include "instance-operator.instancesAuthRef" . }}
 {{- end }}
+
+{{/*
+The Gateway API parent reference (namespace/name)
+*/}}
+{{- define "instance-operator.gatewayApiRefsValues" -}}
+{{- if .Values.configurations.generic.gatewayApiRefsValues }}
+{{- .Values.configurations.generic.gatewayApiRefsValues }}
+{{- else }}
+{{- $gwName := .Values.global.gateway.name | default "crownlabs-main" }}
+{{- printf "%s/%s" .Release.Namespace $gwName }}
+{{- end }}
+{{- end }}

@@ -39,7 +39,7 @@ spec:
           args:
             - '--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}'
             - '--enable-auth={{ .Values.configurations.generic.enableAuthentication }}'
-            - '--website-base-url={{ .Values.configurations.generic.websiteBaseUrl | default .Values.global.gateway.hostname }}'
+            - '--website-base-url={{ .Values.configurations.generic.websiteBaseUrl | default .Values.global.gateway.hostname | default "crownlabs.polito.it" }}'
             - '--instances-auth-ref={{ include "instance-operator.instancesAuthRef" . }}'
             - '--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}'
             - '--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}'
@@ -55,7 +55,7 @@ spec:
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
             - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
             - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
-            - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
+            - '--gateway-api-refs-values={{ include "instance-operator.gatewayApiRefsValues" . }}'
           ports:
             - name: op-metrics
               containerPort: 8080
