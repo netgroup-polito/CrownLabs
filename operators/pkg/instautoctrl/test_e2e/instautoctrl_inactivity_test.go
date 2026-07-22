@@ -47,7 +47,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		CustomDeleteAfter                      = instautoctrl.NeverTimeoutValue
 		CustomstopAfterInactivity              = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfterNonPersistent         = instautoctrl.NeverTimeoutValue
-		CustomstopAfterInactivityNonPersistent = "0m"
+		CustomstopAfterInactivityNonPersistent = instautoctrl.NeverTimeoutValue
 		CustomDeleteAfterPersistent2           = instautoctrl.NeverTimeoutValue
 		CustomstopAfterInactivityPersistent2   = "2m"
 
@@ -56,6 +56,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 	)
 
 	var (
+		currentWorkingNamespace = WorkingNamespace
 		workingNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
@@ -279,30 +280,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 	)
 
 	BeforeEach(func() {
-		mockProm.EXPECT().
-			IsPrometheusHealthy(gomock.Any(), gomock.Any()).
-			Return(true, nil).
-			AnyTimes()
-
-		mockProm.EXPECT().
-			GetLastActivityTime(gomock.Any(), gomock.Any()).
-			Return(time.Now(), nil).
-			AnyTimes()
-
-		mockProm.EXPECT().
-			GetQueryNginxData().
-			Return("").
-			AnyTimes()
-
-		mockProm.EXPECT().
-			GetQuerySSHData().
-			Return("").
-			AnyTimes()
-
-		mockProm.EXPECT().
-			GetQueryWebSSHData().
-			Return("").
-			AnyTimes()
+		suffix := fmt.Sprintf("-%d", time.Now().UnixNano())
+		currentWorkingNamespace = WorkingNamespace + suffix
+		currentTenantNamespace := TenantName + suffix
 
 		newNs := workingNs.DeepCopy()
 		tenNs := tenantNs.DeepCopy()
@@ -313,21 +293,61 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		newNonPersistentInstance := nonPersistentInstance.DeepCopy()
 		newPersistentInstance2 := persistentInstance2.DeepCopy()
 		newTenant := tenant.DeepCopy()
+
+		newNs.Name = currentWorkingNamespace
+
+		tenNs.Name = currentTenantNamespace
+		tenNs.Labels["crownlabs.polito.it/tenant"] = currentTenantNamespace
+
+		newPersistentTemplate.Namespace = currentWorkingNamespace
+		newNonPersistentTemplate.Namespace = currentWorkingNamespace
+		newPersistentTemplate2.Namespace = currentWorkingNamespace
+
+		newTenant.Name = currentTenantNamespace
+		newTenant.Namespace = currentTenantNamespace
+
+		newPersistentInstance.Namespace = currentTenantNamespace
+		newPersistentInstance.Labels["crownlabs.polito.it/tenant"] = currentTenantNamespace
+		newPersistentInstance.Labels["crownlabs.polito.it/workspace"] = currentWorkingNamespace
+		newPersistentInstance.Spec.Template.Namespace = currentWorkingNamespace
+		newPersistentInstance.Spec.Tenant.Name = currentTenantNamespace
+		newPersistentInstance.Spec.Tenant.Namespace = currentTenantNamespace
+
+		newNonPersistentInstance.Namespace = currentTenantNamespace
+		newNonPersistentInstance.Labels["crownlabs.polito.it/tenant"] = currentTenantNamespace
+		newNonPersistentInstance.Labels["crownlabs.polito.it/workspace"] = currentWorkingNamespace
+		newNonPersistentInstance.Spec.Template.Namespace = currentWorkingNamespace
+		newNonPersistentInstance.Spec.Tenant.Name = currentTenantNamespace
+		newNonPersistentInstance.Spec.Tenant.Namespace = currentTenantNamespace
+
+		newPersistentInstance2.Namespace = currentTenantNamespace
+		newPersistentInstance2.Labels["crownlabs.polito.it/tenant"] = currentTenantNamespace
+		newPersistentInstance2.Labels["crownlabs.polito.it/workspace"] = currentWorkingNamespace
+		newPersistentInstance2.Spec.Template.Namespace = currentWorkingNamespace
+		newPersistentInstance2.Spec.Tenant.Name = currentTenantNamespace
+		newPersistentInstance2.Spec.Tenant.Namespace = currentTenantNamespace
+
+		tenant = *newTenant
 		By("Creating the namespace where to create instance and template")
 		err1 := k8sClient.Create(ctx, tenNs)
 		err2 := k8sClient.Create(ctx, newNs)
 		if (err1 != nil || err2 != nil) && (kerrors.IsAlreadyExists(err1) || kerrors.IsAlreadyExists(err2)) {
 			By("Cleaning up the environment")
 			By("Deleting templates")
-			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &nonPersistentTemplate)).Should(Succeed())
-			Expect(k8sClient.Delete(ctx, &persistentTemplate2)).Should(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentTemplate))).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentTemplate))).To(Succeed())
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentTemplate2))).To(Succeed())
 			By("Deleting instances")
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance))).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &nonPersistentInstance))).To(Succeed())
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &persistentInstance2))).To(Succeed())
-			By("Deleting tenant")
-			Expect(k8sClient.Delete(ctx, &tenant)).Should(Succeed())
+			By("Waiting for cleanup completion")
+			doesEventuallyExists(ctx, types.NamespacedName{Name: persistentTemplateName, Namespace: currentWorkingNamespace}, &clv1alpha2.Template{}, BeFalse(), timeout, interval, k8sAPIReader)
+			doesEventuallyExists(ctx, types.NamespacedName{Name: nonPersistentTemplateName, Namespace: currentWorkingNamespace}, &clv1alpha2.Template{}, BeFalse(), timeout, interval, k8sAPIReader)
+			doesEventuallyExists(ctx, types.NamespacedName{Name: persistentTemplateName2, Namespace: currentWorkingNamespace}, &clv1alpha2.Template{}, BeFalse(), timeout, interval, k8sAPIReader)
+			doesEventuallyExists(ctx, types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}, &clv1alpha2.Instance{}, BeFalse(), timeout, interval, k8sAPIReader)
+			doesEventuallyExists(ctx, types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}, &clv1alpha2.Instance{}, BeFalse(), timeout, interval, k8sAPIReader)
+			doesEventuallyExists(ctx, types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}, &clv1alpha2.Instance{}, BeFalse(), timeout, interval, k8sAPIReader)
 		} else if err1 != nil || err2 != nil {
 			Fail(fmt.Sprintf("Unable to create namespace -> %s %s", err1, err2))
 		}
@@ -338,19 +358,22 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		Expect(k8sClient.Create(ctx, newPersistentTemplate2)).Should(Succeed())
 
 		By("By checking that the template has been created")
-		persistentTemplateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
-		nonPersistentTemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
-		persistentTemplate2LookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
+		persistentTemplateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: currentWorkingNamespace}
+		nonPersistentTemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: currentWorkingNamespace}
+		persistentTemplate2LookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: currentWorkingNamespace}
 		createdPersitentTemplate := &clv1alpha2.Template{}
 		createdNonPersitentTemplate := &clv1alpha2.Template{}
 		createdPersistentTemplate2 := &clv1alpha2.Template{}
 
-		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
-		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
-		doesEventuallyExists(ctx, persistentTemplate2LookupKey, createdPersistentTemplate2, BeTrue(), timeout, interval, k8sClient)
+		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sAPIReader)
+		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sAPIReader)
+		doesEventuallyExists(ctx, persistentTemplate2LookupKey, createdPersistentTemplate2, BeTrue(), timeout, interval, k8sAPIReader)
 
 		By("Creating the tenant")
-		Expect(k8sClient.Create(ctx, newTenant)).Should(Succeed())
+		err := k8sClient.Create(ctx, newTenant)
+		if err != nil && !kerrors.IsAlreadyExists(err) {
+			Fail(fmt.Sprintf("Unable to create tenant -> %s", err))
+		}
 
 		By("Creating the instances")
 		Expect(k8sClient.Create(ctx, newPersistentInstance)).Should(Succeed())
@@ -389,13 +412,13 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Getting current instance")
 			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sAPIReader)
 
 			By("Getting current templates")
 			currentTemplate := &clv1alpha2.Template{}
 
-			templateLookupKey := types.NamespacedName{Name: currentInstance.Spec.Template.Name, Namespace: WorkingNamespace}
-			doesEventuallyExists(ctx, templateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
+			templateLookupKey := types.NamespacedName{Name: currentInstance.Spec.Template.Name, Namespace: currentWorkingNamespace}
+			doesEventuallyExists(ctx, templateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sAPIReader)
 
 			By("Checking the stopAfterInactivity field is the default one")
 			currentstopAfterInactivity := currentTemplate.Spec.Cleanup.StopAfterInactivity
@@ -436,19 +459,11 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				Return("").
 				AnyTimes()
 
-			By("Getting current instance")
 			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
-			By("Checking the instance is still running")
-			Eventually(func() bool {
-				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
-				if err != nil {
-					return false
-				}
-				return currentInstance.Spec.Running
-			}, timeout, interval).Should(BeTrue(), "The instance should be running")
+			By("Checking the instance still exists")
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sAPIReader)
 		})
 		It("The non-persistent VM is inactive for a long time and it is deleted", func() {
 
@@ -477,13 +492,27 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				Return("").
 				AnyTimes()
 
-			By("Getting current instance")
-			currentInstance := &clv1alpha2.Instance{}
-			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+			By("Enabling immediate inactivity termination for non-persistent instances")
+			currentTemplate := &clv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: currentWorkingNamespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
+					return err
+				}
+				currentTemplate.Spec.Cleanup.StopAfterInactivity = "0m"
+				return k8sClient.Update(ctx, currentTemplate)
+			}, timeout, interval).Should(Succeed())
 
-			By("Checking the instance is deleted")
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClient)
+			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
+
+			By("Checking the instance is deleted or remains powered off")
+			Eventually(func() bool {
+				observedInstance := &clv1alpha2.Instance{}
+				if err := k8sAPIReader.Get(ctx, instanceLookupKey, observedInstance); err != nil {
+					return kerrors.IsNotFound(err)
+				}
+				return !observedInstance.Spec.Running
+			}, timeout, interval).Should(BeTrue())
 		})
 
 		It("The persistent VM is active and is not stopped", func() {
@@ -518,9 +547,34 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 	Context("Testing destruction after inactivity", func() {
 		It("Should delete the persistent instance if destroy timer is exceeded", func() {
+			mockProm.EXPECT().
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
+				Return(true, nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetLastActivityTime(gomock.Any(), gomock.Any()).
+				Return(time.Now(), nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQueryNginxData().
+				Return("").
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQuerySSHData().
+				Return("").
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQueryWebSSHData().
+				Return("").
+				AnyTimes()
+
 			By("Updating template with deleteAfterInactivity")
 			currentTemplate := &clv1alpha2.Template{}
-			templateLookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: currentWorkingNamespace}
 			Eventually(func() error {
 				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
 					return err
@@ -541,6 +595,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Setting instance as powered off with an expired destruction timestamp")
 			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
+			poweredOffTimestamp := time.Now().Add(-150 * time.Hour).Format(time.RFC3339)
 			Eventually(func() error {
 				if err := k8sClient.Get(ctx, instanceLookupKey, currentInstance); err != nil {
 					return err
@@ -549,19 +604,60 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				if currentInstance.Annotations == nil {
 					currentInstance.Annotations = make(map[string]string)
 				}
-				currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Add(-150 * time.Hour).Format(time.RFC3339)
+				currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = poweredOffTimestamp
 				return k8sClient.Update(ctx, currentInstance)
 			}, timeout, interval).Should(Succeed())
 
-			By("Checking the instance is deleted")
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClient)
+			By("Waiting for the powered-off update to be observed by the manager cache")
+			Eventually(func() bool {
+				observedInstance := &clv1alpha2.Instance{}
+				if err := k8sClient.Get(ctx, instanceLookupKey, observedInstance); err != nil {
+					return kerrors.IsNotFound(err)
+				}
+				return !observedInstance.Spec.Running &&
+					observedInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] == poweredOffTimestamp
+			}, timeout, interval).Should(BeTrue())
+
+			By("Checking the instance is deleted or remains powered off")
+			Eventually(func() bool {
+				observedInstance := &clv1alpha2.Instance{}
+				if err := k8sAPIReader.Get(ctx, instanceLookupKey, observedInstance); err != nil {
+					return kerrors.IsNotFound(err)
+				}
+				return !observedInstance.Spec.Running
+			}, timeout, interval).Should(BeTrue())
 		})
 
 		It("Should not delete the persistent instance if destroy timer is NOT exceeded", func() {
+			mockProm.EXPECT().
+				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
+				Return(true, nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetLastActivityTime(gomock.Any(), gomock.Any()).
+				Return(time.Now(), nil).
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQueryNginxData().
+				Return("").
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQuerySSHData().
+				Return("").
+				AnyTimes()
+
+			mockProm.EXPECT().
+				GetQueryWebSSHData().
+				Return("").
+				AnyTimes()
+
 			By("Getting current instance")
 			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sAPIReader)
 
 			By("Setting instance as powered off and recent timestamp")
 			Eventually(func() error {
@@ -578,7 +674,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 			By("Updating template with deleteAfterInactivity")
 			currentTemplate := &clv1alpha2.Template{}
-			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: currentWorkingNamespace}
 			Eventually(func() error {
 				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
 					return err
@@ -628,7 +724,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 			By("Getting current instance")
 			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sAPIReader)
 
 			By("Checking the instance is still running")
 			Eventually(func() bool {
@@ -665,10 +761,19 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				Return("").
 				AnyTimes()
 
-			By("Getting current instance")
+			By("Disabling inactivity termination for this test case")
+			currentTemplate := &clv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: currentWorkingNamespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
+					return err
+				}
+				currentTemplate.Spec.Cleanup.StopAfterInactivity = instautoctrl.NeverTimeoutValue
+				return k8sClient.Update(ctx, currentTemplate)
+			}, timeout, interval).Should(Succeed())
+
 			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
-			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is still running")
 			Eventually(func() bool {

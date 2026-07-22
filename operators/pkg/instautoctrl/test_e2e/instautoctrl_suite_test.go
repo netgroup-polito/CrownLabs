@@ -16,6 +16,7 @@ package instautoctrl_test
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -44,18 +45,73 @@ var ctx context.Context
 var cancel context.CancelFunc
 var cfg *rest.Config
 var k8sClient client.Client
+var k8sAPIReader client.Reader
 var k8sClientExpiration client.Client
 var testEnv *envtest.Environment
 var mockCtrl *gomock.Controller
 var mockProm *mocks.MockPrometheusClientInterface
+var currentProm instautoctrl.PrometheusClientInterface
+var currentPromMu sync.RWMutex
 
 // var log logr.Logger
 
+type defaultPrometheusClient struct{}
+
+func (defaultPrometheusClient) IsPrometheusHealthy(_ context.Context, _ time.Duration) (bool, error) {
+	return true, nil
+}
+
+func (defaultPrometheusClient) GetLastActivityTime(_ string, _ time.Duration) (time.Time, error) {
+	return time.Now(), nil
+}
+
+func (defaultPrometheusClient) GetQueryNginxData() string {
+	return ""
+}
+
+func (defaultPrometheusClient) GetQuerySSHData() string {
+	return ""
+}
+
+func (defaultPrometheusClient) GetQueryWebSSHData() string {
+	return ""
+}
+
+type delegatingPrometheusClient struct{}
+
+func (delegatingPrometheusClient) IsPrometheusHealthy(ctx context.Context, timeout time.Duration) (bool, error) {
+	currentPromMu.RLock()
+	defer currentPromMu.RUnlock()
+	return currentProm.IsPrometheusHealthy(ctx, timeout)
+}
+
+func (delegatingPrometheusClient) GetLastActivityTime(query string, interval time.Duration) (time.Time, error) {
+	currentPromMu.RLock()
+	defer currentPromMu.RUnlock()
+	return currentProm.GetLastActivityTime(query, interval)
+}
+
+func (delegatingPrometheusClient) GetQueryNginxData() string {
+	currentPromMu.RLock()
+	defer currentPromMu.RUnlock()
+	return currentProm.GetQueryNginxData()
+}
+
+func (delegatingPrometheusClient) GetQuerySSHData() string {
+	currentPromMu.RLock()
+	defer currentPromMu.RUnlock()
+	return currentProm.GetQuerySSHData()
+}
+
+func (delegatingPrometheusClient) GetQueryWebSSHData() string {
+	currentPromMu.RLock()
+	defer currentPromMu.RUnlock()
+	return currentProm.GetQueryWebSSHData()
+}
+
 func TestInstautoctrl(t *testing.T) {
 	RegisterFailHandler(Fail)
-	suiteConfig, reporterConfig := GinkgoConfiguration()
-	suiteConfig.RandomizeAllSpecs = false
-	RunSpecs(t, "Instautoctrl Suite", suiteConfig, reporterConfig)
+	RunSpecs(t, "Instautoctrl Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -92,8 +148,14 @@ var _ = BeforeSuite(func() {
 		"crownlabs.polito.it/operator-selector": "test-suite",
 	}
 
+	currentPromMu.Lock()
+	currentProm = defaultPrometheusClient{}
+	currentPromMu.Unlock()
 	mockCtrl = gomock.NewController(GinkgoT())
 	mockProm = mocks.NewMockPrometheusClientInterface(mockCtrl)
+	currentPromMu.Lock()
+	currentProm = mockProm
+	currentPromMu.Unlock()
 
 	err = (&instautoctrl.InstanceInactiveTerminationReconciler{
 		Client:                        k8sManager.GetClient(),
@@ -101,7 +163,7 @@ var _ = BeforeSuite(func() {
 		EventsRecorder:                k8sManager.GetEventRecorderFor("instance-termination"),
 		NamespaceWhitelist:            metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}},
 		MailClient:                    nil,
-		Prometheus:                    mockProm,
+		Prometheus:                    delegatingPrometheusClient{},
 		InstanceMaxNumberOfAlerts:     3,
 		NotificationInterval:          1 * time.Second,
 		EnableInactivityNotifications: false,
@@ -130,20 +192,54 @@ var _ = BeforeSuite(func() {
 	k8sClient = k8sManager.GetClient()
 	Expect(k8sClient).ToNot(BeNil())
 
+	k8sAPIReader = k8sManager.GetAPIReader()
+	Expect(k8sAPIReader).ToNot(BeNil())
+
 	k8sClientExpiration = k8sManager.GetClient()
 	Expect(k8sClientExpiration).ToNot(BeNil())
 })
 
+var _ = BeforeEach(func() {
+	mockCtrl = gomock.NewController(GinkgoT())
+	mockProm = mocks.NewMockPrometheusClientInterface(mockCtrl)
+	mockProm.EXPECT().
+		IsPrometheusHealthy(gomock.Any(), gomock.Any()).
+		Return(true, nil).
+		AnyTimes()
+	mockProm.EXPECT().
+		GetLastActivityTime(gomock.Any(), gomock.Any()).
+		Return(time.Now(), nil).
+		AnyTimes()
+	mockProm.EXPECT().
+		GetQueryNginxData().
+		Return("").
+		AnyTimes()
+	mockProm.EXPECT().
+		GetQuerySSHData().
+		Return("").
+		AnyTimes()
+	mockProm.EXPECT().
+		GetQueryWebSSHData().
+		Return("").
+		AnyTimes()
+	currentPromMu.Lock()
+	currentProm = mockProm
+	currentPromMu.Unlock()
+})
+
 var _ = AfterSuite(func() {
 	By("tearing down the test environment")
+	if mockCtrl != nil {
+		mockCtrl.Finish()
+	}
 	cancel()
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
 
-func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration, k8sClient client.Client) {
+func doesEventuallyExists(ctx context.Context, objLookupKey types.NamespacedName, targetObj client.Object, expectedStatus gomegaTypes.GomegaMatcher, timeout, interval time.Duration, k8sReader client.Reader) {
 	Eventually(func() bool {
-		err := k8sClient.Get(ctx, objLookupKey, targetObj)
+		err := k8sReader.Get(ctx, objLookupKey, targetObj)
 		return err == nil
 	}, timeout, interval).Should(expectedStatus)
 }
