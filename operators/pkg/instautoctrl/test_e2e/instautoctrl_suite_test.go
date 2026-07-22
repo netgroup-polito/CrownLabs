@@ -111,7 +111,7 @@ func (delegatingPrometheusClient) GetQueryWebSSHData() string {
 
 func TestInstautoctrl(t *testing.T) {
 	RegisterFailHandler(Fail)
-	RunSpecs(t, "Instautoctrl Suite")
+	RunSpecs(t, "InstAutoCtrl Suite")
 }
 
 var _ = BeforeSuite(func() {
