@@ -36,3 +36,16 @@ spec:
     cpu: "6"
     memory: "20Gi"
     instances: 4
+---
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: standalone
+  labels:
+    crownlabs.polito.it/operator-selector: local
+spec:
+  prettyName: Standalone environments
+  quota:
+    cpu: "8"
+    memory: "15Gi"
+    instances: 3

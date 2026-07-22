@@ -3873,7 +3873,7 @@ export type CreateInstanceMutationVariables = Exact<{
 }>;
 
 
-export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', ip?: string | null, phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null, environments?: Array<{ __typename?: 'EnvironmentsListItem', name: string, phase?: Phase | null, ip?: string | null, initialReadyTime?: string | null } | null> | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, nodeSelector?: any | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null };
+export type CreateInstanceMutation = { __typename?: 'Mutation', createdInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status3', phase?: Phase2 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null, environments?: Array<{ __typename?: 'EnvironmentsListItem', name: string, phase?: Phase | null, ip?: string | null, initialReadyTime?: string | null } | null> | null } | null, spec?: { __typename?: 'Spec3', running?: boolean | null, prettyName?: string | null, nodeSelector?: any | null, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec6', prettyName: string, description: string, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType } | null> } | null } | null } | null } } | null } | null };
 
 export type CreateSharedVolumeMutationVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
@@ -4497,7 +4497,6 @@ export const CreateInstanceDocument = gql`
       labels
     }
     status {
-      ip
       phase
       url
       nodeName
@@ -5073,7 +5072,6 @@ export const OwnedInstancesDocument = gql`
         annotations
       }
       status {
-        ip
         phase
         url
         nodeName
@@ -5191,7 +5189,6 @@ export const InstancesLabelSelectorDocument = gql`
         annotations
       }
       status {
-        ip
         phase
         url
         nodeName
@@ -5835,7 +5832,6 @@ export const UpdatedOwnedInstancesDocument = gql`
         annotations
       }
       status {
-        ip
         phase
         url
         nodeName
@@ -5866,6 +5862,17 @@ export const UpdatedOwnedInstancesDocument = gql`
             port
             protocol
             targetPort
+          }
+        }
+        tenantCrownlabsPolitoItTenantRef {
+          name
+          tenantV1alpha2Wrapper {
+            itPolitoCrownlabsV1alpha2Tenant {
+              spec {
+                firstName
+                lastName
+              }
+            }
           }
         }
         templateCrownlabsPolitoItTemplateRef {
@@ -5941,7 +5948,6 @@ export const UpdatedInstancesLabelSelectorDocument = gql`
         annotations
       }
       status {
-        ip
         phase
         url
         nodeName

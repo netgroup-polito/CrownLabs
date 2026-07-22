@@ -13,6 +13,8 @@ spec:
       role: user
     - name: coffee
       role: manager
+    - name: standalone
+      role: manager
   publicKeys:
     - type1 key1 comment1
     - type2 key2 comment3

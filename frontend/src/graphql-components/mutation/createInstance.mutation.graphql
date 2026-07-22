@@ -32,7 +32,6 @@ mutation createInstance(
       labels
     }
     status {
-      ip
       phase
       url
       nodeName
