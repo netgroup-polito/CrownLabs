@@ -45,8 +45,17 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
     );
   };
 
-  const getSshCommand = (envIP: string) => {
-    return `ssh -J bastion@${VITE_APP_CROWNLABS_BASTION_HOST} crownlabs@${envIP}`;
+  const getEnvDnsName = (envName?: string) => {
+    const eName = envName || getFirstEnvironmentName();
+    if (name && namespace) {
+      return `${name.replace(/\./g, '-')}-${eName}.${namespace}`;
+    }
+    return instanceIp;
+  };
+
+  const getSshCommand = (envName?: string) => {
+    const host = getEnvDnsName(envName);
+    return `ssh -J bastion@${VITE_APP_CROWNLABS_BASTION_HOST} crownlabs@${host}`;
   };
 
   return (
@@ -86,7 +95,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
                           copyable
                           className="text-center"
                         >
-                          {getSshCommand(env.ip)}
+                          {getSshCommand(env.name)}
                         </Text>
                         <Link
                           to={buildSSHLink(env.name)}
@@ -127,7 +136,7 @@ const SSHModalContent: FC<ISSHModalContentProps> = ({ ...props }) => {
               >
                 {/* FIXME: use netlab username for older VMs, retrieve the correct username
                 from the VM's creation timestamp */}
-                {getSshCommand(instanceIp)}
+                {getSshCommand()}
               </Text>
               <Link
                 to={buildSSHLink(getFirstEnvironmentName())}
