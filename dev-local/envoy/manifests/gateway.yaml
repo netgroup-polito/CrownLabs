@@ -1,0 +1,96 @@
+# Single ingress point for every locally-exposed dev-local service (Keycloak now,
+# Mailpit later — see ../../mailpit/README.md), replacing the old per-service
+# NodePort pattern with one Envoy Gateway fronting everything under one local
+# domain (*.crownlabs.local).
+#
+# Requires:
+# - cert-manager installed (see ../README.md step 0) — provides the wildcard
+#   certificate below.
+# - The Gateway API CRDs + Envoy Gateway controller installed first (../README.md
+#   steps 1-2) — this file only contains the GatewayClass/Gateway/Certificate/
+#   redirect, not the controller itself.
+#
+# TLS terminates here, at the Gateway edge — backends (Keycloak, later Mailpit)
+# are plain HTTP behind it. This is what let Keycloak's own manifest drop its
+# self-managed HTTPS certificate/probes entirely (see ../../keycloak/manifests/keycloak.yaml).
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: selfsigned
+spec:
+  selfSigned: {}
+---
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: crownlabs-tls
+  namespace: default
+  labels:
+    app: envoy-gateway
+spec:
+  secretName: crownlabs-tls
+  commonName: "*.crownlabs.local"
+  dnsNames:
+    - "*.crownlabs.local"
+    - "crownlabs.local"
+  # Local dev only: a long duration avoids the local copies of the CA (k3s
+  # --oidc-ca-file, the operator's SSL_CERT_FILE) going stale on renewal —
+  # see ../../keycloak/apiserver-oidc-integration.md.
+  duration: 87600h0m0s
+  issuerRef:
+    name: selfsigned
+    kind: ClusterIssuer
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GatewayClass
+metadata:
+  name: envoy-gateway
+spec:
+  controllerName: gateway.envoyproxy.io/gatewayclass-controller
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: crownlabs
+  namespace: default
+spec:
+  gatewayClassName: envoy-gateway
+  listeners:
+    # Plain HTTP exists only to serve the redirect below — every real route is HTTPS.
+    - name: http
+      protocol: HTTP
+      port: 80
+      hostname: "*.crownlabs.local"
+      allowedRoutes:
+        namespaces:
+          from: Same
+    - name: https
+      protocol: HTTPS
+      port: 443
+      hostname: "*.crownlabs.local"
+      tls:
+        mode: Terminate
+        certificateRefs:
+          - kind: Secret
+            name: crownlabs-tls
+      allowedRoutes:
+        namespaces:
+          from: Same
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: http-to-https-redirect
+  namespace: default
+spec:
+  parentRefs:
+    - name: crownlabs
+      sectionName: http
+  hostnames:
+    - "*.crownlabs.local"
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
