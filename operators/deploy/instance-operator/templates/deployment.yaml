@@ -54,7 +54,7 @@ spec:
             - '--public-exposure-common-labels={{ .Values.configurations.publicExposure.commonLabels | join "," }}'
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
             - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
-            - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
+            - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default true }}'
             - '--gateway-api-refs-values={{ include "instance-operator.gatewayApiRefsValues" . }}'
           ports:
             - name: op-metrics

@@ -1,4 +1,4 @@
-{{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false) (.Values.securityPolicyTemplate.enabled | default false) }}
+{{- if and (.Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default true) (.Values.configurations.generic.enableAuthentication | default true) (.Values.securityPolicyTemplate.enabled | default true) }}
 apiVersion: v1
 kind: Secret
 metadata:
