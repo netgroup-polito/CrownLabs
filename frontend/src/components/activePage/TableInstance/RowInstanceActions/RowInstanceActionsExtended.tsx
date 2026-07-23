@@ -123,7 +123,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   );
   return (
     <>
-      <div className="inline-flex border-box justify-center xl:pl-4">
+      <div className="hidden sm:flex items-center border-box justify-center xl:pl-4 sm:w-12 xl:w-56">
         <Popover placement="top" content={infoContent} trigger="click">
           <Button shape="circle" className="hidden sm:block mr-3">
             <InfoOutlined />

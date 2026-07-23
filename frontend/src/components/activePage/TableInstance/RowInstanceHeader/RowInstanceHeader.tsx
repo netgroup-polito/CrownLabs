@@ -200,7 +200,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
                 : 'lg:w-1/2 xl:w-7/12'
             }`}
           >
-            <div className="flex items-center justify-center hidden sm:block w-12 xl:w-40 text-center">
+            <div className="flex items-center justify-center hidden sm:block w-12 xl:w-56 text-center">
               <Text strong>Utils</Text>
             </div>
 
