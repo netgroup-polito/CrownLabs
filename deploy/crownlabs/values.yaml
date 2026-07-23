@@ -245,13 +245,6 @@ instance-operator:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader
       contentUploaderImage: crownlabs/content-uploader
-    containerVmSnapshots:
-      kanikoImage: gcr.io/kaniko-project/executor
-      exportImage: "crownlabs/img-exporter"
-      exportImageTag: ""
-    privateContainerRegistry:
-      url: registry.crownlabs.example.com
-      secretName: registry-credentials
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
 

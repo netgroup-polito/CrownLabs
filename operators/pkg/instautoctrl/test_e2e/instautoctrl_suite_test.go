@@ -85,7 +85,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	// Generate whitelist map for InstanceSnapshot controller reconciliation
+	// Generate whitelist map for Instance controller reconciliation
 	whiteListMap := map[string]string{
 		"crownlabs.polito.it/operator-selector": "test-suite",
 	}
