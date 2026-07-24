@@ -241,7 +241,7 @@ instance-operator:
     generic:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
       instancesAuthUrl: https://crownlabs.example.com/auth
-      snapshotPublicNamespace: "workspace-public"
+      snapshotPublicNamespace: "cldprog-5-block-vms-tests"
     containerEnvironmentOptions:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader

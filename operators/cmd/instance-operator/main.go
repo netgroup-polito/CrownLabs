@@ -102,7 +102,7 @@ func main() {
 	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
 	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", false, "Enable webhooks")
-	flag.StringVar(&snapshotPublicNamespace, "snapshot-public-namespace", "workspace-public", "The namespace where public snapshots will be stored")
+	flag.StringVar(&snapshotPublicNamespace, "snapshot-public-namespace", "cldprog-5-block-vms-tests", "The namespace where public snapshots will be stored")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
