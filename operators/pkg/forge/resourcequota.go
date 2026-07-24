@@ -50,24 +50,23 @@ var (
 // TenantResourceList forges the WorkspaceResourceQuota as the sum of all quota for each workspace plus the personal workspace quota.
 func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuota *apicommon.WorkspaceResourceQuota) apicommon.WorkspaceResourceQuota {
 	var quota apicommon.WorkspaceResourceQuota
+	quota.OtherResources = make(map[string]resource.Quantity)
 
 	// sum all quota for each existing workspace
 	for i := range workspaces {
-		quota.CPU.Add(workspaces[i].Spec.Quota.CPU)
-		quota.Memory.Add(workspaces[i].Spec.Quota.Memory)
+		quota.Accumulate(&workspaces[i].Spec.Quota.ResourceSpec)
 		quota.Instances += workspaces[i].Spec.Quota.Instances
 	}
 
 	// add personal workspace quota if defined
 	if personalWorkspaceQuota != nil {
-		quota.CPU.Add(personalWorkspaceQuota.CPU)
-		quota.Memory.Add(personalWorkspaceQuota.Memory)
+		quota.Accumulate(&personalWorkspaceQuota.ResourceSpec)
 		quota.Instances += personalWorkspaceQuota.Instances
 	}
 
 	// cap the quota if needed
 	if CapCPU > 0 {
-		quota.CPU = CapResourceQuantity(quota.CPU, *resource.NewQuantity(int64(CapCPU), resource.DecimalSI))
+		quota.CPU = CapIntegerQuantity(quota.CPU, int64(CapCPU))
 	}
 	if CapMemoryGiga > 0 {
 		quota.Memory = CapResourceQuantity(quota.Memory, *resource.NewScaledQuantity(int64(CapMemoryGiga), resource.Giga))
@@ -81,13 +80,19 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuot
 
 // TenantResourceQuotaSpec converts a WorkspaceResourceQuota to a ResourceQuota's resource list.
 func TenantResourceQuotaSpec(quota *apicommon.WorkspaceResourceQuota) corev1.ResourceList {
-	return corev1.ResourceList{
-		corev1.ResourceLimitsCPU:      quota.CPU,
-		corev1.ResourceLimitsMemory:   quota.Memory,
-		corev1.ResourceRequestsCPU:    quota.CPU,
-		corev1.ResourceRequestsMemory: quota.Memory,
-		InstancesCountKey:             *resource.NewQuantity(quota.Instances, resource.DecimalSI),
+	resList := corev1.ResourceList{
+		corev1.ResourceLimitsCPU:       *resource.NewQuantity(quota.CPU, resource.DecimalSI),
+		corev1.ResourceLimitsMemory:    quota.Memory,
+		corev1.ResourceRequestsCPU:     *resource.NewQuantity(quota.CPU, resource.DecimalSI),
+		corev1.ResourceRequestsMemory:  quota.Memory,
+		InstancesCountKey:              *resource.NewQuantity(quota.Instances, resource.DecimalSI),
+		corev1.ResourceRequestsStorage: quota.Disk,
 	}
+
+	// Inject dynamic extended resources (e.g., nvidia.com/gpu)
+	InjectOtherResources(quota.OtherResources, resList)
+
+	return resList
 }
 
 // SandboxResourceQuotaSpec forges the Resource Quota spec for sandbox namespaces.

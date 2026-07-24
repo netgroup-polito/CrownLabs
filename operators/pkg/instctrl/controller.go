@@ -240,7 +240,13 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	}
 
 	// Iterate over and enforce the instance environments.
-	if err := r.enforceEnvironments(ctx); err != nil {
+	if err = r.enforceEnvironments(ctx); err != nil {
+		// If it's a quota error, requeue and return nil to prevent CreationLoopBackoff
+		if utils.IsResourceQuotaExceeded(err) {
+			log.Info("resource quota exceeded during environment enforcement, requeuing", "error", err.Error())
+			r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvEnvironmentErr, "Resource quota exceeded, retrying automatically")
+			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
 		log.Error(err, "failed to enforce instance environments")
 		return ctrl.Result{}, err
 	}
@@ -286,37 +292,24 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
-		if err := r.EnforceShVolMirrorPVCs(innCtx); err != nil {
-			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
-			return err
-		}
-
-		mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(innCtx, r.Client)
-		if err != nil {
-			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
-			return err
-		}
-		innCtx = clctx.VolumeMountInfosInto(innCtx, mountInfos)
-
-		switch tmplEnv.EnvironmentType {
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
-			if err := r.EnforceVMEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
-				return err
+		// Run the single environment reconciliation
+		if err := r.enforceSingleEnvironment(innCtx, tmplEnv); err != nil {
+			// Check if the synchronous error is due to resource quota exhaustion
+			if utils.IsResourceQuotaExceeded(err) {
+				instance.Status.Environments[i].Phase = clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
 			}
+			return err
+		}
+
+		// Calculate GUI requirements
+		switch tmplEnv.EnvironmentType {
+		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+			urlNeeded = true
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
 			if tmplEnv.GuiEnabled {
 				urlNeeded = true
 			}
-
-		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
-				return err
-			}
-			urlNeeded = true
 		}
-
-		r.setInitialReadyTimeIfNecessary(innCtx)
 	}
 	if urlNeeded {
 		// Enforce the ingress to access the GUI
@@ -329,6 +322,37 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		instance.Status.URL = ""
 	}
 
+	return nil
+}
+
+// enforceSingleEnvironment executes the reconciliation steps for a single environment.
+func (r *InstanceReconciler) enforceSingleEnvironment(ctx context.Context, tmplEnv *clv1alpha2.Environment) error {
+	if err := r.EnforceShVolMirrorPVCs(ctx); err != nil {
+		r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
+		return err
+	}
+
+	mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(ctx, r.Client)
+	if err != nil {
+		r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
+		return err
+	}
+	ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
+
+	switch tmplEnv.EnvironmentType {
+	case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
+		if err := r.EnforceVMEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+		if err := r.EnforceContainerEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	}
+
+	r.setInitialReadyTimeIfNecessary(ctx)
 	return nil
 }
 

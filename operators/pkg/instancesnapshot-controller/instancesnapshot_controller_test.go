@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/rand"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -67,9 +68,11 @@ var _ = Describe("InstancesnapshotController", func() {
 					Name:       "env-1",
 					GuiEnabled: true,
 					Resources: clv1alpha2.EnvironmentResources{
-						CPU:                   1,
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    1,
+							Memory: resource.MustParse("1Gi"),
+						},
 						ReservedCPUPercentage: 1,
-						Memory:                resource.MustParse("1024M"),
 					},
 					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      true,
