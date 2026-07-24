@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -90,10 +91,12 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Image: image,
 			Name:  envName,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   cpu,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    cpu,
+					Memory: resource.MustParse(memory),
+					Disk:   resource.MustParse(disk),
+				},
 				ReservedCPUPercentage: cpuReserved,
-				Memory:                resource.MustParse(memory),
-				Disk:                  resource.MustParse(disk),
 			},
 		}
 
@@ -849,6 +852,19 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Expect(container.Resources.Limits.Cpu().MilliValue()).To(BeNumerically("==", expectedCPULimMillis))
 			Expect(container.Resources.Requests.Memory()).To(PointTo(Equal(environment.Resources.Memory)))
 			Expect(container.Resources.Limits.Memory()).To(PointTo(Equal(environment.Resources.Memory)))
+		})
+
+		When("the environment includes extended resources", func() {
+			BeforeEach(func() {
+				environment.Resources.OtherResources = map[string]resource.Quantity{
+					"nvidia.com/gpu": resource.MustParse("1"),
+				}
+			})
+
+			It("Should propagate them to requests and limits", func() {
+				Expect(container.Resources.Requests[corev1.ResourceName("nvidia.com/gpu")]).To(Equal(resource.MustParse("1")))
+				Expect(container.Resources.Limits[corev1.ResourceName("nvidia.com/gpu")]).To(Equal(resource.MustParse("1")))
+			})
 		})
 	})
 
