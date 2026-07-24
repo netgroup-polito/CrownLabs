@@ -11,6 +11,8 @@ rules:
     resources:
       - instances
       - instances/status
+      - instancesnapshots
+      - instancesnapshots/status
     verbs:
       - get
       - list
@@ -29,6 +31,8 @@ rules:
     resources:
       - instances
       - instances/status
+      - instancesnapshots
+      - instancesnapshots/status
     verbs:
       - get
       - list

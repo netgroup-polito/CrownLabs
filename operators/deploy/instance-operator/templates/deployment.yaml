@@ -51,6 +51,7 @@ spec:
             - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
             - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
             - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
+            - '--snapshot-public-namespace={{ .Values.configurations.generic.snapshotPublicNamespace }}'
           ports:
             - name: op-metrics
               containerPort: 8080
