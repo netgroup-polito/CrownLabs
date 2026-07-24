@@ -50,7 +50,7 @@ var _ webhook.CustomDefaulter = &InstanceSnapshotWebhook{}
 var _ webhook.CustomValidator = &InstanceSnapshotWebhook{}
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the type.
-func (w *InstanceSnapshotWebhook) Default(ctx context.Context, obj runtime.Object) error {
+func (w *InstanceSnapshotWebhook) Default(_ context.Context, obj runtime.Object) error {
 	snapshot, ok := obj.(*clv1alpha2.InstanceSnapshot)
 	if !ok {
 		return fmt.Errorf("expected an InstanceSnapshot object but got %T", obj)
@@ -108,7 +108,7 @@ func (w *InstanceSnapshotWebhook) ValidateCreate(ctx context.Context, obj runtim
 }
 
 // ValidateUpdate implements webhook.CustomValidator.
-func (w *InstanceSnapshotWebhook) ValidateUpdate(ctx context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
+func (w *InstanceSnapshotWebhook) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
 	oldSnapshot := oldObj.(*clv1alpha2.InstanceSnapshot)
 	newSnapshot := newObj.(*clv1alpha2.InstanceSnapshot)
 
@@ -129,6 +129,6 @@ func (w *InstanceSnapshotWebhook) ValidateUpdate(ctx context.Context, oldObj, ne
 }
 
 // ValidateDelete implements webhook.CustomValidator.
-func (w *InstanceSnapshotWebhook) ValidateDelete(ctx context.Context, obj runtime.Object) (admission.Warnings, error) {
+func (w *InstanceSnapshotWebhook) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
 	return nil, nil
 }

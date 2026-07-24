@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Package instsnapshotctrl contains the controllers for the instance snapshot feature.
 package instsnapshotctrl
 
 import (
@@ -29,7 +30,7 @@ import (
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
@@ -53,20 +54,20 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	// Snapshot finalizer for DataVolume cleanup if cross-namespace or explicitly deleted
 	finalizerName := "instancesnapshot.crownlabs.polito.it/finalizer"
-	if snapshot.ObjectMeta.DeletionTimestamp.IsZero() {
-		if !controllerutil.ContainsFinalizer(&snapshot, finalizerName) {
-			controllerutil.AddFinalizer(&snapshot, finalizerName)
+	if snapshot.DeletionTimestamp.IsZero() {
+		if !ctrlutil.ContainsFinalizer(&snapshot, finalizerName) {
+			ctrlutil.AddFinalizer(&snapshot, finalizerName)
 			if err := r.Update(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 	} else {
 		// Deletion logic
-		if controllerutil.ContainsFinalizer(&snapshot, finalizerName) {
+		if ctrlutil.ContainsFinalizer(&snapshot, finalizerName) {
 			if err := r.cleanupDataVolume(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, err
 			}
-			controllerutil.RemoveFinalizer(&snapshot, finalizerName)
+			ctrlutil.RemoveFinalizer(&snapshot, finalizerName)
 			if err := r.Update(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, err
 			}
@@ -166,7 +167,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 		if snapshot.Namespace == dvNN.Namespace {
 			// Set owner ref if same namespace
-			if err := controllerutil.SetControllerReference(&snapshot, &dv, r.Scheme); err != nil {
+			if err := ctrlutil.SetControllerReference(&snapshot, &dv, r.Scheme); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -185,7 +186,8 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	// Check DataVolume status
-	if dv.Status.Phase == cdiv1beta1.Succeeded {
+	switch dv.Status.Phase {
+	case cdiv1beta1.Succeeded:
 		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseReady
 		snapshot.Status.Artifact.DataVolumeRef = corev1.ObjectReference{
 			Name:      dv.Name,
@@ -193,10 +195,12 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		}
 		r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeNormal, "SnapshotReady", "Snapshot clone succeeded")
 		return ctrl.Result{}, nil
-	} else if dv.Status.Phase == cdiv1beta1.Failed {
+	case cdiv1beta1.Failed:
 		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseFailed
 		r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeWarning, "SnapshotFailed", "DataVolume clone failed")
 		return ctrl.Result{}, nil
+	default:
+		// Not in a terminal state yet.
 	}
 
 	return ctrl.Result{Requeue: true}, nil
@@ -218,7 +222,7 @@ func (r *InstanceSnapshotReconciler) cleanupDataVolume(ctx context.Context, snap
 }
 
 // SetupWithManager registers the controller with the manager.
-func (r *InstanceSnapshotReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
+func (r *InstanceSnapshotReconciler) SetupWithManager(mgr ctrl.Manager, _ int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.InstanceSnapshot{}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceSnapshot")).
