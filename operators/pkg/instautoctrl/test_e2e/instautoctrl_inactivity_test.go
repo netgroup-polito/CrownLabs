@@ -59,7 +59,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 	var (
 		currentWorkingNamespace = WorkingNamespace
-		workingNs = corev1.Namespace{
+		workingNs               = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: WorkingNamespace,
