@@ -61,6 +61,20 @@ const QuotaFields: FC<IQuotaFieldsProps> = ({
   return (
     <>
       <Form.Item
+        name="instances"
+        label="Instances"
+        validateTrigger={validateTrigger}
+        rules={rules?.instances}
+        tooltip={tooltips?.instances}
+      >
+        <InputNumber
+          min={limits?.instances?.min}
+          max={limits?.instances?.max}
+          disabled={disabled}
+          className="w-100"
+        />
+      </Form.Item>
+      <Form.Item
         name="cpu"
         label="CPU"
         validateTrigger={validateTrigger}
@@ -160,7 +174,7 @@ const QuotaFields: FC<IQuotaFieldsProps> = ({
                       name={[name, 'value']}
                       rules={[{ required: true, message: 'Value required' }]}
                     >
-                      <InputNumber placeholder="Amount" min={1} />
+                      <InputNumber placeholder="Amount" min={0} />
                     </Form.Item>
                     <MinusCircleOutlined onClick={() => remove(name)} />
                   </Space>
@@ -170,7 +184,7 @@ const QuotaFields: FC<IQuotaFieldsProps> = ({
                 <Button
                   type="dashed"
                   onClick={() => add()}
-                  block
+                  style={{ width: 200 }}
                   icon={<PlusOutlined />}
                 >
                   Add Resource
@@ -179,21 +193,6 @@ const QuotaFields: FC<IQuotaFieldsProps> = ({
             </>
           )}
         </Form.List>
-      </Form.Item>
-
-      <Form.Item
-        name="instances"
-        label="Instances"
-        validateTrigger={validateTrigger}
-        rules={rules?.instances}
-        tooltip={tooltips?.instances}
-      >
-        <InputNumber
-          min={limits?.instances?.min}
-          max={limits?.instances?.max}
-          disabled={disabled}
-          className="w-100"
-        />
       </Form.Item>
     </>
   );

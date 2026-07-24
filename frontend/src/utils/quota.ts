@@ -22,25 +22,25 @@ export function calculateWorkspaceConsumedQuota(
 
   const workspaceUsedResources: Record<string, IQuota> = {};
 
-  // Skip paused instances when calculating consumed quota
-  instances
-    .filter(instance => instance.status !== Phase2.Off)
-    .forEach(instance => {
-      if (!workspaceUsedResources[instance.workspaceName]) {
-        workspaceUsedResources[instance.workspaceName] = {
-          instances: 0,
-          cpu: 0,
-          memory: 0,
-          disk: 0,
-          otherResources: {},
-        };
-      }
+  instances.forEach(instance => {
+    if (!workspaceUsedResources[instance.workspaceName]) {
+      workspaceUsedResources[instance.workspaceName] = {
+        instances: 0,
+        cpu: 0,
+        memory: 0,
+        disk: 0,
+        otherResources: {},
+      };
+    }
 
-      const current = workspaceUsedResources[instance.workspaceName];
+    const current = workspaceUsedResources[instance.workspaceName];
+    const isRunning = instance.status !== Phase2.Off;
+
+    // CPU, RAM, instance count, and extended resources are consumed only when the instance is running
+    if (isRunning) {
       current.instances += 1;
       current.cpu += instance.resources.cpu;
       current.memory += instance.resources.memory;
-      current.disk += instance.resources.disk;
 
       if (instance.resources.otherResources) {
         const extResources = instance.resources.otherResources;
@@ -55,7 +55,13 @@ export function calculateWorkspaceConsumedQuota(
             Number(extResources[key]);
         });
       }
-    });
+    }
+
+    // Disk storage is consumed if the instance is running OR if it is persistent (even when powered off)
+    if (isRunning || instance.persistent) {
+      current.disk += instance.resources.disk;
+    }
+  });
 
   return workspaceUsedResources;
 }

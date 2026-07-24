@@ -54,21 +54,26 @@ const TenantPersonalWorkspaceSettings: FC<
 
     let newQuota = null;
     if (data.enabled) {
-      if (!data.cpu || !data.memory || !data.instances || !data.disk) {
+      if (
+        !data.cpu || data.cpu <= 0 ||
+        !data.memory || data.memory <= 0 ||
+        !data.instances || data.instances <= 0 ||
+        data.disk == null || data.disk < 0
+      ) {
         throw new Error('All quota fields must be provided when enabled');
       }
 
       // Convert form array in a map object
       const otherResourcesMap: { [key: string]: string } = {};
       data.otherResources?.forEach(res => {
-        if (res.key && res.value != null) {
+        if (res.key && res.value != null && res.value > 0) {
           const k8sKey = getOriginalK8sKey(res.key);
           otherResourcesMap[k8sKey] = res.value.toString();
         }
       });
 
       newQuota = {
-        cpu: data.cpu?.toString() ?? '0',
+        cpu: data.cpu ?? 0,
         memory: `${data.memory?.toString() ?? '0'}Gi`,
         instances: data.instances ?? 0,
         disk: `${data.disk?.toString() ?? '0'}Gi`,

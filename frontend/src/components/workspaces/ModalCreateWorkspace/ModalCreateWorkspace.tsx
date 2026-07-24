@@ -8,7 +8,11 @@ import {
 } from '../../../generated-types';
 import type { ApolloError } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { convertToGiB, getOriginalK8sKey } from '../../../utils';
+import {
+  convertToGiB,
+  getOriginalK8sKey,
+  getCamelCaseKey,
+} from '../../../utils';
 import QuotaFields from '../../shared/QuotaFields';
 
 export interface WorkspaceEditData {
@@ -70,12 +74,14 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
         cpu: parseFloat(editWorkspace.cpu),
         memory: convertToGiB(editWorkspace.memory),
         instances: editWorkspace.instances,
-        disk: editWorkspace.disk ? convertToGiB(editWorkspace.disk) : undefined,
+        disk: editWorkspace.disk ? convertToGiB(editWorkspace.disk) : 0,
         otherResources: editWorkspace.otherResources
-          ? Object.entries(editWorkspace.otherResources).map(([k, v]) => ({
-              key: k,
-              value: parseFloat(v as string),
-            }))
+          ? Object.entries(editWorkspace.otherResources)
+              .filter(([_, v]) => parseFloat(v as string) > 0)
+              .map(([k, v]) => ({
+                key: getCamelCaseKey(k),
+                value: parseFloat(v as string),
+              }))
           : [],
       });
     } else if (show && !editWorkspace) {
@@ -94,20 +100,21 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
   const handleSubmit = async (values: WorkspaceFormValues) => {
     setLoading(true);
     try {
-      // Map the form array into a Kubernetes flat string object dynamically using env variables
       const otherResourcesMap: { [key: string]: string } = {};
       values.otherResources?.forEach(res => {
-        if (res.key && res.value != null) {
+        if (res.key && res.value != null && res.value > 0) {
           const k8sKey = getOriginalK8sKey(res.key);
           otherResourcesMap[k8sKey] = res.value.toString();
         }
       });
 
+      const diskValue =
+        values.disk != null && values.disk >= 0 ? `${values.disk}Gi` : '0Gi';
+
       if (isEditMode) {
         // Edit mode: use apply mutation with JSON patch
         const autoEnrollValue = normalizeAutoEnroll(values.autoEnroll);
 
-        // Dynamic array handling both standard and extended resource types safely
         const patchJson = JSON.stringify([
           { op: 'replace', path: '/spec/prettyName', value: values.prettyName },
           { op: 'replace', path: '/spec/autoEnroll', value: autoEnrollValue },
@@ -125,7 +132,7 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
           {
             op: 'replace',
             path: '/spec/quota/disk',
-            value: values.disk ? `${values.disk}Gi` : '0Gi',
+            value: diskValue,
           },
           {
             op: 'replace',
@@ -150,7 +157,7 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
             autoEnroll: normalizeAutoEnroll(values.autoEnroll),
             cpu: values.cpu,
             memory: `${values.memory}Gi`,
-            disk: `${values.disk}Gi`,
+            disk: diskValue,
             otherResources: otherResourcesMap,
             labels: {
               'crownlabs.polito.it/operator-selector': 'production',
@@ -264,17 +271,27 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
 
         <QuotaFields
           rules={{
-            cpu: [{ required: true, message: 'Please input CPU quota!' }],
-            memory: [{ required: true, message: 'Please input memory quota!' }],
+            cpu: [
+              { required: true, message: 'Please input CPU quota!' },
+              { type: 'number', min: 1, message: 'CPU must be at least 1' },
+            ],
+            memory: [
+              { required: true, message: 'Please input memory quota!' },
+              { type: 'number', min: 1, message: 'Memory must be at least 1' },
+            ],
             instances: [
               { required: true, message: 'Please input max instances!' },
+              { type: 'number', min: 1, message: 'Instances must be at least 1', },
             ],
-            disk: [{ required: true, message: 'Please input disk quota!' }],
+            disk: [
+              { required: true, message: 'Please input disk quota!' },
+              { type: 'number', min: 0, message: 'Disk cannot be negative', },
+            ],
           }}
           limits={{
-            cpu: { min: 1, max: 128 },
-            memory: { min: 1, max: 512 },
-            instances: { min: 1, max: 100 },
+            cpu: { min: 0, max: 128 },
+            memory: { min: 0, max: 512 },
+            instances: { min: 0, max: 100 },
             disk: { min: 0, max: 2048 },
           }}
           tooltips={{
