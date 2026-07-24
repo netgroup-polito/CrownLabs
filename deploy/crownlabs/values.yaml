@@ -284,8 +284,8 @@ bastion:
     sshTrackerMetricsAddr: ":8082"
 
   webssh:
+    expositionEnabled: true
     ingress:
-      enabled: true
       annotations:
         nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
       hostname: crownlabs.example.com

@@ -19,7 +19,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"strings"
 
 	"github.com/go-logr/logr"
 	batchv1 "k8s.io/api/batch/v1"
@@ -204,7 +203,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 		return ctrl.SetControllerReference(&shvolume, &pvc, r.Scheme())
 	})
 	if err != nil {
-		if isResourceQuotaExceeded(err) {
+		if utils.IsResourceQuotaExceeded(err) {
 			shvolume.Status.Phase = clv1alpha2.SharedVolumePhaseResourceQuotaExceeded
 			log.Error(fmt.Errorf("forbidden: resource quota exceeded"), "Phase transitioned to ResourceQuotaExceeded")
 			r.EventsRecorder.Eventf(&shvolume, corev1.EventTypeWarning, EvPVCResQuotaExceeded, EvPVCResQuotaExceededMsg)
@@ -251,10 +250,6 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 
 	return ctrl.Result{}, nil
-}
-
-func isResourceQuotaExceeded(err error) bool {
-	return kerrors.IsForbidden(err) && strings.Contains(err.Error(), "exceeded quota")
 }
 
 func (r *Reconciler) handleDeletion(ctx context.Context, log logr.Logger, shvol *clv1alpha2.SharedVolume) error {
