@@ -117,8 +117,8 @@ sshKeysSecret:
 rbacResourcesName: crownlabs-bastion
 
 webssh:
+  expositionEnabled: true
   ingress:
-    enabled: true
     annotations:
       #cert-manager.io/cluster-issuer: letsencrypt-production
       nginx.ingress.kubernetes.io/custom-http-errors: "418"
@@ -133,6 +133,10 @@ webssh:
   httproute:
     gateway: {}
       # name: crownlabs-main # defaults to global.gateway.name
+    path: /webssh
+    timeouts:
+      request: 600s
+      backendRequest: 600s
   service:
     type: ClusterIP
     port: 8085

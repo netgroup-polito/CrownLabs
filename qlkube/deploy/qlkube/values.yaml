@@ -95,6 +95,10 @@ ingress:
 httproute:
   gateway: {}
     # name: crownlabs-main # defaults to global.gateway.name
+  timeouts:
+    request: 600s
+    backendRequest: 600s
+  path: /graph
 
 resources:
   limits:

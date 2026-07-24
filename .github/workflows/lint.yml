@@ -34,7 +34,7 @@ jobs:
         run: cd operators && make -s getvars | grep GOLANGCI_LINT_VERSION >> $GITHUB_OUTPUT
 
       - name: Check linting
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: ${{ steps.golangci-lint-version.outputs.GOLANGCI_LINT_VERSION }}
           working-directory: operators
