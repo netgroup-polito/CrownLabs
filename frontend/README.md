@@ -105,6 +105,20 @@ Additionally:
   );
   ```
 
+## Environment IP Resolution & SSH Access
+
+Instance IP addresses and SSH access instructions are handled through a joint backend-frontend workflow:
+
+### Backend IP Resolution
+1. **IP Field Population**: The Instance Operator resolves the internal VMI or container Pod IP address (`GetEnvironmentResolvedIP`) and populates the `ip` field under `status.environments[]` in the `Instance` Custom Resource status.
+
+### Frontend SSH Command Generation
+1. **Direct SSH Connection**: In the SSH modal (`SSHModalContent`), the frontend reads `env.ip` and dynamically constructs the copyable SSH command:
+   ```bash
+   ssh -J bastion@${VITE_APP_CROWNLABS_BASTION_HOST} crownlabs@${env.ip}
+   ```
+2. **WebSSH Connection**: For in-browser SSH sessions, the frontend builds the URL `/instance/${namespace}/${name}/${envName}/ssh`, launching the WebSSH terminal component (`SSHTerminal`) which connects via WebSockets to the Bastion service exposed on `/webssh`.
+
 ## Useful links
 
 - [Useful answer for deploying react app on subroute](https://stackoverflow.com/a/58508562/11143279)

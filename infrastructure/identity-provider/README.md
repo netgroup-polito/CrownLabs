@@ -80,32 +80,17 @@ Please follow the [official documentation](https://kubernetes.io/docs/reference/
 
 ## User Instances Authentication
 
-In CrownLabs, the access to the graphical desktop of the user instances should be protected, so that only authenticated users can connect to them.
-For this purpose, we leverage [oauth2-proxy](https://github.com/oauth2-proxy/oauth2-proxy), a solution which in this configuration stands in between the reverse-proxy (Nginx in our case) and the OIDC provider (Keycloak).
+In CrownLabs, the access to the graphical desktop of the user instances must be protected so that only authenticated users can connect to them.
+With the transition to the Gateway API, this authentication is managed centrally and natively by **Envoy Gateway** using a global `SecurityPolicy`.
 
-Once enabled on a per-ingress basis through the proper annotations (see below), all user requests are authenticated against oauth2-proxy, which in turn initially redirects the user to the OIDC provider for the log-in process.
-Once authenticated, oauth2-proxy returns a cookie to the user, which will be validated during the following checks, without further interacting with the OIDC provider.
+### Native OIDC Integration
 
-### Deploying oauth2-proxy
+Envoy Gateway natively implements the OpenID Connect (OIDC) protocol to interface directly with Keycloak (the OIDC provider). 
+When a user attempts to access a protected dynamic route (e.g., a virtual machine's GUI), the Envoy Gateway intercepts the unauthenticated traffic and automatically redirects the user to Keycloak for login. Once authenticated, the gateway handles the token exchange and issues a session cookie natively.
 
-We leverage Helm to install a centralized deployment (i.e. used for all user instances) of oauth2-proxy, configuring it with multiple replicas for failure tolerance, and leveraging Redis (with Sentinel) as session storage backend.
-The full configuration is described by the corresponding [values file](manifests/oauth2-proxy-values.yaml), with only the secrets redacted.
-The installation/update can be performed with the following:
+### Enabling Authentication
 
-```bash
-helm repo add oauth2-proxy https://oauth2-proxy.github.io/manifests
-helm upgrade --install crownlabs-instances-auth oauth2-proxy/oauth2-proxy \
-  --namespace crownlabs-instances-auth --create-namespace \
-  --values manivests/oauth2-proxy-values.yaml
-```
+The `SecurityPolicy` is deployed and managed centrally via the CrownLabs infrastructure Helm charts.
+By default, the global policy protects all routes managed by the Gateway. The Instance Operator simply generates standard `HTTPRoute` resources for the user instances, and they are automatically protected without requiring any instance-specific authentication configuration or annotations.
 
-### Enabling the authentication
-
-Once installed. user authentication can be enabled on a per-ingress basis thorough the following annotations (automatically configured by the instance-operator upon instance creation), pointing to the URLs where the oauth2-proxy deployment is exposed:
-
-```yaml
-nginx.ingress.kubernetes.io/auth-url: https://crownlabs.polito.it/app/instances/oauth2/auth
-nginx.ingress.kubernetes.io/auth-signin: https://crownlabs.polito.it/app/instances/oauth2/start?rd=$escaped_request_uri
-```
-
-Currently, we perform user authentication only, hence ensuring no external users can access the graphical desktop of the user instances. Still, more complex authorization policies (e.g., group-based), could be applied both globally (i.e., inside the oauth2-proxy configuration) and [specifically for each ingress resource](https://github.com/oauth2-proxy/oauth2-proxy/pull/849).
+Static routes that must bypass authentication (such as the frontend application) are labeled with `crownlabs.polito.it/public-route: "true"`. This label is targeted by a secondary, empty `SecurityPolicy` which explicitly overrides the global Gateway policy, thereby disabling OIDC enforcement for those specific routes.

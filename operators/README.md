@@ -56,13 +56,48 @@ helm upgrade crownlabs-instance-operator deploy/instance-operator \
 Based on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git), the operator implements the environment creation logic of CrownLabs.
 
 The next picture shows the general architecture of the Instance Operator.
-On the left you can see the controller (in blue) and the two CRDs used to describe the desired status (in green) and better detailed below. On the right it is possible to view the set of resources that are created for each environment. It is divided into two parts, one representing the components that are created only in the persistent case (that will be analyzed in the _Persistent Feature_ section), while the other one is the set of resources created in both scenarios (i.e. the VirtualMachine Instance itself and the components useful to connect to it, e.g. secret, service and ingress).
+On the left you can see the controller (in blue) and the two CRDs used to describe the desired status (in green) and better detailed below. On the right it is possible to view the set of resources that are created for each environment. It is divided into two parts, one representing the components that are created only in the persistent case (that will be analyzed in the _Persistent Feature_ section), while the other one is the set of resources created in both scenarios (i.e. the VirtualMachine Instance itself and the components useful to connect to it, e.g. secret, service, and HTTPRoute or Ingress).
 
 ![Instance Operator Architecture](../documentation/instance-operator.svg)
 
 Upon the creation of a *Instance*, the operator triggers the creation of the following components:
-* Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, Ingress)
-* An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, Ingress) to regulate access to the VM.
+* Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, and HTTPRoute when `gatewayApiMode` is enabled or Ingress otherwise)
+* An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, HTTPRoute/Ingress) to regulate access to the VM.
+
+#### Gateway API & Exposition Flags
+
+The Instance Operator exposes VM and container instances through Gateway API `HTTPRoute` resources (or legacy `Ingress` objects):
+
+##### Runtime Configuration Flags
+The Instance Operator behavior is configured through the following runtime command-line flags:
+* `--gateway-api-mode`: Enables Gateway API mode (`true`), triggering the reconciliation of `HTTPRoute` resources instead of legacy `Ingress` objects.
+* `--gateway-api-refs-values`: Specifies the target Gateway reference in `<gateway-namespace>/<gateway-name>` format (e.g., `crownlabs-production/crownlabs-main`). The operator parses this string to extract the target namespace and name to populate the `parentRef` field of the `HTTPRoute`. Note that this is a **strictly syntactic parser**: it only validates the format (the presence of the slash separator) but performs no semantic checks. It does not verify if the specified namespace or Gateway actually exist in the cluster. This avoids hardcoding internal names and guarantees maximum flexibility and decoupling from the Gateway's lifecycle.
+* `--enable-auth`: Enables (`true`) or disables (`false`) the enforcement of authentication on the exposed resources via Gateway/Ingress.
+
+##### Exposition Enablement Mechanics
+To manage the exposure state of services dynamically without destroying or recreating the underlying workloads, CrownLabs uses toggle mechanisms (replacing legacy `ingress enable` patterns):
+* **For WebSSH Bastion**: Controlled via the Helm chart parameter `webssh.expositionEnabled` (which acts as the `exposition enable` flag). Enabling or disabling it toggles the generation of the `HTTPRoute`/`Ingress` resource, allowing or blocking external SSH access while the Bastion daemon pods remain running.
+* **For Instances (VMs/Containers)**: Controlled via the `running` field in the `InstanceSpec`. For non-persistent environments, when `running` is set to `false`, the operator tears down the exposition objects (`HTTPRoute`/`Ingress` and `Service`) to make the instance unreachable, while preserving the environment specification so it can be re-exposed later without data loss.
+
+##### Modular Refactoring: GUI Exposition Functions
+To abstract the differences between Ingress and HTTPRoute, all internal GUI exposure path helper functions have been renamed from `Ingress` to `Exposition`:
+* `ExpositionGUIPath`: returns the path of the route targeting the environment GUI vnc or Standalone.
+* `ExpositionGUICleanPath`: returns the clean path without regex.
+* `ExpositionGuiStatusURL`: composes the instance GUI status URL.
+* `ExpositionGuiStatusInstanceURL`: composes the root instance URL.
+
+##### Controller & Reconciler Logic
+The Instance Controller is set to own the created `HTTPRoute` resources. This establishes a controller reference, ensuring that any modifications to the route in the cluster automatically trigger a reconciliation loop in the operator to restore the correct deployment state.
+
+##### Exposition Accepted Status (`expositionAccepted`)
+The Instance Custom Resource Definition (CRD) includes the boolean status field `expositionAccepted` under each environment in `.status.environments[].expositionAccepted`.
+* **Accepted**: For HTTPRoute, the operator dynamically reads the Gateway's parent binding status to check if it has been accepted by the Gateway controller (using the `RouteConditionAccepted` condition). For legacy Ingress, the status is set to `true` immediately upon creation.
+* **Troubleshooting**: A status of `false` does not necessarily mean a platform failure. For example, in environments connecting via WebSSH Bastion where a public URL is absent, `false` is acceptable. However, if a public URL is present and `expositionAccepted` remains `false`, it indicates a listener mismatch, missing labels, or configuration issue that requires troubleshooting.
+
+##### Dynamic Environment IP Resolution
+To maintain an accurate internal state, the Instance Operator dynamically resolves the actual IP address of the underlying Pod or Virtual Machine Instance (VMI). This IP is stored in the `Instance` status (`status.environments[].ip`). During reconciliation, the operator filters out Pods that are terminating (`DeletionTimestamp != nil`) or in a terminal phase (`Failed`/`Succeeded`). This guarantees that the IP exposed in the status always points to the active workload, which is crucial for routing SSH connections through the Bastion and for reliable activity tracking via Prometheus.
+
+
 *  A [DataVolume](https://github.com/kubevirt/containerized-data-importer/blob/main/doc/datavolumes.md) (only in case of persistent VMs). It wraps a Persistent Volume Claim (PVC), and takes care of initializing it with the content of the selected VM image through an importer pod.
 
 All those resources are bound to the Instance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
@@ -168,7 +203,7 @@ Each **Template** resource associated with an Instance defines inactivity policy
 If omitted, `cleanup.stopAfterInactivity` defaults to `never`, meaning that Instances created from that template will be ignored by this controller.
 
 To evaluate whether an Instance is active, the controller relies on **Prometheus** metrics.
-It verifies whether the tenant has accessed the Instance recently, either through the frontend (by analyzing Ingress metrics) or via SSH (using a specific SSH bastion tracker metric).
+It verifies whether the tenant has accessed the Instance recently, either through the frontend (by analyzing HTTPRoute or Ingress traffic metrics) or via SSH (using a specific SSH bastion tracker metric).
 If activity is detected, the controller postpones the check.
 If no activity is recorded for a time longer than `cleanup.stopAfterInactivity`, the process of inactivity handling begins:
 - **If email notifications are enabled** (`enableInactivityNotifications` is set to `true`), the controller sends warning email notifications to tenants, warning them that the Instance will be paused (if persistent) or deleted (if not persistent) if they do not access it. The number of notifications sent is defined by the `inactiveTerminationMaxNumberOfAlerts` parameter in the Helm chart. Once this limit is reached, the controller takes action: **persistent Instances are paused**, while **non-persistent Instances are deleted**, followed by a final notification email.
@@ -389,7 +424,9 @@ The actions performed by the operator are the following:
 - `Tenant` ([details](pkg/controller/tenant/))
   - update the tenant resource with labels for firstName and lastName
   - create or update some cluster resources:
-    - namespace: to host all other cluster resources related to the tenant
+    - namespace: to host all cluster resources related to the tenant. The Tenant Operator reconciles namespace labels combining two parts:
+      - **Static Labels**: Common labels loaded once at operator startup.
+      - **Dynamic Labels**: Labels evaluated dynamically during the reconciliation loop for each specific tenant resource.
     - resourceQuota; to limit resources used by the tenant
     - roleBindings: to allow user to manage own instances
     - clusterRole: to allow user to watch own resource
@@ -454,6 +491,8 @@ go run cmd/operator/main.go\
 Arguments:
   --target-label
                 The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value
+  --tenant-namespace-common-labels
+                Comma-separated key=value list defining common static labels to stamp on tenant namespaces
   --keycloak-url
                 The URL of the keycloak server
   --keycloak-realm

@@ -28,6 +28,38 @@ Once the CRDs have been correctly installed, it is possible to deploy CrownLabs.
 First, it is necessary to configure the different parameters (e.g. number of replicas, URLs, credentials, ...), depending on the specific set-up.
 In particular, this operation can be completed creating a copy of the [default configuration](values.yaml), and customizing it with the suitable values.
 
+### Gateway API & Routing Configuration
+
+CrownLabs uses **Envoy Gateway** implementing the Kubernetes Gateway API (`gateway.networking.k8s.io/v1`) for L7 traffic routing and authentication.
+
+#### Gateway Configuration Model
+* **Hardcoded Parameters** (defined directly in the resource template [`templates/gateway-api.yaml`](templates/gateway-api.yaml)):
+  - `apiVersion`: `gateway.networking.k8s.io/v1`
+  - `kind`: `Gateway`
+  - `protocol`: `HTTPS`
+  - `port`: `443`
+  - `tls.mode`: `Terminate`
+* **Configurable Parameters** (specified via [`values.yaml`](values.yaml)):
+  - Gateway Name (`name: crownlabs-main`)
+  - Gateway Class (`class: envoy-public`)
+  - Listener Name (`listenerName: https`)
+  - Hostname (`hostname`)
+  - TLS Certificate References (`tls.certificateRefName`)
+  - Route Selector (`allowedRoutes` / `allowedRoutesSimple`)
+
+
+#### Control Flags
+* `global.gateway.gatewayApiMode` (`--gateway-api-mode`): Toggle flag (enabled by default) that controls whether CrownLabs deploys Gateway API `HTTPRoute` resources instead of legacy `Ingress` objects.
+* `configurations.generic.gatewayApiRefsValues` (`--gateway-api-refs-values`): Configures the target Gateway reference formatted as `<namespace>/<name>` (e.g., `crownlabs-production/crownlabs-main`), enabling the Instance Operator to forge valid `parentRef` targets for `HTTPRoute` resources.
+* `authentication.enabled` (`EnableAuthentication`): Operator flag that controls whether authentication enforcement is active for instance exposition routes.
+
+
+
+For detailed information on domain unification, route attachment security (`matchLabels`), and static vs dynamic routes, please refer to the dedicated [Gateway API infrastructure documentation](../../operators/docs/gateway-api/README.md).
+
+---
+
+
 Then, it is possible to proceed with the deployment/upgrade of CrownLabs (all commands are relative to the CrownLabs root directory):
 
 ```bash
