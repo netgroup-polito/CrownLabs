@@ -55,7 +55,7 @@ CrownLabs uses **Envoy Gateway** implementing the Kubernetes Gateway API (`gatew
 
 
 
-For detailed information on domain unification, route attachment security (`matchLabels`), and static vs dynamic routes, please refer to the dedicated [Gateway API infrastructure documentation](../../operators/docs/gateway-api/README.md).
+For detailed information on domain unification, route attachment security (`matchLabels`), and static vs dynamic routes, please refer to the dedicated [Gateway API infrastructure documentation](../../operators/docs/gateway-api/gateway-api-architecture-reference.md).
 
 ---
 

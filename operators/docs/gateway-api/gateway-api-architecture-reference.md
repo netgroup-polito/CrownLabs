@@ -41,14 +41,14 @@ Core Gateway API resources are declared in the main CrownLabs Helm chart (`deplo
 
 ### Template Standards vs Values Customization
 
-To ensure architectural consistency, non-changing properties are hardcoded within the resource template ([`deploy/crownlabs/templates/gateway-api.yaml`](../../deploy/crownlabs/templates/gateway-api.yaml)):
+To ensure architectural consistency, non-changing properties are hardcoded within the resource template ([`deploy/crownlabs/templates/gateway-api.yaml`](../../../deploy/crownlabs/templates/gateway-api.yaml)):
 * `apiVersion`: `gateway.networking.k8s.io/v1`
 * `kind`: `Gateway`
 * `protocol`: `HTTPS`
 * `port`: `443`
 * `tls.mode`: `Terminate`
 
-Deployment-specific properties are configured via [`deploy/crownlabs/values.yaml`](../../deploy/crownlabs/values.yaml):
+Deployment-specific properties are configured via [`deploy/crownlabs/values.yaml`](../../../deploy/crownlabs/values.yaml):
 
 ```yaml
 global:
