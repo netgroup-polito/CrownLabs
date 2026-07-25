@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -119,4 +120,9 @@ func CheckSingleLabel(obj client.Object, label, value string) bool {
 func AutoEnrollEnabled(autoEnroll clv1alpha1.WorkspaceAutoenroll) bool {
 	return autoEnroll == clv1alpha1.AutoenrollImmediate ||
 		autoEnroll == clv1alpha1.AutoenrollWithApproval
+}
+
+// IsResourceQuotaExceeded checks if the returned error is related to Exceeded Quota.
+func IsResourceQuotaExceeded(err error) bool {
+	return kerrors.IsForbidden(err) && strings.Contains(err.Error(), "exceeded quota")
 }

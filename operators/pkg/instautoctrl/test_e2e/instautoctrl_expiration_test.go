@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
@@ -69,9 +70,11 @@ var _ = Describe("Instautoctrl-expiration", func() {
 					Name:       "env-1",
 					GuiEnabled: true,
 					Resources: clv1alpha2.EnvironmentResources{
-						CPU:                   1,
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    1,
+							Memory: resource.MustParse("1Gi"),
+						},
 						ReservedCPUPercentage: 1,
-						Memory:                resource.MustParse("1024M"),
 					},
 					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      true,
@@ -93,9 +96,11 @@ var _ = Describe("Instautoctrl-expiration", func() {
 					Name:       "env-1",
 					GuiEnabled: true,
 					Resources: clv1alpha2.EnvironmentResources{
-						CPU:                   1,
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    1,
+							Memory: resource.MustParse("1Gi"),
+						},
 						ReservedCPUPercentage: 1,
-						Memory:                resource.MustParse("1024M"),
 					},
 					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      false,
