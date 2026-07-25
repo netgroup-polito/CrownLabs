@@ -62,7 +62,7 @@ On the left you can see the controller (in blue) and the two CRDs used to descri
 
 Upon the creation of a *Instance*, the operator triggers the creation of the following components:
 * Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, and HTTPRoute when `gatewayApiMode` is enabled or Ingress otherwise)
-* An instance of [Oauth2 Proxy](https://github.com/oauth2-proxy/oauth2-proxy) (Deployment, Service, HTTPRoute/Ingress) to regulate access to the VM.
+
 
 #### Gateway API & Exposition Flags
 
