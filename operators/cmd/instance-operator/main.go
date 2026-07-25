@@ -72,7 +72,6 @@ func main() {
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
 	enableWebhooks := false
-	snapshotPublicNamespace := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -102,7 +101,6 @@ func main() {
 	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
 	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", false, "Enable webhooks")
-	flag.StringVar(&snapshotPublicNamespace, "snapshot-public-namespace", "cldprog-5-block-vms-tests", "The namespace where public snapshots will be stored")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -216,8 +214,7 @@ func main() {
 
 	if enableWebhooks {
 		if err = (&instsnapshotctrl.InstanceSnapshotWebhook{
-			Client:                  mgr.GetClient(),
-			SnapshotPublicNamespace: snapshotPublicNamespace,
+			Client: mgr.GetClient(),
 		}).SetupWebhookWithManager(mgr); err != nil {
 			log.Error(err, "unable to create webhook", "webhook", "InstanceSnapshot")
 			os.Exit(1)

@@ -17,14 +17,11 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - jsonPath: .spec.displayName
-      name: DisplayName
-      type: string
     - jsonPath: .status.phase
       name: Phase
       type: string
-    - jsonPath: .spec.destination.scope
-      name: Scope
+    - jsonPath: .spec.imageName
+      name: ImageName
       type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
@@ -54,197 +51,48 @@ spec:
           spec:
             description: InstanceSnapshotSpec defines the desired state of InstanceSnapshot.
             properties:
-              destination:
-                description: Destination describes where the snapshot will be stored.
-                properties:
-                  namespace:
-                    description: Namespace is the resolved destination namespace (frozen
-                      at creation time).
-                    type: string
-                  scope:
-                    description: Scope is the requested destination scope (Private,
-                      Workspace, Public).
-                    enum:
-                    - Private
-                    - Workspace
-                    - Public
-                    type: string
-                required:
-                - scope
-                type: object
-              displayName:
-                description: DisplayName is a human-readable name for the snapshot.
+              destinationNamespace:
+                description: |-
+                  DestinationNamespace is the namespace where the snapshot DataVolume will be created.
+                  If empty, defaults to the InstanceSnapshot's own namespace.
                 type: string
-              source:
-                description: Source describes the origin of the snapshot.
+              environmentRef:
+                description: Environment represents the reference to the environment
+                  to be snapshotted.
                 properties:
-                  disk:
-                    description: Disk contains the storage characteristics of the
-                      original PVC.
-                    properties:
-                      accessModes:
-                        description: AccessModes are the access modes of the underlying
-                          PVC.
-                        items:
-                          type: string
-                        type: array
-                      size:
-                        anyOf:
-                        - type: integer
-                        - type: string
-                        description: Size is the size of the underlying PVC.
-                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
-                        x-kubernetes-int-or-string: true
-                      storageClassName:
-                        description: StorageClassName is the storage class of the
-                          underlying PVC.
-                        type: string
-                      volumeMode:
-                        description: VolumeMode is the volume mode of the underlying
-                          PVC.
-                        type: string
-                    type: object
-                  environmentName:
-                    description: EnvironmentName is the name of the environment inside
-                      the Instance to snapshot.
+                  name:
+                    description: The name of the resource to be referenced.
                     type: string
-                  environmentType:
-                    description: EnvironmentType is the type of the environment (e.g.,
-                      VirtualMachine).
-                    enum:
-                    - VirtualMachine
-                    - Container
-                    - CloudVM
-                    - Standalone
-                    - LocalVM
+                  namespace:
+                    description: |-
+                      The namespace containing the resource to be referenced. It should be left
+                      empty in case of cluster-wide resources.
                     type: string
-                  instanceRef:
-                    description: InstanceRef points to the source Instance.
-                    properties:
-                      apiVersion:
-                        description: API version of the referent.
-                        type: string
-                      fieldPath:
-                        description: |-
-                          If referring to a piece of an object instead of an entire object, this string
-                          should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                          For example, if the object reference is to a container within a pod, this would take on a value like:
-                          "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                          the event) or if no container name is specified "spec.containers[2]" (container with
-                          index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                          referencing a part of an object.
-                        type: string
-                      kind:
-                        description: |-
-                          Kind of the referent.
-                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                        type: string
-                      name:
-                        description: |-
-                          Name of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                        type: string
-                      namespace:
-                        description: |-
-                          Namespace of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                        type: string
-                      resourceVersion:
-                        description: |-
-                          Specific resourceVersion to which this reference is made, if any.
-                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                        type: string
-                      uid:
-                        description: |-
-                          UID of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                        type: string
-                    type: object
-                    x-kubernetes-map-type: atomic
-                  pvcName:
-                    description: PVCName is the name of the underlying PVC.
-                    type: string
-                  templateRef:
-                    description: TemplateRef points to the Template of the source
-                      Instance.
-                    properties:
-                      apiVersion:
-                        description: API version of the referent.
-                        type: string
-                      fieldPath:
-                        description: |-
-                          If referring to a piece of an object instead of an entire object, this string
-                          should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                          For example, if the object reference is to a container within a pod, this would take on a value like:
-                          "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                          the event) or if no container name is specified "spec.containers[2]" (container with
-                          index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                          referencing a part of an object.
-                        type: string
-                      kind:
-                        description: |-
-                          Kind of the referent.
-                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                        type: string
-                      name:
-                        description: |-
-                          Name of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                        type: string
-                      namespace:
-                        description: |-
-                          Namespace of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                        type: string
-                      resourceVersion:
-                        description: |-
-                          Specific resourceVersion to which this reference is made, if any.
-                          More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                        type: string
-                      uid:
-                        description: |-
-                          UID of the referent.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                        type: string
-                    type: object
-                    x-kubernetes-map-type: atomic
-                  tenantRef:
-                    description: TenantRef points to the Tenant owning the source
-                      Instance.
-                    properties:
-                      name:
-                        default: ""
-                        description: |-
-                          Name of the referent.
-                          This field is effectively required, but due to backwards compatibility is
-                          allowed to be empty. Instances of this type with an empty value here are
-                          almost certainly wrong.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                        type: string
-                    type: object
-                    x-kubernetes-map-type: atomic
-                  workspaceRef:
-                    description: WorkspaceRef points to the Workspace of the source
-                      Instance.
-                    properties:
-                      name:
-                        default: ""
-                        description: |-
-                          Name of the referent.
-                          This field is effectively required, but due to backwards compatibility is
-                          allowed to be empty. Instances of this type with an empty value here are
-                          almost certainly wrong.
-                          More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                        type: string
-                    type: object
-                    x-kubernetes-map-type: atomic
                 required:
-                - environmentName
-                - instanceRef
+                - name
+                type: object
+              imageName:
+                description: ImageName is the name of the image to pushed in the docker
+                  registry.
+                type: string
+              instanceRef:
+                description: Instance is the reference to the persistent VM instance
+                  to be snapshotted.
+                properties:
+                  name:
+                    description: The name of the resource to be referenced.
+                    type: string
+                  namespace:
+                    description: |-
+                      The namespace containing the resource to be referenced. It should be left
+                      empty in case of cluster-wide resources.
+                    type: string
+                required:
+                - name
                 type: object
             required:
-            - destination
-            - source
+            - imageName
+            - instanceRef
             type: object
           status:
             description: InstanceSnapshotStatus defines the observed state of InstanceSnapshot.

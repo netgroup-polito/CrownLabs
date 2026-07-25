@@ -94,8 +94,8 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Verify source Instance and its VM state.
 	var instance clv1alpha2.Instance
 	instanceNN := types.NamespacedName{
-		Namespace: snapshot.Spec.Source.InstanceRef.Namespace,
-		Name:      snapshot.Spec.Source.InstanceRef.Name,
+		Namespace: snapshot.Spec.Instance.Namespace,
+		Name:      snapshot.Spec.Instance.Name,
 	}
 	if err := r.Get(ctx, instanceNN, &instance); err != nil {
 		log.Error(err, "failed to get source instance", "instance", instanceNN)
@@ -116,7 +116,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	var vmi virtv1.VirtualMachineInstance
 	vmiNN := types.NamespacedName{
 		Namespace: instance.Namespace,
-		Name:      fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Source.EnvironmentName),
+		Name:      fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment.Name),
 	}
 	err := r.Get(ctx, vmiNN, &vmi)
 	if err == nil {
@@ -128,14 +128,32 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	// We are ready to create the DataVolume clone
+	dvNamespace := snapshot.Spec.DestinationNamespace
+	if dvNamespace == "" {
+		dvNamespace = snapshot.Namespace
+	}
 	dvNN := types.NamespacedName{
-		Namespace: snapshot.Spec.Destination.Namespace,
+		Namespace: dvNamespace,
 		Name:      fmt.Sprintf("%s-%s", snapshot.Name, string(snapshot.UID)[:5]),
 	}
 
 	var dv cdiv1beta1.DataVolume
 	err = r.Get(ctx, dvNN, &dv)
 	if err != nil && kerrors.IsNotFound(err) {
+		// Fetch the source PVC to get its specifications
+		pvcName := fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment.Name)
+		var sourcePVC corev1.PersistentVolumeClaim
+		pvcNN := types.NamespacedName{
+			Namespace: instance.Namespace,
+			Name:      pvcName,
+		}
+		if err := r.Get(ctx, pvcNN, &sourcePVC); err != nil {
+			log.Error(err, "failed to get source PVC", "pvc", pvcNN)
+			return ctrl.Result{}, err
+		}
+
+		storageQuantity := sourcePVC.Spec.Resources.Requests[corev1.ResourceStorage]
+
 		// Create the DV
 		dv = cdiv1beta1.DataVolume{
 			ObjectMeta: metav1.ObjectMeta{
@@ -149,16 +167,16 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				Source: &cdiv1beta1.DataVolumeSource{
 					PVC: &cdiv1beta1.DataVolumeSourcePVC{
 						Namespace: instance.Namespace,
-						Name:      snapshot.Spec.Source.PVCName,
+						Name:      pvcName,
 					},
 				},
 				PVC: &corev1.PersistentVolumeClaimSpec{
-					StorageClassName: snapshot.Spec.Source.Disk.StorageClassName,
-					AccessModes:      snapshot.Spec.Source.Disk.AccessModes,
-					VolumeMode:       snapshot.Spec.Source.Disk.VolumeMode,
+					StorageClassName: sourcePVC.Spec.StorageClassName,
+					AccessModes:      sourcePVC.Spec.AccessModes,
+					VolumeMode:       sourcePVC.Spec.VolumeMode,
 					Resources: corev1.VolumeResourceRequirements{
 						Requests: corev1.ResourceList{
-							corev1.ResourceStorage: snapshot.Spec.Source.Disk.Size,
+							corev1.ResourceStorage: storageQuantity,
 						},
 					},
 				},

@@ -66,30 +66,13 @@ metadata:
   name: linux-vm-lab1
   namespace: tenant-mario-rossi
 spec:
-  displayName: "Lab 1 baseline"
-  source:
-    instanceRef:
-      name: linux-vm
-      namespace: tenant-mario-rossi
-    environmentName: desktop
-    environmentType: VirtualMachine
-    tenantRef:
-      name: mario.rossi
-    templateRef:
-      name: ubuntu
-      namespace: workspace-os
-    workspaceRef:
-      name: os
-    pvcName: linux-vm-desktop
-    disk:
-      storageClassName: rook-ceph-block
-      volumeMode: Block
-      accessModes:
-        - ReadWriteOnce
-      size: 30Gi
-  destination:
-    scope: Private
+  instanceRef:
+    name: linux-vm
     namespace: tenant-mario-rossi
+  environmentRef:
+    name: desktop
+  imageName: "ubuntu"
+  destinationNamespace: tenant-mario-rossi
 status:
   phase: Ready
   artifact:
@@ -103,15 +86,12 @@ The user-facing create request can be smaller:
 
 ```yaml
 spec:
-  displayName: "Lab 1 baseline"
-  source:
-    instanceRef:
-      name: linux-vm
-      namespace: tenant-mario-rossi
-    environmentName: desktop
-    environmentType: VirtualMachine
-  destination:
-    scope: Private
+  instanceRef:
+    name: linux-vm
+    namespace: tenant-mario-rossi
+  environmentRef:
+    name: desktop
+  imageName: "ubuntu"
 ```
 
 A mutating admission webhook should resolve and freeze the remaining `spec.source` and `spec.destination.namespace` fields at creation time. A validating webhook should reject every later `spec` change.

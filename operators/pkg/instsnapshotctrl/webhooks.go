@@ -18,22 +18,18 @@ import (
 	"context"
 	"fmt"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 // InstanceSnapshotWebhook handles admission for InstanceSnapshot.
 type InstanceSnapshotWebhook struct {
-	Client                  client.Client
-	SnapshotPublicNamespace string
+	Client client.Client
 }
 
 // SetupWebhookWithManager registers the webhook with the manager.
@@ -56,18 +52,9 @@ func (w *InstanceSnapshotWebhook) Default(_ context.Context, obj runtime.Object)
 		return fmt.Errorf("expected an InstanceSnapshot object but got %T", obj)
 	}
 
-	// Resolve the destination namespace based on the requested scope.
-	switch snapshot.Spec.Destination.Scope {
-	case clv1alpha2.PrivateScope:
-		snapshot.Spec.Destination.Namespace = snapshot.Spec.Source.InstanceRef.Namespace // Assuming same namespace as source for private
-	case clv1alpha2.WorkspaceScope:
-		if snapshot.Spec.Source.WorkspaceRef.Name != "" {
-			snapshot.Spec.Destination.Namespace = forge.GetWorkspaceNamespaceName(&clv1alpha1.Workspace{
-				ObjectMeta: metav1.ObjectMeta{Name: snapshot.Spec.Source.WorkspaceRef.Name},
-			})
-		}
-	case clv1alpha2.PublicScope:
-		snapshot.Spec.Destination.Namespace = w.SnapshotPublicNamespace
+	// Default destination namespace to the source instance namespace.
+	if snapshot.Spec.DestinationNamespace == "" {
+		snapshot.Spec.DestinationNamespace = snapshot.Spec.Instance.Namespace
 	}
 
 	return nil
@@ -89,19 +76,14 @@ func (w *InstanceSnapshotWebhook) ValidateCreate(ctx context.Context, obj runtim
 	// 2. Validate source Instance exists and is powered off.
 	var instance clv1alpha2.Instance
 	if err := w.Client.Get(ctx, client.ObjectKey{
-		Namespace: snapshot.Spec.Source.InstanceRef.Namespace,
-		Name:      snapshot.Spec.Source.InstanceRef.Name,
+		Namespace: snapshot.Spec.Instance.Namespace,
+		Name:      snapshot.Spec.Instance.Name,
 	}, &instance); err != nil {
 		return nil, fmt.Errorf("failed to get source instance: %w", err)
 	}
 
 	if instance.Spec.Running {
 		return nil, fmt.Errorf("instance %s must be powered off before snapshotting", instance.Name)
-	}
-
-	// 3. Ensure destination namespace is set
-	if snapshot.Spec.Destination.Namespace == "" {
-		return nil, fmt.Errorf("destination namespace could not be resolved for scope %s", snapshot.Spec.Destination.Scope)
 	}
 
 	return nil, nil
@@ -112,17 +94,21 @@ func (w *InstanceSnapshotWebhook) ValidateUpdate(_ context.Context, oldObj, newO
 	oldSnapshot := oldObj.(*clv1alpha2.InstanceSnapshot)
 	newSnapshot := newObj.(*clv1alpha2.InstanceSnapshot)
 
-	// Enforce immutable spec (except displayName which might be allowed, but we freeze source and destination).
-	if oldSnapshot.Spec.Destination.Namespace != newSnapshot.Spec.Destination.Namespace {
-		return nil, fmt.Errorf("spec.destination.namespace is immutable")
+	// Enforce immutable spec properties
+	if oldSnapshot.Spec.Instance != newSnapshot.Spec.Instance {
+		return nil, fmt.Errorf("spec.instanceRef is immutable")
 	}
 
-	if oldSnapshot.Spec.Destination.Scope != newSnapshot.Spec.Destination.Scope {
-		return nil, fmt.Errorf("spec.destination.scope is immutable")
+	if oldSnapshot.Spec.Environment != newSnapshot.Spec.Environment {
+		return nil, fmt.Errorf("spec.environmentRef is immutable")
 	}
 
-	if oldSnapshot.Spec.Source.PVCName != newSnapshot.Spec.Source.PVCName {
-		return nil, fmt.Errorf("spec.source.pvcName is immutable")
+	if oldSnapshot.Spec.ImageName != newSnapshot.Spec.ImageName {
+		return nil, fmt.Errorf("spec.imageName is immutable")
+	}
+
+	if oldSnapshot.Spec.DestinationNamespace != newSnapshot.Spec.DestinationNamespace {
+		return nil, fmt.Errorf("spec.destinationNamespace is immutable")
 	}
 
 	return nil, nil

@@ -16,79 +16,24 @@ package v1alpha2
 
 import (
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// SnapshotDestinationScope defines the scope where the snapshot will be saved.
-// +kubebuilder:validation:Enum=Private;Workspace;Public
-type SnapshotDestinationScope string
-
-const (
-	// PrivateScope indicates the snapshot is saved in the user's private namespace.
-	PrivateScope SnapshotDestinationScope = "Private"
-	// WorkspaceScope indicates the snapshot is saved in the workspace namespace.
-	WorkspaceScope SnapshotDestinationScope = "Workspace"
-	// PublicScope indicates the snapshot is saved in a public catalog namespace.
-	PublicScope SnapshotDestinationScope = "Public"
-)
-
-// InstanceSnapshotDisk describes the properties of the disk being snapshotted.
-type InstanceSnapshotDisk struct {
-	// StorageClassName is the storage class of the underlying PVC.
-	StorageClassName *string `json:"storageClassName,omitempty"`
-	// VolumeMode is the volume mode of the underlying PVC.
-	VolumeMode *corev1.PersistentVolumeMode `json:"volumeMode,omitempty"`
-	// AccessModes are the access modes of the underlying PVC.
-	AccessModes []corev1.PersistentVolumeAccessMode `json:"accessModes,omitempty"`
-	// Size is the size of the underlying PVC.
-	Size resource.Quantity `json:"size,omitempty"`
-}
-
-// InstanceSnapshotSource describes the origin of the snapshot.
-type InstanceSnapshotSource struct {
-	// InstanceRef points to the source Instance.
-	InstanceRef corev1.ObjectReference `json:"instanceRef"`
-	// EnvironmentName is the name of the environment inside the Instance to snapshot.
-	EnvironmentName string `json:"environmentName"`
-	// EnvironmentType is the type of the environment (e.g., VirtualMachine).
-	// +optional
-	EnvironmentType EnvironmentType `json:"environmentType,omitempty"`
-	// TenantRef points to the Tenant owning the source Instance.
-	// +optional
-	TenantRef corev1.LocalObjectReference `json:"tenantRef,omitempty"`
-	// TemplateRef points to the Template of the source Instance.
-	// +optional
-	TemplateRef corev1.ObjectReference `json:"templateRef,omitempty"`
-	// WorkspaceRef points to the Workspace of the source Instance.
-	// +optional
-	WorkspaceRef corev1.LocalObjectReference `json:"workspaceRef,omitempty"`
-	// PVCName is the name of the underlying PVC.
-	// +optional
-	PVCName string `json:"pvcName,omitempty"`
-	// Disk contains the storage characteristics of the original PVC.
-	// +optional
-	Disk InstanceSnapshotDisk `json:"disk,omitempty"`
-}
-
-// InstanceSnapshotDestination describes where the snapshot will be stored.
-type InstanceSnapshotDestination struct {
-	// Scope is the requested destination scope (Private, Workspace, Public).
-	Scope SnapshotDestinationScope `json:"scope"`
-	// Namespace is the resolved destination namespace (frozen at creation time).
-	// +optional
-	Namespace string `json:"namespace,omitempty"`
-}
-
 // InstanceSnapshotSpec defines the desired state of InstanceSnapshot.
 type InstanceSnapshotSpec struct {
-	// DisplayName is a human-readable name for the snapshot.
+	// Instance is the reference to the persistent VM instance to be snapshotted.
+	Instance GenericRef `json:"instanceRef"`
+
+	// Environment represents the reference to the environment to be snapshotted.
+	Environment GenericRef `json:"environmentRef,omitempty"`
+
+	// ImageName is the name of the image to pushed in the docker registry.
+	ImageName string `json:"imageName"`
+
+	// DestinationNamespace is the namespace where the snapshot DataVolume will be created.
+	// If empty, defaults to the InstanceSnapshot's own namespace.
 	// +optional
-	DisplayName string `json:"displayName,omitempty"`
-	// Source describes the origin of the snapshot.
-	Source InstanceSnapshotSource `json:"source"`
-	// Destination describes where the snapshot will be stored.
-	Destination InstanceSnapshotDestination `json:"destination"`
+	DestinationNamespace string `json:"destinationNamespace,omitempty"`
 }
 
 // SnapshotPhase describes the current phase of the InstanceSnapshot.
@@ -126,10 +71,9 @@ type InstanceSnapshotStatus struct {
 
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
-// +kubebuilder:resource:shortName="is"
-// +kubebuilder:printcolumn:name="DisplayName",type=string,JSONPath=`.spec.displayName`
+// +kubebuilder:resource:shortName="isnap"
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="Scope",type=string,JSONPath=`.spec.destination.scope`
+// +kubebuilder:printcolumn:name="ImageName",type=string,JSONPath=`.spec.imageName`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // InstanceSnapshot is the Schema for the instancesnapshots API.
