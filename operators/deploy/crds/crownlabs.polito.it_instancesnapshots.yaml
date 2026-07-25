@@ -12,7 +12,7 @@ spec:
     listKind: InstanceSnapshotList
     plural: instancesnapshots
     shortNames:
-    - is
+    - isnap
     singular: instancesnapshot
   scope: Namespaced
   versions:
