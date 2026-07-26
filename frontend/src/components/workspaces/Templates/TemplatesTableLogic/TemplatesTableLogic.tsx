@@ -314,7 +314,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
       // nodeSelector logic:
       // - if undefined: not touched by user, keep existing value (don't patch)
-      // - if null: user wants to remove it (from Fixed/Let user choose to Automatic)
+      // - if null: user wants to remove it (from Fixed/Chosen by user to Automatic)
       // - if defined (can be {} or {...}): set it using 'add' (works for both create and update)
       if (t.nodeSelector === null && usedTemplate?.nodeSelector !== null) {
         patches.push({ op: 'remove', path: '/spec/nodeSelector' });
