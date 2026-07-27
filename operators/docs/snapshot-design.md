@@ -43,7 +43,7 @@ Add a new namespaced CrownLabs CRD, tentatively named `InstanceSnapshot`.
 Since the VM must be powered off before snapshotting, the source PVC is idle and the disk is quiesced by definition. This means KubeVirt `VirtualMachineSnapshot` is not needed — its value is in coordinating live snapshots with the guest agent, which does not apply here. Instead, the controller operates directly on PVCs through CDI:
 
 - **Private (same-namespace) snapshots**: create a CDI `DataVolume` clone from the source PVC within the tenant namespace. CDI smart cloning (CSI volume cloning) ensures this is nearly instantaneous on supported storage backends.
-- **Workspace/public (cross-namespace) snapshots**: create a CDI `DataVolume` clone from the source PVC into the destination namespace. CDI handles cross-namespace data movement natively.
+- **Workspace/public snapshots**: create a CDI `DataVolume` clone from the source PVC into the destination namespace (which is the namespace where the `InstanceSnapshot` resides). CDI handles cross-namespace data movement natively.
 
 In both cases the final artifact is a regular PVC (created through a CDI `DataVolume`). The clone is a fully independent copy at the Kubernetes level — even if the original VM and its PVC are later deleted, the snapshot PVC continues to work. At the storage level (e.g., Ceph/RBD), the CSI driver may internally use copy-on-write for the clone, but this is transparent and the driver handles parent lifecycle automatically.
 
@@ -72,7 +72,6 @@ spec:
   environmentRef:
     name: desktop
   imageName: "ubuntu"
-  destinationNamespace: tenant-mario-rossi
 status:
   phase: Ready
   artifact:
@@ -94,7 +93,7 @@ spec:
   imageName: "ubuntu"
 ```
 
-A mutating admission webhook should resolve and freeze the remaining `spec.source` and `spec.destination.namespace` fields at creation time. A validating webhook should reject every later `spec` change.
+A mutating admission webhook should resolve and freeze the remaining `spec.source` fields at creation time. A validating webhook should reject every later `spec` change.
 
 *Note on the trade-off*: The webhook resolves all necessary metadata (Template, Environment, PVC) to freeze it in the `spec`. While this introduces external API calls during admission (potentially increasing latency or transient failures), it guarantees atomic immutability: the `spec` is completely frozen before the CR is persisted, removing the need to handle partially-populated `spec`s in the controller.
 The API targets a single environment per `InstanceSnapshot` request (`spec.source.environmentName`). If an Instance contains multiple environments (e.g., multiple VMs), the user must create a separate `InstanceSnapshot` for each environment they wish to snapshot.
@@ -108,8 +107,7 @@ The API targets a single environment per `InstanceSnapshot` request (`spec.sourc
    - the environment type is VM-like;
    - `persistent: true`;
    - the source DataVolume/PVC exists and is already populated;
-   - **the VM is not running** (`Instance.spec.running=false`). If the VM is running, the webhook rejects the request and the user is notified;
-   - the destination namespace matches the selected scope;
+   - the VM is not running (`Instance.spec.running=false`). If the VM is running, the webhook rejects the request and the user is notified;
    - the actor is authorized.
 
 ### Private (same-namespace) flow
@@ -119,7 +117,7 @@ The API targets a single environment per `InstanceSnapshot` request (`spec.sourc
 
 ### Cross-namespace (workspace/public) flow
 
-4. The controller verifies again that the VM is not running. If off, the controller creates a CDI `DataVolume` in the destination namespace with `spec.source.pvc` pointing to the source PVC (cross-namespace clone).
+4. The controller verifies again that the VM is not running. If off, the controller creates a CDI `DataVolume` in the same namespace as the `InstanceSnapshot` with `spec.source.pvc` pointing to the source PVC (cross-namespace clone).
 5. Once the `DataVolume` is ready and the underlying PVC is bound, the controller sets `InstanceSnapshot.status.phase=Ready`.
 
 ### Cleanup
@@ -213,7 +211,7 @@ Mutable execution details belong in `status`:
 - If the source `Instance` is deleted after the webhook admission but before the controller starts processing the snapshot, the controller will fail to retrieve it (`NotFound`). The controller should mark the `InstanceSnapshot` as `Failed` and emit a `SourceInstanceDeleted` event.
 - If the CDI `DataVolume` clone fails (same-namespace or cross-namespace), keep the `DataVolume` for debugging; the controller can retry on the next reconciliation since the source PVC is still intact. Set `status.phase=Failed` after exhausting retries.
 - If the source Instance (and its DataVolume) is deleted while a CDI clone is in progress, the clone operation will fail. This is a known limitation. The controller will detect the failure, mark the `InstanceSnapshot` as `Failed` with a clear event, and clean up any partial artifacts.
-- Use finalizers for cleanup. Do not set owner references from destination CRs to source-namespace resources, because cross-namespace ownership is not valid.
+- Use finalizers for cleanup as a safety net, although owner references will now naturally garbage collect the DataVolume since it resides in the same namespace.
 - Reconciliation must be idempotent: each phase should be recoverable from already-existing resources by labels and owner/finalizer metadata.
 
 ## Naming convention

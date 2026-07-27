@@ -52,10 +52,7 @@ func (w *InstanceSnapshotWebhook) Default(_ context.Context, obj runtime.Object)
 		return fmt.Errorf("expected an InstanceSnapshot object but got %T", obj)
 	}
 
-	// Default destination namespace to the source instance namespace.
-	if snapshot.Spec.DestinationNamespace == "" {
-		snapshot.Spec.DestinationNamespace = snapshot.Spec.Instance.Namespace
-	}
+
 
 	return nil
 }
@@ -107,9 +104,6 @@ func (w *InstanceSnapshotWebhook) ValidateUpdate(_ context.Context, oldObj, newO
 		return nil, fmt.Errorf("spec.imageName is immutable")
 	}
 
-	if oldSnapshot.Spec.DestinationNamespace != newSnapshot.Spec.DestinationNamespace {
-		return nil, fmt.Errorf("spec.destinationNamespace is immutable")
-	}
 
 	return nil, nil
 }

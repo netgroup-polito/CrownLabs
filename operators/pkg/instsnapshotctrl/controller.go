@@ -52,7 +52,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Snapshot finalizer for DataVolume cleanup if cross-namespace or explicitly deleted
+	// Snapshot finalizer for DataVolume cleanup on deletion
 	finalizerName := "instancesnapshot.crownlabs.polito.it/finalizer"
 	if snapshot.DeletionTimestamp.IsZero() {
 		if !ctrlutil.ContainsFinalizer(&snapshot, finalizerName) {
@@ -128,12 +128,8 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	// We are ready to create the DataVolume clone
-	dvNamespace := snapshot.Spec.DestinationNamespace
-	if dvNamespace == "" {
-		dvNamespace = snapshot.Namespace
-	}
 	dvNN := types.NamespacedName{
-		Namespace: dvNamespace,
+		Namespace: snapshot.Namespace,
 		Name:      fmt.Sprintf("%s-%s", snapshot.Name, string(snapshot.UID)[:5]),
 	}
 
@@ -183,11 +179,8 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			},
 		}
 
-		if snapshot.Namespace == dvNN.Namespace {
-			// Set owner ref if same namespace
-			if err := ctrlutil.SetControllerReference(&snapshot, &dv, r.Scheme); err != nil {
-				return ctrl.Result{}, err
-			}
+		if err := ctrlutil.SetControllerReference(&snapshot, &dv, r.Scheme); err != nil {
+			return ctrl.Result{}, err
 		}
 
 		if err := r.Create(ctx, &dv); err != nil {

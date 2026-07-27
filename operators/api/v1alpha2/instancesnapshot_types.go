@@ -29,11 +29,6 @@ type InstanceSnapshotSpec struct {
 
 	// ImageName is the name of the image to pushed in the docker registry.
 	ImageName string `json:"imageName"`
-
-	// DestinationNamespace is the namespace where the snapshot DataVolume will be created.
-	// If empty, defaults to the InstanceSnapshot's own namespace.
-	// +optional
-	DestinationNamespace string `json:"destinationNamespace,omitempty"`
 }
 
 // SnapshotPhase describes the current phase of the InstanceSnapshot.

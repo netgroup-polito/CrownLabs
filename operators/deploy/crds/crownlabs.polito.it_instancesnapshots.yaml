@@ -51,11 +51,6 @@ spec:
           spec:
             description: InstanceSnapshotSpec defines the desired state of InstanceSnapshot.
             properties:
-              destinationNamespace:
-                description: |-
-                  DestinationNamespace is the namespace where the snapshot DataVolume will be created.
-                  If empty, defaults to the InstanceSnapshot's own namespace.
-                type: string
               environmentRef:
                 description: Environment represents the reference to the environment
                   to be snapshotted.
