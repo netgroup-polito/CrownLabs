@@ -47,12 +47,10 @@ var _ webhook.CustomValidator = &InstanceSnapshotWebhook{}
 
 // Default implements webhook.CustomDefaulter so a webhook will be registered for the type.
 func (w *InstanceSnapshotWebhook) Default(_ context.Context, obj runtime.Object) error {
-	snapshot, ok := obj.(*clv1alpha2.InstanceSnapshot)
+	_, ok := obj.(*clv1alpha2.InstanceSnapshot)
 	if !ok {
 		return fmt.Errorf("expected an InstanceSnapshot object but got %T", obj)
 	}
-
-
 
 	return nil
 }
@@ -103,7 +101,6 @@ func (w *InstanceSnapshotWebhook) ValidateUpdate(_ context.Context, oldObj, newO
 	if oldSnapshot.Spec.ImageName != newSnapshot.Spec.ImageName {
 		return nil, fmt.Errorf("spec.imageName is immutable")
 	}
-
 
 	return nil, nil
 }
