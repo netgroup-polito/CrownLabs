@@ -75,6 +75,7 @@ export default gql`
                       cpu
                       memory
                       disk
+                      otherResources
                     }
                   }
                 }

@@ -99,7 +99,10 @@ const NavbarMenu: FC<INavbarMenuProps> = ({ ...props }) => {
             if (index === 0 && routes.length > 1) {
               return [
                 menuItem,
-                { type: 'divider', key: 'divider-manage-account' } as unknown as MenuItemType,
+                {
+                  type: 'divider',
+                  key: 'divider-manage-account',
+                } as unknown as MenuItemType,
               ];
             }
             return [menuItem];

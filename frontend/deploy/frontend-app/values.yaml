@@ -29,7 +29,9 @@ configuration:
   imagelist:
     standalone: crownlabs-standalone
     containerdisks: crownlabs-containerdisks
-    
+  customResources:
+    nvidia.com/gpu: "NVIDIA GPU"
+    amd.com/gpu: "AMD GPU"  
   defaultTimeouts:
     cleanup:
       stopAfterInactivity: "15d"

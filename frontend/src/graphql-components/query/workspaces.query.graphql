@@ -12,6 +12,8 @@ query workspaces($labels: String) {
           cpu
           memory
           instances
+          disk
+          otherResources
         }
       }
     }

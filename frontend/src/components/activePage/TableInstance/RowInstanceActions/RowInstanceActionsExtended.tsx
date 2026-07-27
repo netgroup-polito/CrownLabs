@@ -130,75 +130,87 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
           </Button>
         </Popover>
 
-          <span className="hidden mr-3 xl:inline-flex items-center">
+        <span className="hidden mr-3 xl:inline-flex items-center">
+          <Tooltip
+            title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
+          >
+            <span className={sshDisabled ? 'cursor-not-allowed' : ''}>
+              <Button
+                disabled={sshDisabled}
+                className={`${sshDisabled ? 'pointer-events-none' : ''}`}
+                shape="round"
+                onClick={() => setSshModal(true)}
+              >
+                SSH
+              </Button>
+            </span>
+          </Tooltip>
+          {!instance.environments || instance.environments.length === 1 ? (
             <Tooltip
-              title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
+              title={
+                sshDisabled
+                  ? getSSHTooltipText(status === Phase2.Ready, environmentType!)
+                  : 'Direct SSH Connection'
+              }
             >
-              <span className={sshDisabled ? 'cursor-not-allowed' : ''}>
+              <span
+                className={`ml-1 ${sshDisabled ? 'cursor-not-allowed inline-block' : 'inline-block'}`}
+              >
                 <Button
                   disabled={sshDisabled}
-                  className={`${
-                    sshDisabled ? 'pointer-events-none' : ''
-                  }`}
-                  shape="round"
-                  onClick={() => setSshModal(true)}
-                >
-                  SSH
-                </Button>
-              </span>
-            </Tooltip>
-            {(!instance.environments || instance.environments.length === 1) ? (
-              <Tooltip title={sshDisabled ? getSSHTooltipText(status === Phase2.Ready, environmentType!) : "Direct SSH Connection"}>
-                <span className={`ml-1 ${sshDisabled ? 'cursor-not-allowed inline-block' : 'inline-block'}`}>
-                  <Button
-                    disabled={sshDisabled}
-                    type="link"
-                    className={`${sshDisabled ? 'pointer-events-none' : ''}`}
-                    color="primary"
-                    variant="solid"
-                    shape="circle"
-                    size="small"
-                    icon={
-                      <Link
-                        to={buildSSHLink(getFirstEnvironmentName())}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        onClick={e => e.stopPropagation()}
-                        style={{
-                          color: 'inherit',
-                          display: 'flex',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
-                          <ExportOutlined style={{ fontSize: 15 }} />
-                        </span>
-                      </Link>
-                    }
-                  ></Button>
-                </span>
-              </Tooltip>
-            ) : (
-              <Tooltip title="Direct link not supported for multiple environments (yet!)">
-                <span className="inline-block cursor-not-allowed ml-1">
-                  <Button
-                    disabled
-                    type="link"
-                    className="pointer-events-none"
-                    color="primary"
-                    variant="solid"
-                    shape="circle"
-                    size="small"
-                    icon={
-                      <span style={{ display: 'flex', alignItems: 'center', color: 'gray' }}>
+                  type="link"
+                  className={`${sshDisabled ? 'pointer-events-none' : ''}`}
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <Link
+                      to={buildSSHLink(getFirstEnvironmentName())}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={e => e.stopPropagation()}
+                      style={{
+                        color: 'inherit',
+                        display: 'flex',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
                         <ExportOutlined style={{ fontSize: 15 }} />
                       </span>
-                    }
-                  ></Button>
-                </span>
-              </Tooltip>
-            )}
-          </span>
+                    </Link>
+                  }
+                ></Button>
+              </span>
+            </Tooltip>
+          ) : (
+            <Tooltip title="Direct link not supported for multiple environments (yet!)">
+              <span className="inline-block cursor-not-allowed ml-1">
+                <Button
+                  disabled
+                  type="link"
+                  className="pointer-events-none"
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: 'gray',
+                      }}
+                    >
+                      <ExportOutlined style={{ fontSize: 15 }} />
+                    </span>
+                  }
+                ></Button>
+              </span>
+            </Tooltip>
+          )}
+        </span>
 
         {instance.allowPublicExposure && (
           <Tooltip title={getPublicExposureTooltipText()}>
@@ -232,7 +244,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
           instanceId={instance.name}
           instancePrettyName={instance.prettyName || instance.name}
           tenantNamespace={instance.tenantNamespace}
-
         />
       )}
     </>

@@ -3,7 +3,7 @@ import { Typography, Space, List, Tag, Button } from 'antd';
 import { Link } from 'react-router-dom';
 import { CodeOutlined } from '@ant-design/icons';
 import { Phase2 } from '../../../../generated-types';
-import { VITE_APP_CROWNLABS_BASTION_HOST } from '../../../../env'
+import { VITE_APP_CROWNLABS_BASTION_HOST } from '../../../../env';
 import type { InstanceEnvironment } from '../../../../utils';
 
 const { Text } = Typography;

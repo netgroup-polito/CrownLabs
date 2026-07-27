@@ -25,6 +25,8 @@ mutation applyTemplate(
           cpu
           disk
           memory
+          reservedCPUPercentage
+          otherResources
         }
         sharedVolumeMounts {
           sharedVolume {

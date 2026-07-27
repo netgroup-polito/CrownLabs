@@ -47,14 +47,6 @@ query ownedInstances($tenantNamespace: String!) {
         }
         tenantCrownlabsPolitoItTenantRef {
           name
-          tenantV1alpha2Wrapper {
-            itPolitoCrownlabsV1alpha2Tenant {
-              spec {
-                firstName
-                lastName
-              }
-            }
-          }
         }
         templateCrownlabsPolitoItTemplateRef {
           name
@@ -79,6 +71,7 @@ query ownedInstances($tenantNamespace: String!) {
                     cpu
                     memory
                     disk
+                    otherResources
                   }
                 }
               }

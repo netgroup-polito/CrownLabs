@@ -39,7 +39,12 @@ import type {
   PublicExposure,
   Tenant,
 } from './utils';
-import { convertToGiB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
+import {
+  convertToGiB,
+  WorkspaceRole,
+  WorkspacesAvailableAction,
+  getOriginalK8sKey,
+} from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
 import type { JointContent } from 'antd/lib/message/interface';
 import type { Notifier } from './contexts/TenantContext';
@@ -62,6 +67,23 @@ interface ItPolitoCrownlabsV1alpha2TemplateAlias {
   };
 }
 
+// Helper to extract and normalize otherResources as Objects
+const parseOtherResources = (
+  rawOther?: Record<string, number>,
+): Record<string, number> => {
+  if (!rawOther) return {};
+  const parsed: Record<string, number> = {};
+
+  Object.entries(rawOther).forEach(([k, v]) => {
+    if (k && v != null) {
+      const k8sKey = getOriginalK8sKey(k);
+      parsed[k8sKey] = (parsed[k8sKey] || 0) + (Number(v) || 0);
+    }
+  });
+
+  return parsed;
+};
+
 export const makeGuiTemplate = (
   tq: ItPolitoCrownlabsV1alpha2TemplateAlias,
 ): Template => {
@@ -77,6 +99,7 @@ export const makeGuiTemplate = (
   const hasGUI = environmentList.some(env => env?.guiEnabled);
   const hasPersistent = environmentList.some(env => env?.persistent);
 
+  // Aggregate Resources from Environments of template
   const aggregatedResources = environmentList.reduce(
     (acc, env) => {
       if (env?.resources) {
@@ -87,10 +110,20 @@ export const makeGuiTemplate = (
         acc.diskSum += env.resources.disk
           ? convertToGiB(env.resources.disk)
           : 0;
+
+        const envOther = parseOtherResources(env.resources?.otherResources);
+        Object.entries(envOther).forEach(([k, v]) => {
+          acc.otherResources[k] = (acc.otherResources[k] || 0) + v;
+        });
       }
       return acc;
     },
-    { cpu: 0, memorySum: 0, diskSum: 0 },
+    {
+      cpu: 0,
+      memorySum: 0,
+      diskSum: 0,
+      otherResources: {} as Record<string, number>,
+    },
   );
 
   return {
@@ -100,11 +133,11 @@ export const makeGuiTemplate = (
     description: tq.original.spec?.description ?? '',
     cleanup: {
       deleteAfterCreation:
-        (tq.original.spec)?.cleanup?.deleteAfterCreation ?? 'never',
+        tq.original.spec?.cleanup?.deleteAfterCreation ?? 'never',
       stopAfterInactivity:
-        (tq.original.spec)?.cleanup?.stopAfterInactivity ?? 'never',
+        tq.original.spec?.cleanup?.stopAfterInactivity ?? 'never',
       deleteAfterInactivity:
-        (tq.original.spec)?.cleanup?.deleteAfterInactivity ?? 'never',
+        tq.original.spec?.cleanup?.deleteAfterInactivity ?? 'never',
     },
     persistent: hasPersistent,
     nodeSelector: tq.original.spec?.nodeSelector,
@@ -118,6 +151,7 @@ export const makeGuiTemplate = (
         aggregatedResources.diskSum > 0
           ? `${aggregatedResources.diskSum}G`
           : '',
+      otherResources: aggregatedResources.otherResources,
     },
     environmentList: environmentList.map(env => ({
       name: env?.name ?? '',
@@ -143,6 +177,7 @@ export const makeGuiTemplate = (
         memory: env?.resources?.memory ?? '',
         disk: env?.resources?.disk ?? '',
         reservedCPUPercentage: env?.resources?.reservedCPUPercentage ?? 50,
+        otherResources: parseOtherResources(env?.resources?.otherResources),
       },
     })),
     hasMultipleEnvironments,
@@ -239,9 +274,9 @@ const hasActivePublicExposure = (
 
   return Boolean(
     (spec?.ports && spec.ports.length > 0) ||
-    (status?.ports &&
-      status.ports.length > 0 &&
-      safePhaseConversion(status.phase) !== Phase.Off),
+      (status?.ports &&
+        status.ports.length > 0 &&
+        safePhaseConversion(status.phase) !== Phase.Off),
   );
 };
 
@@ -348,6 +383,10 @@ export const makeGuiInstance = (
         env => env?.name === templateEnv?.name,
       );
 
+      const parsedOther = parseOtherResources(
+        templateEnv?.resources?.otherResources,
+      );
+
       return {
         name: envStatus?.name ?? '',
         phase: envStatus?.phase,
@@ -363,6 +402,7 @@ export const makeGuiInstance = (
           disk: templateEnv?.resources?.disk
             ? convertToGiB(templateEnv?.resources?.disk)
             : 0,
+          otherResources: parsedOther,
         },
       } as InstanceEnvironment;
     }) ?? [];
@@ -425,15 +465,30 @@ export const makeGuiInstance = (
       cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
       memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
       disk: environments.reduce((acc, env) => acc + env.quota.disk, 0),
+      otherResources: environments.reduce(
+        (acc, env) => {
+          if (env.quota.otherResources) {
+            Object.entries(env.quota.otherResources).forEach(([key, val]) => {
+              const k8sKey = getOriginalK8sKey(key);
+              acc[k8sKey] = (acc[k8sKey] || 0) + val;
+            });
+          }
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
     },
     lastPoweredOffTimestamp:
       (metadata?.annotations as Record<string, string> | undefined)?.[
         'crownlabsPolitoItLastPoweredOffTimestamp'
       ] || '',
     cleanup: {
-      deleteAfterCreation: templateSpec?.cleanup?.deleteAfterCreation ?? 'never',
-      stopAfterInactivity: templateSpec?.cleanup?.stopAfterInactivity ?? 'never',
-      deleteAfterInactivity: templateSpec?.cleanup?.deleteAfterInactivity ?? 'never',
+      deleteAfterCreation:
+        templateSpec?.cleanup?.deleteAfterCreation ?? 'never',
+      stopAfterInactivity:
+        templateSpec?.cleanup?.stopAfterInactivity ?? 'never',
+      deleteAfterInactivity:
+        templateSpec?.cleanup?.deleteAfterInactivity ?? 'never',
     },
   };
 };
@@ -718,19 +773,39 @@ export const getTemplatesMapped = (
         guiEnabled: env.guiEnabled || false,
         persistent: env.persistent || false,
         environmentType: env.environmentType,
-        resources: { cpu: 0, disk: '', memory: '' },
+        resources: {
+          cpu: env.quota?.cpu || 0,
+          disk: env.quota?.disk ? `${env.quota.disk}Gi` : '',
+          memory: env.quota?.memory ? `${env.quota.memory}Gi` : '',
+          otherResources: env.quota?.otherResources || {},
+        },
         image: '',
         mountMyDriveVolume: false,
         sharedVolumeMounts: [],
         rewriteUrl: false,
       })) || [];
 
+    const aggregatedOther: Record<string, number> = {};
+    environments?.forEach(env => {
+      if (env.quota?.otherResources) {
+        Object.entries(env.quota.otherResources).forEach(([k, v]) => {
+          const k8sKey = getOriginalK8sKey(k);
+          aggregatedOther[k8sKey] = (aggregatedOther[k8sKey] || 0) + v;
+        });
+      }
+    });
+
     return {
       id: templateId,
       name: templatePrettyName,
       gui,
       persistent,
-      resources: { cpu: 0, memory: '', disk: '' },
+      resources: {
+        cpu: environments?.reduce((acc, e) => acc + e.quota.cpu, 0) || 0,
+        memory: `${environments?.reduce((acc, e) => acc + e.quota.memory, 0) || 0}Gi`,
+        disk: `${environments?.reduce((acc, e) => acc + e.quota.disk, 0) || 0}Gi`,
+        otherResources: aggregatedOther,
+      },
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
@@ -846,7 +921,11 @@ export const notifyStatus = (
     notify(
       'warning',
       `${namespace}/${name}/deleted`,
-      makeNotificationContent(templateName, prettyName || name, UpdateType.Deleted),
+      makeNotificationContent(
+        templateName,
+        prettyName || name,
+        UpdateType.Deleted,
+      ),
     );
     return;
   }
@@ -892,8 +971,9 @@ export const filterUser = (instance: Instance, search: string) => {
   if (!search) {
     return true;
   }
-  const composedString = `${instance.tenantId
-    }${instance.tenantDisplayName?.replace(/\s+/g, '')}`.toLowerCase();
+  const composedString = `${
+    instance.tenantId
+  }${instance.tenantDisplayName?.replace(/\s+/g, '')}`.toLowerCase();
   return composedString.includes(search);
 };
 

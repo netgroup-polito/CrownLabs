@@ -211,9 +211,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
               <Text strong>Age</Text>
               {getArrow(timeStampOrder, false)}
             </div>
-            <div
-              className="flex items-center justify-center w-24 hidden lg:block text-center whitespace-nowrap"
-            >
+            <div className="flex items-center justify-center w-24 hidden lg:block text-center whitespace-nowrap">
               <Text strong>Last Access</Text>
             </div>
           </div>
