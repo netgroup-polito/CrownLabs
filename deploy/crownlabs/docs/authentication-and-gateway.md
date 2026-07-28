@@ -39,6 +39,8 @@ To prevent unauthorized attachment, the Gateway enforces a strict namespace rout
 
 With the transition to Envoy Gateway, CrownLabs leverages a **centralized authentication architecture** powered natively by the Gateway API `SecurityPolicy` CRD. This removes authentication logic from the individual Go operators. The Envoy Gateway natively implements the OpenID Connect (OIDC) protocol to interface directly with Keycloak (the OIDC provider).
 
+*(Note: An early experiment to manage SecurityPolicies directly inside the Instance controller to enforce per-instance auth rules was developed in the [`monument/mrMela/secpol-in-instctrl`](https://github.com/netgroup-polito/CrownLabs/tree/monument/mrMela/secpol-in-instctrl) branch, but the architecture eventually shifted to the centralized global model described here).*
+
 When a user attempts to access a protected dynamic route (e.g., a virtual machine's GUI), the Envoy Gateway intercepts the unauthenticated traffic and automatically redirects the user to Keycloak for login. Once authenticated, the gateway handles the token exchange and issues a session cookie natively.
 
 ### Static vs Dynamic Routes (The `public` label)
