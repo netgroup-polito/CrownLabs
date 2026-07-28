@@ -125,6 +125,10 @@ CrownLabs operators and Helm charts rely on specific configuration flags to coor
   - **Purpose**: Defines common key-value labels stamped onto all tenant namespaces created by the Tenant Operator.
   - **Usage**: Parses configuration key-value strings (e.g., `"crownlabs.polito.it/gw-access=crownlabs-main-production"`) at operator startup into a label map (`TenantCommonNSLabels`). During namespace reconciliation, `maps.Copy` stamps these labels onto tenant namespaces, satisfying the Gateway listener's `allowedRoutes` selector (`matchLabels`) and authorizing dynamic `HTTPRoute` attachment.
 
+* **`global.gateway.securityPolicy.enabled`**:
+  - **Purpose**: Controls whether Envoy Gateway OIDC SecurityPolicy resources and callback routes are rendered at the deployment level.
+  - **Usage**: Allows administrators or developers in staging/testing environments to toggle authentication enforcement centrally via Helm values, disabling OIDC policies conditionally without modifying underlying HTTPRoute definitions or operator code.
+
 * **`authentication.enabled` (`EnableAuthentication`)**:
   - **Purpose**: Toggles authentication enforcement for instance exposition routes.
   - **Usage**: Allows administrators or developers in staging/testing environments to bypass authentication requirements conditionally without removing underlying route definitions.

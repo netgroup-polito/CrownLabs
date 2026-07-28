@@ -1,7 +1,7 @@
 # Gateway API Security Policy: Experiment (Historical Note)
 
 > [!NOTE]
-> This document serves as a historical record of an architectural experiment that was implemented and tested but ultimately **discarded**. It is preserved here to explain the rationale behind certain code structures that were temporarily introduced and to prevent future developers from duplicating the same effort.
+> This document serves as a historical record of an architectural experiment that was implemented and tested but ultimately **discarded**.
 
 ## 1. The Context: Security Policy Definition
 A `SecurityPolicy` is a Kubernetes Custom Resource Definition (CRD) provided by Envoy Gateway, designed to apply authentication policies. 
@@ -16,16 +16,20 @@ The goal of this historical experiment was to **integrate Envoy's native `Securi
 ## 3. Code Flow & Component Responsibilities
 To understand exactly *who does what, where, and why*, the experimental logic was distributed across several key components of the `instance-operator`.
 
+### Phase 0: Core Concept & Rationale (Base Template Preloading)
+- **The Concept**: The architectural design provided a base `SecurityPolicy` template resource deployed in the cluster (referenced via `--instances-auth-ref` in `<namespace>/<name>` format). This base template contained the common, static authentication configurations (such as OIDC provider or external auth settings) shared across environments, while leaving route-specific target bindings (`targetRefs`) intentionally blank.
+- **Why Load It Upfront?**: By retrieving the `SecurityPolicy` template resource once during operator startup, the system stored its `Spec` (`ExpositionConfig.GatewayAPISecurityPolicySpec`) in memory as a shared base reference. During subsequent high-frequency reconciliation loops for individual instances, the operator did not need to re-query the API server or read template files repeatedly; it could simply clone this in-memory `Spec` via `DeepCopy()` and forge the target route bindings dynamically.
+
 ### Phase 1: Operator Initialization (`main.go`)
-- **What**: The operator reads the `enable_authentication` flag and retrieves the base `SecurityPolicy` template (`deploy/crownlabs/operators/templates/security-policy.yaml`).
-- **Where**: During the operator's startup sequence.
-- **Why (GetAPIReader)**: The template is fetched dynamically using `GetAPIReader()` rather than the standard client. This is because at this stage of execution, the operator's `Manager` (and its internal cache) has not yet been started. A direct API query to the cluster was the only way to retrieve the resource.
-- **Why (The "Dummy Secret")**: The Kubernetes CRD strictly required a `clientSecret` field to pass validation. However, the authentication provider was configured in a way that didn't require one for this flow. To satisfy Kubernetes without breaking the provider, a placeholder "dummy secret" was injected into the template. 
+- **What**: The operator parses runtime flags (`--gateway-api-mode`, `--enable-auth`, `--instances-auth-ref`) and retrieves the base `SecurityPolicy` template from the cluster.
+- **Where**: During the operator's startup sequence in `cmd/instance-operator/main.go`.
+- **Why (GetAPIReader)**: The template resource is fetched using `mgr.GetAPIReader()` rather than the standard cached `mgr.GetClient()`. This is because at startup before `mgr.Start()`, the controller manager's internal cache is not yet active, so a direct API query to the cluster is required to fetch the template `Spec`.
+- **Why (The "Dummy Secret")**: The Envoy Gateway `SecurityPolicy` CRD schema strictly required a `clientSecret` field to pass validation. However, Keycloak was configured such that a client secret was not required for this authentication flow. To satisfy Kubernetes validation without breaking Keycloak, a placeholder "dummy secret" was injected into the template. 
 
 ### Phase 2: The Reconciler's Builder Pattern (`main.go`)
 - **What**: The core reconciliation loop determines which resources to generate for a specific Tenant/Instance.
 - **Where**: Inside the main reconciliation flow of the `instance-operator`.
-- **Why**: Originally, the controller relied heavily on "early returns" (e.g., generate a resource, return it immediately). The introduction of `SecurityPolicy` required evaluating nested states: *Is Gateway API Mode enabled? If yes, is Enable Authentication also enabled?* To handle this cleanly, the logic was refactored into a **Builder pattern**. The controller sequentially evaluates the active flags and "builds" an array of required resources (`HTTPRoute`, `Service`, `SecurityPolicy`) step-by-step, returning the final accumulated list at the end.
+- **Why**: the existing reconciliation builder was extended so that Gateway API resources (⁠ HTTPRoute ⁠, ⁠ Service ⁠, ⁠ SecurityPolicy ⁠, etc.) could be appended conditionally, based on active feature flags (e.g., *Is Gateway API Mode enabled? If yes, is Enable Authentication also enabled?).
 
 ### Phase 3: Route & Policy Exposition (`exposition.go`)
 - **What**: The `EnforceSecurityPolicyPresence` function manages the routing parameters for the given Instance.
