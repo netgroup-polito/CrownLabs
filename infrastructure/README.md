@@ -28,7 +28,7 @@ this step and use one of your provider.
 To expose HTTP and HTTPS routes from outside the cluster to services within the cluster we use NGINX Ingress Controller,
 which is a community-drive effort.
 ​
-## [Gateway API](../operators/docs/gateway-api)
+## [Gateway API](../deploy/crownlabs/docs/gateway-architecture-and-routing.md)
 We use Envoy Gateway implementing the Kubernetes Gateway API to expose HTTP and HTTPS from
 outside the cluster to services within the cluster, domain unification and security policies.
 ​
