@@ -237,7 +237,7 @@ It must also emit Kubernetes `Events` on the `InstanceSnapshot` object for key l
 ## Implementation plan
 
 1. Add `InstanceSnapshot` API types under `operators/api/v1alpha2`, CRD generation, deepcopy generation, and samples.
-2. Add the snapshot controller package under `operators/pkg/instsnapshotctrl` (rename the empty `operators/pkg/instancesnapshot-controller`, following the `instctrl`/`instautoctrl` naming convention).
+2. Add the snapshot controller package under `operators/pkg/instsnapctrl` (rename the empty `operators/pkg/instancesnapshot-controller`, following the `instctrl`/`instautoctrl` naming convention).
 3. Add Helm values for `snapshotPublicNamespace` and snapshot failure deadline.
 4. Add mutating/validating admission for metadata freezing, immutable spec, VM-off enforcement, and authorization matrix.
 5. Add controller reconciliation for:

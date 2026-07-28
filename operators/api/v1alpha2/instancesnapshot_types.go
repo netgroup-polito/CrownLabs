@@ -16,6 +16,7 @@ package v1alpha2
 
 import (
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,11 +25,9 @@ type InstanceSnapshotSpec struct {
 	// Instance is the reference to the persistent VM instance to be snapshotted.
 	Instance GenericRef `json:"instanceRef"`
 
-	// Environment represents the reference to the environment to be snapshotted.
-	Environment GenericRef `json:"environmentRef,omitempty"`
-
-	// ImageName is the name of the image to pushed in the docker registry.
-	ImageName string `json:"imageName"`
+	// Environment represents the name of the environment to be snapshotted.
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
+	Environment string `json:"environmentRef"`
 }
 
 // SnapshotPhase describes the current phase of the InstanceSnapshot.
@@ -49,6 +48,10 @@ type SnapshotArtifact struct {
 	// DataVolumeRef points to the generated DataVolume.
 	// +optional
 	DataVolumeRef corev1.ObjectReference `json:"dataVolumeRef,omitempty"`
+
+	// VolumeSize reports the dimension of the generated datavolume.
+	// +optional
+	VolumeSize resource.Quantity `json:"volumeSize,omitempty"`
 }
 
 // InstanceSnapshotStatus defines the observed state of InstanceSnapshot.
@@ -68,7 +71,6 @@ type InstanceSnapshotStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="isnap"
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
-// +kubebuilder:printcolumn:name="ImageName",type=string,JSONPath=`.spec.imageName`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // InstanceSnapshot is the Schema for the instancesnapshots API.

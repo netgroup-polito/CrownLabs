@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Package instsnapshotctrl contains the controllers for the instance snapshot feature.
-package instsnapshotctrl
+// Package instsnapctrl contains the controllers for the instance snapshot feature.
+package instsnapctrl
 
 import (
 	"context"
@@ -116,7 +116,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	var vmi virtv1.VirtualMachineInstance
 	vmiNN := types.NamespacedName{
 		Namespace: instance.Namespace,
-		Name:      fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment.Name),
+		Name:      fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment),
 	}
 	err := r.Get(ctx, vmiNN, &vmi)
 	if err == nil {
@@ -137,7 +137,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	err = r.Get(ctx, dvNN, &dv)
 	if err != nil && kerrors.IsNotFound(err) {
 		// Fetch the source PVC to get its specifications
-		pvcName := fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment.Name)
+		pvcName := fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment)
 		var sourcePVC corev1.PersistentVolumeClaim
 		pvcNN := types.NamespacedName{
 			Namespace: instance.Namespace,

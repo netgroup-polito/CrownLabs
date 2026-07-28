@@ -39,7 +39,7 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instsnapshotctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instsnapctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
@@ -71,7 +71,6 @@ func main() {
 	enableAuth := true
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
-	enableWebhooks := false
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -100,7 +99,6 @@ func main() {
 	flag.BoolVar(&enableAuth, "enable-auth", true, "Enable adding authentication on the exposed resources")
 	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
 	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
-	flag.BoolVar(&enableWebhooks, "enable-webhooks", false, "Enable webhooks")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -203,22 +201,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&instsnapshotctrl.InstanceSnapshotReconciler{
+	if err = (&instsnapctrl.InstanceSnapshotReconciler{
 		Client:         mgr.GetClient(),
 		Scheme:         mgr.GetScheme(),
 		EventsRecorder: mgr.GetEventRecorderFor("InstanceSnapshot"),
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", "InstanceSnapshot")
 		os.Exit(1)
-	}
-
-	if enableWebhooks {
-		if err = (&instsnapshotctrl.InstanceSnapshotWebhook{
-			Client: mgr.GetClient(),
-		}).SetupWebhookWithManager(mgr); err != nil {
-			log.Error(err, "unable to create webhook", "webhook", "InstanceSnapshot")
-			os.Exit(1)
-		}
 	}
 
 	// Add readiness probe
