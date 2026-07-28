@@ -368,10 +368,7 @@ export const makeGuiInstance = (
   const workspaceName = getInstanceWorkspaceName(instance);
 
   // Tenant Info
-  const { name: tenantName, tenantV1alpha2Wrapper } =
-    spec?.tenantCrownlabsPolitoItTenantRef ?? {};
-  const { firstName, lastName } =
-    tenantV1alpha2Wrapper?.itPolitoCrownlabsV1alpha2Tenant?.spec ?? {};
+  const { name: tenantName } = spec?.tenantCrownlabsPolitoItTenantRef ?? {};
 
   // Environments
   const templateEnvironmentList = templateSpec?.environmentList || [];
@@ -456,7 +453,7 @@ export const makeGuiInstance = (
     nodeName: status?.nodeName || '',
     nodeSelector: status?.nodeSelector,
     allowPublicExposure,
-    tenantDisplayName: `${firstName}\n${lastName}`,
+    tenantDisplayName: tenantName || '',
     myDriveUrl: '',
     publicExposure: publicExposureObj,
     environments: environments,
