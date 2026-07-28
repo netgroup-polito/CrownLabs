@@ -19,7 +19,6 @@ export default gql`
           annotations
         }
         status {
-          ip
           phase
           url
           nodeName
@@ -51,6 +50,9 @@ export default gql`
               protocol
               targetPort
             }
+          }
+          tenantCrownlabsPolitoItTenantRef {
+            name
           }
           templateCrownlabsPolitoItTemplateRef {
             name

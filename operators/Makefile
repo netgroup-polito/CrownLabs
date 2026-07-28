@@ -13,6 +13,10 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 DOMAIN="crownlabs.polito.it"
+METRICS_ADDR ?= :18080
+HEALTH_PROBE_ADDR ?= :18081
+TENANT_WEBHOOK_PORT ?= :18082
+MYDRIVE_STORAGE_CLASS ?= rook-nfs
 
 .PHONY: all
 all: gen
@@ -124,6 +128,9 @@ run-instance-automation-local: install-local samples-res-local run-instance-auto
 run-operator: generate ## Run the main operator locally
 	go run cmd/operator/*.go\
 				--target-label=crownlabs.polito.it/operator-selector=local\
+				--metrics-addr=$(METRICS_ADDR)\
+				--health-probe-bind-address=$(HEALTH_PROBE_ADDR)\
+				--tenant-webhook-port=$(TENANT_WEBHOOK_PORT)\
 				--keycloak-url=$(KEYCLOAK_URL)\
 				--keycloak-realm=$(KEYCLOAK_REALM)\
 				--keycloak-client-id=$(KEYCLOAK_CLIENT_ID)\
@@ -133,10 +140,11 @@ run-operator: generate ## Run the main operator locally
 				--enable-workspace=true\
 				--enable-instance=true\
 				--enable-sharedvolume=true\
-				--enable-pmp=true\
+				--enable-pmp=false\
 				--enable-keycloak=true\
 				--enable-webhooks=false\
-				--enable-image-list=true
+				--enable-imagelist=true\
+				--mydrive-pvcs-storage-class-name=$(MYDRIVE_STORAGE_CLASS)
 
 .PHONY: install-local
 install-local: manifests ## Install CrownLabs & support CRDs.

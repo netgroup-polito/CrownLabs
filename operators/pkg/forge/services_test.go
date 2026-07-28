@@ -124,6 +124,26 @@ var _ = Describe("Services forging", func() {
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
 				},
 			}),
+			Entry("When the Environment is of type Container, without GUI", ServiceSpecCase{
+				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
+					env.EnvironmentType = clv1alpha2.ClassContainer
+					env.GuiEnabled = false
+					return env
+				},
+				Expected: []corev1.ServicePort{
+					{Name: forge.MetricsPortName, Protocol: corev1.ProtocolTCP, Port: forge.MetricsPortNumber, TargetPort: intstr.FromInt(forge.MetricsPortNumber)},
+				},
+			}),
+			Entry("When the Environment is of type Container, with GUI", ServiceSpecCase{
+				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
+					env.EnvironmentType = clv1alpha2.ClassContainer
+					env.GuiEnabled = true
+					return env
+				},
+				Expected: []corev1.ServicePort{
+					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.GUIPortNumber, TargetPort: intstr.FromInt(forge.GUIPortNumber)},
+				},
+			}),
 		)
 	})
 })
