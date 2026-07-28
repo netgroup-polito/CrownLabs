@@ -60,9 +60,11 @@ On the left you can see the controller (in blue) and the two CRDs used to descri
 
 ![Instance Operator Architecture](../documentation/instance-operator.svg)
 
-Upon the creation of a *Instance*, the operator triggers the creation of the following components:
+Upon the creation of an *Instance*, the operator triggers the creation of the following components:
 * Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, and HTTPRoute when `gatewayApiMode` is enabled or Ingress otherwise)
+* A [DataVolume](https://github.com/kubevirt/containerized-data-importer/blob/main/doc/datavolumes.md) (only in case of persistent VMs). It wraps a Persistent Volume Claim (PVC), and takes care of initializing it with the content of the selected VM image through an importer pod.
 
+All those resources are bound to the Instance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
 
 #### Gateway API & Exposition Flags
 
@@ -87,7 +89,7 @@ To abstract the differences between Ingress and HTTPRoute, all internal GUI expo
 * `ExpositionGuiStatusInstanceURL`: composes the root instance URL.
 
 ##### Controller & Reconciler Logic
-The Instance Controller is set to own the created `HTTPRoute` resources. This establishes a controller reference, ensuring that any modifications to the route in the cluster automatically trigger a reconciliation loop in the operator to restore the correct deployment state.
+The support for Gateway API resources (such as `HTTPRoute`) was implemented by extending the pre-existing reconciliation builder (`ctrl.NewControllerManagedBy(mgr)` in `SetupWithManager`) rather than introducing a separate Gateway-API builder. When `--gateway-api-mode` is enabled, Gateway API resources are conditionally registered to the controller builder (`bld.Owns(&gatewayv1.HTTPRoute{})`). This establishes a controller reference, ensuring that any modifications to the exposed resources in the cluster automatically trigger a reconciliation loop in the operator to restore the correct deployment state.
 
 ##### Exposition Accepted Status (`expositionAccepted`)
 The Instance Custom Resource Definition (CRD) includes the boolean status field `expositionAccepted` under each environment in `.status.environments[].expositionAccepted`.
@@ -96,11 +98,6 @@ The Instance Custom Resource Definition (CRD) includes the boolean status field 
 
 ##### Dynamic Environment IP Resolution
 To maintain an accurate internal state, the Instance Operator dynamically resolves the actual IP address of the underlying Pod or Virtual Machine Instance (VMI). This IP is stored in the `Instance` status (`status.environments[].ip`). During reconciliation, the operator filters out Pods that are terminating (`DeletionTimestamp != nil`) or in a terminal phase (`Failed`/`Succeeded`). This guarantees that the IP exposed in the status always points to the active workload, which is crucial for routing SSH connections through the Bastion and for reliable activity tracking via Prometheus.
-
-
-*  A [DataVolume](https://github.com/kubevirt/containerized-data-importer/blob/main/doc/datavolumes.md) (only in case of persistent VMs). It wraps a Persistent Volume Claim (PVC), and takes care of initializing it with the content of the selected VM image through an importer pod.
-
-All those resources are bound to the Instance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
 
 
 ### APIs/CRDs
