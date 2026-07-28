@@ -53,7 +53,7 @@ func (r *Reconciler) enforceRoleBindings(
 		return fmt.Errorf("error while managing Manager Manage SharedVolumes RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
-	//Enforce Manager Manage InstanceSnapshots RoleBinding
+	// Enforce Manager Manage InstanceSnapshots RoleBinding
 	if err := r.enforceManagerManageInstanceSnapshotsRoleBinding(ctx, ws, namespace); err != nil {
 		return fmt.Errorf("error while managing Manager Manage InstanceSnapshots RoleBinding for workspace %s: %w", ws.Name, err)
 	}
