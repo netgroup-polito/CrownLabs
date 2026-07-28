@@ -78,19 +78,3 @@ In order to customize the different email templates, proceed as follows:
 ## Configure K8S api-server to be used with Keycloak
 Please follow the [official documentation](https://kubernetes.io/docs/reference/access-authn-authz/authentication/) to allow the K8s Api-server to exploit the running Keycloak instance as identity provider.
 
-## User Instances Authentication
-
-In CrownLabs, the access to the graphical desktop of the user instances must be protected so that only authenticated users can connect to them.
-With the transition to the Gateway API, this authentication is managed centrally and natively by **Envoy Gateway** using a global `SecurityPolicy`.
-
-### Native OIDC Integration
-
-Envoy Gateway natively implements the OpenID Connect (OIDC) protocol to interface directly with Keycloak (the OIDC provider). 
-When a user attempts to access a protected dynamic route (e.g., a virtual machine's GUI), the Envoy Gateway intercepts the unauthenticated traffic and automatically redirects the user to Keycloak for login. Once authenticated, the gateway handles the token exchange and issues a session cookie natively.
-
-### Enabling Authentication
-
-The `SecurityPolicy` is deployed and managed centrally via the CrownLabs infrastructure Helm charts.
-By default, the global policy protects all routes managed by the Gateway. The Instance Operator simply generates standard `HTTPRoute` resources for the user instances, and they are automatically protected without requiring any instance-specific authentication configuration or annotations.
-
-Static routes that must bypass authentication (such as the frontend application) are labeled with `crownlabs.polito.it/public-route: "true"`. This label is targeted by a secondary, empty `SecurityPolicy` which explicitly overrides the global Gateway policy, thereby disabling OIDC enforcement for those specific routes.
