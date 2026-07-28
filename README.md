@@ -1,83 +1,50 @@
-<!-- markdown-link-check-disable -->
+# Gateway API Security Policy: Experiment (Historical Note)
 
-[![Coverage Status](https://coveralls.io/repos/github/netgroup-polito/CrownLabs/badge.svg)](https://coveralls.io/github/netgroup-polito/CrownLabs)
+> [!NOTE]
+> This document serves as a historical record of an architectural experiment that was implemented and tested but ultimately **discarded**.
 
-<!-- markdown-link-check-enable -->
+## 1. The Context: Security Policy Definition
+A `SecurityPolicy` is a Kubernetes Custom Resource Definition (CRD) provided by Envoy Gateway, designed to apply authentication policies. 
 
-# CrownLabs
+The design highlighted a key architectural advantage: **granularity**. 
+- A policy can be applied **globally** directly to a Gateway (acting like a security guard outside a metro station), protecting all routes referencing that Gateway.
+- Alternatively, it can be applied **granularly** to individual `HTTPRoute` resources or via labels (acting like turnstiles for specific metro lines), ensuring that only authenticated users can access specific VM GUIs.
 
-CrownLabs is a set of services designed to deliver **remote computing labs** through **per-user environments**, based either on virtual machines or lightweight containers.
+## 2. The Historical Experiment
+The goal of this historical experiment was to **integrate Envoy's native `SecurityPolicy` CRD** to manage authentication within the Gateway API ecosystem and to create a SecurityPolicy per HTTPRoute actually. The initial approach aimed to replicate the legacy Ingress flow: configuring the `SecurityPolicy` to use External Authentication (`ext_authz`) to forward authentication requests to `oauth2-proxy`, which in turn would interface with Keycloak (the authentication provider).
 
-Instructors can provision a set of environments (e.g., VMs), properly installed with the software required for a given lab (e.g., compilers, simulation software, etc).
+## 3. Code Flow & Component Responsibilities
+To understand exactly *who does what, where, and why*, the experimental logic was distributed across several key components of the `instance-operator`.
 
-Each student can connect to its own set of (remote) private environments without requiring any additional software, just a simple Web browser. No space problems on the student hard disk, no troubles in setting up the environment required to support multiple subjects on the same machine, and more.
+### Phase 0: Core Concept & Rationale (Base Template Preloading)
+- **The Concept**: The architectural design provided a base `SecurityPolicy` template resource deployed in the cluster (referenced via `--instances-auth-ref` in `<namespace>/<name>` format). This base template contained the common, static authentication configurations (such as OIDC provider or external auth settings) shared across environments, while leaving route-specific target bindings (`targetRefs`) intentionally blank.
+- **Why Load It Upfront?**: By retrieving the `SecurityPolicy` template resource once during operator startup, the system stored its `Spec` (`ExpositionConfig.GatewayAPISecurityPolicySpec`) in memory as a shared base reference. During subsequent high-frequency reconciliation loops for individual instances, the operator did not need to re-query the API server or read template files repeatedly; it could simply clone this in-memory `Spec` via `DeepCopy()` and forge the target route bindings dynamically.
 
-In addition, each student can share his remote desktop with his groupmates, enabling multiple students to complete their labs in a team.
+### Phase 1: Operator Initialization (`main.go`)
+- **What**: The operator parses runtime flags (`--gateway-api-mode`, `--enable-auth`, `--instances-auth-ref`) and retrieves the base `SecurityPolicy` template from the cluster.
+- **Where**: During the operator's startup sequence in `cmd/instance-operator/main.go`.
+- **Why (GetAPIReader)**: The template resource is fetched using `mgr.GetAPIReader()` rather than the standard cached `mgr.GetClient()`. This is because at startup before `mgr.Start()`, the controller manager's internal cache is not yet active, so a direct API query to the cluster is required to fetch the template `Spec`.
+- **Why (The "Dummy Secret")**: The Envoy Gateway `SecurityPolicy` CRD schema strictly required a `clientSecret` field to pass validation. However, Keycloak was configured such that a client secret was not required for this authentication flow. To satisfy Kubernetes validation without breaking Keycloak, a placeholder "dummy secret" was injected into the template. 
 
-Finally, CrownLabs supports also instructors, who can connect to the remote desktop of the student and play directly with his environment, e.g., in case some help is required.
+### Phase 2: The Reconciler's Builder Pattern (`main.go`)
+- **What**: The core reconciliation loop determines which resources to generate for a specific Tenant/Instance.
+- **Where**: Inside the main reconciliation flow of the `instance-operator`.
+- **Why**: the existing reconciliation builder was extended so that Gateway API resources (⁠ HTTPRoute ⁠, ⁠ Service ⁠, ⁠ SecurityPolicy ⁠, etc.) could be appended conditionally, based on active feature flags (e.g., *Is Gateway API Mode enabled? If yes, is Enable Authentication also enabled?).
 
-For more information, visit the CrownLabs website ([https://crownlabs.polito.it](https://crownlabs.polito.it)) and download our [scientific paper](https://ieeexplore.ieee.org/document/9136697) published in IEEE Access.
+### Phase 3: Route & Policy Exposition (`exposition.go`)
+- **What**: The `EnforceSecurityPolicyPresence` function manages the routing parameters for the given Instance.
+- **Where**: Inside the exposition logic that connects the VM to the outside world.
+- **Why**: It calculates the expected `HTTPRoute` name and the necessary labels. Critically, it dynamically populates the `redirect URL` using the `path prefix` associated with the Instance's route. This ensures that when the authentication proxy flow finishes, the user is correctly bounced back to the specific URL path of their VM's GUI. It then delegates the actual object generation to the next layer.
 
+### Phase 4: Policy Forging & Memory Safety (`securitypolicy.go`)
+- **What**: The `ForgeSecurityPolicySpec` function merges the calculated parameters into the base template.
+- **Where**: In a dedicated, modular file handling only `SecurityPolicy` resources.
+- **Why (Dynamic TargetRef)**: The base template intentionally left the `targetRefs` block entirely blank. This function injects the calculated `HTTPRoute` name and sets the `kind` to `HTTPRoute` at runtime, creating a granular binding between the policy and the specific route.
+- **Why (DeepCopy)**: Because the base template is loaded once globally into memory during Phase 1, `ForgeSecurityPolicySpec` *must* execute a `DeepCopy()` on the `SecurityPolicySpec` before modifying it. In Go, maps and slices (like `targetRefs`) are reference types. Modifying them directly without a deep copy would permanently alter the shared pointers in the base template, causing cross-contamination (corrupted targetRefs and race conditions) for all subsequent VM instances processed by the operator.
 
-## Architecture
-
-CrownLabs relies on two major high-level components:
-* **The Backend Business Logic**, which provides the different CrownLabs functionalities and is implemented by custom Kubernetes operators (e.g. the Instance Operator);
-* **qlkube**, a middleware that can expose the Kubernetes API Server as a GraphQL service;
-* **The Frontend Dashboard**, which interacts with the Kubernetes API Server through _qlkube_ and exposes the different CrownLabs custom resources through a graphical interface.
-
-A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure.
-Please notice that, for the sake of clarity, the figure depicts only the most important elements for the provision of the actual service (i.e., remote computing labs), while omitting low-level components and the ones associated with the cluster operation (e.g monitoring).
-
-![CrownLabs High-Level Architecture](documentation/architecture.svg)
-
-## Backend Business Logic
-
-The backend business logic providing the different CrownLabs functionalities is implemented by custom Kubernetes operators, while the data model is defined by means of CRDs.
-Specifically, the main backend components are:
-
-* the **Instance Operator**, which implements the logic to spawn new environments starting from predefined templates;
-* the **Tenant Operator**, which automates the management of CrownLabs users (i.e. tenants) and groups (i.e. workspaces);
-* the **Bastion Operator**, which configures an SSH bastion to provide command-line access to the environments instead of the web-based GUI.
-
-Furthermore, some additional components are leveraged to simplify and automate companion tasks, such as listing the available images and deleting stale environments.
-
-For more information regarding the CrownLabs backend, as well as for the deployment and configuration instructions, please refer to the corresponding [README](./operators/README.md).
-
-## Frontend Dashboard
-
-The frontend dashboard is the component responsible for providing access to the CrownLabs custom resources through an easy to use graphical interface.
-It allows final users to explore the workspaces they are enrolled in, spawn new environments, and connect to their instances.
-Additionally, privileged users can create, update and delete both templates and tenant resources, effectively managing the available environments and the permissions granted to access the system.
-Authentication is managed through an external OIDC identity provider integrated with Kubernetes, while the authorizations to access specific resources are granted leveraging the Kubernetes RBAC approach.
-
-# Installation
-
-## Preliminary Note
-
-CrownLabs can be installed on any Kubernetes cluster, although with a non-negligible degree of adaptation.
-This would require a non-trivial knowledge of how Kubernetes (and the wonderful world of microservices) works.
-No magic install procedure is unfortunately available (yet).
-
-In a nutshell, you have to install all the components with your own custom configuration files, which may largely depend upon your physical install.
-A huge degree of customization is possible in this respect: pure data-link vs. BGP-based load balancing, the number (and capabilities) of your servers, the desired degree of high availability, integration with external authentication servers, creation of admin/user credentials, your own secrets to protect the internal communication among the components.
-
-Do not expect to complete this task in a few hours; likely, you may need several days, or even more.
-Help is available on our Slack channels.
-For more information, visit the CrownLabs website: [https://crownlabs.polito.it](https://crownlabs.polito.it).
-
-## Pre-Requirements
-
-Crownlabs has been specifically designed for bare-metal clusters and this assumption will be adopted across the documentation. To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster where at least a subset of nodes supports Hardware Virtualization.
-In [infrastructure](infrastructure/), we present all the services which should be installed on the cluster, with an example of configuration. We strongly suggest to set up on your cluster the same components that we used, in order to avoid feature mismatch.
-
-## Deploying the CrownLabs components
-
-The deployment and configuration of the different CrownLabs components can be performed leveraging the provided Helm Chart.
-Please, refer to the corresponding [README](./deploy/crownlabs/README.md) file for more information about the installation procedure.
-
-# CrownLabs run-time configuration
-
-Crownlabs has several components, mostly operators, which may need to be configured with appropriate labels and/or other information in order to achieve the intended behaviour.
-
-The [Operators/docs](operators/docs/) section of the documentation presents the possible configuration options for the most important components.
+### Phase 5: Validation (`securitypolicy_test.go`)
+- **What**: `SecurityPolicesTest` verifies the integrity of the generated policies.
+- **Where**: In the unit testing suite.
+- **Why**: The tests simulate the generation process to assert two critical things: 1) The `targetRef` is correctly attached to the expected route. 2) The original template parameters (like OIDC fields or proxy configs) are preserved unmodified after the DeepCopy and forging process.
+## Conclusion
+Although the implementation was modular, testable, and successfully bypassed `oauth2-proxy`, the approach was eventually discarded. This document remains to clarify the context behind the `GetAPIReader` template logic, the `DeepCopy` requirements, and the controller's Builder pattern evolution.
