@@ -390,18 +390,22 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
 
-	return ctrl.NewControllerManagedBy(mgr).
+	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
-		Owns(&gatewayv1.HTTPRoute{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
-		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).
-		WithOptions(controller.Options{
-			MaxConcurrentReconciles: concurrency,
-		}).
+		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
+
+	if r.ExpositionConfig.GatewayAPIMode {
+		bld = bld.Owns(&gatewayv1.HTTPRoute{})
+	}
+
+	return bld.WithOptions(controller.Options{
+		MaxConcurrentReconciles: concurrency,
+	}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Instance")).
 		Complete(r)
 }

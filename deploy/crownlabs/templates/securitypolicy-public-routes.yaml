@@ -1,0 +1,17 @@
+{{- if and .Values.global.gateway.gatewayApiMode (.Values.global.gateway.securityPolicy.enabled | default true) }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ .Values.global.gateway.securityPolicy.publicRoutes.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+spec:
+  # Intentionally empty to override the global Gateway-level SecurityPolicy and exempt
+  # public routes matching the target selector from authentication.
+  targetSelectors:
+    - group: gateway.networking.k8s.io
+      kind: HTTPRoute
+      matchLabels:
+        {{- toYaml .Values.global.gateway.securityPolicy.publicRoutes.targetSelector | nindent 8 }}
+{{- end }}
