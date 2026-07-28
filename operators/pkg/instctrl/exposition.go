@@ -38,23 +38,23 @@ func (r *InstanceReconciler) EnforceInstanceExposition(ctx context.Context) erro
 	instance := clctx.InstanceFrom(ctx)
 
 	if instance.Spec.Running && r.ExpositionConfig.GatewayAPIMode {
-		return r.enforceInstanceExpositionHTTPRoutePresence(ctx)
+		return r.enforceHTTPRoutePresence(ctx)
 	}
 	if instance.Spec.Running && !r.ExpositionConfig.GatewayAPIMode {
-		return r.enforceInstanceExpositionIngressPresence(ctx)
+		return r.enforceIngressPresence(ctx)
 	}
 
 	return r.enforceInstanceExpositionAbsence(ctx)
 }
 
-// enforceInstanceExpositionHTTPRoutePresence ensures the presence of the HTTPRoute required to expose an environment.
-func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx context.Context) error {
+// enforceHTTPRoutePresence ensures the presence of the HTTPRoute required to expose an environment.
+func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 
-	svc, err := r.enforceInstanceExpositionServicePresence(ctx)
+	svc, err := r.enforceServicePresence(ctx)
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	}
 
 	// Destroy any Ingress
-	if err := r.enforceInstanceExpositionIngressAbsence(ctx); err != nil {
+	if err := r.enforceIngressAbsence(ctx); err != nil {
 		log.Error(err, "failed to remove conflicting ingress", "httproute", klog.KObj(&httpRoute))
 		return err
 	}
@@ -116,14 +116,14 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRoutePresence(ctx cont
 	return nil
 }
 
-// enforceInstanceExpositionIngressPresence ensures the presence of the Ingress required to expose an environment.
-func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx context.Context) error {
+// enforceIngressPresence ensures the presence of the Ingress required to expose an environment.
+func (r *InstanceReconciler) enforceIngressPresence(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 
-	svc, err := r.enforceInstanceExpositionServicePresence(ctx)
+	svc, err := r.enforceServicePresence(ctx)
 	if err != nil {
 		return err
 	}
@@ -171,7 +171,7 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	instance.Status.Environments[envIndex].ExpositionAccepted = true
 
 	// Destroy any HTTPRoute
-	if err := r.enforceInstanceExpositionHTTPRouteAbsence(ctx); err != nil {
+	if err := r.enforceHTTPRouteAbsence(ctx); err != nil {
 		log.Error(err, "failed to remove conflicting httproute", "ingress", klog.KObj(&ingressGUI))
 		return err
 	}
@@ -179,8 +179,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressPresence(ctx contex
 	return nil
 }
 
-// enforceInstanceExpositionServicePresence ensures the presence of the Service required to expose an environment, and returns it.
-func (r *InstanceReconciler) enforceInstanceExpositionServicePresence(ctx context.Context) (*corev1.Service, error) {
+// enforceServicePresence ensures the presence of the Service required to expose an environment, and returns it.
+func (r *InstanceReconciler) enforceServicePresence(ctx context.Context) (*corev1.Service, error) {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
@@ -240,23 +240,23 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	instance.Status.Environments[envIndex].ExpositionAccepted = false
 
 	// Enforce Service absence
-	if err := r.enforceInstanceExpositionServiceAbsence(ctx); err != nil {
+	if err := r.enforceServiceAbsence(ctx); err != nil {
 		return err
 	}
 	// Enforce HTTPRoute absence
-	if err := r.enforceInstanceExpositionHTTPRouteAbsence(ctx); err != nil {
+	if err := r.enforceHTTPRouteAbsence(ctx); err != nil {
 		return err
 	}
 	// Enforce Ingress absence
-	if err := r.enforceInstanceExpositionIngressAbsence(ctx); err != nil {
+	if err := r.enforceIngressAbsence(ctx); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-// enforceInstanceExpositionHTTPRouteAbsence removes the HTTPRoute exposed resource for the environment.
-func (r *InstanceReconciler) enforceInstanceExpositionHTTPRouteAbsence(ctx context.Context) error {
+// enforceHTTPRouteAbsence removes the HTTPRoute exposed resource for the environment.
+func (r *InstanceReconciler) enforceHTTPRouteAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
@@ -267,8 +267,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionHTTPRouteAbsence(ctx conte
 	return nil
 }
 
-// enforceInstanceExpositionIngressAbsence removes the Ingress exposed resource for the environment.
-func (r *InstanceReconciler) enforceInstanceExpositionIngressAbsence(ctx context.Context) error {
+// enforceIngressAbsence removes the Ingress exposed resource for the environment.
+func (r *InstanceReconciler) enforceIngressAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
@@ -279,8 +279,8 @@ func (r *InstanceReconciler) enforceInstanceExpositionIngressAbsence(ctx context
 	return nil
 }
 
-// enforceInstanceExpositionServiceAbsence removes the Service exposed resource for the environment.
-func (r *InstanceReconciler) enforceInstanceExpositionServiceAbsence(ctx context.Context) error {
+// enforceServiceAbsence removes the Service exposed resource for the environment.
+func (r *InstanceReconciler) enforceServiceAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
