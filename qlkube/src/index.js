@@ -24,18 +24,36 @@ dotenv.config();
 
 async function main() {
   const inCluster = process.env.IN_CLUSTER !== 'false';
-  logger.info({ inCluster }, 'cluster mode configured');
+  const useLocalCluster = process.env.USE_LOCAL_CLUSTER === 'true';
+  logger.info({ inCluster, useLocalCluster }, 'cluster mode configured');
 
-  const kubeApiUrl = inCluster
-    ? 'https://kubernetes.default.svc'
-    : 'http://localhost:8001';
-  const inClusterToken = inCluster
-    ? await fs.readFile(
+  // When targeting a local cluster directly, bypass `kubectl proxy` (which always
+  // authenticates with its own kubeconfig credentials and ignores the client's
+  // bearer token) and talk straight to the real apiserver, forwarding the token
+  // as-is so the apiserver's own OIDC authenticator can enforce per-user RBAC.
+  //
+  // Talking to the real apiserver (useLocalCluster) requires *some* credential even
+  // for the one-off OpenAPI schema discovery call below, unlike `kubectl proxy` which
+  // used its own kubeconfig regardless. This must be a dedicated, minimally-scoped
+  // token (see dev-local/keycloak/apiserver-oidc-integration.md), never the end user's own token.
+  let kubeApiUrl;
+  let inClusterToken = '';
+  let registryUrl;
+  if (inCluster) {
+    kubeApiUrl = 'https://kubernetes.default.svc';
+    inClusterToken = await fs.readFile(
       '/var/run/secrets/kubernetes.io/serviceaccount/token',
       'utf8',
-    )
-    : '';
-  const registryUrl = inCluster ? 'http://cloudimg-registry' : 'http://localhost:8002';
+    );
+    registryUrl = 'http://cloudimg-registry';
+  } else if (useLocalCluster) {
+    kubeApiUrl = process.env.LOCAL_K8S_API_URL || 'https://localhost:6443';
+    inClusterToken = process.env.LOCAL_K8S_BOOTSTRAP_TOKEN || '';
+    registryUrl = 'http://localhost:8002';
+  } else {
+    kubeApiUrl = 'http://localhost:8001';
+    registryUrl = 'http://localhost:8002';
+  }
 
   const oas = await getOpenApiSpec(kubeApiUrl, ['openapi/v2'], inClusterToken);
   const targetOas = decorateOpenapi(oas);

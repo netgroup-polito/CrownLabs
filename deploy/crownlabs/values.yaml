@@ -8,6 +8,28 @@ global:
     gatewayApiMode: true
     name: "crownlabs-main"
     hostname: crownlabs.example.com
+    securityPolicy:
+      enabled: true
+      name: "crownlabs-global"
+      publicRoutes:
+        name: "crownlabs-public-exclusion"
+        targetSelector:
+          "crownlabs.polito.it/public-route": "true"
+      callback:
+        path: "/app/instauth/callback"
+      secret:
+        enabled: true
+        name: "envoy-secpol-dummy-secret"
+        stringData:
+          client-secret: "dummy"
+      spec:
+        oidc:
+          provider:
+            issuer: "https://auth.ng.crownlabs.polito.it/realms/crownlabs"
+          clientID: "k8s"
+          clientSecret:
+            name: "envoy-secpol-dummy-secret"
+          redirectURL: "%REQ(x-forwarded-proto)%://%REQ(:authority)%/app/instauth/callback"
 
 createClusterRoles: true
 
@@ -306,7 +328,7 @@ gatewayAPI:
   allowedRoutesSimple:
     key: "crownlabs.polito.it/gw-access"
     value: "crownlabs-main-production"
-  # allowedRoutes: {}
+
 
 exam-agent:
   replicaCount: 1

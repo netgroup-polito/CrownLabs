@@ -5,6 +5,7 @@ metadata:
   name: {{ include "bastion.fullname" . }}-webssh
   labels:
     {{- include "webssh.labels" . | nindent 4 }}
+    crownlabs.polito.it/public-route: "true"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io

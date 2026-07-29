@@ -7,8 +7,8 @@ import type { Instance } from '../../../utils';
 
 const NEVER = 'never' as const;
 
-const STOP_URGENT_THRESHOLD_MS = 10 * 60 * 1000;   // 10 minutes
-const DELETE_URGENT_THRESHOLD_MS = 60 * 60 * 1000;  // 1 hour
+const STOP_URGENT_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
+const DELETE_URGENT_THRESHOLD_MS = 60 * 60 * 1000; // 1 hour
 
 const MS_PER_SECOND = 1000;
 const MS_PER_MINUTE = 60 * MS_PER_SECOND;
@@ -72,10 +72,15 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
         computedTargetTime = new Date(instance.lastActivity).getTime() + ms;
         computedCountdownKind = 'stop';
       }
-    } else if (instance.status === Phase2.Off && deleteTimeout !== NEVER && instance.lastPoweredOffTimestamp) {
+    } else if (
+      instance.status === Phase2.Off &&
+      deleteTimeout !== NEVER &&
+      instance.lastPoweredOffTimestamp
+    ) {
       const ms = parseDuration(deleteTimeout);
       if (ms) {
-        computedTargetTime = new Date(instance.lastPoweredOffTimestamp).getTime() + ms;
+        computedTargetTime =
+          new Date(instance.lastPoweredOffTimestamp).getTime() + ms;
         computedCountdownKind = 'delete';
       }
     }
@@ -84,14 +89,20 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
       const ms = parseDuration(deleteCreationTimeout);
       if (ms) {
         const creationTargetTime = new Date(instance.timeStamp).getTime() + ms;
-        if (computedTargetTime === null || creationTargetTime < computedTargetTime) {
+        if (
+          computedTargetTime === null ||
+          creationTargetTime < computedTargetTime
+        ) {
           computedTargetTime = creationTargetTime;
           computedCountdownKind = 'deleteCreation';
         }
       }
     }
 
-    return { targetTime: computedTargetTime, countdownKind: computedCountdownKind };
+    return {
+      targetTime: computedTargetTime,
+      countdownKind: computedCountdownKind,
+    };
   }, [
     instance.running,
     instance.status,
@@ -109,40 +120,68 @@ const InactivityIcon: FC<IInactivityIconProps> = ({ instance }) => {
   const isUrgent =
     remainingMs !== null &&
     ((countdownKind === 'stop' && remainingMs < STOP_URGENT_THRESHOLD_MS) ||
-     (countdownKind === 'delete' && remainingMs < DELETE_URGENT_THRESHOLD_MS) ||
-     (countdownKind === 'deleteCreation' && remainingMs < DELETE_URGENT_THRESHOLD_MS));
+      (countdownKind === 'delete' &&
+        remainingMs < DELETE_URGENT_THRESHOLD_MS) ||
+      (countdownKind === 'deleteCreation' &&
+        remainingMs < DELETE_URGENT_THRESHOLD_MS));
 
   const countdownLabel =
     countdownKind === 'stop'
       ? 'Auto-stop for inactivity in'
       : countdownKind === 'delete'
-      ? 'Auto-delete for inactivity in'
-      : 'Auto-delete since creation in';
+        ? 'Auto-delete for inactivity in'
+        : 'Auto-delete since creation in';
 
-  const tooltipTitle = useMemo(() => (
-    <div className="text-left">
-      This instance will be:<br />
-      {stopTimeout !== NEVER && (
-        <>▸ powered off after <b>{stopTimeout}</b> of inactivity<br /></>
-      )}
-      {deleteTimeout !== NEVER && (
-        <>▸ deleted after being stopped for <b>{deleteTimeout}</b><br /></>
-      )}
-      {deleteCreationTimeout !== NEVER && (
-        <>▸ deleted after <b>{deleteCreationTimeout}</b> from creation<br /></>
-      )}
-      {remainingMs !== null && remainingMs > 0 && (
-        <>
-          <br />
-          {countdownLabel}: <b style={{ color: isUrgent ? '#ff4d4f' : '#faad14' }}>
-            {formatRemaining(remainingMs)}
-          </b>
-        </>
-      )}
-    </div>
-  ), [stopTimeout, deleteTimeout, deleteCreationTimeout, remainingMs, countdownLabel, isUrgent]);
+  const tooltipTitle = useMemo(
+    () => (
+      <div className="text-left">
+        This instance will be:
+        <br />
+        {stopTimeout !== NEVER && (
+          <>
+            ▸ powered off after <b>{stopTimeout}</b> of inactivity
+            <br />
+          </>
+        )}
+        {deleteTimeout !== NEVER && (
+          <>
+            ▸ deleted after being stopped for <b>{deleteTimeout}</b>
+            <br />
+          </>
+        )}
+        {deleteCreationTimeout !== NEVER && (
+          <>
+            ▸ deleted after <b>{deleteCreationTimeout}</b> from creation
+            <br />
+          </>
+        )}
+        {remainingMs !== null && remainingMs > 0 && (
+          <>
+            <br />
+            {countdownLabel}:{' '}
+            <b style={{ color: isUrgent ? '#ff4d4f' : '#faad14' }}>
+              {formatRemaining(remainingMs)}
+            </b>
+          </>
+        )}
+      </div>
+    ),
+    [
+      stopTimeout,
+      deleteTimeout,
+      deleteCreationTimeout,
+      remainingMs,
+      countdownLabel,
+      isUrgent,
+    ],
+  );
 
-  if (stopTimeout === NEVER && deleteTimeout === NEVER && deleteCreationTimeout === NEVER) return null;
+  if (
+    stopTimeout === NEVER &&
+    deleteTimeout === NEVER &&
+    deleteCreationTimeout === NEVER
+  )
+    return null;
 
   return (
     <Tooltip title={tooltipTitle}>
