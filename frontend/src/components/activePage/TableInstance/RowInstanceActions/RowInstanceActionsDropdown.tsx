@@ -12,7 +12,9 @@ import {
   CaretRightOutlined,
   ExclamationCircleOutlined,
   ExportOutlined,
+  CameraOutlined,
 } from '@ant-design/icons';
+import { message } from 'antd';
 import type { Instance } from '../../../../utils';
 import {
   EnvironmentType,
@@ -24,6 +26,10 @@ import { setInstanceRunning } from '../../../../utilsLogic';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from '../../../../env';
 import { TenantContext } from '../../../../contexts/TenantContext';
+import {
+  SnapshotDestinationModal,
+  type SnapshotDestinationSelection,
+} from '../../../common/SnapshotDestinationModal';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
@@ -57,6 +63,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const font20px = { fontSize: '20px' };
 
   const [disabled, setDisabled] = useState(false);
+  const [snapshotModalOpen, setSnapshotModalOpen] = useState(false);
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
@@ -124,6 +131,10 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     environmentType === EnvironmentType.Standalone;
 
   const sshDisabled = status !== Phase2.Ready || isContainer;
+  const supportsSnapshots =
+    environmentType === EnvironmentType.VirtualMachine ||
+    environmentType === EnvironmentType.CloudVm;
+  const snapshotDisabled = !supportsSnapshots || status !== Phase2.Off;
 
   const fileManagerDisabled = status !== Phase2.Ready && isContainer;
 
@@ -141,7 +152,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   return (
-    <Dropdown
+    <>
+      <Dropdown
       trigger={['click']}
       menu={{
         items: [
@@ -245,6 +257,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             onClick: () => setSshModal(true),
             className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
           },
+          {
+            key: 'snapshot',
+            icon: <CameraOutlined style={font20px} />,
+            disabled: snapshotDisabled,
+            label: 'New Image',
+            onClick: () => setSnapshotModalOpen(true),
+            className: `flex items-center ${snapshotDisabled ? 'cursor-not-allowed' : ''}`,
+          },
           ...(hasUtilitiesAccess &&
           environmentType === EnvironmentType.VirtualMachine
             ? [
@@ -295,7 +315,23 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         size="middle"
         icon={<MoreOutlined className="flex items-center" style={font20px} />}
       />
-    </Dropdown>
+      </Dropdown>
+      <SnapshotDestinationModal
+        open={snapshotModalOpen}
+        defaultSnapshotName={`snapshot-of-${instance.name}`}
+        onCancel={() => setSnapshotModalOpen(false)}
+        onConfirm={(selection: SnapshotDestinationSelection) => {
+          const destination =
+            selection.destination === 'another-workspace'
+              ? selection.workspace
+              : selection.destination;
+          message.success(
+            `${selection.snapshotName} requested in ${destination} (frontend prototype only)`,
+          );
+          setSnapshotModalOpen(false);
+        }}
+      />
+    </>
   );
 };
 
