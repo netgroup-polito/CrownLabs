@@ -165,7 +165,7 @@ Proxy["Envoy Proxy"]
 GatewayClass["GatewayClass"]
 GatewayController["Gateway Controller"]
 APIServer["API Server"]
-subgraph Routes["`HTTPRoutes (if Tenant has label _crownlabs.polito.it/gw-access = crownlabs-main-production_)`"]
+subgraph Routes["HTTPRoutes"]
     subgraph PublicRoutes["`Public HTTPRoutes (has label _crownlabs.polito.it/public-route: true_)`"]
     WebSSHRoute["`WebSSH HTTPRoute 
         _/webssh_`"]
@@ -176,7 +176,9 @@ subgraph Routes["`HTTPRoutes (if Tenant has label _crownlabs.polito.it/gw-access
     end
     CallbackRoute["`callback HTTPRoute 
         _/app/instauth/callback_`"]
-    OtherRoute["another HTTPRoute"]
+    OtherRoute["`another HTTPRoute
+        (if Tenant has label 
+        _crownlabs.polito.it/gw-access = crownlabs-main-production_)`"]
 end
 subgraph Backends["Backend Services"]
     WebSSHService["WebSSH Service"]
