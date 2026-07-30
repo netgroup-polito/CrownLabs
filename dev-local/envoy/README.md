@@ -28,7 +28,7 @@ To run the Envoy Gateway, you need the following components:
 
 Traefik is k3s's default ingress controller.
 It runs its own `LoadBalancer` `Service`, bound to the node's ports 80 and 443 through k3s's `ServiceLB` (the `svclb-traefik` pod).
-The Envoy Gateway's own `Service` needs those same ports, so you must remove Traefik first.
+The Envoy Gateway's own `Service` needs the same ports, so Traefik has to be removed.
 This project uses Envoy Gateway instead of Traefik's built-in Gateway API support, because Envoy Gateway supports more features.
 
 To disable Traefik, add a dedicated drop-in file under `/etc/rancher/k3s/config.yaml.d/` (this requires root access).
