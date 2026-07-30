@@ -4,7 +4,7 @@
 %% ==== OVERVIEW GRAPH ====
 flowchart TB
 
-Namespaced
+LogicalDomain
 Controller
 Workspace
 CRD
@@ -20,7 +20,7 @@ classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
 classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
 
 %% Class Applications
-class Namespaced GenericDashedBS
+class LogicalDomain GenericDashedBS
 class Controller ControllerBS
 class Workspace WorkspaceBS
 class CRD CustomResourceBS
@@ -34,16 +34,18 @@ The following will be placed in **home**
 ```mermaid
 flowchart LR
 
-subgraph ReleasesNS["Deployment Releases Namespace¹"]
-    Argo["Argo/Helm"]
-    Releases["Deployment Releases"]
-    Controllers@{shape: docs, label: "Controller-Set"}
+Argo["Argo/Helm¹"]
+Releases["Deployment Releases¹"]
+subgraph ReleasesNS["Deployment Releases Namespace"]
+    Controllers@{shape: docs, label: "Controller Set¹"}
+    Frontend["Frontend-app⁴"]
+    GraphQL["GraphQL Relay⁵"]
 
-    Argo .-> Releases -. hosts .-> Controllers
+    Frontend .-> GraphQL
 end
-
 TenantCR["`Tenant CR
-_tenant: xyz-efg_`"]
+    [cluster-wide]
+    _tenant: xyz-efg_`"]
 Controllers --> TenantCR
 subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ ²`"]
     InstanceCR["`Instance CR
@@ -52,10 +54,14 @@ subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ ²`"]
 
     InstanceCR --> InstanceEnv
 end
-TenantCR --> InstanceCR
-
+subgraph K8S["K8S Provided Infratructure"]
+    APIServer["API Server"]
+    GWAPI["Load Balancer + Gateway/Ingress¹"]
+end
+RBAC["RBACs"]
 WorkspaceCR["`Workspace CR
-_workspace: abc_`"]
+    [cluster-wide]
+    _workspace: abc_`"]
 Controllers --> WorkspaceCR
 subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
     TemplateCR["`Template CR
@@ -64,20 +70,19 @@ subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
 
     TemplateCR --> TemplateEnv
 end
+
+Argo .-> Releases
+Releases -. hosts .-> Controllers
+Frontend -. login .-> TenantNS
+Frontend -. connects to .-> GWAPI
+GraphQL .-> APIServer
+GWAPI .-> InstanceEnv
 WorkspaceCR --> TemplateCR
 InstanceCR -. references to .-> TemplateCR
+TenantCR --> InstanceCR
+APIServer --> RBAC
 
-Frontend["Frontend-app⁴"]
-GraphQL["GraphQL Relay⁵"]
-APIServer["API Server"]
-GWAPI["Load Balancer + Gateway/Ingress¹"]
-
-Frontend -. login .-> TenantNS
-Frontend .-> GraphQL .-> APIServer
-Frontend -. connects to .-> GWAPI
-
-GWAPI .-> InstanceEnv
-
+classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
 classDef ControllerDashedBS stroke:#E45756,rx:12,ry:12,fill:none,stroke-dasharray:8
 classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
 classDef WorkspaceDashedBS stroke:#54724B,rx:12,ry:12,fill:none,stroke-dasharray:8
@@ -85,6 +90,7 @@ classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
 classDef TenantDashedBS stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
 classDef InstanceBS stroke:#BB55BB,rx:12,ry:12,fill:none
 
+class K8S GenericDashedBS
 class ReleasesNS ControllerDashedBS
 class Controllers ControllerBS
 class WorkspaceCR,TenantCR,InstanceCR,TemplateCR CustomResourceBS
