@@ -10,6 +10,7 @@ Workspace
 CRD
 Tenant
 Environment
+Frontend
 
 %% General Class Definitions - Border Styles (BS)
 classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
@@ -18,6 +19,7 @@ classDef WorkspaceBS stroke:#54724B,rx:12,ry:12,fill:none
 classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
 classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
 classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
+classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
 
 %% Class Applications
 class LogicalDomain GenericDashedBS
@@ -26,6 +28,7 @@ class Workspace WorkspaceBS
 class CRD CustomResourceBS
 class Tenant TenantBS
 class Environment EnvironmentBS
+class Frontend FrontendBS
 ```
 
 # CrownLabs Big Picture
@@ -39,7 +42,7 @@ Releases["Deployment Releases¹"]
 subgraph ReleasesNS["Deployment Releases Namespace"]
     Controllers@{shape: docs, label: "Controller Set¹"}
     Frontend["Frontend-app⁴"]
-    GraphQL["GraphQL Relay⁵"]
+    GraphQL["GraphQL Relay"]
 
     Frontend .-> GraphQL
 end
@@ -70,6 +73,7 @@ subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
 
     TemplateCR --> TemplateEnv
 end
+QLK["QLKube⁵"]
 
 Argo .-> Releases
 Releases -. hosts .-> Controllers
@@ -89,6 +93,7 @@ classDef WorkspaceDashedBS stroke:#54724B,rx:12,ry:12,fill:none,stroke-dasharray
 classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
 classDef TenantDashedBS stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
 classDef InstanceBS stroke:#BB55BB,rx:12,ry:12,fill:none
+classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
 
 class K8S GenericDashedBS
 class ReleasesNS ControllerDashedBS
@@ -97,12 +102,13 @@ class WorkspaceCR,TenantCR,InstanceCR,TemplateCR CustomResourceBS
 class WorkspaceNS WorkspaceDashedBS
 class TenantNS TenantDashedBS
 class InstanceEnv,TemplateEnv InstanceBS
+class Frontend FrontendBS
 ```
-¹More about this [here](BIGPICTURE.md#crownlabs-deployment).  
-²More about this [here](BIGPICTURE.md#tenant-business-logic).  
-³More about this [here](BIGPICTURE.md#workspace-business-logic).  
-⁴More about this  
-⁵More about this  
+¹More about Deployment+Gateway [here](BIGPICTURE.md#crownlabs-deployment).  
+²More about Tenant [here](BIGPICTURE.md#tenant-business-logic).  
+³More about Workspace [here](BIGPICTURE.md#workspace-business-logic).  
+⁴More about Frontend [here](BIGPICTURE.md#frontend-logic)  
+⁵More about QLKube  
 
 
 ## CrownLabs Deployment Releases
@@ -118,12 +124,7 @@ PreProdDeploy["`_crownlabs-pre-production_
     Pre-production`"]
 StagingDeploy["`_crownlabs-staging-123_
     Staging (PR-associated)`"]
-
-ArgoHelm --> ProdDeploy
-ArgoHelm --> PreProdDeploy
-ArgoHelm --> StagingDeploy
-
-subgraph Controllers["`Controllers (_operator-selector = production_)`"]
+subgraph Controllers["`Controller Set (_operator-selector = prod_)`"]
     TenantController["Tenant Controller"]
     InstanceController["Instance Controller"]
     InstanceAutomationController["Instance Automation Controller"]
@@ -136,6 +137,9 @@ subgraph Controllers["`Controllers (_operator-selector = production_)`"]
     ShVolController["Shared Volume Controller"]
 end
 
+ArgoHelm --> ProdDeploy
+ArgoHelm --> PreProdDeploy
+ArgoHelm --> StagingDeploy
 ProdDeploy -. hosts .-> WorkspaceController
 ProdDeploy -. hosts .-> TenantController
 ProdDeploy -. hosts .-> InstanceController
@@ -152,6 +156,105 @@ classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
 class Controllers ControllerBS
 ```
 
+```mermaid
+flowchart LR
+
+Gateway["`Gateway
+    (Envoy Gateway API)`"]
+Proxy["Envoy Proxy"]
+GatewayClass["GatewayClass"]
+GatewayController["Gateway Controller"]
+APIServer["API Server"]
+subgraph Routes["`HTTPRoutes (if Tenant has label _crownlabs.polito.it/gw-access = crownlabs-main-production_)`"]
+    subgraph PublicRoutes["`Public HTTPRoutes (has label _crownlabs.polito.it/public-route: true_)`"]
+    WebSSHRoute["`WebSSH HTTPRoute 
+        _/webssh_`"]
+    FrontendRoute["`Frontend-app HTTPRoute
+        _/_`"]
+    QLKubeRoute["`QLkube HTTPRoute
+        _/graph_`"]
+    end
+    CallbackRoute["`callback HTTPRoute 
+        _/app/instauth/callback_`"]
+    OtherRoute["another HTTPRoute"]
+end
+subgraph Backends["Backend Services"]
+    WebSSHService["WebSSH Service"]
+    FrontendService["Frontend-app Service"]
+    QLKubeService["QLkube Service"]
+    OtherService["another Service"]
+    DummyService["dummy Service"]
+    VM@{shape: docs, label: "VMs"}
+end
+subgraph SecPols["Security Policies"]
+    SecPolG["Security Policy"]
+    SecPolDummy["`Security Policy
+        (dummy, only if route has label 
+        _crownlabs.polito.it/public-route: true_)`"]
+end
+Traffic["Request Traffic"]
+
+Gateway -- manages --> Proxy
+Gateway -. accepts .-> Routes
+Gateway -. authenticates .-> SecPols
+Traffic .-> Proxy .-> VM
+
+WebSSHRoute --> WebSSHService
+FrontendRoute --> FrontendService
+QLKubeRoute --> QLKubeService
+OtherRoute --> OtherService
+CallbackRoute --> DummyService
+
+WebSSHService --> VM
+FrontendService --> VM
+QLKubeService --> VM
+OtherService --> VM
+
+GatewayController -. watches .-> APIServer
+GatewayController -. creates/updates .-> Gateway
+GatewayController -. creates/updates .-> Routes
+
+APIServer --> Gateway
+GatewayClass -. used by .-> Gateway
+
+classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
+classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
+
+class GatewayClass,Proxy,Routes,PublicRoutes,SecPols,Backends GenericDashedBS
+class Traffic FrontendBS
+```
+
+## Frontend Logic
+The following will be placed in **home/frontend-app**
+
+```mermaid
+flowchart LR
+
+Home["`Home Page
+    _crownlabs.polito.it_`"]
+Login["Login Page"]
+Frontend["`Front-end
+    _crownlabs.polito.it/app_`"]
+Remote["Remote Desktop"]
+OIDC["`OIDC Server
+    (Authentication)`"]
+Graph["`GraphQL
+    _graphql.crownlabs.polito.it_`"]
+GWAPI["Load Balancer + Gateway/Ingress"]
+
+Home --> Login
+Login --> Frontend
+Login --> OIDC
+Frontend --> Graph
+Frontend -. connects .-> Remote
+Frontend -. connects .-> GWAPI
+Remote --> GWAPI
+
+classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
+
+class Home,Login,Frontend,Graph FrontendBS
+```
+
 ## Workspace Business Logic
 The following will be placed in **home/operators/operator/workspace**
 
@@ -160,10 +263,7 @@ flowchart LR
 
 WorkspaceController["Workspace Controller"]
 WorkspaceCR["`Workspace CR
-_workspace: abc_`"]
-
-WorkspaceController -- reconciles --> WorkspaceCR
-
+    _workspace: abc_`"]
 subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_`"]
     subgraph TemplateFoo["`Template: _foo_`"]
         EnvContainer["`Environment 1
@@ -173,9 +273,10 @@ subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_`"]
     end
 
     TemplateOther["`Another Template
-    _(does nothing if not referenced in an instance)_`"]
+        _(does nothing if not referenced in an instance)_`"]
 end
 
+WorkspaceController -- reconciles --> WorkspaceCR
 WorkspaceCR --> WorkspaceNS
 
 classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
