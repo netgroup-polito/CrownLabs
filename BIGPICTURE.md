@@ -32,7 +32,7 @@ class Environment EnvironmentBS
 The following will be placed in **home**
 
 ```mermaid
-flowchart BT
+flowchart LR
 
 subgraph ReleasesNS["Deployment Releases Namespace¹"]
     Argo["Argo/Helm"]
@@ -45,7 +45,7 @@ end
 TenantCR["`Tenant CR
 _tenant: xyz-efg_`"]
 Controllers --> TenantCR
-subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_²`"]
+subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ ²`"]
     InstanceCR["`Instance CR
         _instance: bar_`"]
     InstanceEnv@{shape: docs, label: "bar Environments"}
@@ -57,7 +57,7 @@ TenantCR --> InstanceCR
 WorkspaceCR["`Workspace CR
 _workspace: abc_`"]
 Controllers --> WorkspaceCR
-subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_³`"]
+subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
     TemplateCR["`Template CR
         template: _foo_`"]
     TemplateEnv@{shape: docs, label: "foo Environments"}
