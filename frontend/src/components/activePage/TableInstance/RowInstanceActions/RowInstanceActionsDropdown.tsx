@@ -321,13 +321,15 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         defaultSnapshotName={`snapshot-of-${instance.name}`}
         onCancel={() => setSnapshotModalOpen(false)}
         onConfirm={(selection: SnapshotDestinationSelection) => {
-          const destination =
-            selection.destination === 'another-workspace'
-              ? selection.workspace
-              : selection.destination;
-          message.success(
-            `${selection.snapshotName} requested in ${destination} (frontend prototype only)`,
-          );
+          const notification = {
+            'personal-workspace':
+              'Your new image will be available under “Images” in your Personal Workspace.',
+            'another-workspace': `Your new image will be available under “Images” in ${selection.workspace}.`,
+            'public-registry':
+              'The image will be published to the public registry shortly.',
+          }[selection.destination];
+
+          message.success(notification, 5);
           setSnapshotModalOpen(false);
         }}
       />
