@@ -20,27 +20,24 @@ import (
 	"strings"
 	"time"
 
-	batch "k8s.io/api/batch/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/types"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // ValidateRequest validates the InstanceSnapshot request, returns an error and if there's the need to try again.
-func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot) (bool, error) {
+func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap *clv1alpha2.InstanceSnapshot) (bool, error) {
 	// First it is needed to check if the instance actually exists.
-	instanceName := types.NamespacedName{
-		Namespace: isnap.Spec.Instance.Namespace,
-		Name:      isnap.Spec.Instance.Name,
-	}
-	instance := &crownlabsv1alpha2.Instance{}
+	instanceName := forge.NamespacedNameFromGenericRef(isnap.Spec.Instance)
+	instance := &clv1alpha2.Instance{}
 
-	if err := r.Get(ctx, instanceName, instance); err != nil && errors.IsNotFound(err) {
+	if err := r.Get(ctx, instanceName, instance); err != nil && kerrors.IsNotFound(err) {
 		// The declared instance does not exist so don't try again.
 		return false, fmt.Errorf("instance %s not found in namespace %s. It is not possible to complete the InstanceSnapshot %s",
 			instanceName.Name, instanceName.Namespace, isnap.Name)
@@ -53,13 +50,10 @@ func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap 
 	// - the vm is powered off, since it is not possible to steal the DataVolume if it is still running;
 	// - the environment is a persistent vm and not a container.
 
-	templateName := types.NamespacedName{
-		Namespace: instance.Spec.Template.Namespace,
-		Name:      instance.Spec.Template.Name,
-	}
-	template := &crownlabsv1alpha2.Template{}
+	templateName := forge.NamespacedNameFromGenericRef(instance.Spec.Template)
+	template := &clv1alpha2.Template{}
 
-	if err := r.Get(ctx, templateName, template); err != nil && errors.IsNotFound(err) {
+	if err := r.Get(ctx, templateName, template); err != nil && kerrors.IsNotFound(err) {
 		// The declared template does not exist set the phase as failed and don't try again.
 		return false, fmt.Errorf("template %s not found in namespace %s. It is not possible to complete the InstanceSnapshot %s",
 			templateName.Name, templateName.Namespace, isnap.Name)
@@ -68,7 +62,7 @@ func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap 
 	}
 
 	// Retrieve the environment from the template.
-	var env *crownlabsv1alpha2.Environment
+	var env *clv1alpha2.Environment
 
 	if isnap.Spec.Environment.Name != "" {
 		for i := range template.Spec.EnvironmentList {
@@ -89,7 +83,7 @@ func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap 
 	}
 
 	// Check if the environment is a persistent VM.
-	if (env.EnvironmentType != crownlabsv1alpha2.ClassVM && env.EnvironmentType != crownlabsv1alpha2.ClassCloudVM) || !env.Persistent {
+	if (env.EnvironmentType != clv1alpha2.ClassVM && env.EnvironmentType != clv1alpha2.ClassCloudVM) || !env.Persistent {
 		return false, fmt.Errorf("environment %s is not a persistent VM. It is not possible to complete the InstanceSnapshot %s",
 			env.Name, isnap.Name)
 	}
@@ -103,10 +97,10 @@ func (r *InstanceSnapshotReconciler) ValidateRequest(ctx context.Context, isnap 
 }
 
 // GetJobStatus sets a Job and returns its status.
-func (r *InstanceSnapshotReconciler) GetJobStatus(job *batch.Job) (bool, batch.JobConditionType) {
+func (r *InstanceSnapshotReconciler) GetJobStatus(job *batchv1.Job) (bool, batchv1.JobConditionType) {
 	for _, c := range job.Status.Conditions {
 		// If the status corresponding to Success or failed is true, it means that the job completed.
-		if c.Status == corev1.ConditionTrue && (c.Type == batch.JobFailed || c.Type == batch.JobComplete) {
+		if c.Status == corev1.ConditionTrue && (c.Type == batchv1.JobFailed || c.Type == batchv1.JobComplete) {
 			return true, c.Type
 		}
 	}
@@ -116,16 +110,13 @@ func (r *InstanceSnapshotReconciler) GetJobStatus(job *batch.Job) (bool, batch.J
 }
 
 // CreateSnapshottingJobDefinition generates the job to be created.
-func (r *InstanceSnapshotReconciler) CreateSnapshottingJobDefinition(ctx context.Context, isnap *crownlabsv1alpha2.InstanceSnapshot) (batch.Job, error) {
+func (r *InstanceSnapshotReconciler) CreateSnapshottingJobDefinition(ctx context.Context, isnap *clv1alpha2.InstanceSnapshot) (batchv1.Job, error) {
 	// Get the tenant name in order to set it as directory of the image
-	instanceName := types.NamespacedName{
-		Namespace: isnap.Spec.Instance.Namespace,
-		Name:      isnap.Spec.Instance.Name,
-	}
-	instance := &crownlabsv1alpha2.Instance{}
+	instanceName := forge.NamespacedNameFromGenericRef(isnap.Spec.Instance)
+	instance := &clv1alpha2.Instance{}
 
 	if err := r.Get(ctx, instanceName, instance); err != nil {
-		return batch.Job{}, fmt.Errorf("error in retrieving the instance for InstanceSnapshot %s -> %w", isnap.Name, err)
+		return batchv1.Job{}, fmt.Errorf("error in retrieving the instance for InstanceSnapshot %s -> %w", isnap.Name, err)
 	}
 
 	var backoff int32 = 2
@@ -232,12 +223,12 @@ func (r *InstanceSnapshotReconciler) CreateSnapshottingJobDefinition(ctx context
 		},
 	}
 
-	snapjob := batch.Job{
+	snapjob := batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      isnap.Name,
 			Namespace: isnap.Namespace,
 		},
-		Spec: batch.JobSpec{
+		Spec: batchv1.JobSpec{
 			BackoffLimit: &backoff,
 			Template: corev1.PodTemplateSpec{
 				Spec: corev1.PodSpec{

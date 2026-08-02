@@ -37,25 +37,24 @@ spec:
           image: "{{ .Values.image.repository }}:{{ include "instance-operator.version" . }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           args:
-            - "--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}"
-            - "--website-base-url={{ .Values.configurations.generic.websiteBaseUrl }}"
-            - "--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}"
-            - "--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}"
-            - "--container-env-x-vnc-img={{ .Values.configurations.containerEnvironmentOptions.xVncImage }}"
-            - "--container-env-websockify-img={{ .Values.configurations.containerEnvironmentOptions.websockifyImage }}"
-            - "--container-env-content-downloader-img={{ .Values.configurations.containerEnvironmentOptions.contentDownloaderImage }}"
-            - "--container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}"
-            - "--container-env-instmetrics-server-endpoint={{ .Values.configurations.containerEnvironmentOptions.instmetricsServerEndpoint }}"
-            - "--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}"
-            - "--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}"
-            - "--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}"
-            - "--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}"
-            - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
-            - "--webbastion-master-key-path=/webbastion-key/{{ .Values.webssh.masterKey.keyName }}.pub"
+            - '--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}'
+            - '--website-base-url={{ .Values.configurations.generic.websiteBaseUrl | default .Values.global.gateway.hostname }}'
+            - '--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}'
+            - '--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}'
+            - '--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}'
+            - '--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}'
+            - '--vm-registry-secret={{ .Values.configurations.privateContainerRegistry.secretName }}'
+            - '--container-export-img={{ .Values.configurations.containerVmSnapshots.exportImage }}:{{ include "instance-operator.containerExportImageTag" . }}'
+            - '--container-kaniko-img={{ .Values.configurations.containerVmSnapshots.kanikoImage }}'
+            - '--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}'
+            - '--webbastion-master-key-path=/webbastion-key/{{ .Values.webssh.masterKey.keyName }}.pub'
             - '--public-exposure-ip-pool={{ .Values.configurations.publicExposure.ipPool | join "," }}'
             - '--public-exposure-common-annotations={{ .Values.configurations.publicExposure.commonAnnotations | join "," }}'
             - '--public-exposure-common-labels={{ .Values.configurations.publicExposure.commonLabels | join "," }}'
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
+            - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
+            - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
+            - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
           ports:
             - name: op-metrics
               containerPort: 8080
@@ -142,7 +141,7 @@ spec:
             - --enable-instance-expiration={{ .Values.configurations.automation.enableInstanceExpiration }}
             - --namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}
             - --container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}
-            - --container-env-content-uploader-img={{ .Values.configurations.containerEnvironmentOptions.contentUploaderImage }}
+            - "--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}"
             - --monitoring-prometheus-url={{ .Values.configurations.monitoring.prometheusURL }}
             - --monitoring-nginx-availability={{ .Values.configurations.monitoring.queryNginxAvailable }}
             - --monitoring-bastion-ssh-availability={{ .Values.configurations.monitoring.queryBastionSSHAvailable }}
@@ -151,6 +150,9 @@ spec:
             - --monitoring-bastion-ssh-data={{ .Values.configurations.monitoring.queryBastionSSHData}}
             - --monitoring-web-ssh-data={{ .Values.configurations.monitoring.queryWebSSHData}}
             - --prometheus-query-step={{ .Values.configurations.monitoring.queryStep }}
+            - "--min-last-activity-requeue-time={{ .Values.configurations.automation.minLastActivityRequeueTime }}"
+            - "--max-last-activity-requeue-time={{ .Values.configurations.automation.maxLastActivityRequeueTime }}"
+            - "--last-activity-check-threshold={{ .Values.configurations.automation.lastActivityCheckThreshold }}"
             - --max-concurrent-reconciles-termination={{ .Values.configurations.automation.maxConcurrentTerminationReconciles }}
             - --max-concurrent-reconciles-inactive-termination={{ .Values.configurations.automation.maxConcurrentInactiveTerminationReconciles }}
             - --max-concurrent-reconciles-submission={{ .Values.configurations.automation.maxConcurrentSubmissionReconciles }}
@@ -161,6 +163,7 @@ spec:
             - --instance-inactive-termination-max-number-of-alerts={{.Values.configurations.automation.inactiveTerminationMaxNumberOfAlerts}}
             - --instance-inactive-termination-notification-interval={{ .Values.configurations.automation.inactiveTerminationNotificationInterval }}
             - --expiration-notification-interval={{ .Values.configurations.automation.expirationNotificationInterval }}
+            - --inactive-destruction-notification-interval={{ .Values.configurations.automation.inactiveDestructionNotificationInterval }}
             - --mail-config-dir={{ .Values.configurations.mailConfigDir }}
             - --mail-template-dir={{ .Values.configurations.mailTemplateDir }}
             - --enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}

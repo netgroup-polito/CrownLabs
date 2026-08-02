@@ -24,9 +24,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/instance/webhook"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -46,49 +46,53 @@ var _ = Describe("InstanceValidator", func() {
 	})
 
 	It("should allow creation when under quota", func() {
-		ws := &v1alpha1.Workspace{
+		ws := &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
-			Spec: v1alpha1.WorkspaceSpec{
-				Quota: common.WorkspaceResourceQuota{
+			Spec: clv1alpha1.WorkspaceSpec{
+				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 2,
-					CPU:       resource.MustParse("4"),
-					Memory:    resource.MustParse("8Gi"),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+					},
 				},
 			},
 		}
-		tmpl := &v1alpha2.Template{
+		tmpl := &clv1alpha2.Template{
 			ObjectMeta: metav1.ObjectMeta{Name: testTemplate, Namespace: testWorkspaceNamespace},
-			Spec: v1alpha2.TemplateSpec{
-				EnvironmentList: []v1alpha2.Environment{{
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{{
 					Name: testEnvironment,
-					Resources: v1alpha2.EnvironmentResources{
-						CPU:    2,
-						Memory: resource.MustParse("2Gi"),
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    2,
+							Memory: resource.MustParse("2Gi"),
+						},
 					},
 				}},
-				WorkspaceRef: v1alpha2.GenericRef{Name: testWorkspace},
+				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
 			},
 		}
-		inst := &v1alpha2.Instance{
+		inst := &clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testNewInstance,
 				Namespace: testTenantNamespace,
 				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
 			},
-			Spec: v1alpha2.InstanceSpec{
-				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
 				Running:  true,
 			},
 		}
 		// Add another instance to exceed quota
-		otherInst := &v1alpha2.Instance{
+		otherInst := &clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testExistingInstance,
 				Namespace: testTenantNamespace,
 				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
 			},
-			Spec: v1alpha2.InstanceSpec{
-				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
 				Running:  true,
 			},
 		}
@@ -100,49 +104,53 @@ var _ = Describe("InstanceValidator", func() {
 	})
 
 	It("should deny creation when quota exceeded", func() {
-		ws := &v1alpha1.Workspace{
+		ws := &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
-			Spec: v1alpha1.WorkspaceSpec{
-				Quota: common.WorkspaceResourceQuota{
+			Spec: clv1alpha1.WorkspaceSpec{
+				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 1,
-					CPU:       resource.MustParse("2"),
-					Memory:    resource.MustParse("2Gi"),
-				},
-			},
-		}
-		tmpl := &v1alpha2.Template{
-			ObjectMeta: metav1.ObjectMeta{Name: testTemplate, Namespace: testWorkspaceNamespace},
-			Spec: v1alpha2.TemplateSpec{
-				EnvironmentList: []v1alpha2.Environment{{
-					Name: testEnvironment,
-					Resources: v1alpha2.EnvironmentResources{
+					ResourceSpec: apicommon.ResourceSpec{
 						CPU:    2,
 						Memory: resource.MustParse("2Gi"),
 					},
-				}},
-				WorkspaceRef: v1alpha2.GenericRef{Name: testWorkspace},
+				},
 			},
 		}
-		inst := &v1alpha2.Instance{
+		tmpl := &clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{{
+					Name: testEnvironment,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    2,
+							Memory: resource.MustParse("2Gi"),
+						},
+					},
+				}},
+				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
+			},
+		}
+		inst := &clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testNewInstance,
 				Namespace: testTenantNamespace,
 				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
 			},
-			Spec: v1alpha2.InstanceSpec{
-				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
 				Running:  true,
 			},
 		}
 		// Add another instance to exceed quota
-		otherInst := &v1alpha2.Instance{
+		otherInst := &clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testExistingInstance,
 				Namespace: testTenantNamespace,
 				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
 			},
-			Spec: v1alpha2.InstanceSpec{
-				Template: v1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
 				Running:  true,
 			},
 		}
@@ -154,25 +162,129 @@ var _ = Describe("InstanceValidator", func() {
 		Expect(warnings).To(BeEmpty())
 	})
 
-	It("should warn if template is missing for an instance", func() {
-		ws := &v1alpha1.Workspace{
+	It("should deny creation when disk quota is exceeded", func() {
+		ws := &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
-			Spec: v1alpha1.WorkspaceSpec{
-				Quota: common.WorkspaceResourceQuota{
+			Spec: clv1alpha1.WorkspaceSpec{
+				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 2,
-					CPU:       resource.MustParse("4"),
-					Memory:    resource.MustParse("8Gi"),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+						Disk:   resource.MustParse("10Gi"),
+					},
 				},
 			},
 		}
-		inst := &v1alpha2.Instance{
+		tmpl := &clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{{
+					Name: testEnvironment,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    4,
+							Memory: resource.MustParse("8Gi"),
+							Disk:   resource.MustParse("12Gi"),
+						},
+					},
+				}},
+				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
+			},
+		}
+		inst := &clv1alpha2.Instance{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      testNewInstance,
 				Namespace: testTenantNamespace,
 				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
 			},
-			Spec: v1alpha2.InstanceSpec{
-				Template: v1alpha2.GenericRef{Name: testMissingTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
+			},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, tmpl).Build()
+		validator := &webhook.InstanceValidator{Client: fakeClient}
+		warnings, err := validator.ValidateCreate(ctx, inst)
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(ContainSubstring("quota exceeded: Disk"))
+		Expect(warnings).To(BeEmpty())
+	})
+
+	It("should deny creation when extended resource quota is exceeded", func() {
+		ws := &clv1alpha1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
+			Spec: clv1alpha1.WorkspaceSpec{
+				Quota: apicommon.WorkspaceResourceQuota{
+					Instances: 2,
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+						OtherResources: map[string]resource.Quantity{
+							"nvidia.com/gpu": resource.MustParse("1"),
+						},
+					},
+				},
+			},
+		}
+		tmpl := &clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{{
+					Name: testEnvironment,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    4,
+							Memory: resource.MustParse("8Gi"),
+							OtherResources: map[string]resource.Quantity{
+								"nvidia.com/gpu": resource.MustParse("2"),
+							},
+						},
+					},
+				}},
+				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
+			},
+		}
+		inst := &clv1alpha2.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testNewInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
+			},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, tmpl).Build()
+		validator := &webhook.InstanceValidator{Client: fakeClient}
+		warnings, err := validator.ValidateCreate(ctx, inst)
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(ContainSubstring("quota exceeded: nvidia.com/gpu"))
+		Expect(warnings).To(BeEmpty())
+	})
+
+	It("should warn if template is missing for an instance", func() {
+		ws := &clv1alpha1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
+			Spec: clv1alpha1.WorkspaceSpec{
+				Quota: apicommon.WorkspaceResourceQuota{
+					Instances: 2,
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+					},
+				},
+			},
+		}
+		inst := &clv1alpha2.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testNewInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testMissingTemplate, Namespace: testWorkspaceNamespace},
 				Running:  true,
 			},
 		}

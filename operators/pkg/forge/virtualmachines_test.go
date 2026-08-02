@@ -17,33 +17,48 @@ package forge_test
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	. "github.com/onsi/gomega/gstruct"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
-	var (
-		instance    clv1alpha2.Instance
-		template    clv1alpha2.Template
-		environment clv1alpha2.Environment
-	)
-
 	const (
+		tenantName        = "tester"
 		instanceName      = "kubernetes-0000"
 		templateName      = "test-template"
 		instanceNamespace = "tenant-tester"
 		image             = "internal/registry/image:v1.0"
 		cpu               = 2
+		localVMImage      = "golden-images/debian-nginx-raw-block"
+		invalidLocalImage = "golden-images/debian/nginx/raw-block"
 		cpuReserved       = 25
 		memory            = "1250M"
 		disk              = "20Gi"
+		shVolName         = "shvol-abc123-instance-def456-mirror"
+		shVolMountPath    = "/mnt/path"
+		shVolReadOnly     = true
+	)
+
+	var (
+		instance    clv1alpha2.Instance
+		template    clv1alpha2.Template
+		environment clv1alpha2.Environment
+		mountInfos  []corev1.VolumeMount
+
+		mountInfoMyDrive = forge.MyDriveMountInfo(tenantName)
+		mountInfoShVol   = corev1.VolumeMount{
+			Name:      shVolName,
+			MountPath: shVolMountPath,
+			ReadOnly:  shVolReadOnly,
+		}
 	)
 
 	BeforeEach(func() {
@@ -53,18 +68,23 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		environment = clv1alpha2.Environment{
 			Image: image,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   cpu,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    cpu,
+					Memory: resource.MustParse(memory),
+					Disk:   resource.MustParse(disk),
+				},
 				ReservedCPUPercentage: cpuReserved,
-				Memory:                resource.MustParse(memory),
-				Disk:                  resource.MustParse(disk),
 			},
 		}
 		template = clv1alpha2.Template{
 			ObjectMeta: metav1.ObjectMeta{Name: templateName, Namespace: instanceNamespace},
 			Spec: clv1alpha2.TemplateSpec{
 				EnvironmentList: []clv1alpha2.Environment{environment},
-				Scope:           clv1alpha2.ScopeStandard,
 			},
+		}
+		mountInfos = []corev1.VolumeMount{
+			mountInfoMyDrive,
+			mountInfoShVol,
 		}
 	})
 
@@ -72,18 +92,90 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		var spec virtv1.VirtualMachineSpec
 
 		JustBeforeEach(func() {
-			spec = forge.VirtualMachineSpec(&instance, &template, &environment)
+			spec = forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)
 		})
 
 		It("Should set the correct template labels", func() {
 			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
 		})
 		It("Should set the correct template spec", func() {
-			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
+			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
 		})
-		It("Should set the correct datavolume template", func() {
-			Expect(spec.DataVolumeTemplates).To(ContainElement(
-				forge.DataVolumeTemplate(forge.NamespacedNameWithSuffix(&instance, environment.Name).Name, &environment)))
+	})
+
+	Describe("The forge.DataVolumeSpec function", func() {
+		It("Should forge the correct standalone DataVolumeSpec", func() {
+			dvSpec, err := forge.DataVolumeSpec(&environment)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(dvSpec.PVC).NotTo(BeNil())
+
+			Expect(dvSpec.PVC.AccessModes).To(ContainElement(corev1.ReadWriteOnce))
+			Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeFilesystem))
+			Expect(dvSpec.PVC.Resources.Requests[corev1.ResourceStorage]).To(Equal(environment.Resources.Disk))
+		})
+
+		When("the environment is a CloudVM", func() {
+			BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
+
+			It("Should use block volume mode", func() {
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dvSpec.PVC).NotTo(BeNil())
+				Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeBlock))
+			})
+		})
+
+		When("the environment is a LocalVM", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassLocalVM
+				environment.Image = localVMImage
+			})
+
+			It("Should use block volume mode", func() {
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(dvSpec.PVC).NotTo(BeNil())
+				Expect(*dvSpec.PVC.VolumeMode).To(Equal(corev1.PersistentVolumeBlock))
+			})
+
+			It("Should propagate source validation errors", func() {
+				environment.Image = invalidLocalImage
+
+				dvSpec, err := forge.DataVolumeSpec(&environment)
+
+				Expect(err).To(HaveOccurred())
+				Expect(dvSpec).To(Equal(cdiv1beta1.DataVolumeSpec{}))
+			})
+		})
+	})
+
+	Describe("The forge.DataVolumeSourceForge function", func() {
+		It("Should forge the correct LocalVM PVC source", func() {
+			environment.EnvironmentType = clv1alpha2.ClassLocalVM
+			environment.Image = localVMImage
+
+			source, err := forge.DataVolumeSourceForge(&environment)
+
+			Expect(err).NotTo(HaveOccurred())
+			Expect(source).To(Equal(&cdiv1beta1.DataVolumeSource{
+				PVC: &cdiv1beta1.DataVolumeSourcePVC{
+					Namespace: "golden-images",
+					Name:      "debian-nginx-raw-block",
+				},
+			}))
+		})
+
+		It("Should fail on malformed LocalVM image names", func() {
+			environment.EnvironmentType = clv1alpha2.ClassLocalVM
+			environment.Image = invalidLocalImage
+
+			source, err := forge.DataVolumeSourceForge(&environment)
+
+			Expect(err).To(HaveOccurred())
+			Expect(source).To(BeNil())
 		})
 	})
 
@@ -91,14 +183,17 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		var spec virtv1.VirtualMachineInstanceSpec
 
 		JustBeforeEach(func() {
-			spec = forge.VirtualMachineInstanceSpec(&instance, &template, &environment)
+			spec = forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)
 		})
 
 		It("Should set the correct domain", func() {
-			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, &template)))
+			Expect(spec.Domain).To(Equal(forge.VirtualMachineDomain(&environment, mountInfos)))
 		})
 		It("Should set the cloud-init volumes", func() {
 			Expect(spec.Volumes).To(ContainElement(forge.VolumeCloudInit(forge.CanonicalName(instance.GetName()))))
+		})
+		It("Should set the external volumes", func() {
+			Expect(spec.Volumes).To(ContainElements(forge.AttachableVolumes(mountInfos)))
 		})
 		It("Should set the correct readiness probe", func() {
 			Expect(spec.ReadinessProbe).To(Equal(forge.VirtualMachineReadinessProbe(&environment)))
@@ -129,7 +224,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		var domain virtv1.DomainSpec
 
 		JustBeforeEach(func() {
-			domain = forge.VirtualMachineDomain(&environment, &template)
+			domain = forge.VirtualMachineDomain(&environment, mountInfos)
 		})
 
 		It("Should set the correct CPU value", func() {
@@ -144,58 +239,22 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		It("Should set the correct devices", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
+			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
 			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
 		})
 	})
 
 	Describe("The forge.Volumes function", func() {
-		type VolumesCase struct {
-			Scope    clv1alpha2.EnvironmentScope
-			Expected func(*clv1alpha2.Instance, *clv1alpha2.Environment) []virtv1.Volume
-		}
-
-		WhenBody := func(c VolumesCase) func() {
-			return func() {
-				var actual, expected []virtv1.Volume
-
-				BeforeEach(func() {
-					template.Spec.Scope = c.Scope
-				})
-
-				JustBeforeEach(func() {
-					actual = forge.Volumes(&instance, &environment, &template)
-					expected = c.Expected(&instance, &environment)
-				})
-
-				It("Correctly returns the expected volumes array", func() {
-					Expect(actual).To(ConsistOf(expected))
-				})
+		It("Correctly returns the expected volumes array", func() {
+			actual := forge.Volumes(&instance, &environment, mountInfos)
+			expected := []virtv1.Volume{
+				forge.VolumeRootDisk(&instance, &environment),
+				forge.VolumeCloudInit(forge.CanonicalName(instance.GetName())),
+				forge.VirtPVCVolume(&mountInfoMyDrive),
+				forge.VirtPVCVolume(&mountInfoShVol),
 			}
-		}
-
-		When("scope is Standard", WhenBody(VolumesCase{
-			Scope: clv1alpha2.ScopeStandard,
-			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
-				return []virtv1.Volume{
-					forge.VolumeCloudInit(forge.CanonicalName(i.GetName())),
-					forge.VolumeRootDisk(i, e),
-				}
-			},
-		}))
-
-		When("scope is Exercise", WhenBody(VolumesCase{
-			Scope: clv1alpha2.ScopeExercise,
-			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
-				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
-			},
-		}))
-
-		When("scope is Exam", WhenBody(VolumesCase{
-			Scope: clv1alpha2.ScopeExam,
-			Expected: func(i *clv1alpha2.Instance, e *clv1alpha2.Environment) []virtv1.Volume {
-				return []virtv1.Volume{forge.VolumeRootDisk(i, e)}
-			},
-		}))
+			Expect(actual).To(ConsistOf(expected))
+		})
 	})
 
 	Describe("The forge.VolumeRootDisk function", func() {
@@ -263,47 +322,14 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 	})
 
 	Describe("The forge.VolumeDiskTargets function", func() {
-		type VolumesDiskTargetsCase struct {
-			Scope    clv1alpha2.EnvironmentScope
-			Expected []virtv1.Disk
-		}
-
-		WhenBody := func(c VolumesDiskTargetsCase) func() {
-			return func() {
-				var actual, expected []virtv1.Disk
-
-				BeforeEach(func() {
-					template.Spec.Scope = c.Scope
-				})
-
-				JustBeforeEach(func() {
-					actual = forge.VolumeDiskTargets(&environment, &template)
-					expected = c.Expected
-				})
-
-				It("Correctly returns the expected disks array", func() {
-					Expect(actual).To(ConsistOf(expected))
-				})
-			}
-		}
-
-		When("scope is Standard", WhenBody(VolumesDiskTargetsCase{
-			Scope: clv1alpha2.ScopeStandard,
-			Expected: []virtv1.Disk{
+		It("Correctly returns the expected disks array", func() {
+			actual := forge.VolumeDiskTargets(&environment)
+			expected := []virtv1.Disk{
 				forge.VolumeDiskTarget("root"),
 				forge.VolumeDiskTarget("cloud-init"),
-			},
-		}))
-
-		When("scope is Exercise", WhenBody(VolumesDiskTargetsCase{
-			Scope:    clv1alpha2.ScopeExercise,
-			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
-		}))
-
-		When("scope is Exam", WhenBody(VolumesDiskTargetsCase{
-			Scope:    clv1alpha2.ScopeExam,
-			Expected: []virtv1.Disk{forge.VolumeDiskTarget("root")},
-		}))
+			}
+			Expect(actual).To(ConsistOf(expected))
+		})
 	})
 
 	Describe("The forge.VolumeDiskTarget function", func() {
@@ -386,42 +412,4 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			}),
 		)
 	})
-
-	Describe("The forge.DataVolumeTemplate function", func() {
-		var dataVolumeTemplate virtv1.DataVolumeTemplateSpec
-		const name = "kubernetes-volume"
-
-		JustBeforeEach(func() {
-			dataVolumeTemplate = forge.DataVolumeTemplate(name, &environment)
-		})
-
-		Context("The DataVolumeTemplate is forged", func() {
-
-			When("Environment type is VM", func() {
-				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassVM })
-
-				It("Should target the correct image registry", func() {
-					Expect(dataVolumeTemplate.Spec.Source.Registry.URL).To(PointTo(BeIdenticalTo("docker://" + image)))
-				})
-			})
-
-			When("Environment type is CloudVM", func() {
-				BeforeEach(func() { environment.EnvironmentType = clv1alpha2.ClassCloudVM })
-
-				It("Should target the correct http url", func() {
-					Expect(dataVolumeTemplate.Spec.Source.HTTP.URL).To(BeIdenticalTo(image))
-				})
-			})
-
-			It("Should have the correct name", func() {
-				Expect(dataVolumeTemplate.GetName()).To(BeIdenticalTo(name))
-			})
-
-			It("Should request the correct disk size", func() {
-				Expect(dataVolumeTemplate.Spec.PVC.Resources.Requests).To(Equal(
-					corev1.ResourceList{corev1.ResourceStorage: resource.MustParse(disk)}))
-			})
-		})
-	})
-
 })

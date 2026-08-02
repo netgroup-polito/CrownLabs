@@ -24,7 +24,6 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -33,7 +32,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	pkgcontext "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -51,6 +50,10 @@ const (
 	ExpirationMailTemplatePath = "instautoctrl_expiration_notification.yaml"
 	// WarningExpirationMailTemplatePath is the path to the email template for expiration warning notifications.
 	WarningExpirationMailTemplatePath = "instautoctrl_expiration_warning_notification.yaml"
+	// WarningDestructionMailTemplatePath is the path to the email template for the destruction warning notifications.
+	WarningDestructionMailTemplatePath = "instautoctrl_destruction_warning_notification.yaml"
+	// DestructionMailTemplatePath is the path to the email template for the destruction notification.
+	DestructionMailTemplatePath = "instautoctrl_destruction_notification.yaml"
 )
 
 var durationWithDaysRegex = regexp.MustCompile(`^(\d+)([mhd])$`)
@@ -104,6 +107,16 @@ func SendExpiringWarningNotification(ctx context.Context, mc *mail.Client, remai
 	return sendNotification(ctx, mc, WarningExpirationMailTemplatePath, remainingTime)
 }
 
+// SendDestructionWarningNotification sends a destruction warning notification when a powered-off instance is about to be destroyed.
+func SendDestructionWarningNotification(ctx context.Context, mc *mail.Client, remainingTime time.Duration) error {
+	return sendNotification(ctx, mc, WarningDestructionMailTemplatePath, remainingTime)
+}
+
+// SendDestructionNotification sends a deletion notification when an instance is deleted.
+func SendDestructionNotification(ctx context.Context, mc *mail.Client) error {
+	return sendNotification(ctx, mc, DestructionMailTemplatePath, 0)
+}
+
 // SendExpiringNotification sends expiration warning notification.
 func SendExpiringNotification(ctx context.Context, mc *mail.Client) error {
 	return sendNotification(ctx, mc, ExpirationMailTemplatePath, 0)
@@ -116,11 +129,11 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 		return fmt.Errorf("mail client is not configured")
 	}
 
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return fmt.Errorf("instance not found in context")
 	}
-	tenant := pkgcontext.TenantFrom(ctx)
+	tenant := clctx.TenantFrom(ctx)
 	if tenant == nil {
 		return fmt.Errorf("tenant not found in context")
 	}
@@ -133,7 +146,7 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 		InstanceName:  instance.Name,
 		RemainingTime: remainingTime.String(),
 	}
-	err := mc.SendCrownLabsMail(mailTemplatePath, &ph)
+	err := mc.SendCrownLabsMail(ctx, mailTemplatePath, &ph)
 	if err != nil {
 		log.Error(err, "failed sending email notification")
 		return err
@@ -146,7 +159,7 @@ func sendNotification(ctx context.Context, mc *mail.Client, mailTemplatePath str
 // GetTenantFromInstance retrieves the Tenant object associated with the Instance.
 func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Tenant, error) {
 	log := ctrl.LoggerFrom(ctx).WithName("get-user-from-instance")
-	instance := pkgcontext.InstanceFrom(ctx)
+	instance := clctx.InstanceFrom(ctx)
 	if instance == nil {
 		return nil, fmt.Errorf("instance not found in context")
 	}
@@ -171,10 +184,7 @@ func GetTenantFromInstance(ctx context.Context, c client.Client) (*clv1alpha2.Te
 func RetrieveEnvironmentList(ctx context.Context, c client.Client, instance *clv1alpha2.Instance) ([]*clv1alpha2.Environment, error) {
 	log := ctrl.LoggerFrom(ctx).V(utils.LogDebugLevel)
 
-	templateName := types.NamespacedName{
-		Namespace: instance.Spec.Template.Namespace,
-		Name:      instance.Spec.Template.Name,
-	}
+	templateName := forge.NamespacedNameFromGenericRef(instance.Spec.Template)
 
 	var template clv1alpha2.Template
 	if err := c.Get(ctx, templateName, &template); err != nil {
@@ -219,10 +229,7 @@ func getTemplateInstanceRequests(ctx context.Context, c client.Client, template 
 	for i := range instances.Items {
 		instance := &instances.Items[i]
 		requests = append(requests, reconcile.Request{
-			NamespacedName: types.NamespacedName{
-				Name:      instance.Name,
-				Namespace: instance.Namespace,
-			},
+			NamespacedName: forge.NamespacedNameFromObject(instance),
 		})
 	}
 
@@ -239,17 +246,17 @@ var deleteAfterChanged = predicate.Funcs{
 			return false
 		}
 
-		oldValue := oldTemplate.Spec.DeleteAfter
-		newValue := newTemplate.Spec.DeleteAfter
-		log.Info("template %s/%s: old deleteAfter=%s, new deleteAfter=%s",
+		oldValue := oldTemplate.Spec.Cleanup.DeleteAfterCreation
+		newValue := newTemplate.Spec.Cleanup.DeleteAfterCreation
+		log.Info("template %s/%s: old deleteAfterCreation=%s, new deleteAfterCreation=%s",
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
-		// Requeue only if the deleteAfter field has changed and is not set to "never"
+		// Requeue only if the deleteAfterCreation field has changed and is not set to "never"
 		return newValue != NeverTimeoutValue
 	},
 }
 
-var inactivityTimeoutChanged = predicate.Funcs{
+var stopAfterInactivityChanged = predicate.Funcs{
 	UpdateFunc: func(e event.UpdateEvent) bool {
 		log := ctrl.LoggerFrom(context.Background()).V(utils.LogDebugLevel)
 
@@ -259,13 +266,24 @@ var inactivityTimeoutChanged = predicate.Funcs{
 			return false
 		}
 
-		oldValue := oldTemplate.Spec.InactivityTimeout
-		newValue := newTemplate.Spec.InactivityTimeout
-		log.Info("template %s/%s: old inactivityTimeout=%s, new inactivityTimeout=%s",
+		oldValue := oldTemplate.Spec.Cleanup.StopAfterInactivity
+		newValue := newTemplate.Spec.Cleanup.StopAfterInactivity
+		log.Info("template %s/%s: old stopAfterInactivity=%s, new stopAfterInactivity=%s",
 			oldTemplate.Namespace, oldTemplate.Name, oldValue, newValue)
 
-		// Requeue only if the deleteAfter field has changed and it is not set to "never"
-		return newValue != NeverTimeoutValue
+		// Requeue only if the inactivity destruction time field has changed and it is not set to "never"
+		if newValue != NeverTimeoutValue {
+			return true
+		}
+
+		// Requeue also if the powered off destruction time field has changed
+		oldPoweredOffValue := oldTemplate.Spec.Cleanup.DeleteAfterInactivity
+		newPoweredOffValue := newTemplate.Spec.Cleanup.DeleteAfterInactivity
+		if oldPoweredOffValue != newPoweredOffValue && newPoweredOffValue != NeverTimeoutValue {
+			return true
+		}
+
+		return false
 	},
 }
 
@@ -310,15 +328,30 @@ var instanceTriggered = predicate.Funcs{
 		return true
 	},
 	UpdateFunc: func(event event.UpdateEvent) bool {
-		// if Running goes from false to true and last-notification-timestamp is updated, we want to trigger the reconciler
+		// if Running state changes (false -> true or true -> false), we want to trigger the reconciler
 		oldInstance, oldOk := event.ObjectOld.(*clv1alpha2.Instance)
 		newInstance, newOk := event.ObjectNew.(*clv1alpha2.Instance)
 		if !oldOk || !newOk {
 			return false
 		}
-		if !oldInstance.Spec.Running && newInstance.Spec.Running {
+		if oldInstance.Spec.Running != newInstance.Spec.Running {
 			return true
 		}
+		if oldInstance.Spec.Template != newInstance.Spec.Template {
+			return true
+		}
+		oldPoweredOffTimestamp := ""
+		if oldInstance.Annotations != nil {
+			oldPoweredOffTimestamp = oldInstance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+		}
+		newPoweredOffTimestamp := ""
+		if newInstance.Annotations != nil {
+			newPoweredOffTimestamp = newInstance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+		}
+		if oldPoweredOffTimestamp != newPoweredOffTimestamp {
+			return true
+		}
+
 		return false
 	},
 	DeleteFunc: func(_ event.DeleteEvent) bool {
@@ -339,20 +372,14 @@ func GetInstanceTemplateTenant(ctx context.Context, req ctrl.Request, c client.C
 	}
 
 	var template clv1alpha2.Template
-	if err := c.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Template.Name,
-		Namespace: instance.Spec.Template.Namespace,
-	}, &template); err != nil {
+	if err := c.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), &template); err != nil {
 		log.Error(err, "Unable to fetch the instance template.")
 		return nil, nil, nil, fmt.Errorf("failed to fetch instance template %s/%s: %w",
 			instance.Spec.Template.Namespace, instance.Spec.Template.Name, err)
 	}
 
 	var tenant clv1alpha2.Tenant
-	if err := c.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Tenant.Name,
-		Namespace: instance.Namespace,
-	}, &tenant); err != nil {
+	if err := c.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Tenant), &tenant); err != nil {
 		log.Error(err, "Unable to fetch the instance tenant.")
 		return nil, nil, nil, fmt.Errorf("failed to fetch instance tenant %s/%s: %w",
 			instance.Namespace, instance.Spec.Tenant.Name, err)
@@ -378,10 +405,7 @@ func createNamespaceWatchHandlerWithIgnore(c client.Client, ignoreLabel string) 
 		for i := range instances.Items {
 			instance := &instances.Items[i]
 			requests = append(requests, reconcile.Request{
-				NamespacedName: types.NamespacedName{
-					Name:      instance.Name,
-					Namespace: instance.Namespace,
-				},
+				NamespacedName: forge.NamespacedNameFromObject(instance),
 			})
 		}
 		return requests

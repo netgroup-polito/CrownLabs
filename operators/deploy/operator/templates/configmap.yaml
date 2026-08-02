@@ -1,0 +1,13 @@
+{{ if .Values.configurations.features.imageList }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: image-lists-sources
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "operator.labels" . | nindent 4 }}
+data:
+  registries: |
+    {{- .Values.configurations.imageList.registries | toYaml | nindent 4 }}
+
+{{ end }}

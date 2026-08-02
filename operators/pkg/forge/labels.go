@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 )
 
 const (
@@ -35,6 +35,8 @@ const (
 	LabelTemplateKey = "crownlabs.polito.it/template"
 	// LabelTenantKey is the key of the label identifying the tenant name.
 	LabelTenantKey = "crownlabs.polito.it/tenant"
+	// LabelNameKey is the key of the label identifying the resource name.
+	LabelNameKey = "crownlabs.polito.it/name"
 	// LabelPersistentKey is the key of the label identifying if any environment is persistent.
 	LabelPersistentKey = "crownlabs.polito.it/persistent"
 	// LabelComponentKey is the key of the label identifying the component name.
@@ -71,6 +73,7 @@ const (
 	labelManagedByWorkspaceValue = "workspace"
 	labelManagedByShVolValue     = "sharedvolume"
 	labelTypeWorkspaceValue      = "workspace"
+	labelTypeTenantValue         = "tenant"
 	labelTypeSandboxValue        = "sandbox"
 
 	labelAllowInstanceAccessKey   = "crownlabs.polito.it/allow-instance-access"
@@ -83,6 +86,8 @@ const (
 
 	// VolumeTypeValueShVol -> Value of the label for PVC which has been created by a Shared Volume.
 	VolumeTypeValueShVol = "sharedvolume"
+	// VolumeTypeValueMirror -> Value of the label for PVC which has been created to mirror another PVC.
+	VolumeTypeValueMirror = "mirror"
 
 	labelFirstNameKey = "crownlabs.polito.it/first-name"
 	labelLastNameKey  = "crownlabs.polito.it/last-name"
@@ -93,11 +98,23 @@ const (
 	// LastActivityAnnotation -> timestamp of the last access detected to the instance.
 	LastActivityAnnotation = "crownlabs.polito.it/last-activity"
 
+	// LastActivityCheckTimestampAnnotation -> timestamp of the last time Prometheus was queried for activity.
+	LastActivityCheckTimestampAnnotation = "crownlabs.polito.it/last-activity-check-timestamp"
+
 	// LastNotificationTimestampAnnotation -> timestamp of the last notification sent to the tenant.
 	LastNotificationTimestampAnnotation = "crownlabs.polito.it/last-notification-timestamp"
 
 	// LastRunningAnnotation ->  previous value of the `Running` field of the Instance.
 	LastRunningAnnotation = "crownlabs.polito.it/last-running"
+
+	// LastPoweredOffTimestampAnnotation -> timestamp of the last time the instance was powered off.
+	LastPoweredOffTimestampAnnotation = "crownlabs.polito.it/last-powered-off-timestamp"
+
+	// DestructionAlertsSentAnnotation -> the number of mail sent to the tenant to inform that the instance will be destroyed.
+	DestructionAlertsSentAnnotation = "crownlabs.polito.it/destruction-alerts-sent"
+
+	// LastDestructionNotificationTimestampAnnotation -> timestamp of the last notification sent to the tenant to inform that the instance will be destroyed.
+	LastDestructionNotificationTimestampAnnotation = "crownlabs.polito.it/last-destruction-notification-timestamp"
 
 	// NoWorkspacesLabelKey -> label to be set when no workspaces are associated to the tenant.
 	NoWorkspacesLabelKey = "crownlabs.polito.it/no-workspaces"
@@ -109,6 +126,13 @@ const (
 
 	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
 	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
+
+	// AuthorizationAnnotationKey is the key of the annotation that shows which labels are requested on the target namespace to mirror the PVC.
+	AuthorizationAnnotationKey = "pmp.crownlabs.polito.it/required-target-ns-labels"
+	// MyDriveAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a MyDrive PVC.
+	MyDriveAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant,crownlabs.polito.it/name={tenant-id}"
+	// ShVolAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a SharedVolume PVC.
+	ShVolAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
@@ -240,12 +264,22 @@ func SharedVolumeObjectLabels(labels map[string]string) map[string]string {
 }
 
 // TenantLabels receives in input a set of labels and returns the updated set depending on the specified tenant.
-func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel common.KVLabel) map[string]string {
+func TenantLabels(labels map[string]string, tenant *clv1alpha2.Tenant, targetLabel ctrlcommon.KVLabel) map[string]string {
 	labels = deepCopyLabels(labels)
 
 	labels = UpdateTenantResourceCommonLabels(labels, targetLabel)
 	labels[labelFirstNameKey] = CleanTenantName(tenant.Spec.FirstName)
 	labels[labelLastNameKey] = CleanTenantName(tenant.Spec.LastName)
+
+	return labels
+}
+
+// TenantNamespaceLabels receives in input a set of labels and returns the updated set for a tenant namespace.
+func TenantNamespaceLabels(labels map[string]string, tenant *clv1alpha2.Tenant, tenantCommonNSLabels map[string]string) map[string]string {
+	labels = deepCopyLabels(labels)
+
+	maps.Copy(labels, tenantCommonNSLabels)
+	labels[LabelNameKey] = tenant.Name
 
 	return labels
 }
@@ -295,7 +329,8 @@ func InstanceNameFromLabels(labels map[string]string) (string, bool) {
 }
 
 // UpdateWorkspaceResourceCommonLabels updates the common labels for resources managed by the workspace controller.
-func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel common.KVLabel) map[string]string {
+// Note: uses nil check instead of deepCopyLabels for performance optimization (lightweight function with minimal overhead).
+func UpdateWorkspaceResourceCommonLabels(labels map[string]string, targetLabel ctrlcommon.KVLabel) map[string]string {
 	if labels == nil {
 		labels = make(map[string]string, 1)
 	}

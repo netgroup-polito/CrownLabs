@@ -13,6 +13,7 @@ import { useApplyInstanceMutation } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { setInstancePrettyname } from '../../../../utilsLogic';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
+import InactivityIcon from '../../../common/InactivityIcon/InactivityIcon';
 import RowInstanceStatus from '../RowInstanceStatus/RowInstanceStatus';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
 
@@ -240,14 +241,24 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                 {title}
               </Text>
               {extended && (
-                <Text
-                  className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block"
-                  ellipsis
+                <Tooltip
+                  title={
+                    templatePrettyName && templatePrettyName.length > 15
+                      ? templatePrettyName
+                      : undefined
+                  }
                 >
-                  <i>{templatePrettyName}</i>
-                </Text>
+                  <Text className="md:w-max hidden xs:block xs:w-28 sm:hidden md:block">
+                    <i>
+                      {templatePrettyName && templatePrettyName.length > 15
+                        ? `${templatePrettyName.substring(0, 15)}...`
+                        : templatePrettyName}
+                    </i>
+                  </Text>
+                </Tooltip>
               )}
               {persistent && extended && <PersistentIcon />}
+              {extended && <InactivityIcon instance={instance} />}
               {nodeSelector && extended && (
                 <NodeSelectorIcon
                   isOnWorkspace={false}

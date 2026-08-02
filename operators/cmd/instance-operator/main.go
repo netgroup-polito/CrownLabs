@@ -24,7 +24,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
@@ -33,9 +33,10 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
@@ -44,27 +45,33 @@ import (
 )
 
 var (
-	scheme = runtime.NewScheme()
+	rscheme = runtime.NewScheme()
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(scheme.AddToScheme(rscheme))
 
-	utilruntime.Must(crownlabsv1alpha1.AddToScheme(scheme))
-	utilruntime.Must(crownlabsv1alpha2.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 
-	utilruntime.Must(virtv1.AddToScheme(scheme))
-	utilruntime.Must(cdiv1beta1.AddToScheme(scheme))
+	utilruntime.Must(virtv1.AddToScheme(rscheme))
+	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
+
+	utilruntime.Must(gatewayv1.Install(rscheme))
 }
 
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
-	svcUrls := instctrl.ServiceUrls{}
+	expositionCfg := forge.ExpositionConfig{}
 	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 	publicExposureOpts := forge.PublicExposureOpts{}
 	publicExposureIPPoolRaw := ""
 	publicExposureCommonAnnotationRaw := ""
 	publicExposureCommonLabelsRaw := ""
+	mirrorStorageClass := ""
+	enableAuth := true
+	gatewayAPIMode := false
+	gatewayAPIRefsValues := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -77,15 +84,11 @@ func main() {
 
 	websshKeyPathFlag := flag.String("webbastion-master-key-path", "", "Contain the path of the secret where the public key is stored. Used for webssh component.")
 
-	flag.StringVar(&svcUrls.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
-	flag.StringVar(&svcUrls.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
+	flag.StringVar(&expositionCfg.WebsiteBaseURL, "website-base-url", "crownlabs.polito.it", "Base URL of crownlabs website instance")
+	flag.StringVar(&expositionCfg.InstancesAuthURL, "instances-auth-url", "", "The base URL for user instances authentication (i.e., oauth2-proxy)")
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
-	flag.StringVar(&containerEnvOpts.XVncImg, "container-env-x-vnc-img", "crownlabs/tigervnc", "The image name for the vnc image (sidecar for graphical container environment)")
-	flag.StringVar(&containerEnvOpts.WebsockifyImg, "container-env-websockify-img", "crownlabs/websockify", "The image name for the websockify image (sidecar for graphical container environment)")
-	flag.StringVar(&containerEnvOpts.ContentDownloaderImg, "container-env-content-downloader-img", "latest", "The image name for the init-container to download and unarchive initial content to the instance volume.")
-	flag.StringVar(&containerEnvOpts.ContentUploaderImg, "container-env-content-uploader-img", "latest", "The image name for the job to compress and upload instance content from a persistent instance.")
-	flag.StringVar(&containerEnvOpts.InstMetricsEndpoint, "container-env-instmetrics-server-endpoint", "instmetrics:9090", "The endpoint of the InstMetrics gRPC server")
+	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
 
 	flag.StringVar(&instSnapOpts.VMRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
 	flag.StringVar(&instSnapOpts.RegistrySecretName, "vm-registry-secret", "", "The name of the secret for the VM registry")
@@ -97,6 +100,12 @@ func main() {
 	flag.StringVar(&publicExposureCommonAnnotationRaw, "public-exposure-common-annotations", "", "Comma-separated list of common annotations in format key1=val1,key2=val2")
 	flag.StringVar(&publicExposureCommonLabelsRaw, "public-exposure-common-labels", "", "Comma-separated list of common labels in format key1=val1,key2=val2")
 	flag.StringVar(&publicExposureOpts.LoadBalancerIPsKey, "public-exposure-loadbalancer-ips-key", "metallb.universe.tf/loadBalancerIPs", "Annotation key for specifying LoadBalancer IPs")
+
+	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
+
+	flag.BoolVar(&enableAuth, "enable-auth", true, "Enable adding authentication on the exposed resources")
+	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
+	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
 
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -111,7 +120,7 @@ func main() {
 
 	// Configure the manager
 	mgr, err := ctrl.NewManager(restcfg.SetRateLimiter(ctrl.GetConfigOrDie()), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 rscheme,
 		Metrics:                server.Options{BindAddress: *metricsAddr},
 		LeaderElection:         *enableLeaderElection,
 		HealthProbeBindAddress: ":8081",
@@ -134,14 +143,14 @@ func main() {
 	log.Info("PublicExposureIPPool", "pool", ipPool)
 
 	// Parse common annotations
-	commonAnnotations, err := forge.ParseAnnotations(publicExposureCommonAnnotationRaw)
+	commonAnnotations, err := forge.MapFromKVString(publicExposureCommonAnnotationRaw)
 	if err != nil {
 		log.Error(err, "Invalid public exposure common annotations")
 		os.Exit(1)
 	}
 
 	// Parse common labels
-	commonLabels, err := forge.ParseAnnotations(publicExposureCommonLabelsRaw)
+	commonLabels, err := forge.MapFromKVString(publicExposureCommonLabelsRaw)
 	if err != nil {
 		log.Error(err, "Invalid public exposure common labels")
 		os.Exit(1)
@@ -168,15 +177,32 @@ func main() {
 		log.Error(err, "no path provided for webssh public key")
 	}
 
+	// Populate exposition/gateway fields from flags
+	expositionCfg.EnableAuthentication = enableAuth
+	expositionCfg.GatewayAPIMode = gatewayAPIMode
+	log.Info("Gateway API mode selection", "enabled", gatewayAPIMode)
+	if gatewayAPIMode {
+		gwNs, gwName, err := forge.ParseNamespacedName(gatewayAPIRefsValues)
+		if err != nil {
+			log.Error(err, "invalid gateway parent format, expected 'namespace/name'")
+			os.Exit(1)
+		}
+		expositionCfg.GatewayName = gwName
+		expositionCfg.GatewayNamespace = gwNs
+	} else if gatewayAPIRefsValues != "" {
+		log.Info("Gateway parent provided but Gateway API mode is disabled")
+	}
+
 	if err = (&instctrl.InstanceReconciler{
-		Client:                mgr.GetClient(),
-		Scheme:                mgr.GetScheme(),
-		EventsRecorder:        mgr.GetEventRecorderFor(instanceCtrlName),
-		NamespaceWhitelist:    nsWhitelist,
-		ServiceUrls:           svcUrls,
-		ContainerEnvOpts:      containerEnvOpts,
-		WebSSHMasterPublicKey: pubKeyBytes,
-		PublicExposureOpts:    publicExposureOpts,
+		Client:                    mgr.GetClient(),
+		Scheme:                    mgr.GetScheme(),
+		EventsRecorder:            mgr.GetEventRecorderFor(instanceCtrlName),
+		NamespaceWhitelist:        nsWhitelist,
+		ExpositionConfig:          expositionCfg,
+		ContainerEnvOpts:          containerEnvOpts,
+		WebSSHMasterPublicKey:     pubKeyBytes,
+		PublicExposureOpts:        publicExposureOpts,
+		MirrorPVCStorageClassName: mirrorStorageClass,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

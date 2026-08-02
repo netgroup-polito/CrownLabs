@@ -9,6 +9,8 @@ query tenant($tenantId: String!) {
         cpu
         instances
         memory
+        disk
+        otherResources
       }
       workspaces {
         role
@@ -21,6 +23,8 @@ query tenant($tenantId: String!) {
                 cpu
                 instances
                 memory
+                disk
+                otherResources
               }
             }
             status {
@@ -35,6 +39,8 @@ query tenant($tenantId: String!) {
     }
     metadata {
       name
+      creationTimestamp
+      labels
     }
     status {
       personalNamespace {

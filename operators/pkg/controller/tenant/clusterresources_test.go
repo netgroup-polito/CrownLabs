@@ -25,7 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Cluster Resources", func() {
@@ -81,7 +81,7 @@ var _ = Describe("Cluster Resources", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -107,7 +107,7 @@ var _ = Describe("Cluster Resources", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -170,17 +170,17 @@ var _ = Describe("Cluster Resources", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
 			})
 
 			It("Should prevent the deletion of the tenant", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
-				Expect(tn.Finalizers).To(ContainElement(v1alpha2.TnOperatorFinalizerName))
+				Expect(tn.Finalizers).To(ContainElement(clv1alpha2.TnOperatorFinalizerName))
 			})
 		})
 
@@ -203,17 +203,17 @@ var _ = Describe("Cluster Resources", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
 			})
 
 			It("Should prevent the deletion of the tenant", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
-				Expect(tn.Finalizers).To(ContainElement(v1alpha2.TnOperatorFinalizerName))
+				Expect(tn.Finalizers).To(ContainElement(clv1alpha2.TnOperatorFinalizerName))
 			})
 		})
 	})

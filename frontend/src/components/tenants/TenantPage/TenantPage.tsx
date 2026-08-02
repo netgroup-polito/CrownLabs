@@ -5,7 +5,9 @@ import { generateAvatarUrl } from '../../../utils';
 import { useTenantLazyQuery } from '../../../generated-types';
 import TenantInfo from '../TenantInfo';
 import TenantPersonalWorkspaceSettings from '../TenantPersonalWorkspaceSettings';
-import { Link, useParams } from 'react-router-dom';
+import TenantWorkspaces from '../TenantWorkspaces';
+import TenantSettings from '../TenantSettings';
+import { useParams } from 'react-router-dom';
 import Box from '../../common/Box';
 
 export default function TenantPage() {
@@ -24,14 +26,13 @@ export default function TenantPage() {
           left: (
             <div className="h-full flex-none flex justify-center items-center w-20">
               <Tooltip title="Back">
-                <Link to="/tenants">
-                  <Button
-                    type="primary"
-                    shape="circle"
-                    size="large"
-                    icon={<LeftOutlined />}
-                  />
-                </Link>
+                <Button
+                  type="primary"
+                  shape="circle"
+                  size="large"
+                  icon={<LeftOutlined />}
+                  onClick={() => window.history.back()}
+                />
               </Tooltip>
             </div>
           ),
@@ -74,11 +75,21 @@ export default function TenantPage() {
                       children: <TenantInfo tenant={data} />,
                     },
                     {
+                      key: 'workspaces',
+                      label: 'Workspaces',
+                      children: <TenantWorkspaces tenant={data} />,
+                    },
+                    {
                       key: 'personal-workspace',
                       label: 'Personal Workspace',
                       children: (
                         <TenantPersonalWorkspaceSettings tenant={data} />
                       ),
+                    },
+                    {
+                      key: 'settings',
+                      label: 'Settings',
+                      children: <TenantSettings tenant={data} />,
                     },
                   ]}
                 />

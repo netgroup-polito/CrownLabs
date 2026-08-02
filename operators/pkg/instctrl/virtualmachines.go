@@ -20,11 +20,12 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -34,14 +35,10 @@ import (
 func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
-	template := clctx.TemplateFrom(ctx)
 
-	// Enforce the cloud-init secret when environment is not restricted
-	if template.Spec.Scope == clv1alpha2.ScopeStandard {
-		if err := r.EnforceCloudInitSecret(ctx); err != nil {
-			log.Error(err, "failed to enforce the cloud-init secret existence")
-			return err
-		}
+	if err := r.EnforceCloudInitSecret(ctx); err != nil {
+		log.Error(err, "failed to enforce the cloud-init secret existence")
+		return err
 	}
 
 	// Enforce the service and the ingress to expose the environment.
@@ -66,6 +63,36 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
+	mountInfos := clctx.VolumeMountInfosFrom(ctx)
+
+	// Init the DataVolume object with the correct name and namespace
+	dv := cdiv1beta1.DataVolume{
+		ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name),
+	}
+
+	forgedDV, err := forge.DataVolumeSpec(environment)
+	if err != nil {
+		log.Error(err, "failed to forge datavolume", "datavolume", klog.KObj(&dv))
+		return err
+	}
+
+	// CreateOrUpdate the DataVolume, setting the Spec only if the DataVolume is being created for the first time.
+	resDV, errDV := ctrl.CreateOrUpdate(ctx, r.Client, &dv, func() error {
+		if dv.CreationTimestamp.IsZero() {
+			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
+			dv.Spec = forgedDV
+		}
+		// Remove the owner, this line SHOULD BE removed after the deployment in production
+		dv.OwnerReferences = nil
+
+		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
+	})
+	if errDV != nil {
+		log.Error(errDV, "failed to enforce datavolume", "datavolume", klog.KObj(&dv))
+		return errDV
+	}
+	log.V(utils.FromResult(resDV)).Info("datavolume enforced", "datavolume", klog.KObj(&dv), "result", resDV)
+	// =========================================================================
 
 	vm := virtv1.VirtualMachine{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
@@ -83,7 +110,11 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 		// VirtualMachine specifications are forged only at creation time, as changing them later may be
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
 		if vm.CreationTimestamp.IsZero() {
-			vm.Spec = forge.VirtualMachineSpec(instance, template, environment)
+			vm.Spec = forge.VirtualMachineSpec(instance, template, environment, mountInfos)
+		}
+		// If DataVolumeTemplates are present, they are removed from the VM specifications, as they are not needed anymore. In fact, the DataVolume is already created and managed by the controller.
+		if len(vm.Spec.DataVolumeTemplates) > 0 {
+			vm.Spec.DataVolumeTemplates = nil
 		}
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)
@@ -120,6 +151,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
+	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
 	vmi := virtv1.VirtualMachineInstance{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	var phase clv1alpha2.EnvironmentPhase
@@ -132,7 +164,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 			// VirtualMachineInstance specifications are forged only at creation time, as changing them later may be
 			// either rejected by the webhook or cause the restart of the VMI itself, with consequent data loss.
 			if vmi.CreationTimestamp.IsZero() {
-				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment)
+				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment, mountInfos)
 			}
 			vmi.SetLabels(forge.EnvironmentObjectLabels(vmi.GetLabels(), instance, environment))
 			return ctrl.SetControllerReference(instance, &vmi, r.Scheme)

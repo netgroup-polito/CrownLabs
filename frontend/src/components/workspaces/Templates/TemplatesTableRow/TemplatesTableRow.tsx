@@ -5,6 +5,7 @@ import {
   SelectOutlined,
   AppstoreAddOutlined,
   DockerOutlined,
+  ClockCircleOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
@@ -26,7 +27,11 @@ import {
   OwnedInstancesContext,
   type IQuota,
 } from '../../../../contexts/OwnedInstancesContext';
-import type { Template } from '../../../../utils';
+import {
+  formatExtendedResourceLabel,
+  getOriginalK8sKey,
+  type Template,
+} from '../../../../utils';
 import { cleanupLabels, convertToGiB, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
@@ -51,7 +56,7 @@ export interface ITemplatesTableRowProps {
   editTemplate: (template: Template) => void;
   createInstance: (
     id: string,
-    labelSelector?: JSON,
+    labelSelector?: Record<string, string>,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,
@@ -61,25 +66,49 @@ export interface ITemplatesTableRowProps {
   >;
   expandRow: (value: string, create: boolean) => void;
 }
-
-
-
 const canCreateInstance = (
   template: Template,
   availableQuota: IQuota,
 ): boolean => {
-  // If no quota defined, default to allowing creation
   if (!availableQuota) return true;
 
   const templateCpu = template.resources?.cpu || 0;
   const templateMemory = convertToGiB(template.resources?.memory || '0Gi');
-  // TODO: add this when disk quota is available - const templateDisk = convertToGiB(template.resources?.disk || '0Gi');
+  const templateDisk = convertToGiB(template.resources?.disk || '0Gi');
+
+  const templateOtherResources = {
+    ...template.environmentList?.[0]?.resources?.otherResources,
+  };
+
+  const normalizedQuotaOther: Record<string, number> = {};
+  if (availableQuota.otherResources) {
+    Object.entries(availableQuota.otherResources).forEach(([qKey, qVal]) => {
+      const k8sKey = getOriginalK8sKey(qKey);
+      normalizedQuotaOther[k8sKey] =
+        (normalizedQuotaOther[k8sKey] || 0) + Number(qVal);
+    });
+  }
+
+  let otherResourcesAllowed = true;
+  for (const [key, val] of Object.entries(templateOtherResources)) {
+    const required = Number(val) || 0;
+    if (required <= 0) continue;
+
+    const k8sKey = getOriginalK8sKey(key);
+    const available = normalizedQuotaOther[k8sKey] || 0;
+
+    if (available < required) {
+      otherResourcesAllowed = false;
+      break;
+    }
+  }
 
   return (
     availableQuota.instances >= 1 &&
     availableQuota.cpu >= templateCpu &&
-    availableQuota.memory >= templateMemory
-    // TODO: add this when disk quota is available - availableQuota.disk >= templateDisk
+    availableQuota.memory >= templateMemory &&
+    availableQuota.disk >= templateDisk &&
+    otherResourcesAllowed
   );
 };
 
@@ -95,7 +124,16 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
   workspaceAvailableQuota,
 }) => {
   const canCreate = canCreateInstance(template, workspaceAvailableQuota);
-  
+
+  const stopTimeout = template.cleanup?.stopAfterInactivity ?? 'never';
+  const deleteTimeout = template.cleanup?.deleteAfterInactivity ?? 'never';
+  const deleteCreationTimeout =
+    template.cleanup?.deleteAfterCreation ?? 'never';
+  const hasInactivity =
+    (stopTimeout && stopTimeout !== 'never') ||
+    (deleteTimeout && deleteTimeout !== 'never') ||
+    (deleteCreationTimeout && deleteCreationTimeout !== 'never');
+
   const {
     data: labelsData,
     loading: loadingLabels,
@@ -138,13 +176,12 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
     editTemplate(template);
   };
 
-
   return (
     <>
       <ModalAlert
         headTitle={template.name}
         message="Cannot delete this template"
-        description="A template with active instances cannot be deleted. Please delete al the instances associated with this template."
+        description="A template with active instances cannot be deleted. Please delete all the instances associated with this template."
         type="warning"
         buttons={[
           <Button
@@ -280,6 +317,49 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                                 )}
                               </div>
                             )}
+                            {hasInactivity && (
+                              <Tooltip
+                                title={
+                                  <div className="text-left">
+                                    {(stopTimeout !== 'never' ||
+                                      deleteTimeout !== 'never' ||
+                                      deleteCreationTimeout !== 'never') && (
+                                      <>
+                                        These instances will be: <br />
+                                      </>
+                                    )}
+                                    {stopTimeout !== 'never' && (
+                                      <>
+                                        ▸ powered off after <b>{stopTimeout}</b>{' '}
+                                        of inactivity
+                                        <br />
+                                      </>
+                                    )}
+                                    {deleteTimeout !== 'never' && (
+                                      <>
+                                        ▸ deleted after being stopped for{' '}
+                                        <b>{deleteTimeout}</b>
+                                        <br />
+                                      </>
+                                    )}
+                                    {deleteCreationTimeout !== 'never' && (
+                                      <>
+                                        ▸ deleted after{' '}
+                                        <b>{deleteCreationTimeout}</b> from
+                                        creation
+                                      </>
+                                    )}
+                                  </div>
+                                }
+                              >
+                                <div className="flex items-center">
+                                  <ClockCircleOutlined
+                                    className="warning-color-fg ml-1"
+                                    style={{ fontSize: '14px' }}
+                                  />
+                                </div>
+                              </Tooltip>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -306,9 +386,13 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
               )}
               <label className="ml-3 cursor-pointer">
                 <Space>
-                  {template.description != '' ? (
-                    <Tooltip title={<span>{template.description}</span>}>{template.name}</Tooltip>
-                  ) : (template.name)} 
+                  {template.description !== '' ? (
+                    <Tooltip title={<span>{template.description}</span>}>
+                      {template.name}
+                    </Tooltip>
+                  ) : (
+                    template.name
+                  )}
                   {!template.hasMultipleEnvironments &&
                     template.allowPublicExposure && (
                       <Tooltip title="Public Port Exposure - This template allows exposing internal ports to external networks for remote access">
@@ -342,6 +426,44 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                   </div>
                 </Tooltip>
               )}
+              {hasInactivity && (
+                <Tooltip
+                  title={
+                    <div className="text-left">
+                      {(stopTimeout !== 'never' ||
+                        deleteTimeout !== 'never' ||
+                        deleteCreationTimeout !== 'never') && (
+                        <>
+                          These instances will be: <br />
+                        </>
+                      )}
+                      {stopTimeout !== 'never' && (
+                        <>
+                          ▸ powered off after <b>{stopTimeout}</b> of inactivity
+                          <br />
+                        </>
+                      )}
+                      {deleteTimeout !== 'never' && (
+                        <>
+                          ▸ deleted after being stopped for{' '}
+                          <b>{deleteTimeout}</b>
+                          <br />
+                        </>
+                      )}
+                      {deleteCreationTimeout !== 'never' && (
+                        <>
+                          ▸ deleted after <b>{deleteCreationTimeout}</b> from
+                          creation
+                        </>
+                      )}
+                    </div>
+                  }
+                >
+                  <div className="ml-3 flex warning-color-fg items-center">
+                    <ClockCircleOutlined style={{ fontSize: '18px' }} />
+                  </div>
+                </Tooltip>
+              )}
               {template.nodeSelector && (
                 <div className="ml-3 flex items-center">
                   <NodeSelectorIcon
@@ -363,7 +485,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
           ) : (
             ''
           )}
-          
+
           <Tooltip
             placement="left"
             title={
@@ -373,39 +495,95 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                     <div className="font-semibold mb-2">
                       Multiple Environments ({template.environmentList.length}):
                     </div>
-                    {template.environmentList.map((env, index) => (
-                      <div
-                        key={index}
-                        className="mb-2 p-2 border-l-2 border-blue-300"
-                      >
-                        <div className="font-medium">Env: {env.name}</div>
-                        <div>GUI: {env.guiEnabled ? 'Yes' : 'No'}</div>
-                        <div>CPU: {env.resources.cpu} core(s)</div>
-                        <div>
-                          RAM:{' '}
-                          {convertToGiB(env.resources.memory) || 'unavailable'}
-                          B
-                        </div>
-                        {env.persistent && (
+                    {template.environmentList.map((env, index) => {
+                      const envOther = env.resources?.otherResources;
+                      return (
+                        <div
+                          key={index}
+                          className="mb-2 p-2 border-l-2 border-blue-300"
+                        >
+                          <div className="font-medium">Env: {env.name}</div>
+                          <div>GUI: {env.guiEnabled ? 'Yes' : 'No'}</div>
+                          <div>CPU: {env.resources.cpu} core(s)</div>
                           <div>
-                            DISK:{' '}
-                            {convertToGiB(env.resources.disk) || 'unavailable'}
-                            B
+                            RAM:{' '}
+                            {convertToGiB(env.resources.memory) ||
+                              'unavailable'}{' '}
+                            GiB
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {env.persistent && (
+                            <div>
+                              DISK:{' '}
+                              {convertToGiB(env.resources.disk) ||
+                                'unavailable'}{' '}
+                              GiB
+                            </div>
+                          )}
+                          {Object.entries(envOther || {}).map(
+                            ([key, val]: [string, number | string]) => {
+                              const numericVal = Number(val);
+                              return numericVal > 0 ? (
+                                <div key={key}>
+                                  {formatExtendedResourceLabel(key)}:{' '}
+                                  {numericVal}
+                                </div>
+                              ) : null;
+                            },
+                          )}
+                        </div>
+                      );
+                    })}
                     <div className="mt-2 pt-2 border-t border-gray-300">
                       <div className="font-medium">Total Resources:</div>
                       <div>Total CPU: {template.resources.cpu} core(s)</div>
                       <div>
-                        Total RAM: {convertToGiB(template.resources.memory) || 'unavailable'} GiB
+                        Total RAM:{' '}
+                        {convertToGiB(template.resources.memory) ||
+                          'unavailable'}{' '}
+                        GiB
                       </div>
                       {template.persistent && (
                         <div>
-                          Total DISK: {convertToGiB(template.resources.disk) || 'unavailable'} GiB
+                          Total DISK:{' '}
+                          {convertToGiB(template.resources.disk) ||
+                            'unavailable'}{' '}
+                          GiB
                         </div>
                       )}
+                      {(() => {
+                        const totalOther: Record<string, number> = {};
+                        template.environmentList.forEach(env => {
+                          if (env.resources?.otherResources) {
+                            Object.entries(
+                              env.resources.otherResources,
+                            ).forEach(([k, v]) => {
+                              const k8sKey = getOriginalK8sKey(k);
+                              totalOther[k8sKey] =
+                                (totalOther[k8sKey] || 0) + Number(v);
+                            });
+                          }
+                        });
+                        if (template.resources?.otherResources) {
+                          Object.entries(
+                            template.resources.otherResources,
+                          ).forEach(([k, v]) => {
+                            const k8sKey = getOriginalK8sKey(k);
+                            if (!totalOther[k8sKey]) {
+                              totalOther[k8sKey] = Number(v);
+                            }
+                          });
+                        }
+
+                        return Object.entries(totalOther).map(([key, val]) => {
+                          const numericVal = Number(val);
+                          return numericVal > 0 ? (
+                            <div key={key}>
+                              Total {formatExtendedResourceLabel(key)}:{' '}
+                              {numericVal}
+                            </div>
+                          ) : null;
+                        });
+                      })()}
                     </div>
                   </div>
                 ) : (
@@ -424,13 +602,27 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                             convertToGiB(template.resources.disk) ||
                             'unavailable'
                           }GiB`
-                        : ``}
+                        : ''}
                     </div>
+                    {(() => {
+                      const singleOther = {
+                        ...template.environmentList?.[0]?.resources
+                          ?.otherResources,
+                      };
+                      return Object.entries(singleOther).map(([key, val]) => {
+                        const numericVal = Number(val);
+                        return numericVal > 0 ? (
+                          <div key={key}>
+                            {formatExtendedResourceLabel(key)}: {numericVal}
+                          </div>
+                        ) : null;
+                      });
+                    })()}
                   </>
                 )}
               </>
             }
-          > 
+          >
             <Button type="link" color="orange" size="middle" className="px-0">
               Info
             </Button>

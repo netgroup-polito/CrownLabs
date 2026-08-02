@@ -1,4 +1,4 @@
-import { Button, Checkbox, Form, InputNumber, Row } from 'antd';
+import { Button, Checkbox, Form, Row } from 'antd';
 import { useContext, useState, type FC } from 'react';
 import {
   TenantDocument,
@@ -6,9 +6,14 @@ import {
   type TenantQuery,
 } from '../../../generated-types';
 import type { RuleRender, RuleObject } from 'antd/es/form';
-import { convertToGiB } from '../../../utils';
+import {
+  convertToGiB,
+  getCamelCaseKey,
+  getOriginalK8sKey,
+} from '../../../utils';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { CheckOutlined } from '@ant-design/icons';
+import QuotaFields from '../../shared/QuotaFields';
 
 export interface ITenantPersonalWorkspaceSettingsProps {
   tenant: TenantQuery;
@@ -19,6 +24,8 @@ interface QuotaFormData {
   cpu?: number;
   memory?: number;
   instances?: number;
+  disk?: number;
+  otherResources?: { key: string; value: number }[];
 }
 
 const TenantPersonalWorkspaceSettings: FC<
@@ -47,14 +54,30 @@ const TenantPersonalWorkspaceSettings: FC<
 
     let newQuota = null;
     if (data.enabled) {
-      if (!data.cpu || !data.memory || !data.instances) {
+      if (
+        !data.cpu || data.cpu <= 0 ||
+        !data.memory || data.memory <= 0 ||
+        !data.instances || data.instances <= 0 ||
+        data.disk == null || data.disk < 0
+      ) {
         throw new Error('All quota fields must be provided when enabled');
       }
 
+      // Convert form array in a map object
+      const otherResourcesMap: { [key: string]: string } = {};
+      data.otherResources?.forEach(res => {
+        if (res.key && res.value != null && res.value > 0) {
+          const k8sKey = getOriginalK8sKey(res.key);
+          otherResourcesMap[k8sKey] = res.value.toString();
+        }
+      });
+
       newQuota = {
-        cpu: data.cpu?.toString() ?? '0',
+        cpu: data.cpu ?? 0,
         memory: `${data.memory?.toString() ?? '0'}Gi`,
         instances: data.instances ?? 0,
+        disk: `${data.disk?.toString() ?? '0'}Gi`,
+        otherResources: otherResourcesMap,
       };
     }
 
@@ -62,7 +85,7 @@ const TenantPersonalWorkspaceSettings: FC<
       variables: {
         tenantId: tenantId,
         patchJson: JSON.stringify([
-          { op: 'replace', path: '/spec/personalWorkspace', value: newQuota },
+          { op: 'add', path: '/spec/personalWorkspace', value: newQuota },
         ]),
         manager: 'frontend-tenant-personal-workspace',
       },
@@ -78,7 +101,8 @@ const TenantPersonalWorkspaceSettings: FC<
     }
   };
 
-  const numberValidator: RuleRender = f => {
+  // Strict validator for CPU, RAM, Instances (must be >= 1)
+  const positiveNumberValidator: RuleRender = f => {
     if (f.getFieldValue('enabled')) {
       return {
         validator(_: RuleObject, value: number) {
@@ -97,10 +121,32 @@ const TenantPersonalWorkspaceSettings: FC<
     }
   };
 
+  // Flexible validator for Disk (allows 0)
+  const nonNegativeNumberValidator: RuleRender = f => {
+    if (f.getFieldValue('enabled')) {
+      return {
+        validator(_: RuleObject, value: number) {
+          if (value >= 0) {
+            return Promise.resolve();
+          }
+          return Promise.reject(new Error(`Value must be at least 0`));
+        },
+      };
+    } else {
+      return {
+        validator(_: RuleObject, _value: number) {
+          return Promise.resolve();
+        },
+      };
+    }
+  };
+
   const onValuesChange = (data: QuotaFormData) => {
     setIsSuccess(false);
     if (data.enabled !== undefined) setIsEnabled(data.enabled);
   };
+
+  const currentWorkspace = tenant.tenant?.spec?.personalWorkspace;
 
   return (
     <Form
@@ -116,6 +162,14 @@ const TenantPersonalWorkspaceSettings: FC<
           tenant.tenant?.spec?.personalWorkspace?.memory ?? '0GiB',
         ),
         instances: tenant.tenant?.spec?.personalWorkspace?.instances ?? 0,
+        disk: convertToGiB(currentWorkspace?.disk ?? '0GiB'),
+        // Convert otherResources object in an array
+        otherResources: currentWorkspace?.otherResources
+          ? Object.entries(currentWorkspace.otherResources).map(([k, v]) => ({
+              key: getCamelCaseKey(k),
+              value: parseFloat(v as string),
+            }))
+          : [],
       }}
     >
       <Form.Item
@@ -127,37 +181,42 @@ const TenantPersonalWorkspaceSettings: FC<
         <Checkbox />
       </Form.Item>
 
-      <Form.Item
-        name="cpu"
-        label="CPU"
+      <QuotaFields
+        disabled={!isEnabled}
         validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
-      </Form.Item>
-
-      <Form.Item
-        name="memory"
-        label="Memory (Gi)"
-        validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber
-          min={0}
-          disabled={!isEnabled}
-          className="w-100"
-          addonAfter="Gi"
-        />
-      </Form.Item>
-
-      <Form.Item
-        name="instances"
-        label="Instances"
-        validateTrigger="onBlur"
-        rules={[numberValidator]}
-      >
-        <InputNumber min={0} disabled={!isEnabled} className="w-100" />
-      </Form.Item>
+        rules={{
+          cpu: [positiveNumberValidator],
+          memory: [positiveNumberValidator],
+          instances: [positiveNumberValidator],
+          disk: [nonNegativeNumberValidator],
+          otherResources: [
+            () => ({
+              validator(_, value) {
+                // If resource is enabled, values are validated
+                if (!value || value.length === 0) return Promise.resolve();
+                // Check non-negative values
+                if (
+                  value.every(
+                    (res: { value?: number }) =>
+                      res.value != null && res.value >= 0,
+                  )
+                ) {
+                  return Promise.resolve();
+                }
+                return Promise.reject(
+                  new Error('Resource amounts must be non-negative'),
+                );
+              },
+            }),
+          ],
+        }}
+        limits={{
+          cpu: { min: 0 },
+          memory: { min: 0 },
+          instances: { min: 0 },
+          disk: { min: 0 },
+        }}
+      />
 
       <Row justify="center">
         <Form.Item>

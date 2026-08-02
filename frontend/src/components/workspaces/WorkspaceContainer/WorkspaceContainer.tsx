@@ -10,7 +10,7 @@ import type {
 } from '../../../generated-types';
 import { useCreateTemplateMutation } from '../../../generated-types';
 import type { Workspace } from '../../../utils';
-import { WorkspaceRole } from '../../../utils';
+import { WorkspaceRole, getOriginalK8sKey } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import Box from '../../common/Box';
 import ModalCreateTemplate from '../ModalCreateTemplate';
@@ -53,6 +53,12 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
           cpu: formEnv.cpu,
           reservedCPUPercentage: formEnv.reservedCpu,
           memory: `${formEnv.ram}Gi`,
+          otherResources: Object.fromEntries(
+            Object.entries(formEnv.otherResources || {}).map(([key, val]) => [
+              getOriginalK8sKey(key),
+              String(val ?? 0),
+            ]),
+          ),
         },
         guiEnabled: formEnv.gui,
         // preserve rewriteUrl flag from the form (matches old modal behaviour)
@@ -100,8 +106,10 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         templateName: t.name?.trim() || '',
         descriptionTemplate: t.description,
         environmentList: environmentList,
-        deleteAfter: t.deleteAfter,
-        inactivityTimeout: t.inactivityTimeout,
+        cleanupDeleteAfterCreation: t.cleanup?.deleteAfterCreation ?? 'never',
+        cleanupStopAfterInactivity: t.cleanup?.stopAfterInactivity ?? 'never',
+        cleanupDeleteAfterInactivity:
+          t.cleanup?.deleteAfterInactivity ?? 'never',
         allowPublicExposure: t.allowPublicExposure,
         ...(t.nodeSelector !== null && { nodeSelector: t.nodeSelector }),
       },
@@ -160,8 +168,19 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                   </p>
                 </div>
 
-                {workspace.role === WorkspaceRole.manager && (
-                  <div className="h-full w-18 md:w-24 flex-none flex justify-center items-center">
+                {/* Right Header Side: Displaying QuotaStatus and Action Button */}
+                <div className="h-full flex-none flex justify-center items-center px-4">
+                  <div
+                    style={{
+                      marginRight: '64px',
+                      display: 'flex',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <QuotaDisplay workspaceName={workspace.name} />
+                  </div>
+
+                  {workspace.role === WorkspaceRole.manager && (
                     <Tooltip title="Create template">
                       <Button
                         onClick={() => {
@@ -173,12 +192,8 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
                         icon={<PlusOutlined />}
                       />
                     </Tooltip>
-                  </div>
-                )}
-              </div>
-
-              <div className="w-full flex-none p-2">
-                <QuotaDisplay workspaceName={workspace.name} />
+                  )}
+                </div>
               </div>
             </div>
           ),

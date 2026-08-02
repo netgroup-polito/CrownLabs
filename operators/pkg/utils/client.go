@@ -21,7 +21,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/rest"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -63,25 +63,25 @@ func PatchObject[T interface {
 
 // NewK8sClient initializes the global k8s client.
 func NewK8sClient() (client.Client, error) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(clv1alpha2.AddToScheme(scheme))
+	rscheme := runtime.NewScheme()
+	utilruntime.Must(scheme.AddToScheme(rscheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 
 	kubeconfig, err := ctrl.GetConfig()
 	if err != nil {
 		return nil, fmt.Errorf("k8s config error: %w", err)
 	}
 
-	return client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: scheme})
+	return client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: rscheme})
 }
 
 // NewK8sClientWithConfig initializes a k8s client with the provided configuration.
 func NewK8sClientWithConfig(kubeconfig *rest.Config) (client.Client, error) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(clv1alpha2.AddToScheme(scheme))
+	rscheme := runtime.NewScheme()
+	utilruntime.Must(scheme.AddToScheme(rscheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 
-	return client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: scheme})
+	return client.New(restcfg.SetRateLimiter(kubeconfig), client.Options{Scheme: rscheme})
 }
 
 // GetRestConfig returns the basic Kubernetes REST config.

@@ -99,6 +99,23 @@ annotations:
 
 A valid certificate associated with the `Ingress` host is automatically generated and stored within the secret pointed by the `tls.secretName` field of the `Ingress` resource.
 
+### Secure Gateway Resources (Gateway API)
+
+`cert-manager` can also watch `Gateway` resources and automatically create the `Certificate` and target TLS `Secret` referenced in `spec.listeners[].tls.certificateRefs`.
+
+To request certificates for a `Gateway`, add an annotation in `metadata.annotations`:
+
+```yaml
+annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production-gateway
+```
+
+Additional requirements:
+
+* `cert-manager` Gateway API support must be enabled (`config.enableGatewayAPI: true`).
+* For ACME HTTP-01, the `Gateway` should expose an HTTP listener on port 80 reachable from the Internet.
+* The ACME challenge `HTTPRoute` must be allowed to attach to that HTTP listener.
+
 ### Certificate Resources
 
 A `Certificate` resource can be created to manually request the issuance of a digital certificate for a specific host name belonging to the DNS zone under control. [certificate-example.yaml](certificate-example.yaml) provides an example configuration to request a certificate; please refer to the official documentation [[4]](https://cert-manager.io/docs/usage/certificate/) for more information.

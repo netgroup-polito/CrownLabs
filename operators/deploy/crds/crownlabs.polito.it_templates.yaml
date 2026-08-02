@@ -20,9 +20,6 @@ spec:
     - jsonPath: .spec.prettyName
       name: Pretty Name
       type: string
-    - jsonPath: .spec.environmentList[0].scope
-      name: Scope
-      type: string
     - jsonPath: .spec.environmentList[0].image
       name: Image
       priority: 10
@@ -74,15 +71,42 @@ spec:
                 description: Whether the Template has the authorization to be Public
                   Exposed or not, using a LoadBalancer service.
                 type: boolean
-              deleteAfter:
-                default: never
-                description: |-
-                  The maximum lifetime of an Instance referencing the current Template.
-                  Once this period is expired, the Instance may be automatically deleted
-                  or stopped to save resources. If set to "never", the instance will not be
-                  automatically terminated.
-                pattern: ^(never|[0-9]+[smhd])$
-                type: string
+              cleanup:
+                default:
+                  deleteAfterCreation: never
+                  deleteAfterInactivity: never
+                  stopAfterInactivity: never
+                description: Automatic actions to enforce termination policies.
+                properties:
+                  deleteAfterCreation:
+                    default: never
+                    description: |-
+                      The maximum lifetime of an Instance referencing the current Template.
+                      Once this period is expired, the Instance will be automatically deleted
+                      regardless of whether it is still in use or not.
+                      If set to "never", the instance will not be automatically terminated.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                  deleteAfterInactivity:
+                    default: never
+                    description: |-
+                      The maximum period of time a persistent instance can remain powered off
+                      after being stopped for inactivity, before being completely deleted.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                  stopAfterInactivity:
+                    default: never
+                    description: |-
+                      The maximum period of inactivity after which an Instance referencing
+                      the current Template will be automatically stopped, or deleted
+                      (if not persistent) to save resources.
+                    pattern: ^(never|[0-9]+[smhd])$
+                    type: string
+                required:
+                - deleteAfterCreation
+                - deleteAfterInactivity
+                - stopAfterInactivity
+                type: object
               description:
                 description: A textual description of the Template.
                 type: string
@@ -127,12 +151,13 @@ spec:
                     environmentType:
                       description: |-
                         The type of environment to be instantiated, among VirtualMachine,
-                        Container, CloudVM and Standalone.
+                        Container, CloudVM, LocalVM and Standalone.
                       enum:
                       - VirtualMachine
                       - Container
                       - CloudVM
                       - Standalone
+                      - LocalVM
                       type: string
                     guiEnabled:
                       default: true
@@ -167,34 +192,41 @@ spec:
                         with the environment.
                       properties:
                         cpu:
-                          description: |-
-                            The maximum number of CPU cores made available to the environment
-                            (at least 1 core). This maps to the 'limits' specified
-                            for the actual pod representing the environment.
-                          format: int32
+                          description: The maximum amount of CPU required by this
+                            resource set.
+                          format: int64
                           minimum: 1
                           type: integer
                         disk:
                           anyOf:
                           - type: integer
                           - type: string
-                          description: |-
-                            The size of the persistent disk allocated for the given environment.
-                            This field is meaningful only in case of persistent or container-based
-                            environments, while it is silently ignored in the other cases.
-                            In case of containers, when this field is not specified, an emptyDir will be
-                            attached to the pod but this could result in data loss whenever the pod dies.
+                          description: The maximum amount of disk occupancy required
+                            by this resource set.
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         memory:
                           anyOf:
                           - type: integer
                           - type: string
-                          description: |-
-                            The amount of RAM memory assigned to the given environment. Requests and
-                            limits do correspond to avoid OOMKill issues.
+                          description: The maximum amount of RAM memory required by
+                            this resource set.
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
+                          x-kubernetes-validations:
+                          - message: Minimum 1 GB of RAM is required
+                            rule: quantity(self).compareTo(quantity('1Gi')) >= 0
+                        otherResources:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Generic map to handle any extended hardware resources (e.g., nvidia.com/gpu, amd.com/gpu)
+                            without hardcoding specific vendor keys.
+                          type: object
                         reservedCPUPercentage:
                           description: |-
                             The percentage of reserved CPU cores, ranging between 1 and 100, with
@@ -261,18 +293,11 @@ spec:
                   - name
                   - resources
                   type: object
+                maxItems: 10
                 type: array
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
-              inactivityTimeout:
-                default: never
-                description: |-
-                  The maximum period of inactivity after which an Instance referencing
-                  the current Template will be automatically stopped or deleted to
-                  save resources.
-                pattern: ^(never|[0-9]+[smhd])$
-                type: string
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -283,15 +308,6 @@ spec:
                 type: object
               prettyName:
                 description: The human-readable name of the Template.
-                type: string
-              scope:
-                default: Standard
-                description: The scope associated with the environments belonging
-                  to the template (Standard, Exam, Exercise)
-                enum:
-                - Standard
-                - Exam
-                - Exercise
                 type: string
               workspace.crownlabs.polito.it/WorkspaceRef:
                 description: The reference to the Workspace this Template belongs
@@ -309,6 +325,7 @@ spec:
                 - name
                 type: object
             required:
+            - cleanup
             - description
             - environmentList
             - prettyName

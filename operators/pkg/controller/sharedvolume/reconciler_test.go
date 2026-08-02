@@ -28,9 +28,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
-	ctrlUtil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -55,12 +56,12 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 
 	RunReconciler := func() error {
 		_, err := shvolReconciler.Reconcile(ctx, reconcile.Request{
-			NamespacedName: forge.NamespacedNameFromSharedVolume(&shvol),
+			NamespacedName: forge.NamespacedNameFromObject(&shvol),
 		})
 		if err != nil {
 			return err
 		}
-		return k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)
+		return k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)
 	}
 
 	PVCNamespacedName := func(shvol *clv1alpha2.SharedVolume) types.NamespacedName {
@@ -115,10 +116,12 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 			Persistent:      false,
 			GuiEnabled:      true,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   1,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    1,
+					Memory: resource.MustParse("1Gi"),
+					Disk:   resource.MustParse("10Gi"),
+				},
 				ReservedCPUPercentage: 20,
-				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 			},
 			MountMyDriveVolume: false,
 		}
@@ -129,10 +132,12 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 			Persistent:      false,
 			GuiEnabled:      true,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   1,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    1,
+					Memory: resource.MustParse("1Gi"),
+					Disk:   resource.MustParse("10Gi"),
+				},
 				ReservedCPUPercentage: 20,
-				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 			},
 			MountMyDriveVolume: false,
 			SharedVolumeMounts: []clv1alpha2.SharedVolumeMountInfo{
@@ -215,17 +220,18 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 					Expect(RunReconciler()).To(Succeed())
 				})
 
-				It("Should correctly set labels and finalizers", func() {
+				It("Should correctly set labels, annotations and finalizers", func() {
 					Expect(shvol.Status.Phase).To(Equal(clv1alpha2.SharedVolumePhaseReady))
 
-					// Labels on PVC
+					// Labels and Annotations on PVC
 					Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)).To(Succeed())
 					Expect(pvc.Labels[forge.ProvisionJobLabel]).To(Equal(forge.ProvisionJobValueOk))
 					Expect(pvc.Labels[forge.LabelManagedByKey]).To(Equal("sharedvolume"))
+					Expect(pvc.Annotations[forge.AuthorizationAnnotationKey]).To(Equal(forge.ShVolAuthorizationAnnotationValue))
 
 					// Labels and Finalizers on ShVol
 					Expect(shvol.Labels[forge.LabelManagedByKey]).To(Equal("sharedvolume"))
-					Expect(ctrlUtil.ContainsFinalizer(&shvol, clv1alpha2.ShVolCtrlFinalizerName))
+					Expect(ctrlutil.ContainsFinalizer(&shvol, clv1alpha2.ShVolCtrlFinalizerName))
 				})
 
 				Context("The shared volume deletion should be handled correctly", func() {
@@ -245,13 +251,18 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 								Spec: clv1alpha2.TemplateSpec{
 									WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 									EnvironmentList: []clv1alpha2.Environment{environment},
+									Cleanup: clv1alpha2.CleanupOptions{
+										DeleteAfterCreation:   "never",
+										StopAfterInactivity:   "never",
+										DeleteAfterInactivity: "never",
+									},
 								},
 							}
 							Expect(k8sClient.Create(ctx, &template)).To(Succeed())
 						})
 
 						It("Should smoothly delete the shared volume", func() {
-							err := k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)
+							err := k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)
 							Expect(kerrors.IsNotFound(err)).To(BeTrue())
 						})
 
@@ -271,13 +282,18 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 								Spec: clv1alpha2.TemplateSpec{
 									WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 									EnvironmentList: []clv1alpha2.Environment{environmentSV},
+									Cleanup: clv1alpha2.CleanupOptions{
+										DeleteAfterCreation:   "never",
+										StopAfterInactivity:   "never",
+										DeleteAfterInactivity: "never",
+									},
 								},
 							}
 							Expect(k8sClient.Create(ctx, &templateSV)).To(Succeed())
 						})
 
 						It("Should not delete the shared volume and transition to Deleting", func() {
-							err := k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)
+							err := k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(shvol.Status.Phase).To(Equal(clv1alpha2.SharedVolumePhaseDeleting))
 						})
@@ -316,7 +332,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 						})
 
 						It("Should transition to phase Error", func() {
-							Expect(k8sClient.Get(ctx, forge.NamespacedNameFromSharedVolume(&shvol), &shvol)).To(Succeed())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameFromObject(&shvol), &shvol)).To(Succeed())
 							Expect(shvol.Status.Phase).To(Equal(clv1alpha2.SharedVolumePhaseError))
 
 							Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)).To(Succeed())
@@ -328,7 +344,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 
 			AfterEach(func() {
 				Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pv)).To(Succeed())
-				ctrlUtil.RemoveFinalizer(&pv, "kubernetes.io/pv-protection")
+				ctrlutil.RemoveFinalizer(&pv, "kubernetes.io/pv-protection")
 				_ = k8sClient.Update(ctx, &pv)
 				_ = k8sClient.Delete(ctx, &pv)
 			})
@@ -336,7 +352,7 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 
 		AfterEach(func() {
 			Expect(k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)).To(Succeed())
-			ctrlUtil.RemoveFinalizer(&pvc, "kubernetes.io/pvc-protection")
+			ctrlutil.RemoveFinalizer(&pvc, "kubernetes.io/pvc-protection")
 			_ = k8sClient.Update(ctx, &pvc)
 			_ = k8sClient.Delete(ctx, &pvc)
 		})
@@ -393,7 +409,6 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 		It("Should not create PVC and transition to phase ResourceQuotaExceeded", func() {
 			var pvc corev1.PersistentVolumeClaim
 			err := k8sClient.Get(ctx, PVCNamespacedName(&shvol), &pvc)
-			fmt.Printf("-- GOT PVC: %s | %s\n", *pvc.Spec.StorageClassName, pvc.Spec.Resources.Requests.Storage().String())
 			Expect(kerrors.IsNotFound(err)).To(BeTrue())
 
 			Expect(shvol.Status.Phase).To(Equal(clv1alpha2.SharedVolumePhaseResourceQuotaExceeded))

@@ -11,9 +11,9 @@ export default gql`
           name
           namespace
           creationTimestamp
+          annotations
         }
         status {
-          ip
           phase
           url
           nodeName
@@ -66,6 +66,11 @@ export default gql`
                   prettyName
                   description
                   allowPublicExposure
+                  cleanup {
+                    deleteAfterCreation
+                    stopAfterInactivity
+                    deleteAfterInactivity
+                  }
                   environmentList {
                     name
                     guiEnabled

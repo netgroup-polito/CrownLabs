@@ -77,7 +77,7 @@ type Client struct {
 3. Send the email (expiration notification)
 
    ```go
-   err = client.SendCrownLabsMail("instance-automation/expiration_notification.yaml", ph)
+   err = client.SendCrownLabsMail(ctx, "instance-automation/expiration_notification.yaml", &ph)
    ```
 
 
@@ -104,5 +104,5 @@ type Client struct {
 - `sendEmail(recipient, emailContent string)`
   Sends the fully formatted email through the configured SMTP server.
 
-- `SendCrownLabsMail(templatePath string, ph Placeholders)`
+- `SendCrownLabsMail(ctx context.Context, templatePath string, ph Placeholders)`
   Main entry point: loads a content template, applies placeholders, merges with base template + headers/footers, and sends via SMTP.

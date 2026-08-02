@@ -1,5 +1,5 @@
-import * as core from '@actions/core'
-import * as fs from 'fs'
+import {getInput, setOutput} from '@actions/core'
+import {readFileSync} from 'fs'
 
 type Entry = {
   component: string
@@ -12,10 +12,10 @@ type Matrix = {
 }
 
 try {
-  const path: string = core.getInput('path', {required: true})
-  const filterOptional: boolean = core.getBooleanInput('filterOptional')
+  const path: string = getInput('path', {required: true})
+  const filterOptional: boolean = getInput('filterOptional') === 'true'
 
-  const inputFile = fs.readFileSync(path)
+  const inputFile = readFileSync(path)
   const entries: Entry[] = JSON.parse(inputFile.toString()).filter(
     (entry: Entry) => !filterOptional || !entry.optional
   )
@@ -25,7 +25,7 @@ try {
     include: entries
   }
 
-  core.setOutput('matrix', JSON.stringify(output))
+  setOutput('matrix', JSON.stringify(output))
 } catch (error) {
-  if (error instanceof Error) core.setFailed(error.message)
+  if (error instanceof Error) setOutput('error', error.message)
 }

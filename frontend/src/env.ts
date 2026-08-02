@@ -8,11 +8,14 @@ type envVarNames =
   | 'VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX'
   | 'VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM'
   | 'VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL'
-  | 'VITE_APP_CROWNLABS_BASTION_HOST';
+  | 'VITE_APP_CROWNLABS_BASTION_HOST'
+  | 'VITE_APP_CROWNLABS_IMAGELIST_STANDALONE'
+  | 'VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS'
+  | 'VITE_APP_CUSTOM_RESOURCES';
 
 type envVarObj = { [key in envVarNames]?: string };
 
-const getEnvVar = (envVarName: envVarNames): string => {
+export const getEnvVar = (envVarName: envVarNames): string => {
   const envVar: string =
     import.meta.env[envVarName] ?? (window as envVarObj)[envVarName];
   if (envVar === undefined) {
@@ -50,3 +53,12 @@ export const VITE_APP_MYDRIVE_TEMPLATE_NAME = getEnvVar(
 export const VITE_APP_MYDRIVE_WORKSPACE_NAME = getEnvVar(
   'VITE_APP_MYDRIVE_WORKSPACE_NAME',
 );
+
+export const VITE_APP_CROWNLABS_IMAGELIST_STANDALONE = getEnvVar(
+  'VITE_APP_CROWNLABS_IMAGELIST_STANDALONE',
+);
+export const VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS = getEnvVar(
+  'VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS',
+);
+
+export const VITE_APP_CUSTOM_RESOURCES = getEnvVar('VITE_APP_CUSTOM_RESOURCES');

@@ -5,9 +5,9 @@ query instancesLabelSelector($labels: String) {
         name
         namespace
         creationTimestamp
+        annotations
       }
       status {
-        ip
         phase
         url
         nodeName
@@ -59,6 +59,11 @@ query instancesLabelSelector($labels: String) {
                 prettyName
                 description
                 allowPublicExposure
+                cleanup {
+                  deleteAfterCreation
+                  stopAfterInactivity
+                  deleteAfterInactivity
+                }
                 environmentList {
                   name
                   guiEnabled

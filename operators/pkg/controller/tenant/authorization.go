@@ -20,17 +20,17 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/Nerzal/gocloak/v13"
+	gocloak13 "github.com/Nerzal/gocloak/v13"
 	"github.com/go-logr/logr"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 func (r *Reconciler) syncWorkspacesAuthorizationRoles(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	if !r.KeycloakActor.IsInitialized() {
 		log.Info("Keycloak actor is not initialized, skipping workspace authorization roles update")
@@ -79,7 +79,7 @@ func (r *Reconciler) syncWorkspacesAuthorizationRoles(
 }
 
 func (r *Reconciler) obtainWantedRoles(
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) []string {
 	wantedRoles := make([]string, 0, len(tn.Spec.Workspaces))
 
@@ -93,8 +93,8 @@ func (r *Reconciler) obtainWantedRoles(
 func (r *Reconciler) obtainCurrentRoles(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
-) ([]*gocloak.Role, error) {
+	tn *clv1alpha2.Tenant,
+) ([]*gocloak13.Role, error) {
 	currentRoles, err := r.KeycloakActor.GetUserRoles(ctx, tn.Status.Keycloak.UserCreated.Name)
 	if err != nil {
 		log.Error(err, "Error getting roles from Keycloak")
@@ -102,7 +102,7 @@ func (r *Reconciler) obtainCurrentRoles(
 	}
 
 	// filter roles to only those related to workspaces
-	filteredRoles := make([]*gocloak.Role, 0)
+	filteredRoles := make([]*gocloak13.Role, 0)
 	for _, role := range currentRoles {
 		if strings.HasPrefix(*role.Name, "workspace-") {
 			filteredRoles = append(filteredRoles, role)
@@ -115,12 +115,12 @@ func (r *Reconciler) obtainCurrentRoles(
 func (r *Reconciler) getRolesToAdd(
 	ctx context.Context,
 	wantedRoles []string,
-	currentRoles []*gocloak.Role,
-) ([]*gocloak.Role, error) {
+	currentRoles []*gocloak13.Role,
+) ([]*gocloak13.Role, error) {
 	rolesToAdd := make([]string, 0)
 
 	for _, wantedRole := range wantedRoles {
-		if !slices.ContainsFunc(currentRoles, func(role *gocloak.Role) bool {
+		if !slices.ContainsFunc(currentRoles, func(role *gocloak13.Role) bool {
 			return *role.Name == wantedRole
 		}) {
 			rolesToAdd = append(rolesToAdd, wantedRole)
@@ -133,8 +133,8 @@ func (r *Reconciler) getRolesToAdd(
 func (r *Reconciler) convertRoleNamesToRoles(
 	ctx context.Context,
 	roles []string,
-) ([]*gocloak.Role, error) {
-	gocloakRoles := make([]*gocloak.Role, len(roles))
+) ([]*gocloak13.Role, error) {
+	gocloakRoles := make([]*gocloak13.Role, len(roles))
 	for i, roleName := range roles {
 		role, err := r.KeycloakActor.GetRole(ctx, roleName)
 		if err != nil {
@@ -147,9 +147,9 @@ func (r *Reconciler) convertRoleNamesToRoles(
 
 func (r *Reconciler) getRolesToDelete(
 	wantedRoles []string,
-	currentRoles []*gocloak.Role,
-) []*gocloak.Role {
-	rolesToDelete := make([]*gocloak.Role, 0)
+	currentRoles []*gocloak13.Role,
+) []*gocloak13.Role {
+	rolesToDelete := make([]*gocloak13.Role, 0)
 
 	for _, currentRole := range currentRoles {
 		if !slices.Contains(wantedRoles, *currentRole.Name) {
@@ -161,6 +161,6 @@ func (r *Reconciler) getRolesToDelete(
 	return rolesToDelete
 }
 
-func workspaceRoleName(data v1alpha2.TenantWorkspaceEntry) string {
+func workspaceRoleName(data clv1alpha2.TenantWorkspaceEntry) string {
 	return forge.WorkspaceRoleName(data.Name, data.Role)
 }

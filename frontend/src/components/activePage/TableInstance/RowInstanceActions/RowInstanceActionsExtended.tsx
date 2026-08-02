@@ -123,33 +123,43 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   );
   return (
     <>
-      <div className="inline-flex border-box justify-center xl:pl-4">
+      <div className="hidden sm:flex items-center border-box justify-center xl:pl-4 sm:w-12 xl:w-56">
         <Popover placement="top" content={infoContent} trigger="click">
           <Button shape="circle" className="hidden sm:block mr-3">
             <InfoOutlined />
           </Button>
         </Popover>
 
-        <Tooltip
-          title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
-        >
-          <span className={`${sshDisabled ? 'cursor-not-allowed' : ''}`}>
-            <Button
-              disabled={sshDisabled}
-              className={`hidden mr-3 xl:inline-block ${
-                sshDisabled ? 'pointer-events-none' : ''
-              }`}
-              shape="round"
-              onClick={() => setSshModal(true)}
+        <span className="hidden mr-3 xl:inline-flex items-center">
+          <Tooltip
+            title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
+          >
+            <span className={sshDisabled ? 'cursor-not-allowed' : ''}>
+              <Button
+                disabled={sshDisabled}
+                className={`${sshDisabled ? 'pointer-events-none' : ''}`}
+                shape="round"
+                onClick={() => setSshModal(true)}
+              >
+                SSH
+              </Button>
+            </span>
+          </Tooltip>
+          {!instance.environments || instance.environments.length === 1 ? (
+            <Tooltip
+              title={
+                sshDisabled
+                  ? getSSHTooltipText(status === Phase2.Ready, environmentType!)
+                  : 'Direct SSH Connection'
+              }
             >
-              SSH
-              {/* Only show direct link button if there's exactly one environment */}
-              {(!instance.environments ||
-                instance.environments.length === 1) && (
+              <span
+                className={`ml-1 ${sshDisabled ? 'cursor-not-allowed inline-block' : 'inline-block'}`}
+              >
                 <Button
                   disabled={sshDisabled}
                   type="link"
-                  className="ml-3"
+                  className={`${sshDisabled ? 'pointer-events-none' : ''}`}
                   color="primary"
                   variant="solid"
                   shape="circle"
@@ -172,10 +182,35 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
                     </Link>
                   }
                 ></Button>
-              )}
-            </Button>
-          </span>
-        </Tooltip>
+              </span>
+            </Tooltip>
+          ) : (
+            <Tooltip title="Direct link not supported for multiple environments (yet!)">
+              <span className="inline-block cursor-not-allowed ml-1">
+                <Button
+                  disabled
+                  type="link"
+                  className="pointer-events-none"
+                  color="primary"
+                  variant="solid"
+                  shape="circle"
+                  size="small"
+                  icon={
+                    <span
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        color: 'gray',
+                      }}
+                    >
+                      <ExportOutlined style={{ fontSize: 15 }} />
+                    </span>
+                  }
+                ></Button>
+              </span>
+            </Tooltip>
+          )}
+        </span>
 
         {instance.allowPublicExposure && (
           <Tooltip title={getPublicExposureTooltipText()}>
@@ -209,7 +244,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
           instanceId={instance.name}
           instancePrettyName={instance.prettyName || instance.name}
           tenantNamespace={instance.tenantNamespace}
-
         />
       )}
     </>

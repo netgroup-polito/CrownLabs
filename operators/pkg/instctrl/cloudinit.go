@@ -23,7 +23,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -42,7 +42,7 @@ const (
 // based on the information retrieved for the tenant object and its associated WebDav credentials.
 func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
-	env := clctx.EnvironmentFrom(ctx)
+	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
 	// Retrieve the public keys.
 	publicKeys, err := r.GetPublicKeys(ctx)
@@ -51,12 +51,6 @@ func (r *InstanceReconciler) EnforceCloudInitSecret(ctx context.Context) error {
 		return err
 	}
 	log.V(utils.LogDebugLevel).Info("public keys correctly retrieved")
-
-	mountInfos, msg, err := forge.NFSVolumeMountInfosFromEnvironment(ctx, r.Client, env)
-	if err != nil {
-		log.Error(err, msg)
-		return err
-	}
 
 	userdata, err := forge.CloudInitUserData(publicKeys, mountInfos)
 	if err != nil {

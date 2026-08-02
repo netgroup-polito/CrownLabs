@@ -20,21 +20,21 @@ import (
 
 	"github.com/go-logr/logr"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 func (r *Reconciler) enforceTenantBaseLabels(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	labels := make(map[string]string)
 	maps.Copy(labels, tn.Labels)
 
 	labels = forge.TenantLabels(labels, tn, r.TargetLabel)
 
-	if err := r.enforcePreservingStatus(ctx, log, tn, func(t *v1alpha2.Tenant) *v1alpha2.Tenant {
+	if err := r.enforcePreservingStatus(ctx, log, tn, func(t *clv1alpha2.Tenant) *clv1alpha2.Tenant {
 		t.Labels = labels
 		return t
 	}); err != nil {

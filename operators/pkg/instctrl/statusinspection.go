@@ -35,7 +35,8 @@ func (r *InstanceReconciler) RetrievePhaseFromVM(vm *virtv1.VirtualMachine, vmi 
 			return clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
 		}
 		return clv1alpha2.EnvironmentPhaseStarting
-	case virtv1.VirtualMachineStatusProvisioning:
+	case virtv1.VirtualMachineStatusProvisioning,
+		virtv1.VirtualMachineStatusWaitingForVolumeBinding:
 		return clv1alpha2.EnvironmentPhaseImporting
 
 	case virtv1.VirtualMachineStatusStopping:
@@ -167,4 +168,37 @@ func (r *InstanceReconciler) podScheduleStatusIntoInstance(ctx context.Context, 
 	instance.Status.NodeSelector = podList.Items[0].Spec.NodeSelector
 	delete(instance.Status.NodeSelector, "kubevirt.io/schedulable")
 	return
+}
+
+// GetEnvironmentResolvedIP inspects the underlying Pod matching the given selector to retrieve its actual IP address.
+func (r *InstanceReconciler) GetEnvironmentResolvedIP(ctx context.Context, namespace string, selector map[string]string) string {
+	// An empty selector matches every Pod in the namespace, which could return unrelated IPs.
+	if len(selector) == 0 {
+		return ""
+	}
+
+	podList := corev1.PodList{}
+	if err := r.List(ctx, &podList, client.InNamespace(namespace), client.MatchingLabels(selector)); err != nil {
+		return ""
+	}
+
+	var candidate *corev1.Pod
+	for i := range podList.Items {
+		pod := &podList.Items[i]
+		if pod.DeletionTimestamp != nil ||
+			pod.Status.Phase == corev1.PodFailed ||
+			pod.Status.Phase == corev1.PodSucceeded ||
+			pod.Status.PodIP == "" {
+			continue
+		}
+
+		if candidate == nil || pod.CreationTimestamp.After(candidate.CreationTimestamp.Time) {
+			candidate = pod
+		}
+	}
+
+	if candidate != nil {
+		return candidate.Status.PodIP
+	}
+	return ""
 }

@@ -1,0 +1,5 @@
+mutation deleteTenant($name: String!) {
+  deleteCrownlabsPolitoItV1alpha2Tenant(name: $name) {
+    kind
+  }
+}

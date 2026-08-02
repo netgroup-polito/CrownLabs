@@ -21,15 +21,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Nerzal/gocloak/v13"
+	gocloak13 "github.com/Nerzal/gocloak/v13"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/mock/gomock"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 )
 
@@ -60,15 +60,15 @@ var _ = Describe("Authentication Unit", func() {
 			})
 
 			It("should return true and no error if user is created and email is confirmed", func() {
-				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
-					ID:            gocloak.StringP("user-id"),
-					EmailVerified: gocloak.BoolP(true),
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak13.User{
+					ID:            gocloak13.StringP("user-id"),
+					EmailVerified: gocloak13.BoolP(true),
 				}, nil)
 
 				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeTrue())
-				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 					Name:    "user-id",
 					Created: true,
 				}))
@@ -76,15 +76,15 @@ var _ = Describe("Authentication Unit", func() {
 			})
 
 			It("should return false and no error if user is created but email is not confirmed", func() {
-				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
-					ID:            gocloak.StringP("user-id"),
-					EmailVerified: gocloak.BoolP(false),
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak13.User{
+					ID:            gocloak13.StringP("user-id"),
+					EmailVerified: gocloak13.BoolP(false),
 				}, nil)
 
 				verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 				Expect(err).NotTo(HaveOccurred())
 				Expect(verified).To(BeFalse())
-				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+				Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 					Name:    "user-id",
 					Created: true,
 				}))
@@ -93,7 +93,7 @@ var _ = Describe("Authentication Unit", func() {
 
 			Context("When there is an error retrieving the user", func() {
 				It("should return an error ", func() {
-					keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, gocloak.APIError{
+					keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, gocloak13.APIError{
 						Message: "error retrieving user",
 						Code:    500,
 					})
@@ -110,16 +110,16 @@ var _ = Describe("Authentication Unit", func() {
 					gomock.InOrder(
 						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(nil, fmt.Errorf("404")),
 						keycloakActor.EXPECT().CreateUser(gomock.Any(), tnName, tnResource.Spec.Email, tnResource.Spec.FirstName, tnResource.Spec.LastName).Return("user-id", nil),
-						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
-							ID:            gocloak.StringP("user-id"),
-							EmailVerified: gocloak.BoolP(false),
+						keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak13.User{
+							ID:            gocloak13.StringP("user-id"),
+							EmailVerified: gocloak13.BoolP(false),
 						}, nil),
 					)
 
 					verified, err := tenantReconciler.CheckKeycloakUserVerified(ctx, log, tnResource)
 					Expect(err).NotTo(HaveOccurred())
 					Expect(verified).To(BeFalse())
-					Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+					Expect(tnResource.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 						Name:    "user-id",
 						Created: true,
 					}))
@@ -174,7 +174,7 @@ var _ = Describe("Authentication Unit", func() {
 				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusOK))
 				Eventually(ch, timeout, interval).Should(Receive(WithTransform(func(e event.GenericEvent) string {
-					return e.Object.(*v1alpha2.Tenant).Name
+					return e.Object.(*clv1alpha2.Tenant).Name
 				}, Equal(tnName))))
 			})
 		})
@@ -224,7 +224,7 @@ var _ = Describe("Authentication Unit", func() {
 				tenantReconciler.KeycloakEventHandler(log, w, r)
 				Expect(w.statusCode).To(Equal(http.StatusOK))
 				Eventually(ch, timeout, interval).Should(Receive(WithTransform(func(e event.GenericEvent) string {
-					return e.Object.(*v1alpha2.Tenant).Name
+					return e.Object.(*clv1alpha2.Tenant).Name
 				}, Equal(tnName))))
 			})
 		})
@@ -317,17 +317,17 @@ var _ = Describe("Authentication Reconciler", func() {
 						tnResource.Spec.FirstName,
 						tnResource.Spec.LastName,
 					).Return("test-user-id", nil),
-					keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
-						ID:            gocloak.StringP("test-user-id"),
-						EmailVerified: gocloak.BoolP(false),
+					keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak13.User{
+						ID:            gocloak13.StringP("test-user-id"),
+						EmailVerified: gocloak13.BoolP(false),
 					}, nil),
 				)
 			})
 
 			It("Should set Tenant keycloak status as created but not confirmed", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
-				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 					Name:    "test-user-id",
 					Created: true,
 				}))
@@ -342,16 +342,16 @@ var _ = Describe("Authentication Reconciler", func() {
 
 		Context("When the Tenant is created but not confirmed in Keycloak", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
-					ID:            gocloak.StringP("test-user-id"),
-					EmailVerified: gocloak.BoolP(false),
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak13.User{
+					ID:            gocloak13.StringP("test-user-id"),
+					EmailVerified: gocloak13.BoolP(false),
 				}, nil)
 			})
 
 			It("Should set Tenant keycloak status as created but not confirmed", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
-				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 					Name:    "test-user-id",
 					Created: true,
 				}))
@@ -366,16 +366,16 @@ var _ = Describe("Authentication Reconciler", func() {
 
 		Context("When the Tenant is created and confirmed in Keycloak", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
-					ID:            gocloak.StringP("test-user-id"),
-					EmailVerified: gocloak.BoolP(true),
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak13.User{
+					ID:            gocloak13.StringP("test-user-id"),
+					EmailVerified: gocloak13.BoolP(true),
 				}, nil)
 			})
 
 			It("Should set Tenant keycloak status as confirmed", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
-				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 					Name:    "test-user-id",
 					Created: true,
 				}))
@@ -391,7 +391,7 @@ var _ = Describe("Authentication Reconciler", func() {
 		Context("When the Tenant is deleted", func() {
 			BeforeEach(func() {
 				tenantBeingDeleted()
-				tnResource.Status.Keycloak.UserCreated = v1alpha2.NameCreated{
+				tnResource.Status.Keycloak.UserCreated = clv1alpha2.NameCreated{
 					Name:    "test-user-id",
 					Created: true,
 				}
@@ -401,7 +401,7 @@ var _ = Describe("Authentication Reconciler", func() {
 			})
 
 			It("Should delete the Tenant keycloak user", func() {
-				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, &v1alpha2.Tenant{}, BeFalse(), 10*time.Second, 250*time.Millisecond)
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, &clv1alpha2.Tenant{}, BeFalse(), 10*time.Second, 250*time.Millisecond)
 			})
 		})
 
@@ -411,7 +411,7 @@ var _ = Describe("Authentication Reconciler", func() {
 			})
 
 			It("Should make the Tenant keycloak user sync to false", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
 				Expect(tn.Status.Ready).To(BeFalse())
 				Expect(tn.Status.Keycloak.UserSynchronized).To(BeFalse())
@@ -420,20 +420,20 @@ var _ = Describe("Authentication Reconciler", func() {
 
 		Context("When the user-id in Keycloak does not match the one in Tenant status", func() {
 			BeforeEach(func() {
-				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak.User{
-					ID:            gocloak.StringP("different-user-id"),
-					EmailVerified: gocloak.BoolP(true),
+				keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).Return(&gocloak13.User{
+					ID:            gocloak13.StringP("different-user-id"),
+					EmailVerified: gocloak13.BoolP(true),
 				}, nil)
-				tnResource.Status.Keycloak.UserCreated = v1alpha2.NameCreated{
+				tnResource.Status.Keycloak.UserCreated = clv1alpha2.NameCreated{
 					Name:    "test-user-id",
 					Created: true,
 				}
 			})
 
 			It("Should update the Tenant keycloak status with the new user-id", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
-				Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+				Expect(tn.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 					Name:    "different-user-id",
 					Created: true,
 				}))
@@ -447,9 +447,9 @@ var _ = Describe("Authentication Reconciler", func() {
 		})
 
 		It("Should set Tenant keycloak status as not confirmed", func() {
-			tn := &v1alpha2.Tenant{}
+			tn := &clv1alpha2.Tenant{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), 10*time.Second, 250*time.Millisecond)
-			Expect(tn.Status.Keycloak.UserCreated).To(Equal(v1alpha2.NameCreated{
+			Expect(tn.Status.Keycloak.UserCreated).To(Equal(clv1alpha2.NameCreated{
 				Name:    "",
 				Created: false,
 			}))

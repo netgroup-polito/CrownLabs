@@ -20,13 +20,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Sandbox", func() {
@@ -36,7 +36,7 @@ var _ = Describe("Sandbox", func() {
 		})
 
 		It("Should create a sandbox namespace for the tenant", func() {
-			sbNs := v1.Namespace{}
+			sbNs := corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "sandbox-" + tnName}, &sbNs, BeTrue(), timeout, interval)
 		})
 
@@ -54,13 +54,13 @@ var _ = Describe("Sandbox", func() {
 		})
 
 		It("Should enforce resource quotas", func() {
-			quota := &v1.ResourceQuota{}
+			quota := &corev1.ResourceQuota{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "sandbox-resource-quota", Namespace: "sandbox-" + tnName}, quota, BeTrue(), timeout, interval)
 		})
 
 		It("Should enforce limit ranges", func() {
-			limitRange := &v1.LimitRange{}
+			limitRange := &corev1.LimitRange{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "sandbox-limit-range", Namespace: "sandbox-" + tnName}, limitRange, BeTrue(), timeout, interval)
 		})
@@ -69,7 +69,7 @@ var _ = Describe("Sandbox", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					Create: func(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
-						if ns, ok := obj.(*v1.Namespace); ok && ns.Name == "sandbox-"+tnName {
+						if ns, ok := obj.(*corev1.Namespace); ok && ns.Name == "sandbox-"+tnName {
 							return fmt.Errorf("error creating sandbox namespace")
 						}
 						return nil
@@ -84,7 +84,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -110,7 +110,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -121,7 +121,7 @@ var _ = Describe("Sandbox", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					Create: func(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
-						if quota, ok := obj.(*v1.ResourceQuota); ok && quota.Name == "sandbox-resource-quota" && quota.Namespace == "sandbox-"+tnName {
+						if quota, ok := obj.(*corev1.ResourceQuota); ok && quota.Name == "sandbox-resource-quota" && quota.Namespace == "sandbox-"+tnName {
 							return fmt.Errorf("error creating resource quota")
 						}
 						return nil
@@ -136,7 +136,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -147,7 +147,7 @@ var _ = Describe("Sandbox", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					Create: func(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
-						if lr, ok := obj.(*v1.LimitRange); ok && lr.Name == "sandbox-limit-range" && lr.Namespace == "sandbox-"+tnName {
+						if lr, ok := obj.(*corev1.LimitRange); ok && lr.Name == "sandbox-limit-range" && lr.Namespace == "sandbox-"+tnName {
 							return fmt.Errorf("error creating limit range")
 						}
 						return nil
@@ -162,7 +162,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())
@@ -170,7 +170,7 @@ var _ = Describe("Sandbox", func() {
 		})
 
 		Context("When the tenant is being deleted", func() {
-			sbNs := &v1.Namespace{
+			sbNs := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "sandbox-" + tnName,
 				},
@@ -188,7 +188,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should delete the sandbox namespace", func() {
-				ns := &v1.Namespace{}
+				ns := &corev1.Namespace{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "sandbox-" + tnName}, ns, BeFalse(), timeout, interval)
 			})
 		})
@@ -196,12 +196,12 @@ var _ = Describe("Sandbox", func() {
 
 	Context("When the tenant sandbox is not required", func() {
 		It("Should not create a sandbox for the tenant", func() {
-			sbNs := v1.Namespace{}
+			sbNs := corev1.Namespace{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "sandbox-" + tnName}, &sbNs, BeFalse(), timeout, interval)
 		})
 
 		Context("When the sandbox namespace exists", func() {
-			sbNs := &v1.Namespace{
+			sbNs := &corev1.Namespace{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "sandbox-" + tnName,
 				},
@@ -226,7 +226,7 @@ var _ = Describe("Sandbox", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					Delete: func(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.DeleteOption) error {
-						if ns, ok := obj.(*v1.Namespace); ok && ns.Name == "sandbox-"+tnName {
+						if ns, ok := obj.(*corev1.Namespace); ok && ns.Name == "sandbox-"+tnName {
 							return fmt.Errorf("error deleting sandbox namespace")
 						}
 						return nil
@@ -241,7 +241,7 @@ var _ = Describe("Sandbox", func() {
 			})
 
 			It("Should set the tenant status to not ready", func() {
-				tn := &v1alpha2.Tenant{}
+				tn := &clv1alpha2.Tenant{}
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 
 				Expect(tn.Status.Ready).To(BeFalse())

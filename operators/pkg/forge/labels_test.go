@@ -20,7 +20,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -712,7 +712,7 @@ var _ = Describe("Labels forging", func() {
 				"existing-label": "existing-value",
 			}
 
-			targetLabel := common.NewLabel("test-key", "test-value")
+			targetLabel := ctrlcommon.NewLabel("test-key", "test-value")
 
 			resultLabels := forge.UpdateWorkspaceResourceCommonLabels(inputLabels, targetLabel)
 
@@ -725,7 +725,7 @@ var _ = Describe("Labels forging", func() {
 		It("Should initialize labels map when nil", func() {
 			var inputLabels map[string]string
 
-			targetLabel := common.NewLabel("test-key", "test-value")
+			targetLabel := ctrlcommon.NewLabel("test-key", "test-value")
 
 			resultLabels := forge.UpdateWorkspaceResourceCommonLabels(inputLabels, targetLabel)
 

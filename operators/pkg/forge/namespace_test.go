@@ -20,23 +20,26 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var _ = Describe("Namespace forging", func() {
 	var (
-		workspace *v1alpha1.Workspace
-		labels    map[string]string
+		workspace             *clv1alpha1.Workspace
+		labels                map[string]string
+		targetLabel           ctrlcommon.KVLabel
+		tenantNamespaceLabels map[string]string
 	)
 
 	BeforeEach(func() {
-		workspace = &v1alpha1.Workspace{
+		workspace = &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-workspace",
 			},
-			Spec: v1alpha1.WorkspaceSpec{
+			Spec: clv1alpha1.WorkspaceSpec{
 				PrettyName: "Test Workspace",
 			},
 		}
@@ -44,6 +47,13 @@ var _ = Describe("Namespace forging", func() {
 		labels = map[string]string{
 			"key1": "value1",
 			"key2": "value2",
+		}
+
+		targetLabel = ctrlcommon.NewLabel("test-key", "test-value")
+		tenantNamespaceLabels = map[string]string{
+			"crownlabs.polito.it/gw-access":                      "crownlabs-main-production",
+			"crownlabs.polito.it/type":                           "tenant",
+			"crownlabs.polito.it/instance-resources-replication": "true",
 		}
 	})
 
@@ -105,7 +115,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("GetTenantNamespaceName", func() {
 		It("Should format namespace name correctly for simple tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -116,7 +126,7 @@ var _ = Describe("Namespace forging", func() {
 		})
 
 		It("Should replace dots with dashes in tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "s123456.student",
 				},
@@ -129,7 +139,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("ConfigureTenantNamespace", func() {
 		It("Should initialize labels if nil and set required labels", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -140,17 +150,23 @@ var _ = Describe("Namespace forging", func() {
 				"custom-label": "custom-value",
 			}
 
-			forge.ConfigureTenantNamespace(namespace, tenant, labels)
+			commonNSLabels := forge.UpdateTenantResourceCommonLabels(tenantNamespaceLabels, targetLabel)
+			composed := forge.TenantNamespaceLabels(namespace.Labels, tenant, commonNSLabels)
+			composed["custom-label"] = labels["custom-label"]
+			namespace.SetLabels(composed)
 
 			Expect(namespace.Labels).ToNot(BeNil())
 			Expect(namespace.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/gw-access", "crownlabs-main-production"))
+			Expect(namespace.Labels).To(HaveKeyWithValue(targetLabel.GetKey(), targetLabel.GetValue()))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(namespace.Labels).ToNot(HaveKey("crownlabs.polito.it/tenant"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/name", "student"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/instance-resources-replication", "true"))
 		})
 
 		It("Should preserve existing labels and add new ones", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -168,12 +184,18 @@ var _ = Describe("Namespace forging", func() {
 				"custom-label": "custom-value",
 			}
 
-			forge.ConfigureTenantNamespace(namespace, tenant, labels)
+			commonNSLabels := forge.UpdateTenantResourceCommonLabels(tenantNamespaceLabels, targetLabel)
+			composed := forge.TenantNamespaceLabels(namespace.Labels, tenant, commonNSLabels)
+			composed["custom-label"] = labels["custom-label"]
+			namespace.SetLabels(composed)
 
 			Expect(namespace.Labels).ToNot(BeNil())
 			Expect(namespace.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/gw-access", "crownlabs-main-production"))
+			Expect(namespace.Labels).To(HaveKeyWithValue(targetLabel.GetKey(), targetLabel.GetValue()))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(namespace.Labels).ToNot(HaveKey("crownlabs.polito.it/tenant"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/name", "student"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/instance-resources-replication", "true"))
 		})
@@ -181,7 +203,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("GetTenantNamespaceName", func() {
 		It("Should format namespace name correctly for simple tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -192,7 +214,7 @@ var _ = Describe("Namespace forging", func() {
 		})
 
 		It("Should replace dots with dashes in tenant name", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "s123456.student",
 				},
@@ -205,7 +227,7 @@ var _ = Describe("Namespace forging", func() {
 
 	var _ = Describe("ConfigureTenantNamespace", func() {
 		It("Should initialize labels if nil and set required labels", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -216,17 +238,22 @@ var _ = Describe("Namespace forging", func() {
 				"custom-label": "custom-value",
 			}
 
-			forge.ConfigureTenantNamespace(namespace, tenant, labels)
+			commonNSLabels := forge.UpdateTenantResourceCommonLabels(tenantNamespaceLabels, targetLabel)
+			composed := forge.TenantNamespaceLabels(namespace.Labels, tenant, commonNSLabels)
+			composed["custom-label"] = labels["custom-label"]
+			namespace.SetLabels(composed)
 
 			Expect(namespace.Labels).ToNot(BeNil())
 			Expect(namespace.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(namespace.Labels).To(HaveKeyWithValue(targetLabel.GetKey(), targetLabel.GetValue()))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(namespace.Labels).ToNot(HaveKey("crownlabs.polito.it/tenant"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/name", "student"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/instance-resources-replication", "true"))
 		})
 
 		It("Should preserve existing labels and add new ones", func() {
-			tenant := &v1alpha2.Tenant{
+			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{
 					Name: "student",
 				},
@@ -244,12 +271,17 @@ var _ = Describe("Namespace forging", func() {
 				"custom-label": "custom-value",
 			}
 
-			forge.ConfigureTenantNamespace(namespace, tenant, labels)
+			commonNSLabels := forge.UpdateTenantResourceCommonLabels(tenantNamespaceLabels, targetLabel)
+			composed := forge.TenantNamespaceLabels(namespace.Labels, tenant, commonNSLabels)
+			composed["custom-label"] = labels["custom-label"]
+			namespace.SetLabels(composed)
 
 			Expect(namespace.Labels).ToNot(BeNil())
 			Expect(namespace.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(namespace.Labels).To(HaveKeyWithValue(targetLabel.GetKey(), targetLabel.GetValue()))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/type", "tenant"))
+			Expect(namespace.Labels).ToNot(HaveKey("crownlabs.polito.it/tenant"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/name", "student"))
 			Expect(namespace.Labels).To(HaveKeyWithValue("crownlabs.polito.it/instance-resources-replication", "true"))
 		})

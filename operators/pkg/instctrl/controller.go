@@ -23,7 +23,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,9 +36,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -46,24 +47,19 @@ import (
 // InstanceReconciler reconciles an Instance object.
 type InstanceReconciler struct {
 	client.Client
-	Scheme                *runtime.Scheme
-	EventsRecorder        record.EventRecorder
-	NamespaceWhitelist    metav1.LabelSelector
-	ServiceUrls           ServiceUrls
-	ContainerEnvOpts      forge.ContainerEnvOpts
-	WebSSHMasterPublicKey []byte
-	PublicExposureOpts    forge.PublicExposureOpts
+	Scheme                    *runtime.Scheme
+	EventsRecorder            record.EventRecorder
+	NamespaceWhitelist        metav1.LabelSelector
+	ExpositionConfig          forge.ExpositionConfig
+	ContainerEnvOpts          forge.ContainerEnvOpts
+	WebSSHMasterPublicKey     []byte
+	PublicExposureOpts        forge.PublicExposureOpts
+	MirrorPVCStorageClassName string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
-}
-
-// ServiceUrls holds URL parameters for the instance reconciler.
-type ServiceUrls struct {
-	WebsiteBaseURL   string
-	InstancesAuthURL string
 }
 
 // calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
@@ -203,14 +199,11 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	}(instance.DeepCopy(), &instance)
 
 	// Retrieve the template associated with the current instance.
-	templateName := types.NamespacedName{
-		Namespace: instance.Spec.Template.Namespace,
-		Name:      instance.Spec.Template.Name,
-	}
+	templateName := forge.NamespacedNameFromGenericRef(instance.Spec.Template)
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, templateName, &template); err != nil {
 		log.Error(err, "failed retrieving the instance template", "template", templateName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, templateName.Namespace, templateName.Name)
+		r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvTmplNotFound, EvTmplNotFoundMsg, templateName.Namespace, templateName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TemplateInto(ctx, &template)
@@ -218,35 +211,42 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	log.Info("successfully retrieved the instance template")
 
 	// Retrieve the tenant associated with the current instance.
-	tenantName := types.NamespacedName{Name: instance.Spec.Tenant.Name}
+	tenantName := forge.NamespacedNameFromGenericRef(instance.Spec.Tenant)
 	var tenant clv1alpha2.Tenant
 	if err := r.Get(ctx, tenantName, &tenant); err != nil {
 		log.Error(err, "failed retrieving the instance tenant", "tenant", tenantName)
-		r.EventsRecorder.Eventf(&instance, v1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, tenantName.Name)
+		r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvTntNotFound, EvTntNotFoundMsg, tenantName.Name)
 		return ctrl.Result{}, err
 	}
 	ctx, log = clctx.TenantInto(ctx, &tenant)
 	tracer.Step("retrieved the instance tenant")
 	log.Info("successfully retrieved the instance tenant")
 
-	// Patch the instance labels to allow for easier categorization.
-	labels, updated := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
-	if updated || instance.Spec.PrettyName == "" {
-		original := instance.DeepCopy()
-		if instance.Spec.PrettyName == "" {
-			instance.Spec.PrettyName = forge.RandomInstancePrettyName()
-		}
-		instance.SetLabels(labels)
-		if err := r.Patch(ctx, &instance, client.MergeFrom(original)); err != nil {
-			log.Error(err, "failed to update the instance labels")
+	// Check whether instance metadata (annotations, labels, pretty name) needs updating.
+	hasTimestamp := instance.Annotations != nil && instance.Annotations[forge.LastPoweredOffTimestampAnnotation] != ""
+	annotationsNeedUpdate := instance.Spec.Running == hasTimestamp
+
+	labels, labelsNeedUpdate := forge.InstanceLabels(instance.GetLabels(), &template, &instance)
+
+	prettyNameNeedUpdate := instance.Spec.PrettyName == ""
+
+	if annotationsNeedUpdate || labelsNeedUpdate || prettyNameNeedUpdate {
+		if err := utils.PatchObject(ctx, r.Client, &instance, enforceInstanceMetadata(labels, annotationsNeedUpdate, labelsNeedUpdate, prettyNameNeedUpdate)); err != nil {
+			log.Error(err, "failed to update the instance metadata")
 			return ctrl.Result{}, err
 		}
-		tracer.Step("instance labels updated")
-		log.Info("instance labels correctly configured")
+		tracer.Step("instance metadata updated")
+		log.Info("instance metadata correctly configured")
 	}
 
 	// Iterate over and enforce the instance environments.
-	if err := r.enforceEnvironments(ctx); err != nil {
+	if err = r.enforceEnvironments(ctx); err != nil {
+		// If it's a quota error, requeue and return nil to prevent CreationLoopBackoff
+		if utils.IsResourceQuotaExceeded(err) {
+			log.Info("resource quota exceeded during environment enforcement, requeuing", "error", err.Error())
+			r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvEnvironmentErr, "Resource quota exceeded, retrying automatically")
+			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
 		log.Error(err, "failed to enforce instance environments")
 		return ctrl.Result{}, err
 	}
@@ -275,50 +275,84 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 	if len(instance.Status.Environments) != tmplEnvCount {
 		instance.Status.Environments = make([]clv1alpha2.InstanceStatusEnv, tmplEnvCount)
 	}
+	// Set the name of the environment for the instance status
+	// to the current template environment name.
+	// This has to be done before it can crash for whatever reason,
+	// since there is a validation on the name field.
+	for i := range template.Spec.EnvironmentList {
+		instance.Status.Environments[i].Name = template.Spec.EnvironmentList[i].Name
+	}
 
 	urlNeeded := false
 
 	for i := range template.Spec.EnvironmentList {
 		tmplEnv := &template.Spec.EnvironmentList[i]
 
-		// Set the name of the environment for the instance status
-		// to the current template environment name.
-		instance.Status.Environments[i].Name = tmplEnv.Name
-
 		// Set an inner context for each environment
 		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
-		switch tmplEnv.EnvironmentType {
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM:
-			if err := r.EnforceVMEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
-				return err
+		// Run the single environment reconciliation
+		if err := r.enforceSingleEnvironment(innCtx, tmplEnv); err != nil {
+			// Check if the synchronous error is due to resource quota exhaustion
+			if utils.IsResourceQuotaExceeded(err) {
+				instance.Status.Environments[i].Phase = clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
 			}
+			return err
+		}
+
+		// Calculate GUI requirements
+		switch tmplEnv.EnvironmentType {
+		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+			urlNeeded = true
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
 			if tmplEnv.GuiEnabled {
 				urlNeeded = true
 			}
-
-		case clv1alpha2.ClassContainer, clv1alpha2.ClassStandalone:
-			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, v1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
-				return err
-			}
-			urlNeeded = true
 		}
-
-		r.setInitialReadyTimeIfNecessary(innCtx)
 	}
 	if urlNeeded {
 		// Enforce the ingress to access the GUI
-		host := forge.HostName(r.ServiceUrls.WebsiteBaseURL, template.Spec.Scope)
+		// Use the configured website base URL
+		host := r.ExpositionConfig.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
-		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
+		instance.Status.URL = forge.ExpositionGuiStatusInstanceURL(host, instance)
 	} else {
 		instance.Status.URL = ""
 	}
 
+	return nil
+}
+
+// enforceSingleEnvironment executes the reconciliation steps for a single environment.
+func (r *InstanceReconciler) enforceSingleEnvironment(ctx context.Context, tmplEnv *clv1alpha2.Environment) error {
+	if err := r.EnforceShVolMirrorPVCs(ctx); err != nil {
+		r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
+		return err
+	}
+
+	mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(ctx, r.Client)
+	if err != nil {
+		r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
+		return err
+	}
+	ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
+
+	switch tmplEnv.EnvironmentType {
+	case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
+		if err := r.EnforceVMEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+		if err := r.EnforceContainerEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	}
+
+	r.setInitialReadyTimeIfNecessary(ctx)
 	return nil
 }
 
@@ -356,16 +390,22 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
 
-	return ctrl.NewControllerManagedBy(mgr).
+	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
+		Owns(&corev1.PersistentVolumeClaim{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
-		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).
-		WithOptions(controller.Options{
-			MaxConcurrentReconciles: concurrency,
-		}).
+		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
+
+	if r.ExpositionConfig.GatewayAPIMode {
+		bld = bld.Owns(&gatewayv1.HTTPRoute{})
+	}
+
+	return bld.WithOptions(controller.Options{
+		MaxConcurrentReconciles: concurrency,
+	}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Instance")).
 		Complete(r)
 }
@@ -377,4 +417,29 @@ func (r *InstanceReconciler) vmiToInstance(_ context.Context, o client.Object) [
 	}
 
 	return nil
+}
+
+func enforceInstanceMetadata(labels map[string]string, annotationsNeedUpdate, labelsNeedUpdate, prettyNameNeedUpdate bool) func(*clv1alpha2.Instance) *clv1alpha2.Instance {
+	return func(i *clv1alpha2.Instance) *clv1alpha2.Instance {
+		if annotationsNeedUpdate {
+			if i.Annotations == nil {
+				i.Annotations = make(map[string]string)
+			}
+			if !i.Spec.Running {
+				i.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Format(time.RFC3339)
+			} else {
+				delete(i.Annotations, forge.LastPoweredOffTimestampAnnotation)
+			}
+		}
+
+		if prettyNameNeedUpdate {
+			i.Spec.PrettyName = forge.RandomInstancePrettyName()
+		}
+
+		if labelsNeedUpdate {
+			i.SetLabels(labels)
+		}
+
+		return i
+	}
 }

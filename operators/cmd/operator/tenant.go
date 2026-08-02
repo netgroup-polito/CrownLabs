@@ -27,8 +27,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -82,7 +82,8 @@ func init() {
 func setupTenant(
 	mgr manager.Manager,
 	log logr.Logger,
-	targetLabel common.KVLabel,
+	tenantCommonNSLabels map[string]string,
+	targetLabel ctrlcommon.KVLabel,
 ) error {
 	var baseWorkspacesList []string
 	if tenantBaseWorkspaces != "" {
@@ -94,12 +95,14 @@ func setupTenant(
 		Client:                      mgr.GetClient(),
 		Scheme:                      mgr.GetScheme(),
 		TargetLabel:                 targetLabel,
+		TenantCommonNSLabels:        tenantCommonNSLabels,
 		TenantNSKeepAlive:           tenantNSKeepAlive,
 		TriggerReconcileChannel:     make(chan event.GenericEvent, 10),
 		MyDrivePVCsSize:             mydrivePVCsSize.Quantity,
 		MyDrivePVCsStorageClassName: mydrivePVCsStorageClassName,
 		MyDrivePVCsNamespace:        myDrivePVCsNamespace,
-		KeycloakActor:               common.GetKeycloakActor(),
+		MirrorPVCStorageClassName:   mirrorStorageClass,
+		KeycloakActor:               ctrlcommon.GetKeycloakActor(),
 		WaitUserVerification:        waitUserVerification,
 		SandboxClusterRole:          sandboxClusterRole,
 		BaseWorkspaces:              baseWorkspacesList,
@@ -181,7 +184,7 @@ func startKeycloakWebhookHTTPServer(
 
 func setupTenantWebhook(
 	mgr manager.Manager,
-	targetLabel common.KVLabel,
+	targetLabel ctrlcommon.KVLabel,
 	baseWorkspaces []string,
 ) error {
 	tnWh := webhook.TenantWebhook{
@@ -190,7 +193,7 @@ func setupTenantWebhook(
 	}
 
 	if err := ctrl.NewWebhookManagedBy(mgr).
-		For(&v1alpha2.Tenant{}).
+		For(&clv1alpha2.Tenant{}).
 		WithValidator(&webhook.TenantValidator{
 			TenantWebhook: tnWh,
 		}).

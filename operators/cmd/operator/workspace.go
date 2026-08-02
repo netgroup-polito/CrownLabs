@@ -18,7 +18,7 @@ import (
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/workspace"
 )
 
@@ -27,14 +27,14 @@ func init() {}
 func setupWorkspace(
 	mgr manager.Manager,
 	log logr.Logger,
-	targetLabel common.KVLabel,
+	targetLabel ctrlcommon.KVLabel,
 ) error {
 	// Create the Workspace Reconciler
 	wr := &workspace.Reconciler{
 		Client:        mgr.GetClient(),
 		Scheme:        mgr.GetScheme(),
 		TargetLabel:   targetLabel,
-		KeycloakActor: common.GetKeycloakActor(),
+		KeycloakActor: ctrlcommon.GetKeycloakActor(),
 		Reschedule:    reschedule,
 	}
 

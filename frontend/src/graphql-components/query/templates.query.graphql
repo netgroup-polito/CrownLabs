@@ -7,8 +7,11 @@ query workspaceTemplates($workspaceNamespace: String!) {
         prettyName
         description
         allowPublicExposure
-        deleteAfter
-        inactivityTimeout
+        cleanup {
+          deleteAfterCreation
+          stopAfterInactivity
+          deleteAfterInactivity
+        }
         nodeSelector
         environmentList {
           name
@@ -19,7 +22,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
           disableControls
           rewriteURL
           persistent
-          containerStartupOptions{
+          containerStartupOptions {
             sourceArchiveURL
             contentPath
             startupArgs
@@ -31,6 +34,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
             disk
             memory
             reservedCPUPercentage
+            otherResources
           }
           sharedVolumeMounts {
             sharedVolume {

@@ -1,0 +1,192 @@
+# Default values for bastion.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+configurations:
+  sshTrackerPort: 22
+
+image:
+  repositoryBastion: crownlabs/ssh-bastion
+  repositoryOperator: crownlabs/bastion-operator
+  repositoryWebSSH: crownlabs/webssh
+  repositoryWebVNC: crownlabs/webvnc
+  conntrackEnablerImage: alpine:3.20
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart version.
+  tag: ""
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+deploymentAnnotations:
+  reloader.stakater.com/auto: "true"
+podAnnotations: {}
+serviceAnnotations: {}
+serviceLabels: {}
+
+securityContexts:
+  bastion:
+    capabilities:
+      drop:
+        - ALL
+    allowPrivilegeEscalation: false
+    runAsUser: 1000
+    runAsGroup: 1000
+    privileged: false
+  operator:
+    capabilities:
+      drop:
+        - ALL
+      add:
+        - NET_ADMIN
+    readOnlyRootFilesystem: true
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    privileged: false
+  connTrackEnabler:
+    capabilities:
+      drop:
+        - ALL
+      add:
+        - NET_ADMIN
+    readOnlyRootFilesystem: false
+    runAsNonRoot: false
+    runAsUser: 0
+    runAsGroup: 0
+    privileged: false
+  hookCreateSecret:
+    capabilities:
+      drop:
+        - ALL
+    readOnlyRootFilesystem: true
+    runAsNonRoot: true
+    runAsUser: 65534
+    runAsGroup: 65534
+    privileged: false
+
+resources:
+  bastion:
+    limits:
+      memory: 250Mi
+      cpu: 1000m
+    requests:
+      memory: 250Mi
+      cpu: 100m
+  operator:
+    limits:
+      memory: 250Mi
+      cpu: 1000m
+    requests:
+      memory: 250Mi
+      cpu: 100m
+  hookCreateSecret:
+    limits:
+      memory: 100Mi
+      cpu: 1000m
+    requests:
+      memory: 100Mi
+      cpu: 10m
+  webssh:
+    limits:
+      memory: 250Mi
+      cpu: 1000m
+    requests:
+      memory: 100Mi
+      cpu: 100m
+  webvnc:
+    limits:
+      memory: 250Mi
+      cpu: 1000m
+    requests:
+      memory: 100Mi
+      cpu: 100m
+  connTrackEnabler:
+    limits:
+      memory: 100Mi
+      cpu: 100m
+    requests:
+      memory: 100Mi
+      cpu: 100m
+
+service:
+  type: LoadBalancer
+  port: 22
+  externalTrafficPolicy: Cluster
+
+sshKeysSecret:
+  name: crownlabs-bastion-ssh-keys
+  keygenImage: kroniak/ssh-client:3.9
+  kubectlImage: alpine/kubectl:1.33.4
+
+rbacResourcesName: crownlabs-bastion
+
+webssh:
+  expositionEnabled: true
+  ingress:
+    annotations:
+      #cert-manager.io/cluster-issuer: letsencrypt-production
+      nginx.ingress.kubernetes.io/custom-http-errors: "418"
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+      nginx.ingress.kubernetes.io/websocket-services: '{{ include "bastion.fullname" . }}-webssh'
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    hostname: crownlabs.example.com
+    path: /webssh
+    pathType: Prefix
+    secret: frontend-app-certificate # reuse the frontend secret
+  httproute:
+    gateway: {}
+      # name: crownlabs-main # defaults to global.gateway.name
+    path: /webssh
+    timeouts:
+      request: 600s
+      backendRequest: 600s
+  service:
+    type: ClusterIP
+    port: 8085
+  masterKey:
+    secretName: crownlabs-bastion-web-master-key
+    type: ed25519
+    name: webssh-master
+    comment: webssh-master-key
+  config:
+    user: crownlabs
+    timeoutDuration: 30 # minutes
+    maxConCount: 1000
+    vmPort: 22
+    webSocketPort: 8085
+
+webvnc:
+  expositionEnabled: true
+  ingress:
+    annotations:
+      #cert-manager.io/cluster-issuer: letsencrypt-production
+      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
+      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+      nginx.ingress.kubernetes.io/websocket-services: '{{ include "bastion.fullname" . }}-webvnc'
+      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
+    hostname: crownlabs.example.com
+    path: /webvnc
+    pathType: Prefix
+    secret: frontend-app-certificate # reuse the frontend secret
+  httproute:
+    gateway: {}
+      # name: crownlabs-main # defaults to global.gateway.name
+    path: /webvnc
+    timeouts:
+      request: 600s
+      backendRequest: 600s
+  service:
+    type: ClusterIP
+    port: 8086
+    targetPort: http
+  config:
+    maxConnCount: 1000
+    webSocketPort: 8086
+
+global:
+  gateway: {}

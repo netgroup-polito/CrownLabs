@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ .Values.rbacResourcesName }}
+  labels:
+    {{- include "bastion.labels" . | nindent 4 }}
+rules:
+- apiGroups:
+  - crownlabs.polito.it
+  resources:
+  - tenants
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - kubevirt.io
+  resources:
+  - virtualmachineinstances/vnc
+  verbs:
+  - get

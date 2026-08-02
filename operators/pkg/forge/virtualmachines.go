@@ -15,6 +15,9 @@
 package forge
 
 import (
+	"fmt"
+	"strings"
+
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -40,6 +43,10 @@ const (
 
 	// terminationGracePeriod -> the amount of seconds before a terminating VM is forcefully deleted.
 	terminationGracePeriod = 60
+
+	// PodBridgeNetworkLiveMigrationAnnotation enables live migration for VMs using the pod bridge network.
+	PodBridgeNetworkLiveMigrationAnnotation = "kubevirt.io/allow-pod-bridge-network-live-migration"
+	podBridgeNetworkLiveMigrationValue      = "true"
 )
 
 var (
@@ -51,24 +58,21 @@ var (
 
 // VirtualMachineSpec forges the specification of a Kubevirt VirtualMachine object
 // representing the definition of the VM corresponding to a persistent CrownLabs environment.
-func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineSpec {
+func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.VirtualMachineSpec {
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
-			Spec:       VirtualMachineInstanceSpec(instance, template, environment),
-		},
-		DataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{
-			DataVolumeTemplate(NamespacedNameWithSuffix(instance, environment.Name).Name, environment),
+			Spec:       VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},
 	}
 }
 
 // VirtualMachineInstanceSpec forges the specification of a Kubevirt VirtualMachineInstance
 // object representing the definition of the VMI corresponding to a non-persistent CrownLabs Environment.
-func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment) virtv1.VirtualMachineInstanceSpec {
+func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.VirtualMachineInstanceSpec {
 	return virtv1.VirtualMachineInstanceSpec{
-		Domain:                        VirtualMachineDomain(environment, template),
-		Volumes:                       Volumes(instance, environment, template),
+		Domain:                        VirtualMachineDomain(environment, mountInfos),
+		Volumes:                       Volumes(instance, environment, mountInfos),
 		ReadinessProbe:                VirtualMachineReadinessProbe(environment),
 		Networks:                      []virtv1.Network{*virtv1.DefaultPodNetwork()},
 		TerminationGracePeriodSeconds: ptr.To[int64](terminationGracePeriod),
@@ -76,28 +80,63 @@ func VirtualMachineInstanceSpec(instance *clv1alpha2.Instance, template *clv1alp
 	}
 }
 
-// VirtualMachineDomain forges the specification of the domain of a Kubevirt VirtualMachineInstance
-// object representing the definition of the VM corresponding to a given CrownLabs Environment.
-func VirtualMachineDomain(environment *clv1alpha2.Environment, template *clv1alpha2.Template) virtv1.DomainSpec {
-	return virtv1.DomainSpec{
-		CPU:       &virtv1.CPU{Cores: environment.Resources.CPU},
-		Memory:    &virtv1.Memory{Guest: &environment.Resources.Memory},
-		Resources: VirtualMachineResources(environment),
-		Devices: virtv1.Devices{
-			Disks:      VolumeDiskTargets(environment, template),
-			Interfaces: []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
+// Volumes forges the array of volumes to be mounted onto the VMI specification.
+func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) []virtv1.Volume {
+	return append([]virtv1.Volume{
+		VolumeRootDisk(instance, environment),
+		VolumeCloudInit(CanonicalName(instance.GetName())),
+	}, AttachableVolumes(mountInfos)...)
+}
+
+// VolumeCloudInit forges the specification of a volume mapping to a secret containing the cloud-init configuration.
+func VolumeCloudInit(secretName string) virtv1.Volume {
+	return virtv1.Volume{
+		Name: volumeCloudInitName,
+		VolumeSource: virtv1.VolumeSource{
+			CloudInitNoCloud: &virtv1.CloudInitNoCloudSource{
+				UserDataSecretRef: &corev1.LocalObjectReference{Name: secretName},
+			},
 		},
 	}
 }
 
-// Volumes forges the array of volumes to be mounted onto the VMI specification.
-func Volumes(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, template *clv1alpha2.Template) []virtv1.Volume {
-	volumes := []virtv1.Volume{VolumeRootDisk(instance, environment)}
-	// Attach cloudinit volume on non-restricted environments
-	if template.Spec.Scope == clv1alpha2.ScopeStandard {
-		volumes = append(volumes, VolumeCloudInit(CanonicalName(instance.GetName())))
+// VirtualMachineDomain forges the specification of the domain of a Kubevirt VirtualMachineInstance
+// object representing the definition of the VM corresponding to a given CrownLabs Environment.
+func VirtualMachineDomain(environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.DomainSpec {
+	return virtv1.DomainSpec{
+		CPU:       &virtv1.CPU{Cores: Int64ToUint32(environment.Resources.CPU)},
+		Memory:    &virtv1.Memory{Guest: &environment.Resources.Memory},
+		Resources: VirtualMachineResources(environment),
+		Devices: virtv1.Devices{
+			Disks:       VolumeDiskTargets(environment),
+			Filesystems: VirtualMachineFilesystems(mountInfos),
+			Interfaces:  []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
+		},
+	}
+}
+
+// AttachableVolumes forges the array of attachable volumes (MyDrive, SharedVolumes) to be mounted onto the VMI specification.
+func AttachableVolumes(mountInfos []corev1.VolumeMount) []virtv1.Volume {
+	volumes := []virtv1.Volume{}
+	for _, mount := range mountInfos {
+		volumes = append(volumes, VirtPVCVolume(&mount))
 	}
 	return volumes
+}
+
+// VirtPVCVolume forges the specification of an external volume (MyDrive, SharedVolume) to be mounted through PVC.
+func VirtPVCVolume(mount *corev1.VolumeMount) virtv1.Volume {
+	return virtv1.Volume{
+		Name: mount.Name,
+		VolumeSource: virtv1.VolumeSource{
+			PersistentVolumeClaim: &virtv1.PersistentVolumeClaimVolumeSource{
+				PersistentVolumeClaimVolumeSource: corev1.PersistentVolumeClaimVolumeSource{
+					ClaimName: mount.Name,
+					ReadOnly:  mount.ReadOnly,
+				},
+			},
+		},
+	}
 }
 
 // VolumeRootDisk forges the specification of the root volume, either ephemeral or persistent based on
@@ -135,25 +174,10 @@ func VolumeContainerDisk(image string) virtv1.Volume {
 	}
 }
 
-// VolumeCloudInit forges the specification of a volume mapping to a secret containing the cloud-init configuration.
-func VolumeCloudInit(secretName string) virtv1.Volume {
-	return virtv1.Volume{
-		Name: volumeCloudInitName,
-		VolumeSource: virtv1.VolumeSource{
-			CloudInitNoCloud: &virtv1.CloudInitNoCloudSource{
-				UserDataSecretRef: &corev1.LocalObjectReference{Name: secretName},
-			},
-		},
-	}
-}
-
 // VolumeDiskTargets forges the array of disks to be attached to the VM Domain.
-func VolumeDiskTargets(_ *clv1alpha2.Environment, template *clv1alpha2.Template) []virtv1.Disk {
+func VolumeDiskTargets(_ *clv1alpha2.Environment) []virtv1.Disk {
 	disks := []virtv1.Disk{VolumeDiskTarget(volumeRootName)}
-	// Attach cloudinit disk on non-restricted environments
-	if template.Spec.Scope == clv1alpha2.ScopeStandard {
-		disks = append(disks, VolumeDiskTarget(volumeCloudInitName))
-	}
+	disks = append(disks, VolumeDiskTarget(volumeCloudInitName))
 	return disks
 }
 
@@ -169,29 +193,51 @@ func VolumeDiskTarget(name string) virtv1.Disk {
 	}
 }
 
+// VirtualMachineFilesystems forges the array of filesystems to be attached to the VM.
+func VirtualMachineFilesystems(mountInfos []corev1.VolumeMount) []virtv1.Filesystem {
+	fss := []virtv1.Filesystem{}
+
+	for _, mount := range mountInfos {
+		fss = append(fss, virtv1.Filesystem{
+			Name:     mount.Name,
+			Virtiofs: &virtv1.FilesystemVirtiofs{},
+		})
+	}
+	return fss
+}
+
 // VirtualMachineResources forges the resource requirements for a given VM environment.
 func VirtualMachineResources(environment *clv1alpha2.Environment) virtv1.ResourceRequirements {
+	// Create the base resource list with standard CPU/Memory requests/limits
+	requests := corev1.ResourceList{
+		corev1.ResourceCPU:    VirtualMachineCPURequests(environment),
+		corev1.ResourceMemory: VirtualMachineMemoryRequirements(environment),
+	}
+
+	limits := corev1.ResourceList{
+		corev1.ResourceCPU:    VirtualMachineCPULimits(environment),
+		corev1.ResourceMemory: VirtualMachineMemoryRequirements(environment),
+	}
+
+	// Inject dynamic extended resources (e.g., nvidia.com/gpu)
+	InjectOtherResources(environment.Resources.OtherResources, requests)
+	InjectOtherResources(environment.Resources.OtherResources, limits)
+
 	return virtv1.ResourceRequirements{
-		Requests: corev1.ResourceList{
-			corev1.ResourceCPU:    VirtualMachineCPURequests(environment),
-			corev1.ResourceMemory: VirtualMachineMemoryRequirements(environment),
-		},
-		Limits: corev1.ResourceList{
-			corev1.ResourceCPU:    VirtualMachineCPULimits(environment),
-			corev1.ResourceMemory: VirtualMachineMemoryRequirements(environment),
-		},
+		Requests: requests,
+		Limits:   limits,
 	}
 }
 
 // VirtualMachineCPURequests computes the CPU requests based on a given environment.
 func VirtualMachineCPURequests(environment *clv1alpha2.Environment) resource.Quantity {
-	cpu := int64(10 * environment.Resources.CPU * environment.Resources.ReservedCPUPercentage)
+	cpu := 10 * environment.Resources.CPU * int64(environment.Resources.ReservedCPUPercentage)
 	return *resource.NewScaledQuantity(cpu, resource.Milli)
 }
 
 // VirtualMachineCPULimits computes the CPU limits based on a given environment.
 func VirtualMachineCPULimits(environment *clv1alpha2.Environment) resource.Quantity {
-	cpu := resource.NewQuantity(int64(environment.Resources.CPU), resource.DecimalSI)
+	cpu := resource.NewQuantity(environment.Resources.CPU, resource.DecimalSI)
 	cpu.Add(cpuHypervisorOverhead)
 	return *cpu
 }
@@ -223,37 +269,67 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 	}
 }
 
-// DataVolumeSourceForge forges the DataVolumeSource for DataVolumeTemplate.
-func DataVolumeSourceForge(environment *clv1alpha2.Environment) *cdiv1beta1.DataVolumeSource {
+// DataVolumeSourceForge forges the DataVolumeSource for DataVolume.
+func DataVolumeSourceForge(environment *clv1alpha2.Environment) (*cdiv1beta1.DataVolumeSource, error) {
+	// For ClassLocalVM, the DataVolume is created from a pre-existing PVC containing the golden image.
+	if environment.EnvironmentType == clv1alpha2.ClassLocalVM {
+		// Splitting the environment.Image
+		// In case of LocalVM the string must be formatted as: namespace/pvc-name
+
+		parts := strings.Split(environment.Image, "/")
+		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
+			return &cdiv1beta1.DataVolumeSource{
+				PVC: &cdiv1beta1.DataVolumeSourcePVC{
+					Namespace: parts[0],
+					Name:      parts[1],
+				},
+			}, nil
+		}
+		return nil, fmt.Errorf("invalid LocalVM image %q: expected namespace/pvc-name", environment.Image)
+	}
+
+	// For ClassCloudVM, the DataVolume is created from an HTTP source pointing to the image URL.
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM {
 		return &cdiv1beta1.DataVolumeSource{
 			HTTP: &cdiv1beta1.DataVolumeSourceHTTP{
 				URL: environment.Image,
 			},
-		}
+		}, nil
 	}
+
+	// For ClassVM, the DataVolume is created from a registry source.
 	return &cdiv1beta1.DataVolumeSource{
 		Registry: &cdiv1beta1.DataVolumeSourceRegistry{
 			URL:       ptr.To(urlDockerPrefix + environment.Image),
 			SecretRef: ptr.To(cdiSecretName),
 		},
-	}
+	}, nil
 }
 
-// DataVolumeTemplate forges the DataVolume template associated with a given environment.
-func DataVolumeTemplate(name string, environment *clv1alpha2.Environment) virtv1.DataVolumeTemplateSpec {
-	return virtv1.DataVolumeTemplateSpec{
-		ObjectMeta: metav1.ObjectMeta{Name: name},
-		Spec: cdiv1beta1.DataVolumeSpec{
-			Source: DataVolumeSourceForge(environment),
-			PVC: &corev1.PersistentVolumeClaimSpec{
-				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-				Resources: corev1.VolumeResourceRequirements{
-					Requests: corev1.ResourceList{
-						corev1.ResourceStorage: environment.Resources.Disk,
-					},
+// DataVolumeSpec forges the spec of a DataVolume, which needs to be created before the VM.
+func DataVolumeSpec(environment *clv1alpha2.Environment) (cdiv1beta1.DataVolumeSpec, error) {
+	// Select the correct volume mode based on VM type. Defaults to FS, but for CloudVMs Block Mode is used
+	volumeMode := corev1.PersistentVolumeFilesystem
+
+	if environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
+		volumeMode = corev1.PersistentVolumeBlock
+	}
+
+	source, err := DataVolumeSourceForge(environment)
+	if err != nil {
+		return cdiv1beta1.DataVolumeSpec{}, err
+	}
+
+	return cdiv1beta1.DataVolumeSpec{
+		Source: source,
+		PVC: &corev1.PersistentVolumeClaimSpec{
+			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+			VolumeMode:  &volumeMode,
+			Resources: corev1.VolumeResourceRequirements{
+				Requests: corev1.ResourceList{
+					corev1.ResourceStorage: environment.Resources.Disk,
 				},
 			},
 		},
-	}
+	}, nil
 }

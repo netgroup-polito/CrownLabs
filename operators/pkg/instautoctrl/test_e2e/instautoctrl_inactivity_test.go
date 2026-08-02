@@ -21,41 +21,43 @@ import (
 	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/api/errors"
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 )
 
 var _ = Describe("Instautoctrl-inactivity", func() {
 	// Define utility constants for object names and testing timeouts/durations and intervals.
 	const (
-		PersistentInstanceName               = "test-inactivity-instance-persistent"
-		PersistentInstanceName2              = "test-inactivity-instance-persistent2"
-		NonPersistentInstanceName            = "test-inactivity-instance-non-persistent"
-		WorkingNamespace                     = "test-inactivity-working-namespace"
-		persistentTemplateName               = "test-inactivity-test-template-persistent"
-		persistentTemplateName2              = "test-inactivity-test-template-persistent-2"
-		nonPersistentTemplateName            = "test-inactivity-template-non-persistent"
-		TenantName                           = "test-inactivity-tenant"
-		CustomDeleteAfter                    = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeout              = instautoctrl.NeverTimeoutValue
-		CustomDeleteAfterNonPersistent       = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeoutNonPersistent = "0m"
-		CustomDeleteAfterPersistent2         = instautoctrl.NeverTimeoutValue
-		CustomInactivityTimeoutPersistent2   = "2m"
+		PersistentInstanceName                 = "test-inactivity-instance-persistent"
+		PersistentInstanceName2                = "test-inactivity-instance-persistent2"
+		NonPersistentInstanceName              = "test-inactivity-instance-non-persistent"
+		WorkingNamespace                       = "test-inactivity-working-namespace"
+		persistentTemplateName                 = "test-inactivity-test-template-persistent"
+		persistentTemplateName2                = "test-inactivity-test-template-persistent-2"
+		nonPersistentTemplateName              = "test-inactivity-template-non-persistent"
+		TenantName                             = "test-inactivity-tenant"
+		CustomDeleteAfter                      = instautoctrl.NeverTimeoutValue
+		CustomstopAfterInactivity              = instautoctrl.NeverTimeoutValue
+		CustomDeleteAfterNonPersistent         = instautoctrl.NeverTimeoutValue
+		CustomstopAfterInactivityNonPersistent = "0m"
+		CustomDeleteAfterPersistent2           = instautoctrl.NeverTimeoutValue
+		CustomstopAfterInactivityPersistent2   = "2m"
 
 		timeout  = time.Second * 60
 		interval = time.Millisecond * 500
 	)
 
 	var (
-		workingNs = v1.Namespace{
+		workingNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: WorkingNamespace,
@@ -63,10 +65,10 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/operator-selector": "test-suite",
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
-		tenantNs = v1.Namespace{
+		tenantNs = corev1.Namespace{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name: TenantName,
@@ -75,98 +77,115 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/tenant":            TenantName,
 				},
 			},
-			Spec:   v1.NamespaceSpec{},
-			Status: v1.NamespaceStatus{},
+			Spec:   corev1.NamespaceSpec{},
+			Status: corev1.NamespaceStatus{},
 		}
-		templatePersistentEnvironment = crownlabsv1alpha2.TemplateSpec{
-			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
+		templatePersistentEnvironment = clv1alpha2.TemplateSpec{
+			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
-			EnvironmentList: []crownlabsv1alpha2.Environment{
+			EnvironmentList: []clv1alpha2.Environment{
 				{
 					Name:       "env-1",
 					GuiEnabled: true,
-					Resources: crownlabsv1alpha2.EnvironmentResources{
-						CPU:                   1,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    1,
+							Memory: resource.MustParse("1Gi"),
+						},
 						ReservedCPUPercentage: 1,
-						Memory:                resource.MustParse("1024M"),
 					},
-					EnvironmentType: crownlabsv1alpha2.ClassVM,
+					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      true,
 					Image:           "crownlabs/vm",
 				},
 			},
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   "never",
+				StopAfterInactivity:   "never",
+				DeleteAfterInactivity: "never",
+			},
 		}
-		templateNonPersistentEnvironment = crownlabsv1alpha2.TemplateSpec{
-			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
+		templateNonPersistentEnvironment = clv1alpha2.TemplateSpec{
+			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
-			EnvironmentList: []crownlabsv1alpha2.Environment{
+			EnvironmentList: []clv1alpha2.Environment{
 				{
 					Name:       "env-1",
 					GuiEnabled: true,
-					Resources: crownlabsv1alpha2.EnvironmentResources{
-						CPU:                   1,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    1,
+							Memory: resource.MustParse("1Gi"),
+						},
 						ReservedCPUPercentage: 1,
-						Memory:                resource.MustParse("1024M"),
 					},
-					EnvironmentType: crownlabsv1alpha2.ClassVM,
+					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      false,
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfterNonPersistent,
-			InactivityTimeout: CustomInactivityTimeoutNonPersistent,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   CustomDeleteAfterNonPersistent,
+				StopAfterInactivity:   CustomstopAfterInactivityNonPersistent,
+				DeleteAfterInactivity: "never",
+			},
 		}
-		templatePersistentEnvironmentWithCustomInactivityTimeout = crownlabsv1alpha2.TemplateSpec{
-			WorkspaceRef: crownlabsv1alpha2.GenericRef{},
+		templatePersistentEnvironmentWithCustomstopAfterInactivity = clv1alpha2.TemplateSpec{
+			WorkspaceRef: clv1alpha2.GenericRef{},
 			PrettyName:   "My Template",
 			Description:  "Description of my template",
-			EnvironmentList: []crownlabsv1alpha2.Environment{
+			EnvironmentList: []clv1alpha2.Environment{
 				{
 					Name:       "env-1",
 					GuiEnabled: true,
-					Resources: crownlabsv1alpha2.EnvironmentResources{
-						CPU:                   1,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    1,
+							Memory: resource.MustParse("1Gi"),
+						},
 						ReservedCPUPercentage: 1,
-						Memory:                resource.MustParse("1024M"),
 					},
-					EnvironmentType: crownlabsv1alpha2.ClassVM,
+					EnvironmentType: clv1alpha2.ClassVM,
 					Persistent:      false,
 					Image:           "crownlabs/vm",
 				},
 			},
-			DeleteAfter:       CustomDeleteAfterPersistent2,
-			InactivityTimeout: CustomInactivityTimeoutPersistent2,
+			Cleanup: clv1alpha2.CleanupOptions{
+				DeleteAfterCreation:   CustomDeleteAfterPersistent2,
+				StopAfterInactivity:   CustomstopAfterInactivityPersistent2,
+				DeleteAfterInactivity: "never",
+			},
 		}
-		persistentTemplate2 = crownlabsv1alpha2.Template{
+		persistentTemplate2 = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      persistentTemplateName2,
 				Namespace: WorkingNamespace,
 			},
-			Spec:   templatePersistentEnvironmentWithCustomInactivityTimeout,
-			Status: crownlabsv1alpha2.TemplateStatus{},
+			Spec:   templatePersistentEnvironmentWithCustomstopAfterInactivity,
+			Status: clv1alpha2.TemplateStatus{},
 		}
-		persistentTemplate = crownlabsv1alpha2.Template{
+		persistentTemplate = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      persistentTemplateName,
 				Namespace: WorkingNamespace,
 			},
 			Spec:   templatePersistentEnvironment,
-			Status: crownlabsv1alpha2.TemplateStatus{},
+			Status: clv1alpha2.TemplateStatus{},
 		}
-		nonPersistentTemplate = crownlabsv1alpha2.Template{
+		nonPersistentTemplate = clv1alpha2.Template{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      nonPersistentTemplateName,
 				Namespace: WorkingNamespace,
 			},
 			Spec:   templateNonPersistentEnvironment,
-			Status: crownlabsv1alpha2.TemplateStatus{},
+			Status: clv1alpha2.TemplateStatus{},
 		}
-		persistentInstance2 = crownlabsv1alpha2.Instance{
+		persistentInstance2 = clv1alpha2.Instance{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PersistentInstanceName2,
@@ -179,21 +198,21 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/instance-type":     "non-persistent",
 				},
 			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
+			Spec: clv1alpha2.InstanceSpec{
 				Running: true,
-				Template: crownlabsv1alpha2.GenericRef{
+				Template: clv1alpha2.GenericRef{
 					Name:      persistentTemplateName2,
 					Namespace: WorkingNamespace,
 				},
-				Tenant: crownlabsv1alpha2.GenericRef{
+				Tenant: clv1alpha2.GenericRef{
 					Name:      TenantName,
 					Namespace: tenantNs.Name,
 				},
 			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
+			Status: clv1alpha2.InstanceStatus{},
 		}
 
-		persistentInstance = crownlabsv1alpha2.Instance{
+		persistentInstance = clv1alpha2.Instance{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      PersistentInstanceName,
@@ -206,20 +225,20 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/instance-type":     "non-persistent",
 				},
 			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
+			Spec: clv1alpha2.InstanceSpec{
 				Running: true,
-				Template: crownlabsv1alpha2.GenericRef{
+				Template: clv1alpha2.GenericRef{
 					Name:      persistentTemplateName,
 					Namespace: WorkingNamespace,
 				},
-				Tenant: crownlabsv1alpha2.GenericRef{
+				Tenant: clv1alpha2.GenericRef{
 					Name:      TenantName,
 					Namespace: tenantNs.Name,
 				},
 			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
+			Status: clv1alpha2.InstanceStatus{},
 		}
-		nonPersistentInstance = crownlabsv1alpha2.Instance{
+		nonPersistentInstance = clv1alpha2.Instance{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      NonPersistentInstanceName,
@@ -232,21 +251,21 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/instance-type":     "non-persistent",
 				},
 			},
-			Spec: crownlabsv1alpha2.InstanceSpec{
+			Spec: clv1alpha2.InstanceSpec{
 				Running: true,
-				Template: crownlabsv1alpha2.GenericRef{
+				Template: clv1alpha2.GenericRef{
 					Name:      nonPersistentTemplateName,
 					Namespace: WorkingNamespace,
 				},
-				Tenant: crownlabsv1alpha2.GenericRef{
+				Tenant: clv1alpha2.GenericRef{
 					Name:      TenantName,
 					Namespace: tenantNs.Name,
 				},
 			},
-			Status: crownlabsv1alpha2.InstanceStatus{},
+			Status: clv1alpha2.InstanceStatus{},
 		}
 
-		tenant = crownlabsv1alpha2.Tenant{
+		tenant = clv1alpha2.Tenant{
 			TypeMeta: metav1.TypeMeta{},
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      TenantName,
@@ -255,11 +274,11 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 					"crownlabs.polito.it/operator-selector": "test-suite",
 				},
 			},
-			Spec: crownlabsv1alpha2.TenantSpec{
+			Spec: clv1alpha2.TenantSpec{
 				FirstName: "John",
 				LastName:  "Doe",
 				Email:     "john@gmail.com",
-				Workspaces: []crownlabsv1alpha2.TenantWorkspaceEntry{
+				Workspaces: []clv1alpha2.TenantWorkspaceEntry{
 					{Name: workingNs.Name,
 						Role: "user"},
 				},
@@ -304,7 +323,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		By("Creating the namespace where to create instance and template")
 		err1 := k8sClient.Create(ctx, tenNs)
 		err2 := k8sClient.Create(ctx, newNs)
-		if (err1 != nil || err2 != nil) && (errors.IsAlreadyExists(err1) || errors.IsAlreadyExists(err2)) {
+		if (err1 != nil || err2 != nil) && (kerrors.IsAlreadyExists(err1) || kerrors.IsAlreadyExists(err2)) {
 			By("Cleaning up the environment")
 			By("Deleting templates")
 			Expect(k8sClient.Delete(ctx, &persistentTemplate)).Should(Succeed())
@@ -329,9 +348,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 		persistentTemplateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
 		nonPersistentTemplateLookupKey := types.NamespacedName{Name: nonPersistentTemplateName, Namespace: WorkingNamespace}
 		persistentTemplate2LookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
-		createdPersitentTemplate := &crownlabsv1alpha2.Template{}
-		createdNonPersitentTemplate := &crownlabsv1alpha2.Template{}
-		createdPersistentTemplate2 := &crownlabsv1alpha2.Template{}
+		createdPersitentTemplate := &clv1alpha2.Template{}
+		createdNonPersitentTemplate := &clv1alpha2.Template{}
+		createdPersistentTemplate2 := &clv1alpha2.Template{}
 
 		doesEventuallyExists(ctx, persistentTemplateLookupKey, createdPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
 		doesEventuallyExists(ctx, nonPersistentTemplateLookupKey, createdNonPersitentTemplate, BeTrue(), timeout, interval, k8sClient)
@@ -348,7 +367,7 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 	Context("Testing default and custom inactivity value", func() {
 
-		It("Should succeed: the Persistent instance get the default InactivityTimeout value and it is not stopped", func() {
+		It("Should succeed: the Persistent instance get the default stopAfterInactivity value and it is not stopped", func() {
 			mockProm.EXPECT().
 				IsPrometheusHealthy(gomock.Any(), gomock.Any()).
 				Return(true, nil).
@@ -375,20 +394,20 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				AnyTimes()
 
 			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
+			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Getting current templates")
-			currentTemplate := &crownlabsv1alpha2.Template{}
+			currentTemplate := &clv1alpha2.Template{}
 
 			templateLookupKey := types.NamespacedName{Name: currentInstance.Spec.Template.Name, Namespace: WorkingNamespace}
-			Expect(k8sClient.Get(ctx, templateLookupKey, currentTemplate)).Should(Succeed())
+			doesEventuallyExists(ctx, templateLookupKey, currentTemplate, BeTrue(), timeout, interval, k8sClient)
 
-			By("Checking the InactivityTimeout field is the default one")
-			currentInactivityTimeout := currentTemplate.Spec.InactivityTimeout
-			defaultInactivityTimeout := instautoctrl.NeverTimeoutValue
-			Expect(currentInactivityTimeout).To(Equal(defaultInactivityTimeout))
+			By("Checking the stopAfterInactivity field is the default one")
+			currentstopAfterInactivity := currentTemplate.Spec.Cleanup.StopAfterInactivity
+			defaultstopAfterInactivity := instautoctrl.NeverTimeoutValue
+			Expect(currentstopAfterInactivity).To(Equal(defaultstopAfterInactivity))
 			Eventually(func() bool {
 				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
 				if err != nil {
@@ -425,9 +444,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				AnyTimes()
 
 			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
+			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is still running")
 			Eventually(func() bool {
@@ -466,9 +485,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				AnyTimes()
 
 			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
+			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is deleted")
 			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClient)
@@ -504,6 +523,88 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 
 	})
 
+	Context("Testing destruction after inactivity", func() {
+		It("Should delete the persistent instance if destroy timer is exceeded", func() {
+			By("Updating template with deleteAfterInactivity")
+			currentTemplate := &clv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName2, Namespace: WorkingNamespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
+					return err
+				}
+				currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "100h"
+				return k8sClient.Update(ctx, currentTemplate)
+			}, timeout, interval).Should(Succeed())
+
+			By("Waiting for the updated template to be observed by the manager cache")
+			Eventually(func() string {
+				observedTemplate := &clv1alpha2.Template{}
+				if err := k8sClient.Get(ctx, templateLookupKey, observedTemplate); err != nil {
+					return ""
+				}
+				return observedTemplate.Spec.Cleanup.DeleteAfterInactivity
+			}, timeout, interval).Should(Equal("100h"))
+
+			By("Setting instance as powered off with an expired destruction timestamp")
+			currentInstance := &clv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName2, Namespace: tenant.Namespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, instanceLookupKey, currentInstance); err != nil {
+					return err
+				}
+				currentInstance.Spec.Running = false
+				if currentInstance.Annotations == nil {
+					currentInstance.Annotations = make(map[string]string)
+				}
+				currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Add(-150 * time.Hour).Format(time.RFC3339)
+				return k8sClient.Update(ctx, currentInstance)
+			}, timeout, interval).Should(Succeed())
+
+			By("Checking the instance is deleted")
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeFalse(), timeout, interval, k8sClient)
+		})
+
+		It("Should not delete the persistent instance if destroy timer is NOT exceeded", func() {
+			By("Getting current instance")
+			currentInstance := &clv1alpha2.Instance{}
+			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
+
+			By("Setting instance as powered off and recent timestamp")
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, instanceLookupKey, currentInstance); err != nil {
+					return err
+				}
+				currentInstance.Spec.Running = false
+				if currentInstance.Annotations == nil {
+					currentInstance.Annotations = make(map[string]string)
+				}
+				currentInstance.Annotations[forge.LastPoweredOffTimestampAnnotation] = time.Now().Add(-50 * time.Hour).Format(time.RFC3339)
+				return k8sClient.Update(ctx, currentInstance)
+			}, timeout, interval).Should(Succeed())
+
+			By("Updating template with deleteAfterInactivity")
+			currentTemplate := &clv1alpha2.Template{}
+			templateLookupKey := types.NamespacedName{Name: persistentTemplateName, Namespace: WorkingNamespace}
+			Eventually(func() error {
+				if err := k8sClient.Get(ctx, templateLookupKey, currentTemplate); err != nil {
+					return err
+				}
+				currentTemplate.Spec.Cleanup.DeleteAfterInactivity = "100h"
+				return k8sClient.Update(ctx, currentTemplate)
+			}, timeout, interval).Should(Succeed())
+
+			By("Checking the instance is NOT deleted")
+			Eventually(func() bool {
+				err := k8sClient.Get(ctx, instanceLookupKey, currentInstance)
+				if err != nil {
+					return false
+				}
+				return !currentInstance.Spec.Running
+			}, time.Second*5, interval).Should(BeTrue(), "The instance should not be deleted")
+		})
+	})
+
 	Context("Testing errors", func() {
 		It("Should fail: prometheus is not healthy", func() {
 			mockProm.EXPECT().
@@ -532,9 +633,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				AnyTimes()
 
 			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
+			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is still running")
 			Eventually(func() bool {
@@ -572,9 +673,9 @@ var _ = Describe("Instautoctrl-inactivity", func() {
 				AnyTimes()
 
 			By("Getting current instance")
-			currentInstance := &crownlabsv1alpha2.Instance{}
+			currentInstance := &clv1alpha2.Instance{}
 			instanceLookupKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenant.Namespace}
-			Expect(k8sClient.Get(ctx, instanceLookupKey, currentInstance)).Should(Succeed())
+			doesEventuallyExists(ctx, instanceLookupKey, currentInstance, BeTrue(), timeout, interval, k8sClient)
 
 			By("Checking the instance is still running")
 			Eventually(func() bool {

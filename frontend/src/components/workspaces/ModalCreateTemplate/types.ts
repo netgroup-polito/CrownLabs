@@ -15,8 +15,11 @@ export type TemplateForm = {
   name: string;
   description: string;
   environments: TemplateFormEnv[];
-  deleteAfter: string;
-  inactivityTimeout: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
   allowPublicExposure: boolean;
   nodeSelector?: Record<string, string> | null;
 };
@@ -38,6 +41,7 @@ export type TemplateFormEnv = {
   containerStartupOptions?: ContainerStartupOptionsForm;
   storageClassName?: string;
   mountMyDriveVolume?: boolean;
+  otherResources?: Record<string, number>;
 };
 
 export type ContainerStartupOptionsForm = {
@@ -45,7 +49,7 @@ export type ContainerStartupOptionsForm = {
   contentPath: string;
   startupArgs: string[];
   EnforceWorkDir: boolean;
-}
+};
 
 export type ChildFormItem = {
   parentFormName: number;
@@ -66,6 +70,7 @@ export type Image = {
 };
 
 export type ImageList = {
+  projectBaseName?: string;
   name: string;
   registryName: string;
   images: Array<{

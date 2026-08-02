@@ -22,16 +22,16 @@ import (
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 func (r *Reconciler) enforceRoleBindings(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	if !ws.Status.Namespace.Created {
 		return fmt.Errorf("cannot manage RoleBindings for Workspace %s: namespace not created", ws.Name)
@@ -58,7 +58,7 @@ func (r *Reconciler) enforceRoleBindings(
 
 func (r *Reconciler) enforceRoleBindingsAbsence(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
 	if !ws.Status.Namespace.Created {
 		return nil // No RoleBindings to delete if the namespace is not created
@@ -111,7 +111,7 @@ func (r *Reconciler) deleteSingleRb(
 // enforceUserViewTemplatesRoleBinding creates or updates the RoleBinding for User View Templates.
 func (r *Reconciler) enforceUserViewTemplatesRoleBinding(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	namespace string,
 ) error {
 	rb := &rbacv1.RoleBinding{
@@ -121,14 +121,14 @@ func (r *Reconciler) enforceUserViewTemplatesRoleBinding(
 		},
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
 		// Update labels
 		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
 
 		// Configure the RoleBinding
 		forge.ConfigureWorkspaceUserViewTemplatesBinding(ws, rb, rb.Labels)
 
-		return controllerutil.SetControllerReference(ws, rb, r.Scheme)
+		return ctrlutil.SetControllerReference(ws, rb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating User View Templates RoleBinding: %w", err)
 	}
@@ -139,7 +139,7 @@ func (r *Reconciler) enforceUserViewTemplatesRoleBinding(
 // enforceManagerManageTemplatesRoleBinding creates or updates the RoleBinding for Manager Manage Templates.
 func (r *Reconciler) enforceManagerManageTemplatesRoleBinding(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	namespace string,
 ) error {
 	rb := &rbacv1.RoleBinding{
@@ -149,14 +149,14 @@ func (r *Reconciler) enforceManagerManageTemplatesRoleBinding(
 		},
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
 		// Update labels
 		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
 
 		// Configure the RoleBinding
 		forge.ConfigureWorkspaceManagerManageTemplatesBinding(ws, rb, rb.Labels)
 
-		return controllerutil.SetControllerReference(ws, rb, r.Scheme)
+		return ctrlutil.SetControllerReference(ws, rb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating Manager Manage Templates RoleBinding: %w", err)
 	}
@@ -167,7 +167,7 @@ func (r *Reconciler) enforceManagerManageTemplatesRoleBinding(
 // enforceManagerManageSharedVolumesRoleBinding creates or updates the RoleBinding for Manager Manage SharedVolumes.
 func (r *Reconciler) enforceManagerManageSharedVolumesRoleBinding(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 	namespace string,
 ) error {
 	rb := &rbacv1.RoleBinding{
@@ -177,14 +177,14 @@ func (r *Reconciler) enforceManagerManageSharedVolumesRoleBinding(
 		},
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
 		// Update labels
 		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
 
 		// Configure the RoleBinding
 		forge.ConfigureWorkspaceManagerManageSharedVolumesBinding(ws, rb, rb.Labels)
 
-		return controllerutil.SetControllerReference(ws, rb, r.Scheme)
+		return ctrlutil.SetControllerReference(ws, rb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating Manager Manage SharedVolumes RoleBinding: %w", err)
 	}

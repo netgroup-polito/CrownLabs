@@ -29,11 +29,13 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 )
@@ -49,6 +51,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		environment clv1alpha2.Environment
 		tenant      clv1alpha2.Tenant
 		index       int
+		mountInfos  []corev1.VolumeMount
 
 		objectName    types.NamespacedName
 		objectNameEnv types.NamespacedName
@@ -77,6 +80,10 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		cpuReserved = 25
 		memory      = "1250M"
 		disk        = "20Gi"
+
+		shVolName      = "shvol-abc123-instance-def456-mirror"
+		shVolMountPath = "/mnt/path"
+		shVolReadOnly  = true
 	)
 
 	BeforeEach(func() {
@@ -114,10 +121,12 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			EnvironmentType: clv1alpha2.ClassVM,
 			Image:           image,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   cpu,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    cpu,
+					Memory: resource.MustParse(memory),
+					Disk:   resource.MustParse(disk),
+				},
 				ReservedCPUPercentage: cpuReserved,
-				Memory:                resource.MustParse(memory),
-				Disk:                  resource.MustParse(disk),
 			},
 		}
 		template = clv1alpha2.Template{
@@ -130,7 +139,16 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 		index = 0
 		tenant = clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: tenantName}}
 
-		objectName = forge.NamespacedName(&instance)
+		mountInfos = []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
+		}
+
+		objectName = forge.NamespacedNameFromObject(&instance)
 		objectNameEnv = forge.NamespacedNameWithSuffix(&instance, environmentName)
 
 		svc = corev1.Service{}
@@ -151,51 +169,83 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	JustBeforeEach(func() {
 		reconciler = instctrl.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme}
 
+		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
 		ctx, _ = clctx.TemplateInto(ctx, &template)
 		ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx = clctx.EnvironmentIndexInto(ctx, index)
+		ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
+
 		err = reconciler.EnforceVMEnvironment(ctx)
 	})
 
-	Context("The environment mode is Standard", func() {
-		BeforeEach(func() {
-			template.Spec.Scope = clv1alpha2.ScopeStandard
-		})
-		It("Should enforce the cloud-init secret", func() {
-			// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
-		})
-	})
-
-	Context("The environment mode is Exam", func() {
-		BeforeEach(func() {
-			template.Spec.Scope = clv1alpha2.ScopeExam
-		})
-		It("Should not enforce the cloud-init secret", func() {
-			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName, &secret)).To(
-				MatchError(kerrors.NewNotFound(corev1.Resource("secrets"), objectName.Name)),
-			)
-		})
-	})
-
-	Context("The environment mode is Exercise", func() {
-		BeforeEach(func() {
-			template.Spec.Scope = clv1alpha2.ScopeExercise
-		})
-		It("Should not enforce the cloud-init secret", func() {
-			// Here, we only check the secret absence to assert the function execution, leaving the other assertions to the proper tests.
-			Expect(reconciler.Get(ctx, objectName, &secret)).To(
-				MatchError(kerrors.NewNotFound(corev1.Resource("secrets"), objectName.Name)),
-			)
-		})
+	It("Should enforce the cloud-init secret", func() {
+		// Here, we only check the secret presence to assert the function execution, leaving the other assertions to the proper tests.
+		Expect(reconciler.Get(ctx, objectName, &secret)).To(Succeed())
 	})
 
 	It("Should enforce the environment exposition objects", func() {
 		// Here, we only check the service presence to assert the function execution, leaving the other assertions to the proper tests.
 		Expect(reconciler.Get(ctx, objectNameEnv, &svc)).To(Succeed())
+	})
+
+	Context("Mount information configurations", func() {
+		MountConfigCase := func(description string, mounts []corev1.VolumeMount) {
+			Context(description, func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassVM
+					mountInfos = mounts
+				})
+
+				Context("with non-persistent environment", func() {
+					BeforeEach(func() {
+						environment.Persistent = false
+					})
+
+					It("The VMI should have the expected volume mounts", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
+						Expect(vmi.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
+						Expect(vmi.Spec.Volumes).To(HaveLen(len(mounts) + 2))
+						// + 2 since there are the "root" (ContainerDisk) and "cloud-init" Volumes.
+
+						// The exact values in Filesystems and Volumes are checked in forge.
+					})
+				})
+
+				Context("with persistent environment", func() {
+					BeforeEach(func() {
+						environment.Persistent = true
+					})
+
+					It("The VM should have the expected volume mounts", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+						Expect(vm.Spec.Template.Spec.Domain.Devices.Filesystems).To(HaveLen(len(mounts)))
+						Expect(vm.Spec.Template.Spec.Volumes).To(HaveLen(len(mounts) + 2))
+						// + 2 since there are the "root" (Persistent) and "cloud-init" Volumes.
+
+						// The exact values in Filesystems and Volumes are checked in forge.
+					})
+				})
+			})
+		}
+
+		MountConfigCase("with no mount information", []corev1.VolumeMount{})
+		MountConfigCase("with only MyDrive mount", []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+		})
+		MountConfigCase("with only shared volume mount", []corev1.VolumeMount{{
+			Name:      shVolName,
+			MountPath: shVolMountPath,
+			ReadOnly:  shVolReadOnly,
+		}})
+		MountConfigCase("with both MyDrive and shared volume mounts", []corev1.VolumeMount{
+			forge.MyDriveMountInfo(tenantName),
+			{
+				Name:      shVolName,
+				MountPath: shVolMountPath,
+				ReadOnly:  shVolReadOnly,
+			},
+		})
 	})
 
 	Context("The environment is not persistent", func() {
@@ -218,7 +268,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					// appropriate test case.
 					vmi.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vmi.Spec.NodeSelector = map[string]string{}
-					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment)))
+					Expect(vmi.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
 				})
 
 				It("Should leave the instance phase unset", func() {
@@ -303,6 +353,107 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	Context("The environment is persistent", func() {
 		BeforeEach(func() { environment.Persistent = true })
 
+		Context("DataVolume enforcement", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+			})
+
+			When("the DataVolume is not yet present", func() {
+				It("Should create the DataVolume with the expected spec", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
+
+					expectedSpec, specErr := forge.DataVolumeSpec(&environment)
+					Expect(specErr).NotTo(HaveOccurred())
+					Expect(dv.Spec).To(Equal(expectedSpec))
+					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+				})
+			})
+
+			When("the DataVolume is already present", func() {
+				var existingDV cdiv1beta1.DataVolume
+
+				BeforeEach(func() {
+					existingDV = cdiv1beta1.DataVolume{
+						ObjectMeta: forge.NamespacedNameToObjectMeta(objectNameEnv),
+						Spec: cdiv1beta1.DataVolumeSpec{
+							PVC: &corev1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany},
+							},
+						},
+					}
+					existingDV.SetCreationTimestamp(metav1.NewTime(time.Now()))
+					clientBuilder.WithObjects(&existingDV)
+				})
+
+				It("Should keep the existing DataVolume spec", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
+					Expect(dv.Spec).To(Equal(existingDV.Spec))
+					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+				})
+			})
+
+			When("the DataVolume is already controlled by a VirtualMachine", func() {
+				BeforeEach(func() {
+					existingDV := cdiv1beta1.DataVolume{
+						ObjectMeta: forge.NamespacedNameToObjectMeta(objectNameEnv),
+						Spec: cdiv1beta1.DataVolumeSpec{
+							PVC: &corev1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany},
+							},
+						},
+					}
+					existingDV.SetCreationTimestamp(metav1.NewTime(time.Now()))
+					existingDV.SetOwnerReferences([]metav1.OwnerReference{{
+						APIVersion:         virtv1.GroupVersion.String(),
+						Kind:               "VirtualMachine",
+						Name:               objectNameEnv.Name,
+						UID:                types.UID("vm-owner"),
+						BlockOwnerDeletion: ptr.To(true),
+						Controller:         ptr.To(true),
+					}})
+					clientBuilder.WithObjects(&existingDV)
+				})
+
+				It("Should replace the VirtualMachine controller owner with the Instance owner", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
+
+					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+
+					Expect(dv.GetOwnerReferences()).ToNot(ContainElement(metav1.OwnerReference{
+						APIVersion:         virtv1.GroupVersion.String(),
+						Kind:               "VirtualMachine",
+						Name:               objectNameEnv.Name,
+						UID:                types.UID("vm-owner"),
+						BlockOwnerDeletion: ptr.To(true),
+						Controller:         ptr.To(true),
+					}))
+				})
+			})
+
+			When("the environment image is invalid", func() {
+				BeforeEach(func() {
+					environment.EnvironmentType = clv1alpha2.ClassLocalVM
+					environment.Image = "invalid-localvm-image"
+				})
+
+				It("Should return an error before creating the DataVolume", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).To(HaveOccurred())
+					Expect(kerrors.IsNotFound(reconciler.Get(ctx, objectNameEnv, &dv))).To(BeTrue())
+				})
+			})
+		})
+
 		ContextBody := func(envType clv1alpha2.EnvironmentType) {
 			BeforeEach(func() {
 				environment.EnvironmentType = envType
@@ -326,7 +477,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vm.Spec.Running = nil
 					vm.Spec.Template.Spec.NodeSelector = map[string]string{}
-					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment)))
+					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)))
 				})
 
 				It("The VM should be present and with the running flag set", func() {

@@ -5,6 +5,19 @@
 replicaCount: 1
 
 configurations:
+  features:
+    tenant: true
+    workspace: true
+    instance: true
+    sharedvolume: true
+    pmp: false
+    keycloak: true
+    webhooks: false
+    imageList: false
+
+  # Static labels added to tenant namespaces, after the chart prepends targetLabel.
+  tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
+  # Label selector used by controllers to select managed resources.
   targetLabel: crownlabs.polito.it/operator-selector=production
   keycloak:
     url: "https://auth.crownlabs.example.com/"
@@ -37,6 +50,32 @@ configurations:
   maxConcurrentShVolReconciles: 1
   sharedVolumeOptions:
     storageClass: rook-nfs
+  imageList:
+    configFile: /etc/config/registries.yaml
+    updateInterval: 600
+    registries:
+        - name: harbor-registry-standalone
+          type: harbor
+          url: http://harbor-core.harbor:80
+          registryName: harbor.ng.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-standalone
+          project: crownlabs-standalone
+        - name: harbor-registry-containerdisks
+          type: harbor
+          url: http://harbor-core.harbor:80
+          registryName: harbor.ng.crownlabs.polito.it
+          username: ""
+          password: ""
+          imageListName: harbor-containerdisks
+          project: crownlabs-containerdisks
+    
+  pvcMirrorProvisioner:  
+    provisionerName: pmp.crownlabs.polito.it
+    storageClass:
+      name: pvc-mirror
+      deploy: false
 
 image:
   repository: crownlabs/tenant-operator
@@ -76,6 +115,7 @@ webhook:
     webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
     baseWorkspaces: utilities
   enableMutating: false
+  enableValidating: false
   clusterIssuer: self-signed
 
 rbacResourcesName: crownlabs-operator

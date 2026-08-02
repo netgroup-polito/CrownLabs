@@ -21,7 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -37,8 +37,8 @@ func (twh *TenantWebhook) CheckWebhookOverride(req *admission.Request) bool {
 }
 
 // GetClusterTenant retrieves the tenant from the cluster given the name.
-func (twh *TenantWebhook) GetClusterTenant(ctx context.Context, name string) (tenant *v1alpha2.Tenant, err error) {
-	tenant = &v1alpha2.Tenant{}
+func (twh *TenantWebhook) GetClusterTenant(ctx context.Context, name string) (tenant *clv1alpha2.Tenant, err error) {
+	tenant = &clv1alpha2.Tenant{}
 	err = twh.Client.Get(ctx, types.NamespacedName{Name: name}, tenant)
 	return
 }

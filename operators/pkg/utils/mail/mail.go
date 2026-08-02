@@ -172,8 +172,8 @@ func replacePlaceholders(content string, emailValues map[string]string) (string,
 }
 
 // SendCrownLabsMail sends an email using the SMTP server configured in the Client.
-func (m *Client) SendCrownLabsMail(emailContentTemplatePath string, ph *Placeholders) error {
-	log := ctrl.LoggerFrom(context.Background())
+func (m *Client) SendCrownLabsMail(ctx context.Context, emailContentTemplatePath string, ph *Placeholders) error {
+	log := ctrl.LoggerFrom(ctx)
 
 	if emailContentTemplatePath == "" {
 		return fmt.Errorf("email content template path is required")
@@ -191,7 +191,7 @@ func (m *Client) SendCrownLabsMail(emailContentTemplatePath string, ph *Placehol
 		return err
 	}
 
-	return m.sendEmail(ph.TenantEmail, formattedEmail)
+	return m.sendEmail(ctx, ph.TenantEmail, formattedEmail)
 }
 
 // readTemplateFile reads a template file from the filesystem.
@@ -312,16 +312,18 @@ func (m *Client) PrepareFinalEmail(emailContent map[string]string) (string, erro
 }
 
 // sendEmail sends the email to the recipient using SSL/TLS connection.
-func (m *Client) sendEmail(recipient, emailContent string) error {
+func (m *Client) sendEmail(ctx context.Context, recipient, emailContent string) error {
 	msg := []byte(emailContent)
 	address := fmt.Sprintf("%s:%d", m.SMTPServer, m.SMTPPort)
 	to := []string{recipient}
 
-	tlsConfig := &tls.Config{
-		ServerName: m.SMTPServer,
-		MinVersion: tls.VersionTLS12,
+	dialer := tls.Dialer{
+		Config: &tls.Config{
+			ServerName: m.SMTPServer,
+			MinVersion: tls.VersionTLS12,
+		},
 	}
-	conn, err := tls.Dial("tcp", address, tlsConfig)
+	conn, err := dialer.DialContext(ctx, "tcp", address)
 	if err != nil {
 		return fmt.Errorf("failed to establish TLS connection: %w", err)
 	}

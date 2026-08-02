@@ -2,9 +2,12 @@ mutation createWorkspace(
   $name: String!
   $prettyName: String!
   $autoEnroll: AutoEnroll
-  $cpu: JSON!
+  $cpu: BigInt!
   $memory: JSON!
-  $instances: Int!
+  $disk: JSON
+  $otherResources: JSON
+  $labels: JSON!
+  $instances: BigInt!
 ) {
   createdWorkspace: createCrownlabsPolitoItV1alpha1Workspace(
     itPolitoCrownlabsV1alpha1WorkspaceInput: {
@@ -13,9 +16,15 @@ mutation createWorkspace(
       spec: {
         prettyName: $prettyName
         autoEnroll: $autoEnroll
-        quota: { cpu: $cpu, memory: $memory, instances: $instances }
+        quota: {
+          cpu: $cpu
+          memory: $memory
+          disk: $disk
+          otherResources: $otherResources
+          instances: $instances
+        }
       }
-      metadata: { name: $name }
+      metadata: { name: $name, labels: $labels }
     }
   ) {
     spec {
@@ -25,6 +34,8 @@ mutation createWorkspace(
         cpu
         memory
         instances
+        disk
+        otherResources
       }
     }
     metadata {

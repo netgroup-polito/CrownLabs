@@ -25,9 +25,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -41,20 +41,27 @@ type InstanceValidator struct {
 	Client client.Client
 }
 
-func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.Client) (admission.Warnings, error) {
+// accumulateEnvResources aggregates the resource footprints from a list of environments into the running totals.
+func accumulateEnvResources(envList []clv1alpha2.Environment, total *apicommon.ResourceSpec) {
+	for i := range envList {
+		total.Accumulate(&envList[i].Resources.ResourceSpec)
+	}
+}
+
+func validateQuota(ctx context.Context, instance *clv1alpha2.Instance, cl client.Client) (admission.Warnings, error) {
 	var warnings admission.Warnings
 
 	tenantNamespace := instance.Namespace
 
 	// Get the instance's template
-	instanceTemplate := &v1alpha2.Template{}
-	if err := cl.Get(ctx, types.NamespacedName{Name: instance.Spec.Template.Name, Namespace: instance.Spec.Template.Namespace}, instanceTemplate); err != nil {
+	instanceTemplate := &clv1alpha2.Template{}
+	if err := cl.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), instanceTemplate); err != nil {
 		return warnings, fmt.Errorf("failed to get instance template: %w", err)
 	}
 
 	// Get the workspace details (quota, templates namespace)
 	wsName := instanceTemplate.Spec.WorkspaceRef.Name
-	wsQuota := common.WorkspaceResourceQuota{}
+	wsQuota := apicommon.WorkspaceResourceQuota{}
 	templatesNamespace := ""
 
 	if wsName == personalWorkspaceName {
@@ -63,7 +70,7 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 			return warnings, fmt.Errorf("failed to get admission request from context: %w", err)
 		}
 
-		tenant := &v1alpha2.Tenant{}
+		tenant := &clv1alpha2.Tenant{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
 			return warnings, fmt.Errorf("failed to get tenant %s: %w", req.UserInfo.Username, err)
 		}
@@ -71,7 +78,7 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 		wsQuota = *tenant.Spec.PersonalWorkspace.DeepCopy()
 		templatesNamespace = tenantNamespace
 	} else {
-		ws := &v1alpha1.Workspace{}
+		ws := &clv1alpha1.Workspace{}
 		if err := cl.Get(ctx, types.NamespacedName{Name: wsName}, ws); err != nil {
 			return warnings, fmt.Errorf("failed to get workspace: %w", err)
 		}
@@ -82,7 +89,7 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 
 	// Get all the templates in the workspace namespace, they are needed to calculate the resource usage.
 	// Instead of querying the cluster for each instance's template, we get them all at once and store them in a map.
-	wsTemplateList := &v1alpha2.TemplateList{}
+	wsTemplateList := &clv1alpha2.TemplateList{}
 	if err := cl.List(
 		ctx,
 		wsTemplateList,
@@ -91,13 +98,13 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 		return warnings, fmt.Errorf("failed to list templates in workspace namespace: %w", err)
 	}
 
-	wsTemplates := make(map[string]v1alpha2.Template)
+	wsTemplates := make(map[string]clv1alpha2.Template)
 	for i := range wsTemplateList.Items {
 		wsTemplates[wsTemplateList.Items[i].Name] = wsTemplateList.Items[i]
 	}
 
 	// Find the other instances in the same workspace owned by the same user
-	workspaceInstances := &v1alpha2.InstanceList{}
+	workspaceInstances := &clv1alpha2.InstanceList{}
 	if err := cl.List(
 		ctx,
 		workspaceInstances,
@@ -109,14 +116,15 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 
 	// Calculate total resource usage
 	var totalInstances int64 = 1 // Count the instance being created.
-	var totalCPU int64
-	totalMemory := resource.MustParse("0")
+	totalResources := apicommon.ResourceSpec{
+		CPU:            0,
+		Memory:         resource.MustParse("0"),
+		Disk:           resource.MustParse("0"),
+		OtherResources: make(map[string]resource.Quantity),
+	}
 
 	// Add the resources of the instance being created
-	for i := range instanceTemplate.Spec.EnvironmentList {
-		totalCPU += int64(instanceTemplate.Spec.EnvironmentList[i].Resources.CPU)
-		totalMemory.Add(instanceTemplate.Spec.EnvironmentList[i].Resources.Memory)
-	}
+	accumulateEnvResources(instanceTemplate.Spec.EnvironmentList, &totalResources)
 
 	// Add the resources of the other instances
 	for i := range workspaceInstances.Items {
@@ -132,16 +140,13 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 
 		totalInstances++
 
-		instanceTemplate, exists := wsTemplates[workspaceInstances.Items[i].Spec.Template.Name]
+		tmpl, exists := wsTemplates[workspaceInstances.Items[i].Spec.Template.Name]
 		if !exists {
 			warnings = append(warnings, fmt.Sprintf("template %s not found in workspace namespace for instance %s; skipping resource calculation for this instance", workspaceInstances.Items[i].Spec.Template.Name, workspaceInstances.Items[i].Name))
 			continue
 		}
 
-		for j := range instanceTemplate.Spec.EnvironmentList {
-			totalCPU += int64(instanceTemplate.Spec.EnvironmentList[j].Resources.CPU)
-			totalMemory.Add(instanceTemplate.Spec.EnvironmentList[j].Resources.Memory)
-		}
+		accumulateEnvResources(tmpl.Spec.EnvironmentList, &totalResources)
 	}
 
 	// Check against the workspace quota
@@ -149,12 +154,29 @@ func validateQuota(ctx context.Context, instance *v1alpha2.Instance, cl client.C
 		return warnings, fmt.Errorf("quota exceeded: Instances (%d > %d)", totalInstances, wsQuota.Instances)
 	}
 
-	if !wsQuota.CPU.IsZero() && totalCPU > wsQuota.CPU.Value() {
-		return warnings, fmt.Errorf("quota exceeded: CPU (%d > %d)", totalCPU, wsQuota.CPU.Value())
+	// Compare numeric CPU values directly using the uint32 fields
+	if wsQuota.CPU > 0 && totalResources.CPU > wsQuota.CPU {
+		return warnings, fmt.Errorf("quota exceeded: CPU (%d > %d)", totalResources.CPU, wsQuota.CPU)
 	}
 
-	if !wsQuota.Memory.IsZero() && totalMemory.Cmp(wsQuota.Memory) > 0 {
-		return warnings, fmt.Errorf("quota exceeded: Memory (%s > %s)", totalMemory.String(), wsQuota.Memory.String())
+	if !wsQuota.Memory.IsZero() && totalResources.Memory.Cmp(wsQuota.Memory) > 0 {
+		return warnings, fmt.Errorf("quota exceeded: Memory (%s > %s)", totalResources.Memory.String(), wsQuota.Memory.String())
+	}
+
+	if !wsQuota.Disk.IsZero() && totalResources.Disk.Cmp(wsQuota.Disk) > 0 {
+		return warnings, fmt.Errorf("quota exceeded: Disk (%s > %s)", totalResources.Disk.String(), wsQuota.Disk.String())
+	}
+
+	for resourceName, usedQty := range totalResources.OtherResources {
+		var quotaQty resource.Quantity // Defaults to zero quantity
+		if wsQuota.OtherResources != nil {
+			if q, exists := wsQuota.OtherResources[resourceName]; exists {
+				quotaQty = q
+			}
+		}
+		if usedQty.Cmp(quotaQty) > 0 {
+			return warnings, fmt.Errorf("quota exceeded: %s (%s > %s)", resourceName, usedQty.String(), quotaQty.String())
+		}
 	}
 
 	return warnings, nil
@@ -168,7 +190,7 @@ func (iv *InstanceValidator) ValidateCreate(
 	var warnings admission.Warnings
 
 	// Get the instance being created
-	instance, ok := obj.(*v1alpha2.Instance)
+	instance, ok := obj.(*clv1alpha2.Instance)
 	if !ok {
 		return warnings, fmt.Errorf("expected Instance resource but got %T", obj)
 	}
@@ -184,12 +206,12 @@ func (iv *InstanceValidator) ValidateUpdate(
 	var warnings admission.Warnings
 
 	// Get the instance objects
-	oldInstance, ok := oldObj.(*v1alpha2.Instance)
+	oldInstance, ok := oldObj.(*clv1alpha2.Instance)
 	if !ok {
 		return warnings, fmt.Errorf("expected Instance resource but got %T", oldObj)
 	}
 
-	newInstance, ok := newObj.(*v1alpha2.Instance)
+	newInstance, ok := newObj.(*clv1alpha2.Instance)
 	if !ok {
 		return warnings, fmt.Errorf("expected Instance resource but got %T", newObj)
 	}

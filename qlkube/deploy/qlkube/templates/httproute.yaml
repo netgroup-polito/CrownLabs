@@ -1,0 +1,32 @@
+{{- if .Values.global.gateway.gatewayApiMode }}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "qlkube.fullname" . }}
+  labels:
+    {{- include "qlkube.labels" . | nindent 4 }}
+    crownlabs.polito.it/public-route: "true"
+spec:
+  parentRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.httproute.gateway.name | default .Values.global.gateway.name }}
+      sectionName: https
+{{- if .Values.httproute.gateway.namespace }}
+      namespace: {{ .Values.httproute.gateway.namespace }}
+{{- end }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: {{ .Values.httproute.path }}
+      timeouts:
+        request: {{ .Values.httproute.timeouts.request | default "600s" }}
+        backendRequest: {{ .Values.httproute.timeouts.backendRequest | default "600s" }}
+      backendRefs:
+        - group: ""
+          kind: Service
+          name: {{ include "qlkube.fullname" . }}
+          port: {{ .Values.service.port }}
+          weight: 1
+{{- end }}

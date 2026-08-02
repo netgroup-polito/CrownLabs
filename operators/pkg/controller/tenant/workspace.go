@@ -23,8 +23,8 @@ import (
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
@@ -33,7 +33,7 @@ import (
 func (r *Reconciler) syncWorkspaces(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	// create fresh lists
 	tn.Status.FailingWorkspaces = []string{}
@@ -54,7 +54,7 @@ func (r *Reconciler) syncWorkspaces(
 	}
 
 	// update labels
-	if err := r.enforcePreservingStatus(ctx, log, tn, func(t *v1alpha2.Tenant) *v1alpha2.Tenant {
+	if err := r.enforcePreservingStatus(ctx, log, tn, func(t *clv1alpha2.Tenant) *clv1alpha2.Tenant {
 		t.Labels = labels
 		return t
 	}); err != nil {
@@ -70,12 +70,12 @@ func (r *Reconciler) syncWorkspaces(
 func (r *Reconciler) syncSingleWorkspace(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 	labels map[string]string,
-	tenantWorkspace *v1alpha2.TenantWorkspaceEntry,
+	tenantWorkspace *clv1alpha2.TenantWorkspaceEntry,
 ) int {
 	nonBaseWorkspaces := 0
-	workspace := &v1alpha1.Workspace{}
+	workspace := &clv1alpha1.Workspace{}
 
 	err := r.Get(ctx, types.NamespacedName{
 		Name: tenantWorkspace.Name,
@@ -86,7 +86,7 @@ func (r *Reconciler) syncSingleWorkspace(
 		log.Error(err, "Error when checking if workspace exists in tenant", "workspace", tenantWorkspace.Name, "tenant", tn.Name)
 		tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tenantWorkspace.Name)
 		tnOpinternalErrors.WithLabelValues("tenant", "workspace-not-exist").Inc()
-	case tenantWorkspace.Role == v1alpha2.Candidate && workspace.Spec.AutoEnroll != v1alpha1.AutoenrollWithApproval:
+	case tenantWorkspace.Role == clv1alpha2.Candidate && workspace.Spec.AutoEnroll != clv1alpha1.AutoenrollWithApproval:
 		// Candidate role is allowed only if the workspace has autoEnroll = WithApproval
 		log.Error(err, "Workspace has not autoEnroll with approval, Candidate role is not allowed in tenant", "workspace", tenantWorkspace.Name, "tenant", tn.Name)
 		tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, tenantWorkspace.Name)
@@ -104,7 +104,7 @@ func deleteWorkspacesRelatedLabels(
 	labels map[string]string,
 ) {
 	for lab := range labels {
-		if strings.HasPrefix(lab, v1alpha2.WorkspaceLabelPrefix) {
+		if strings.HasPrefix(lab, clv1alpha2.WorkspaceLabelPrefix) {
 			delete(labels, lab)
 		}
 	}
@@ -114,9 +114,9 @@ func deleteWorkspacesRelatedLabels(
 func (r *Reconciler) addWorkspaceLabel(
 	labels map[string]string,
 	workspaceName string,
-	role v1alpha2.WorkspaceUserRole,
+	role clv1alpha2.WorkspaceUserRole,
 ) {
-	labels[v1alpha2.WorkspaceLabelPrefix+workspaceName] = string(role)
+	labels[clv1alpha2.WorkspaceLabelPrefix+workspaceName] = string(role)
 }
 
 // this functions only adds the label to the structure, it does not update the tenant.
@@ -133,12 +133,12 @@ func (r *Reconciler) removeNoWorkspaceLabel(
 }
 
 func (r *Reconciler) getEnrolledWorkspaces(
-	tn *v1alpha2.Tenant,
-) []v1alpha2.TenantWorkspaceEntry {
-	validWorkspaces := make([]v1alpha2.TenantWorkspaceEntry, 0, len(tn.Spec.Workspaces))
+	tn *clv1alpha2.Tenant,
+) []clv1alpha2.TenantWorkspaceEntry {
+	validWorkspaces := make([]clv1alpha2.TenantWorkspaceEntry, 0, len(tn.Spec.Workspaces))
 	for _, ws := range tn.Spec.Workspaces {
 		// skip workspaces in Candidate status
-		if ws.Role == v1alpha2.Candidate {
+		if ws.Role == clv1alpha2.Candidate {
 			continue
 		}
 
@@ -156,12 +156,12 @@ func (r *Reconciler) getEnrolledWorkspaces(
 func (r *Reconciler) getWorkspacesList(
 	ctx context.Context,
 	log logr.Logger,
-	tnWss []v1alpha2.TenantWorkspaceEntry,
-) ([]v1alpha1.Workspace, error) {
-	workspaces := make([]v1alpha1.Workspace, 0, len(tnWss))
+	tnWss []clv1alpha2.TenantWorkspaceEntry,
+) ([]clv1alpha1.Workspace, error) {
+	workspaces := make([]clv1alpha1.Workspace, 0, len(tnWss))
 
 	for _, ws := range tnWss {
-		workspace := v1alpha1.Workspace{}
+		workspace := clv1alpha1.Workspace{}
 		err := r.Get(ctx, types.NamespacedName{
 			Name: ws.Name,
 		}, &workspace)

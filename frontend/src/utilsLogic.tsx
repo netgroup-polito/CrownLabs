@@ -39,7 +39,12 @@ import type {
   PublicExposure,
   Tenant,
 } from './utils';
-import { convertToGiB, WorkspaceRole, WorkspacesAvailableAction } from './utils';
+import {
+  convertToGiB,
+  WorkspaceRole,
+  WorkspacesAvailableAction,
+  getOriginalK8sKey,
+} from './utils';
 import type { DeepPartial } from '@apollo/client/utilities';
 import type { JointContent } from 'antd/lib/message/interface';
 import type { Notifier } from './contexts/TenantContext';
@@ -62,6 +67,23 @@ interface ItPolitoCrownlabsV1alpha2TemplateAlias {
   };
 }
 
+// Helper to extract and normalize otherResources as Objects
+const parseOtherResources = (
+  rawOther?: Record<string, number>,
+): Record<string, number> => {
+  if (!rawOther) return {};
+  const parsed: Record<string, number> = {};
+
+  Object.entries(rawOther).forEach(([k, v]) => {
+    if (k && v != null) {
+      const k8sKey = getOriginalK8sKey(k);
+      parsed[k8sKey] = (parsed[k8sKey] || 0) + (Number(v) || 0);
+    }
+  });
+
+  return parsed;
+};
+
 export const makeGuiTemplate = (
   tq: ItPolitoCrownlabsV1alpha2TemplateAlias,
 ): Template => {
@@ -77,6 +99,7 @@ export const makeGuiTemplate = (
   const hasGUI = environmentList.some(env => env?.guiEnabled);
   const hasPersistent = environmentList.some(env => env?.persistent);
 
+  // Aggregate Resources from Environments of template
   const aggregatedResources = environmentList.reduce(
     (acc, env) => {
       if (env?.resources) {
@@ -87,10 +110,20 @@ export const makeGuiTemplate = (
         acc.diskSum += env.resources.disk
           ? convertToGiB(env.resources.disk)
           : 0;
+
+        const envOther = parseOtherResources(env.resources?.otherResources);
+        Object.entries(envOther).forEach(([k, v]) => {
+          acc.otherResources[k] = (acc.otherResources[k] || 0) + v;
+        });
       }
       return acc;
     },
-    { cpu: 0, memorySum: 0, diskSum: 0 },
+    {
+      cpu: 0,
+      memorySum: 0,
+      diskSum: 0,
+      otherResources: {} as Record<string, number>,
+    },
   );
 
   return {
@@ -98,8 +131,14 @@ export const makeGuiTemplate = (
     name: tq.alias.name ?? '',
     gui: hasGUI,
     description: tq.original.spec?.description ?? '',
-    deleteAfter: tq.original.spec?.deleteAfter ?? 'never',
-    inactivityTimeout: tq.original.spec?.inactivityTimeout ?? 'never',
+    cleanup: {
+      deleteAfterCreation:
+        tq.original.spec?.cleanup?.deleteAfterCreation ?? 'never',
+      stopAfterInactivity:
+        tq.original.spec?.cleanup?.stopAfterInactivity ?? 'never',
+      deleteAfterInactivity:
+        tq.original.spec?.cleanup?.deleteAfterInactivity ?? 'never',
+    },
     persistent: hasPersistent,
     nodeSelector: tq.original.spec?.nodeSelector,
     resources: {
@@ -111,7 +150,8 @@ export const makeGuiTemplate = (
       disk:
         aggregatedResources.diskSum > 0
           ? `${aggregatedResources.diskSum}G`
-          : '',
+          : '0G',
+      otherResources: aggregatedResources.otherResources,
     },
     environmentList: environmentList.map(env => ({
       name: env?.name ?? '',
@@ -135,8 +175,9 @@ export const makeGuiTemplate = (
       resources: {
         cpu: env?.resources?.cpu ?? 0,
         memory: env?.resources?.memory ?? '',
-        disk: env?.resources?.disk ?? '',
+        disk: env?.resources?.disk ?? '0Gi',
         reservedCPUPercentage: env?.resources?.reservedCPUPercentage ?? 50,
+        otherResources: parseOtherResources(env?.resources?.otherResources),
       },
     })),
     hasMultipleEnvironments,
@@ -342,6 +383,10 @@ export const makeGuiInstance = (
         env => env?.name === templateEnv?.name,
       );
 
+      const parsedOther = parseOtherResources(
+        templateEnv?.resources?.otherResources,
+      );
+
       return {
         name: envStatus?.name ?? '',
         phase: envStatus?.phase,
@@ -357,6 +402,7 @@ export const makeGuiInstance = (
           disk: templateEnv?.resources?.disk
             ? convertToGiB(templateEnv?.resources?.disk)
             : 0,
+          otherResources: parsedOther,
         },
       } as InstanceEnvironment;
     }) ?? [];
@@ -395,10 +441,14 @@ export const makeGuiInstance = (
     templateName: templateName,
     templateId: makeTemplateKey(templateName, workspaceName),
     environmentType: environmentType || EnvironmentType.CloudVm,
-    ip: primaryStatus?.ip ?? status?.ip ?? '',
+    ip: primaryStatus?.ip ?? '',
     status: safePhase2Conversion(primaryStatus?.phase ?? status?.phase),
     url: status?.url || '',
     timeStamp: metadata?.creationTimestamp || '',
+    lastActivity:
+      (metadata?.annotations as Record<string, string> | undefined)?.[
+        'crownlabsPolitoItLastActivity'
+      ] || '',
     tenantId: tenantName || '',
     tenantNamespace: tenantNamespace || '',
     workspaceName: workspaceName,
@@ -415,6 +465,30 @@ export const makeGuiInstance = (
       cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
       memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
       disk: environments.reduce((acc, env) => acc + env.quota.disk, 0),
+      otherResources: environments.reduce(
+        (acc, env) => {
+          if (env.quota.otherResources) {
+            Object.entries(env.quota.otherResources).forEach(([key, val]) => {
+              const k8sKey = getOriginalK8sKey(key);
+              acc[k8sKey] = (acc[k8sKey] || 0) + val;
+            });
+          }
+          return acc;
+        },
+        {} as Record<string, number>,
+      ),
+    },
+    lastPoweredOffTimestamp:
+      (metadata?.annotations as Record<string, string> | undefined)?.[
+        'crownlabsPolitoItLastPoweredOffTimestamp'
+      ] || '',
+    cleanup: {
+      deleteAfterCreation:
+        templateSpec?.cleanup?.deleteAfterCreation ?? 'never',
+      stopAfterInactivity:
+        templateSpec?.cleanup?.stopAfterInactivity ?? 'never',
+      deleteAfterInactivity:
+        templateSpec?.cleanup?.deleteAfterInactivity ?? 'never',
     },
   };
 };
@@ -699,27 +773,50 @@ export const getTemplatesMapped = (
         guiEnabled: env.guiEnabled || false,
         persistent: env.persistent || false,
         environmentType: env.environmentType,
-        resources: { cpu: 0, disk: '', memory: '' },
+        resources: {
+          cpu: env.quota?.cpu || 0,
+          disk: env.quota?.disk ? `${env.quota.disk}Gi` : '',
+          memory: env.quota?.memory ? `${env.quota.memory}Gi` : '',
+          otherResources: env.quota?.otherResources || {},
+        },
         image: '',
         mountMyDriveVolume: false,
         sharedVolumeMounts: [],
         rewriteUrl: false,
       })) || [];
 
+    const aggregatedOther: Record<string, number> = {};
+    environments?.forEach(env => {
+      if (env.quota?.otherResources) {
+        Object.entries(env.quota.otherResources).forEach(([k, v]) => {
+          const k8sKey = getOriginalK8sKey(k);
+          aggregatedOther[k8sKey] = (aggregatedOther[k8sKey] || 0) + v;
+        });
+      }
+    });
+
     return {
       id: templateId,
       name: templatePrettyName,
       gui,
       persistent,
-      resources: { cpu: 0, memory: '', disk: '' },
+      resources: {
+        cpu: environments?.reduce((acc, e) => acc + e.quota.cpu, 0) || 0,
+        memory: `${environments?.reduce((acc, e) => acc + e.quota.memory, 0) || 0}Gi`,
+        disk: `${environments?.reduce((acc, e) => acc + e.quota.disk, 0) || 0}Gi`,
+        otherResources: aggregatedOther,
+      },
       instances: instancesSorted || instancesFiltered,
       workspaceName,
       workspaceNamespace: 'workspace-' + workspaceName,
       allowPublicExposure,
       environmentList: environmentList,
       hasMultipleEnvironments: hasMultipleEnvironments ?? false,
-      deleteAfter: '',
-      inactivityTimeout: '',
+      cleanup: {
+        deleteAfterCreation: '',
+        stopAfterInactivity: '',
+        deleteAfterInactivity: '',
+      },
     };
   });
 };
@@ -776,7 +873,11 @@ const makeNotificationContent = (
               <i>
                 {status === Phase2.Ready
                   ? ' running'
-                  : status === Phase2.Off && ' stopped'}
+                  : status === Phase2.Off
+                    ? ' stopped'
+                    : status === UpdateType.Deleted
+                      ? ' deleted'
+                      : ''}
               </i>
             </div>
             {instanceUrl && (
@@ -809,49 +910,60 @@ export const notifyStatus = (
   if (!instance) {
     throw new Error('notifyStatus error: instance parameter is undefined');
   }
-  if (updateType !== UpdateType.Deleted) {
-    const { name, namespace } = instance.metadata ?? {};
-    const { prettyName } = instance.spec ?? {};
-    const { url, environments } = instance.status ?? {};
-    const { prettyName: templateName } =
-      instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-        ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
+  const { name, namespace } = instance.metadata ?? {};
+  const { prettyName } = instance.spec ?? {};
+  const { url, environments } = instance.status ?? {};
+  const { prettyName: templateName } =
+    instance.spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec ?? {};
 
-    // Only set URL for single-environment instances
-    let iUrl;
-    if (url && environments && environments.length == 1) {
-      const firstEnvName = environments[0]?.name;
-      if (firstEnvName) {
-        const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
-        iUrl = `${baseUrl}/${firstEnvName}/`;
+  if (updateType === UpdateType.Deleted) {
+    notify(
+      'warning',
+      `${namespace}/${name}/deleted`,
+      makeNotificationContent(
+        templateName,
+        prettyName || name,
+        UpdateType.Deleted,
+      ),
+    );
+    return;
+  }
+
+  // Only set URL for single-environment instances
+  let iUrl;
+  if (url && environments && environments.length == 1) {
+    const firstEnvName = environments[0]?.name;
+    if (firstEnvName) {
+      const baseUrl = url.endsWith('/') ? url.slice(0, -1) : url;
+      iUrl = `${baseUrl}/${firstEnvName}/`;
+    }
+  }
+
+  switch (status) {
+    case Phase2.Off:
+      if (!instance.spec?.running) {
+        notify(
+          'warning',
+          `${namespace}/${name}/stopped`,
+          makeNotificationContent(templateName, prettyName || name, status),
+        );
       }
-    }
-
-    switch (status) {
-      case Phase2.Off:
-        if (!instance.spec?.running) {
-          notify(
-            'warning',
-            `${namespace}/${name}/stopped`,
-            makeNotificationContent(templateName, prettyName || name, status),
-          );
-        }
-        break;
-      case Phase2.Ready:
-        if (instance.spec?.running) {
-          notify(
-            'success',
-            `${namespace}/${name}/ready`,
-            makeNotificationContent(
-              templateName,
-              prettyName || name,
-              status,
-              iUrl,
-            ),
-          );
-        }
-        break;
-    }
+      break;
+    case Phase2.Ready:
+      if (instance.spec?.running) {
+        notify(
+          'success',
+          `${namespace}/${name}/ready`,
+          makeNotificationContent(
+            templateName,
+            prettyName || name,
+            status,
+            iUrl,
+          ),
+        );
+      }
+      break;
   }
 };
 
@@ -991,6 +1103,10 @@ export const makeTenantsList = (rawTenantsQuery?: TenantsQuery): Tenant[] => {
       name: user?.spec?.firstName || '',
       surname: user?.spec?.lastName || '',
       email: user?.spec?.email || '',
+      creationDate: user?.metadata?.creationTimestamp || undefined,
+      lastLogin: user?.spec?.lastLogin || undefined,
+      labels: (user?.metadata?.labels as Record<string, string>) || undefined,
+      personalWorkspace: user?.spec?.personalWorkspace != null,
       workspaces:
         user?.spec?.workspaces?.map(workspace => ({
           role: workspace?.role || Role.User,

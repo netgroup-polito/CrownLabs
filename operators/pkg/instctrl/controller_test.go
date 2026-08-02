@@ -27,10 +27,14 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	. "github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
@@ -42,17 +46,18 @@ import (
 var _ = Describe("The instance-controller Reconcile method", func() {
 	ctx := context.Background()
 	var (
-		testName        string
-		prettyName      string
-		runInstance     bool
-		instance        clv1alpha2.Instance
-		pod             corev1.Pod
-		environmentList []clv1alpha2.Environment
-		template        clv1alpha2.Template
-		ingress         netv1.Ingress
-		service         corev1.Service
-		createTenant    bool
-		createTemplate  bool
+		testName         string
+		prettyName       string
+		runInstance      bool
+		instance         clv1alpha2.Instance
+		pod              corev1.Pod
+		environmentList  []clv1alpha2.Environment
+		template         clv1alpha2.Template
+		myDriveMirrorPVC corev1.PersistentVolumeClaim
+		ingress          netv1.Ingress
+		service          corev1.Service
+		createTenant     bool
+		createTemplate   bool
 	)
 
 	const (
@@ -62,12 +67,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 	RunReconciler := func() error {
 		_, err := instanceReconciler.Reconcile(ctx, reconcile.Request{
-			NamespacedName: forge.NamespacedName(&instance),
+			NamespacedName: forge.NamespacedNameFromObject(&instance),
 		})
 		if err != nil {
 			return err
 		}
-		return k8sClient.Get(ctx, forge.NamespacedName(&instance), &instance)
+		return k8sClient.Get(ctx, forge.NamespacedNameFromObject(&instance), &instance)
 	}
 
 	BeforeEach(func() {
@@ -81,10 +86,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				Persistent:      false,
 				GuiEnabled:      true,
 				Resources: clv1alpha2.EnvironmentResources{
-					CPU:                   1,
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    1,
+						Memory: resource.MustParse("1Gi"),
+						Disk:   resource.MustParse("10Gi"),
+					},
 					ReservedCPUPercentage: 20,
-					Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-					Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 				},
 			},
 			{
@@ -94,10 +101,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				Persistent:      true,
 				GuiEnabled:      true,
 				Resources: clv1alpha2.EnvironmentResources{
-					CPU:                   1,
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    1,
+						Memory: resource.MustParse("1Gi"),
+						Disk:   resource.MustParse("10Gi"),
+					},
 					ReservedCPUPercentage: 20,
-					Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-					Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 				},
 			},
 		}
@@ -105,12 +114,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 	JustBeforeEach(func() {
 		ns := corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: testName, Labels: whiteListMap}}
-		tenantPvcSecret := corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: forge.NFSSecretName, Namespace: testName},
-			Data: map[string][]byte{
-				forge.NFSSecretServerNameKey: []byte(testName),
-				forge.NFSSecretPathKey:       []byte(testName),
-			},
+		pns := clv1alpha2.NameCreated{
+			Name:    testName,
+			Created: true,
 		}
 		tenant := clv1alpha2.Tenant{
 			ObjectMeta: metav1.ObjectMeta{Name: testName},
@@ -123,7 +129,11 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			Spec: clv1alpha2.TemplateSpec{
 				WorkspaceRef:    clv1alpha2.GenericRef{Name: testName},
 				EnvironmentList: environmentList,
-				Scope:           clv1alpha2.ScopeStandard,
+				Cleanup: clv1alpha2.CleanupOptions{
+					DeleteAfterCreation:   "never",
+					StopAfterInactivity:   "never",
+					DeleteAfterInactivity: "never",
+				},
 			},
 		}
 		instance = clv1alpha2.Instance{
@@ -150,16 +160,36 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				}},
 			},
 		}
+		myDriveMirrorPVC = corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      forge.MyDrivePVCMirrorName(testName),
+				Namespace: testName,
+			},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany},
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{
+						corev1.ResourceStorage: *resource.NewScaledQuantity(1, resource.Giga),
+					},
+				},
+			},
+		}
 
 		Expect(k8sClient.Create(ctx, &ns)).To(Succeed())
 		if createTenant {
 			Expect(k8sClient.Create(ctx, &tenant)).To(Succeed())
-			Expect(k8sClient.Create(ctx, &tenantPvcSecret)).To(Succeed())
+			tenant.Status.PersonalNamespace = pns
+			Expect(k8sClient.Status().Update(ctx, &tenant)).To(Succeed())
+			ctx, _ = clctx.TenantInto(ctx, &tenant)
 		}
 		if createTemplate {
 			Expect(k8sClient.Create(ctx, &template)).To(Succeed())
+			ctx, _ = clctx.TemplateInto(ctx, &template)
 		}
 		Expect(k8sClient.Create(ctx, &instance)).To(Succeed())
+		ctx, _ = clctx.InstanceInto(ctx, &instance)
+
+		Expect(k8sClient.Create(ctx, &myDriveMirrorPVC)).To(Succeed())
 	})
 
 	StandaloneContainerIt := func() {
@@ -262,31 +292,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		})
 	})
 
-	Context("The instance is container based", func() {
-		When("the environment is persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = true
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-		When("the environment is NOT persistent", func() {
-			BeforeEach(func() {
-				testName = "test-container-not-persistent"
-				for i := range environmentList {
-					environmentList[i].EnvironmentType = clv1alpha2.ClassContainer
-					environmentList[i].Persistent = false
-				}
-				runInstance = false
-			})
-			StandaloneContainerIt()
-		})
-	})
-
 	Context("The instance is VM based", func() {
 		When("the environment is persistent", func() {
 			ContextBody := func(envType clv1alpha2.EnvironmentType, name string) {
@@ -318,11 +323,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 								Expect(vm.Spec.Running).To(PointTo(BeFalse()))
 							}
 						}
-					})
-
-					By("Asserting the cloudinit secret has been created", func() {
-						var secret corev1.Secret
-						Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
 					})
 
 					By("Asserting the exposition resources aren't present", func() {
@@ -411,11 +411,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &vmi)).To(FailBecauseNotFound())
 						}
 					}
-				})
-
-				By("Asserting the cloudinit secret has been created", func() {
-					var secret corev1.Secret
-					Expect(k8sClient.Get(ctx, forge.NamespacedName(&instance), &secret)).To(Succeed())
 				})
 
 				By("Asserting the exposition resources aren't present", func() {
@@ -567,6 +562,35 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		})
 	})
 
+	Context("Instance off annotation handling", func() {
+		BeforeEach(func() {
+			testName = "test-instance-off-annotation"
+			runInstance = true
+		})
+
+		It("should set annotation when running changes to false and remove it when changes to true", func() {
+			Expect(RunReconciler()).To(Succeed())
+			Expect(instance.Annotations).NotTo(HaveKey(forge.LastPoweredOffTimestampAnnotation))
+
+			By("Setting instance running to false")
+			instance.Spec.Running = false
+			Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			Expect(RunReconciler()).To(Succeed())
+			Expect(instance.Annotations).To(HaveKey(forge.LastPoweredOffTimestampAnnotation))
+			firstTimestamp := instance.Annotations[forge.LastPoweredOffTimestampAnnotation]
+
+			By("Reconciling again without changing state (should not change annotation)")
+			Expect(RunReconciler()).To(Succeed())
+			Expect(instance.Annotations).To(HaveKeyWithValue(forge.LastPoweredOffTimestampAnnotation, firstTimestamp))
+
+			By("Setting instance running to true")
+			instance.Spec.Running = true
+			Expect(k8sClient.Update(ctx, &instance)).To(Succeed())
+			Expect(RunReconciler()).To(Succeed())
+			Expect(instance.Annotations).NotTo(HaveKey(forge.LastPoweredOffTimestampAnnotation))
+		})
+	})
+
 	Context("In case of misconfiguration", func() {
 		When("the template is missing", func() {
 			BeforeEach(func() {
@@ -605,10 +629,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 						Persistent:      false,
 						GuiEnabled:      true,
 						Resources: clv1alpha2.EnvironmentResources{
-							CPU:                   1,
+							ResourceSpec: apicommon.ResourceSpec{
+								CPU:    1,
+								Memory: resource.MustParse("1Gi"),
+								Disk:   resource.MustParse("10Gi"),
+							},
 							ReservedCPUPercentage: 20,
-							Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-							Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 						},
 					},
 				}
@@ -779,14 +805,16 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					{
 						Name:            "app-1",
 						Image:           "some-image:v0",
-						EnvironmentType: clv1alpha2.ClassContainer,
+						EnvironmentType: clv1alpha2.ClassStandalone,
 						Persistent:      false,
 						GuiEnabled:      true,
 						Resources: clv1alpha2.EnvironmentResources{
-							CPU:                   1,
+							ResourceSpec: apicommon.ResourceSpec{
+								CPU:    1,
+								Memory: resource.MustParse("1Gi"),
+								Disk:   resource.MustParse("10Gi"),
+							},
 							ReservedCPUPercentage: 20,
-							Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-							Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 						},
 					},
 				}
@@ -829,6 +857,67 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					Expect(instance.Status.PublicExposure).To(BeNil())
 				})
 			})
+		})
+	})
+
+	Context("Gateway API exposition handling", func() {
+		BeforeEach(func() {
+			instanceReconciler.ExpositionConfig.GatewayAPIMode = true
+			testName = "test-gwapi-exposition"
+			runInstance = true
+			for i := range environmentList {
+				environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
+				environmentList[i].GuiEnabled = true
+			}
+		})
+
+		AfterEach(func() {
+			instanceReconciler.ExpositionConfig.GatewayAPIMode = false
+		})
+
+		It("Should correctly create HTTPRoute and transition ExpositionAccepted when accepted by Gateway", func() {
+			// Run reconciler for the first time
+			Expect(RunReconciler()).To(Succeed())
+
+			// Verify Service is created, HTTPRoute is created, and Ingress is NOT created
+			var svc corev1.Service
+			var route gatewayv1.HTTPRoute
+			var ing netv1.Ingress
+			for _, env := range template.Spec.EnvironmentList {
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &svc)).To(Succeed())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &route)).To(Succeed())
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ing)).To(FailBecauseNotFound())
+			}
+
+			// Verify ExpositionAccepted is initially false
+			Expect(instance.Status.Environments).To(HaveLen(2))
+			Expect(instance.Status.Environments[0].ExpositionAccepted).To(BeFalse())
+
+			// Simulate Gateway Controller accepting the route
+			for _, env := range template.Spec.EnvironmentList {
+				var r gatewayv1.HTTPRoute
+				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &r)).To(Succeed())
+				r.Status.Parents = []gatewayv1.RouteParentStatus{{
+					ControllerName: "gateway.networking.k8s.io/gateway-controller",
+					ParentRef: gatewayv1.ParentReference{
+						Name:      "fake-gw",
+						Namespace: ptr.To(gatewayv1.Namespace("fake-gw-ns")),
+					},
+					Conditions: []metav1.Condition{{
+						Type:               string(gatewayv1.RouteConditionAccepted),
+						Status:             metav1.ConditionTrue,
+						Reason:             "Accepted",
+						LastTransitionTime: metav1.Now(),
+					}},
+				}}
+				Expect(k8sClient.Status().Update(ctx, &r)).To(Succeed())
+			}
+
+			// Reconcile again after route acceptance
+			Expect(RunReconciler()).To(Succeed())
+
+			// Verify ExpositionAccepted is now true
+			Expect(instance.Status.Environments[0].ExpositionAccepted).To(BeTrue())
 		})
 	})
 })

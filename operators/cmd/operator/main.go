@@ -21,7 +21,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
@@ -29,25 +29,26 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var (
-	scheme         = runtime.NewScheme()
+	rscheme        = runtime.NewScheme()
 	enableWebhooks bool
-	reschedule     = common.Rescheduler{
+	reschedule     = ctrlcommon.Rescheduler{
 		RequeueAfterMin: 1 * 24 * time.Hour,
 		RequeueAfterMax: 7 * 24 * time.Hour,
 	}
 )
 
 func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(scheme.AddToScheme(rscheme))
 
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	utilruntime.Must(v1alpha2.AddToScheme(scheme))
+	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
+	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 }
 
 func main() {
@@ -55,13 +56,15 @@ func main() {
 	var metricsAddr string
 	var healthProbeAddr string
 	var enableLeaderElection bool
+	var tenantNamespaceCommonLabelsStr string
 	var targetLabelStr string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
-	flag.StringVar(&targetLabelStr, "target-label", "", "The key=value pair label that needs to be in the resource to be reconciled. A single pair in the format key=value")
+	flag.StringVar(&tenantNamespaceCommonLabelsStr, "tenant-namespace-common-labels", "", "A comma-separated key=value list converted into common labels to stamp on tenant namespaces")
+	flag.StringVar(&targetLabelStr, "target-label", "", "Label selector in key=value format used by controllers to select managed resources")
 	flag.DurationVar(&reschedule.RequeueAfterMin, "reschedule-min", reschedule.RequeueAfterMin,
 		"Minimum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
@@ -76,12 +79,16 @@ func main() {
 	var enableWorkspace bool
 	var enableInstance bool
 	var enableSharedVolume bool
+	var enablePmp bool
 	var enableKeycloak bool
-	flag.BoolVar(&enableTenant, "enable-tenant", true, "Enable the tenant controller.")
-	flag.BoolVar(&enableWorkspace, "enable-workspace", true, "Enable the workspace controller.")
-	flag.BoolVar(&enableInstance, "enable-instance", true, "Enable the instance controller.")
-	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", true, "Enable the sharedvolume controller.")
-	flag.BoolVar(&enableKeycloak, "enable-keycloak", true, "Enable the Keycloak integration.")
+	var enableImageList bool
+	flag.BoolVar(&enableTenant, "enable-tenant", false, "Enable the tenant controller.")
+	flag.BoolVar(&enableWorkspace, "enable-workspace", false, "Enable the workspace controller.")
+	flag.BoolVar(&enableInstance, "enable-instance", false, "Enable the instance controller.")
+	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", false, "Enable the sharedvolume controller.")
+	flag.BoolVar(&enablePmp, "enable-pmp", false, "Enable the PVC mirror provisioner.")
+	flag.BoolVar(&enableKeycloak, "enable-keycloak", false, "Enable the Keycloak integration.")
+	flag.BoolVar(&enableImageList, "enable-imagelist", false, "Enable the image list updater.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
@@ -95,7 +102,7 @@ func main() {
 	log := ctrl.Log.WithName("setup")
 
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-		Scheme:                 scheme,
+		Scheme:                 rscheme,
 		Metrics:                server.Options{BindAddress: metricsAddr},
 		WebhookServer:          webhook.NewServer(webhook.Options{Port: 9443}),
 		LeaderElection:         enableLeaderElection,
@@ -107,11 +114,21 @@ func main() {
 		klog.Fatal(err, "Unable to create manager")
 	}
 
-	targetLabel, err := common.ParseLabel(targetLabelStr)
+	tenantNamespaceCommonLabels, err := forge.MapFromKVString(tenantNamespaceCommonLabelsStr)
+	if err != nil {
+		klog.Fatal(err, "Unable to parse tenant namespace common labels")
+	}
+
+	targetLabel, err := ctrlcommon.ParseLabel(targetLabelStr)
 	if err != nil {
 		klog.Fatal(err, "Unable to parse target label")
 	}
-	log.Info("Selecting resources with label", "label", targetLabelStr)
+
+	tenantNamespaceCommonLabels[targetLabel.GetKey()] = targetLabel.GetValue()
+
+	log.Info("Selecting resources with label", "label", targetLabel.GetKey()+"="+targetLabel.GetValue())
+
+	tenantNamespaceCommonLabels = forge.StaticTenantNamespaceLabels(tenantNamespaceCommonLabels)
 
 	// enabling Keycloak if modules that needs it are enabled
 	enableKeycloak = enableKeycloak && (enableTenant || enableWorkspace)
@@ -126,7 +143,7 @@ func main() {
 
 	if enableTenant {
 		log.Info("Starting the tenant controller")
-		err := setupTenant(mgr, log, targetLabel)
+		err := setupTenant(mgr, log, tenantNamespaceCommonLabels, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create tenant controller")
 		}
@@ -153,6 +170,21 @@ func main() {
 		err := setupSharedVolume(mgr, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create sharedvolume controller")
+		}
+	}
+
+	if enableImageList {
+		log.Info("Starting the image list updater")
+		err := setupImageList(mgr, log)
+		if err != nil {
+			klog.Fatal(err, "Unable to setup image list updater")
+		}
+	}
+	if enablePmp {
+		log.Info("Starting the PVC mirror provisioner")
+		err := setupPmp(ctx, mgr, log, targetLabel)
+		if err != nil {
+			klog.Fatal(err, "Unable to create PVC mirror provisioner")
 		}
 	}
 

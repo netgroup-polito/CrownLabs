@@ -14,10 +14,18 @@ import {
   type EnvironmentListListItemInput,
   type SharedVolumeMountsListItemInput,
   useApplyTemplateJsonPatchMutation,
+  useImagesQuery,
+  type ImagesQuery,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
-import { convertToGiB, type Template, WorkspaceRole } from '../../../../utils';
+import {
+  convertToGiB,
+  getOriginalK8sKey,
+  getCamelCaseKey,
+  type Template,
+  WorkspaceRole,
+} from '../../../../utils';
 import { ErrorTypes } from '../../../../errorHandling/utils';
 import {
   makeGuiTemplate,
@@ -29,7 +37,11 @@ import { SharedVolumesDrawer } from '../../SharedVolumes';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import ModalCreateTemplate from '../../ModalCreateTemplate';
 import type { TemplateForm } from '../../ModalCreateTemplate/types';
-import { getImageNameNoVer } from '../../ModalCreateTemplate/utils';
+import {
+  getImageNameNoVer,
+  isInImageList,
+  useImageLists,
+} from '../../ModalCreateTemplate/utils';
 import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
 
 export interface ITemplateTableLogicProps {
@@ -78,7 +90,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
   });
 
   const dataTemplate = useMemo(() => {
-
     const templates =
       templateListData?.templateList?.templates
         ?.map(t =>
@@ -91,7 +102,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           }),
         )
         .sort((a, b) => a.name.localeCompare(b.name)) ?? [];
-       
+
     return templates;
   }, [templateListData?.templateList?.templates]);
 
@@ -182,14 +193,17 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       onError: apolloErrorCatcher,
     });
 
-  const createInstance = (templateId: string, labelSelector?: JSON) =>
+  const createInstance = (
+    templateId: string,
+    labelSelector?: Record<string, string>,
+  ) =>
     createInstanceMutation({
       variables: {
         templateId,
         tenantNamespace,
         tenantId: userId ?? '',
         workspaceNamespace,
-        nodeSelector: labelSelector as Record<string, string> | undefined,
+        nodeSelector: labelSelector,
       },
     }).catch(error => {
       console.error('TemplatesTableLogic createInstance error:', error);
@@ -198,7 +212,6 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const templates = useMemo(() => {
     const joined = joinInstancesAndTemplates(dataTemplate, ownedInstances);
-  
 
     // build map of original GraphQL templates by metadata.name for reliable lookup
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -217,10 +230,10 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         ...t,
         image: env?.image ?? null,
         environmentType: env?.environmentType ?? null,
+        otherResources: env?.resources?.otherResources ?? null,
       };
     });
   }, [dataTemplate, ownedInstances, templateListData?.templateList?.templates]);
-
 
   const [showTemplateModal, setShowTemplateModal] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<TemplateForm>();
@@ -229,7 +242,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
     onError: apolloErrorCatcher,
   });
 
-  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null)
+  const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
+
+  const { data: dataImages } = useImagesQuery({
+    variables: {},
+    onError: apolloErrorCatcher,
+  });
+
+  const { availableImagesVM, availableImagesContainer } = useImageLists(
+    dataImages ?? ({} as ImagesQuery),
+  );
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {
@@ -243,11 +265,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           persistent: env.persistent,
           environmentType: env.environmentType,
           resources: {
-            reservedCPUPercentage:
-             env.reservedCpu,
+            reservedCPUPercentage: env.reservedCpu,
             cpu: env.cpu,
             memory: `${env.ram}Gi`,
-            disk: env.disk ? `${env.disk}Gi` : undefined, 
+            disk: env.disk ? `${env.disk}Gi` : undefined,
+            otherResources: Object.fromEntries(
+              Object.entries(env.otherResources || {}).map(([key, val]) => [
+                getOriginalK8sKey(key),
+                String(val ?? 0),
+              ]),
+            ),
           },
           image: env.image,
           disableControls: env.disableControls,
@@ -271,11 +298,26 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         | { op: 'replace' | 'add'; path: string; value: unknown }
         | { op: 'remove'; path: string }
       > = [
-        { op: 'replace', path: '/spec/environmentList', value: environmentList },
+        {
+          op: 'replace',
+          path: '/spec/environmentList',
+          value: environmentList,
+        },
         { op: 'replace', path: '/spec/prettyName', value: t.name },
-        { op: 'replace', path: '/spec/deleteAfter', value: t.deleteAfter },
-        { op: 'replace', path: '/spec/inactivityTimeout', value: t.inactivityTimeout },
-        { op: 'replace', path: '/spec/allowPublicExposure', value: t.allowPublicExposure },
+        {
+          op: 'replace',
+          path: '/spec/cleanup',
+          value: {
+            deleteAfterCreation: t.cleanup?.deleteAfterCreation,
+            stopAfterInactivity: t.cleanup?.stopAfterInactivity,
+            deleteAfterInactivity: t.cleanup?.deleteAfterInactivity,
+          },
+        },
+        {
+          op: 'replace',
+          path: '/spec/allowPublicExposure',
+          value: t.allowPublicExposure,
+        },
         { op: 'replace', path: '/spec/description', value: t.description },
       ];
 
@@ -286,9 +328,12 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       if (t.nodeSelector === null && usedTemplate?.nodeSelector !== null) {
         patches.push({ op: 'remove', path: '/spec/nodeSelector' });
       } else if (t.nodeSelector !== null) {
-        patches.push({ op: 'add', path: '/spec/nodeSelector', value: t.nodeSelector });
+        patches.push({
+          op: 'add',
+          path: '/spec/nodeSelector',
+          value: t.nodeSelector,
+        });
       }
-
 
       return await applyTemplateJsonPatchMutation({
         variables: {
@@ -360,48 +405,104 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                 deleteTemplateLoading={loadingDeleteTemplateMutation}
                 editTemplate={(template: Template) => {
                   setUsedTemplate(template);
+
+                  const rawTemplate =
+                    templateListData?.templateList?.templates?.find(
+                      t => t?.metadata?.name === template.id,
+                    );
+
                   const templateForm: TemplateForm = {
                     name: template.name,
-                    // Include nodeSelector for modal initialization (state setup), but it won't be in the form
                     nodeSelector: template.nodeSelector,
                     description: template.description ?? template.name,
-                    deleteAfter: template.deleteAfter,
+                    cleanup: template.cleanup,
                     allowPublicExposure: template.allowPublicExposure,
-                    inactivityTimeout: template.inactivityTimeout,
-                    environments: template.environmentList.map(env => ({
-                      name: env.name,
-                      persistent: env.persistent,
-                      environmentType:
-                        env.environmentType ?? EnvironmentType.VirtualMachine,
-                      cpu: env.resources.cpu,
-                      reservedCpu: env.resources.reservedCPUPercentage ?? 50,
-                      ram: env.resources.memory
-                        ? convertToGiB(env.resources.memory)
-                        : 0,
-                      disk: env.resources.disk
-                        ? convertToGiB(env.resources.disk)
-                        : 0,
-                      image:
-                        env.environmentType === EnvironmentType.VirtualMachine
-                          ? getImageNameNoVer(env.image)
-                              .split('/')
-                              .slice(-2)
-                              .join('/') ?? ''
-                          : env.image,
-                      registry:
-                        env.environmentType !== EnvironmentType.CloudVm ? getImageNameNoVer(env.image).split('/').slice(0)[0] ?? '' : '',
-                      sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
-                        sharedVolume: svm.name,
-                        mountPath: svm.mountPath,
-                        readOnly: svm.readOnly,
-                      })),
-                      rewriteUrl: env.rewriteUrl,
-                      gui: env.guiEnabled,
-                      disableControls: env.disableControls,
-                      containerStartupOptions: env.containerStartupOptions,
-                      storageClassName: env.storageClassName,
-                    })),
+                    environments: template.environmentList.map(env => {
+                      // Determinizziamo il formato dell'immagine per il Cascader
+                      let finalImageValue = env.image;
+
+                      if (
+                        env.environmentType ===
+                          EnvironmentType.VirtualMachine ||
+                        env.environmentType === EnvironmentType.Standalone
+                      ) {
+                        // Controlliamo se l'immagine fa parte del nostro registro locale
+                        if (
+                          isInImageList(
+                            env.image,
+                            env.environmentType,
+                            availableImagesVM,
+                            availableImagesContainer,
+                          )
+                        ) {
+                          // Puliamo il path (es. harbor.../nome:versione -> nome:versione)
+                          const cleanImageName = getImageNameNoVer(env.image)
+                            .split('/')
+                            .slice(-1)
+                            .join('');
+
+                          // Estraiamo la versione originale dalla stringa completa
+                          const versionIndex = env.image.indexOf(':');
+                          const version =
+                            versionIndex !== -1
+                              ? env.image.slice(versionIndex + 1)
+                              : '';
+
+                          // Ricomponiamo nel formato "nome_base:versione" atteso dal nostro Form.Item custom
+                          finalImageValue = version
+                            ? `${cleanImageName}:${version}`
+                            : cleanImageName;
+                        }
+                      }
+
+                      // Look for original env through e.name
+                      const rawEnv = rawTemplate?.spec?.environmentList?.find(
+                        e => e?.name === env.name,
+                      );
+
+                      const parsedOtherResources: Record<string, number> = {};
+
+                      Object.entries(
+                        rawEnv?.resources?.otherResources || {},
+                      ).forEach(([key, val]) => {
+                        parsedOtherResources[getCamelCaseKey(key)] =
+                          Number(val);
+                      });
+
+                      return {
+                        name: env.name,
+                        persistent: env.persistent,
+                        environmentType:
+                          env.environmentType ?? EnvironmentType.VirtualMachine,
+                        cpu: env.resources.cpu,
+                        reservedCpu: env.resources.reservedCPUPercentage ?? 50,
+                        ram: env.resources.memory
+                          ? convertToGiB(env.resources.memory)
+                          : 0,
+                        disk: env.resources.disk
+                          ? convertToGiB(env.resources.disk)
+                          : 0,
+                        // Questo valore stringa verrà processato da `getValueProps` diventando un array [base, version]
+                        image: finalImageValue,
+                        registry:
+                          env.environmentType !== EnvironmentType.CloudVm
+                            ? (getImageNameNoVer(env.image).split('/')[0] ?? '')
+                            : '',
+                        sharedVolumeMounts: env.sharedVolumeMounts.map(svm => ({
+                          sharedVolume: svm.name,
+                          mountPath: svm.mountPath,
+                          readOnly: svm.readOnly,
+                        })),
+                        rewriteUrl: env.rewriteUrl,
+                        gui: env.guiEnabled,
+                        disableControls: env.disableControls,
+                        containerStartupOptions: env.containerStartupOptions,
+                        storageClassName: env.storageClassName,
+                        otherResources: parsedOtherResources,
+                      };
+                    }),
                   };
+
                   setEditingTemplate(templateForm);
                   setShowTemplateModal(true);
                 }}

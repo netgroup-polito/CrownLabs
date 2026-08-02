@@ -2,6 +2,7 @@ import type { Dispatch, ReactNode, SetStateAction } from 'react';
 import type { EnvironmentType, Phase2, Phase5 } from './generated-types';
 import { Role } from './generated-types';
 import type { ContainerStartupOptionsForm } from './components/workspaces/ModalCreateTemplate/types';
+import { VITE_APP_CUSTOM_RESOURCES } from './env';
 export type someKeysOf<T> = { [key in keyof T]?: T[key] };
 export enum WorkspaceRole {
   user = Role.User,
@@ -24,6 +25,7 @@ export type Resources = {
   disk: string;
   memory: string;
   reservedCPUPercentage?: number;
+  otherResources?: Record<string, number> | null;
 };
 export type TemplateEnvironment = {
   name: string;
@@ -48,6 +50,7 @@ export type InstanceResources = {
   cpu: number;
   memory: number;
   disk: number;
+  otherResources?: Record<string, number>;
 };
 
 export type InstanceEnvironment = {
@@ -75,8 +78,12 @@ export type Template = {
   allowPublicExposure: boolean;
   environmentList: Array<TemplateEnvironment>;
   hasMultipleEnvironments: boolean;
-  deleteAfter: string;
-  inactivityTimeout: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
+  otherResources?: Record<string, number> | null;
 };
 
 export type Instance = {
@@ -96,6 +103,7 @@ export type Instance = {
   status: Phase2;
   url: string | null;
   timeStamp: string;
+  lastActivity: string;
   workspaceName: string;
   running: boolean;
   nodeSelector?: Record<string, string>;
@@ -107,6 +115,12 @@ export type Instance = {
   environments?: Array<InstanceEnvironment>;
   hasMultipleEnvironments?: boolean;
   resources: InstanceResources;
+  lastPoweredOffTimestamp: string;
+  cleanup?: {
+    deleteAfterCreation?: string;
+    stopAfterInactivity?: string;
+    deleteAfterInactivity?: string;
+  };
 };
 
 export type SharedVolume = {
@@ -215,6 +229,49 @@ export function makeListToggler<T>(
 export const JSONDeepCopy = <T>(obj: T) =>
   obj && (JSON.parse(JSON.stringify(obj)) as T);
 
+export function formatRelativeDate(value?: string, now = new Date()): string {
+  if (!value) return '-';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDay = new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+  );
+  const diffDays = Math.floor(
+    (today.getTime() - targetDay.getTime()) / 86400000,
+  );
+
+  if (diffDays <= 0) return 'Today';
+  if (diffDays === 1) return 'Yesterday';
+  if (diffDays < 30) return `${diffDays} days ago`;
+
+  const years =
+    today.getFullYear() -
+    targetDay.getFullYear() -
+    (today.getMonth() < targetDay.getMonth() ||
+    (today.getMonth() === targetDay.getMonth() &&
+      today.getDate() < targetDay.getDate())
+      ? 1
+      : 0);
+
+  if (years > 0) return `${years} ${years === 1 ? 'year' : 'years'} ago`;
+
+  const months =
+    today.getFullYear() * 12 +
+    today.getMonth() -
+    (targetDay.getFullYear() * 12 + targetDay.getMonth()) -
+    (today.getDate() < targetDay.getDate() ? 1 : 0);
+
+  const normalizedMonths = Math.max(1, months);
+  return `${normalizedMonths} ${
+    normalizedMonths === 1 ? 'month' : 'months'
+  } ago`;
+}
+
 export type WorkspaceEntry = { role: Role; name: string };
 
 export type UserAccountPage = {
@@ -234,6 +291,10 @@ export type Tenant = {
   surname: string;
   email: string;
   workspaces: WorkspaceEntry[];
+  creationDate?: string;
+  lastLogin?: string;
+  labels?: Record<string, string>;
+  personalWorkspace?: boolean;
 };
 
 export function makeRandomDigits(value: number) {
@@ -267,7 +328,9 @@ export const findKeyByValue = <T, K extends keyof unknown>(
  * @returns the number that represents the passed quantity in GiB (e.g. 2)
  */
 export const convertToGiB = (sizeStr: string): number => {
-  const match = sizeStr.trim().match(/^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|K|M|G|T)B?$/i);
+  const match = sizeStr
+    .trim()
+    .match(/^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|K|M|G|T)B?$/i);
   if (!match) {
     throw new Error('Invalid size string');
   }
@@ -277,7 +340,7 @@ export const convertToGiB = (sizeStr: string): number => {
   // Strip trailing 'i' and uppercase to normalise both X and Xi to the same prefix
   const unit = unitRaw.replace(/i$/i, '').toUpperCase();
   const round2 = (n: number) => Math.round(n * 100) / 100;
-  
+
   switch (unit) {
     case 'G':
       return round2(value);
@@ -392,3 +455,83 @@ ${yamlPorts}`;
 
   return finalPatch;
 }
+
+/**
+ * Parses the custom resources JSON configuration from the environment (Vite or Helm ConfigMap).
+ */
+const getCustomResourcesConfig = (): Record<string, string> => {
+  if (!VITE_APP_CUSTOM_RESOURCES) {
+    return {};
+  }
+  try {
+    return JSON.parse(VITE_APP_CUSTOM_RESOURCES);
+  } catch (error) {
+    console.error(
+      'Error parsing VITE_APP_CUSTOM_RESOURCES configuration:',
+      error,
+    );
+    return {};
+  }
+};
+
+/**
+ * Converts a camelCase or partial key (e.g., nvidiaComGpu) back to
+ * its original Kubernetes standard key format (e.g., nvidia.com/gpu).
+ */
+export const getOriginalK8sKey = (key: string): string => {
+  const customResources = getCustomResourcesConfig();
+
+  for (const originalK8sKey of Object.keys(customResources)) {
+    // Dynamically convert Kubernetes key format (e.g., nvidia.com/gpu) to qlkube camelCase (e.g., nvidiaComGpu)
+    const computedCamelCase = originalK8sKey.replace(
+      /([./])([a-z])/g,
+      (_, __, letter) => letter.toUpperCase(),
+    );
+
+    if (key === originalK8sKey || key === computedCamelCase) {
+      return originalK8sKey;
+    }
+  }
+  return key;
+};
+
+/**
+ * Converts a standard Kubernetes key format (e.g., nvidia.com/gpu)
+ * to its qlkube camelCase counterpart (e.g., nvidiaComGpu).
+ */
+export const getCamelCaseKey = (key: string): string => {
+  const customResources = getCustomResourcesConfig();
+
+  for (const originalK8sKey of Object.keys(customResources)) {
+    if (key === originalK8sKey) {
+      return originalK8sKey.replace(/([./])([a-z])/g, (_, __, letter) =>
+        letter.toUpperCase(),
+      );
+    }
+  }
+  // Fallback: apply the regex transformation directly if the key is not in config
+  return key.replace(/([./])([a-z])/g, (_, __, letter) => letter.toUpperCase());
+};
+
+/**
+ * Safely maps any resource key format (K8s or camelCase) to its
+ * configured human-readable label (e.g., "NVIDIA GPU"). Fallback to uppercase key.
+ */
+export const formatExtendedResourceLabel = (key: string): string => {
+  const customResources = getCustomResourcesConfig();
+
+  // Clean input key from any non-alphanumeric characters and lowercase it (e.g. "nvidiaComGpu" -> "nvidiacomgpu")
+  const cleanKey = key.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+  for (const [k8sKey, label] of Object.entries(customResources)) {
+    // Clean the K8s key in the same way (e.g. "nvidia.com/gpu" -> "nvidiacomgpu")
+    const cleanK8s = k8sKey.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+
+    if (cleanK8s === cleanKey || k8sKey.toLowerCase() === key.toLowerCase()) {
+      return label;
+    }
+  }
+
+  // Fallback behavior: if the key is not in the map, return it in uppercase
+  return key.toUpperCase();
+};

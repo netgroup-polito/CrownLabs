@@ -18,12 +18,12 @@ import (
 	"context"
 
 	appsv1 "k8s.io/api/apps/v1"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/context"
+	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -57,7 +57,7 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
-	pvc := v1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
+	pvc := corev1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// PVC's spec is immutable, it has to be set at creation
@@ -82,14 +82,9 @@ func (r *InstanceReconciler) enforceContainer(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	template := clctx.TemplateFrom(ctx)
+	mountInfos := clctx.VolumeMountInfosFrom(ctx)
 
 	depl := appsv1.Deployment{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
-
-	mountInfos, msg, err := forge.NFSVolumeMountInfosFromEnvironment(ctx, r.Client, environment)
-	if err != nil {
-		log.Error(err, msg)
-		return err
-	}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &depl, func() error {
 		// Deployment specifications are forged only at creation time, as changing them later may be

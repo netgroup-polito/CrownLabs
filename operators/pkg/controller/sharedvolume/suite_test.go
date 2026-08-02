@@ -32,7 +32,7 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/sharedvolume"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/tests"
 )
@@ -51,7 +51,7 @@ var (
 		ErrorIfCRDPathMissing: true,
 	}
 
-	targetLabel = common.NewLabel("production", "true")
+	targetLabel = ctrlcommon.NewLabel("production", "true")
 	labelMap    = map[string]string{
 		targetLabel.GetKey(): targetLabel.GetValue(),
 	}

@@ -16,11 +16,13 @@ package forge
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	petname "github.com/dustinkirkland/golang-petname"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -37,35 +39,36 @@ func init() {
 	petname.NonDeterministicMode()
 }
 
-// ObjectMeta returns the namespace/name pair given an instance object.
-func ObjectMeta(instance *clv1alpha2.Instance) metav1.ObjectMeta {
+// ObjectMeta returns the namespace/name pair given a Kubernetes object.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func ObjectMeta(object metav1.Object) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      CanonicalName(instance.GetName()),
-		Namespace: instance.GetNamespace(),
+		Name:      CanonicalName(object.GetName()),
+		Namespace: object.GetNamespace(),
 	}
 }
 
-// ObjectMetaWithSuffix returns the namespace/name pair given an instance object and a name suffix.
-func ObjectMetaWithSuffix(instance *clv1alpha2.Instance, suffix string) metav1.ObjectMeta {
+// ObjectMetaWithSuffix returns the namespace/name pair given a Kubernetes object and a name suffix.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func ObjectMetaWithSuffix(object metav1.Object, suffix string) metav1.ObjectMeta {
 	return metav1.ObjectMeta{
-		Name:      CanonicalName(instance.GetName()) + StringSeparator + suffix,
-		Namespace: instance.GetNamespace(),
+		Name:      CanonicalName(object.GetName()) + StringSeparator + suffix,
+		Namespace: object.GetNamespace(),
 	}
 }
 
-// NamespacedName returns the namespace/name pair given an instance object.
-func NamespacedName(instance *clv1alpha2.Instance) types.NamespacedName {
+// NamespacedNameWithSuffix returns the namespace/name pair given a Kubernetes object and a name suffix.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func NamespacedNameWithSuffix(object metav1.Object, suffix string) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      CanonicalName(instance.GetName()),
-		Namespace: instance.GetNamespace(),
-	}
-}
-
-// NamespacedNameWithSuffix returns the namespace/name pair given an instance object and a name suffix.
-func NamespacedNameWithSuffix(instance *clv1alpha2.Instance, suffix string) types.NamespacedName {
-	return types.NamespacedName{
-		Name:      CanonicalName(instance.GetName()) + StringSeparator + suffix,
-		Namespace: instance.GetNamespace(),
+		Name:      CanonicalName(object.GetName()) + StringSeparator + suffix,
+		Namespace: object.GetNamespace(),
 	}
 }
 
@@ -77,19 +80,22 @@ func NamespacedNameToObjectMeta(namespacedName types.NamespacedName) metav1.Obje
 	}
 }
 
-// NamespacedNameFromSharedVolume returns the namespace/name pair of the passed SharedVolume.
-func NamespacedNameFromSharedVolume(shvol *clv1alpha2.SharedVolume) types.NamespacedName {
+// NamespacedNameFromObject returns the namespace/name pair of the passed Kubernetes object.
+//
+// Note: Remember all k8s resource structs (e.g. Pod, Deployment, ...) do not implement the
+// metav1.Object interface, but any pointer to them does.
+func NamespacedNameFromObject(obj metav1.Object) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      shvol.Name,
-		Namespace: shvol.Namespace,
+		Name:      obj.GetName(),
+		Namespace: obj.GetNamespace(),
 	}
 }
 
-// NamespacedNameFromMount returns the namespace/name pair of the SharedVolume contained in the passed SharedVolumeMountInfo.
-func NamespacedNameFromMount(mountInfo clv1alpha2.SharedVolumeMountInfo) types.NamespacedName {
+// NamespacedNameFromGenericRef returns the namespace/name pair of the passed reference.
+func NamespacedNameFromGenericRef(ref clv1alpha2.GenericRef) types.NamespacedName {
 	return types.NamespacedName{
-		Name:      mountInfo.SharedVolumeRef.Name,
-		Namespace: mountInfo.SharedVolumeRef.Namespace,
+		Name:      ref.Name,
+		Namespace: ref.Namespace,
 	}
 }
 
@@ -123,4 +129,59 @@ func CapIntegerQuantity(quantity, capQuantity int64) int64 {
 		return quantity
 	}
 	return capQuantity
+}
+
+// LastCharsOf returns a string composed by the last 'many' chars from 's'.
+func LastCharsOf(s string, many int) string {
+	if many < 0 {
+		return ""
+	}
+	if len(s) > many {
+		return s[len(s)-many:]
+	}
+	return s
+}
+
+// MapFromKVString parses a string like "key1=val1,key2=val2" into a map.
+func MapFromKVString(raw string) (map[string]string, error) {
+	annotations := make(map[string]string)
+	if raw == "" {
+		return annotations, nil
+	}
+
+	pairs := strings.Split(raw, ",")
+	for _, pair := range pairs {
+		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
+		if len(kv) != 2 {
+			return nil, fmt.Errorf("invalid annotation format: %s", pair)
+		}
+		key := strings.TrimSpace(kv[0])
+		value := strings.TrimSpace(kv[1])
+		if key == "" {
+			return nil, fmt.Errorf("empty annotation key in: %s", pair)
+		}
+		annotations[key] = value
+	}
+	return annotations, nil
+}
+
+// InjectOtherResources copies custom extended resources from a source map into a Kubernetes ResourceList.
+func InjectOtherResources(source map[string]resource.Quantity, target corev1.ResourceList) {
+	if source == nil || target == nil {
+		return
+	}
+	for resName, qty := range source {
+		target[corev1.ResourceName(resName)] = qty
+	}
+}
+
+// Int64ToUint32 takes an int64 value and converts it into uint32.
+func Int64ToUint32(val int64) uint32 {
+	if val < 0 {
+		return 0
+	}
+	if val > math.MaxUint32 {
+		return math.MaxUint32
+	}
+	return uint32(val)
 }

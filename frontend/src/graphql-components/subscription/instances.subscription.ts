@@ -16,9 +16,9 @@ export default gql`
           namespace
           creationTimestamp
           labels
+          annotations
         }
         status {
-          ip
           phase
           url
           nodeName
@@ -51,6 +51,9 @@ export default gql`
               targetPort
             }
           }
+          tenantCrownlabsPolitoItTenantRef {
+            name
+          }
           templateCrownlabsPolitoItTemplateRef {
             name
             namespace
@@ -60,6 +63,11 @@ export default gql`
                   prettyName
                   description
                   allowPublicExposure
+                  cleanup {
+                    deleteAfterCreation
+                    stopAfterInactivity
+                    deleteAfterInactivity
+                  }
                   environmentList {
                     name
                     guiEnabled
@@ -69,6 +77,7 @@ export default gql`
                       cpu
                       memory
                       disk
+                      otherResources
                     }
                   }
                 }

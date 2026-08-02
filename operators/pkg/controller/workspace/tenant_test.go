@@ -24,11 +24,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
-var tenantResources = []*v1alpha2.Tenant{
+var tenantResources = []*clv1alpha2.Tenant{
 	{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "test-candidate",
@@ -37,13 +37,13 @@ var tenantResources = []*v1alpha2.Tenant{
 				fmt.Sprintf("crownlabs.polito.it/workspace-%s", wsName): "candidate",
 			},
 		},
-		Spec: v1alpha2.TenantSpec{
+		Spec: clv1alpha2.TenantSpec{
 			FirstName: "Candidate",
 			LastName:  "Tenant",
 			Email:     "candidate-tenant@test.email",
-			Workspaces: []v1alpha2.TenantWorkspaceEntry{{
+			Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
 				Name: wsName,
-				Role: v1alpha2.Candidate,
+				Role: clv1alpha2.Candidate,
 			}},
 		},
 	},
@@ -55,13 +55,13 @@ var tenantResources = []*v1alpha2.Tenant{
 				fmt.Sprintf("crownlabs.polito.it/workspace-%s", wsName): "user",
 			},
 		},
-		Spec: v1alpha2.TenantSpec{
+		Spec: clv1alpha2.TenantSpec{
 			FirstName: "User",
 			LastName:  "Tenant",
 			Email:     "user-tenant@test.email",
-			Workspaces: []v1alpha2.TenantWorkspaceEntry{{
+			Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
 				Name: wsName,
-				Role: v1alpha2.User,
+				Role: clv1alpha2.User,
 			}},
 		},
 	},
@@ -73,13 +73,13 @@ var tenantResources = []*v1alpha2.Tenant{
 				fmt.Sprintf("crownlabs.polito.it/workspace-%s", wsName): "manager",
 			},
 		},
-		Spec: v1alpha2.TenantSpec{
+		Spec: clv1alpha2.TenantSpec{
 			FirstName: "Manager",
 			LastName:  "Tenant",
 			Email:     "manager-tenant@test.email",
-			Workspaces: []v1alpha2.TenantWorkspaceEntry{{
+			Workspaces: []clv1alpha2.TenantWorkspaceEntry{{
 				Name: wsName,
-				Role: v1alpha2.Manager,
+				Role: clv1alpha2.Manager,
 			}},
 		},
 	},
@@ -101,7 +101,7 @@ var _ = Describe("Tenant", func() {
 		})
 
 		It("Should remove the workspace from the Tenant spec", func() {
-			tenant := &v1alpha2.Tenant{}
+			tenant := &clv1alpha2.Tenant{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tenantResources[0].Name}, tenant, BeTrue(), timeout, interval)
 
@@ -112,7 +112,7 @@ var _ = Describe("Tenant", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					List: func(_ context.Context, _ client.WithWatch, list client.ObjectList, _ ...client.ListOption) error {
-						if _, ok := list.(*v1alpha2.TenantList); ok {
+						if _, ok := list.(*clv1alpha2.TenantList); ok {
 							return fmt.Errorf("failed to list tenants")
 						}
 						return nil
@@ -127,7 +127,7 @@ var _ = Describe("Tenant", func() {
 			})
 
 			It("should prevent the workspace from being deleted", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 
@@ -139,7 +139,7 @@ var _ = Describe("Tenant", func() {
 			BeforeEach(func() {
 				builder.WithInterceptorFuncs(interceptor.Funcs{
 					Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-						if tenant, ok := obj.(*v1alpha2.Tenant); ok && tenant.Name == tenantResources[0].Name {
+						if tenant, ok := obj.(*clv1alpha2.Tenant); ok && tenant.Name == tenantResources[0].Name {
 							return fmt.Errorf("failed to update tenant")
 						}
 						return nil
@@ -154,7 +154,7 @@ var _ = Describe("Tenant", func() {
 			})
 
 			It("should prevent the workspace from being deleted", func() {
-				ws := &v1alpha1.Workspace{}
+				ws := &clv1alpha1.Workspace{}
 
 				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: wsName}, ws, BeTrue(), timeout, interval)
 

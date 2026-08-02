@@ -19,7 +19,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/sharedvolume"
 )
 
@@ -39,7 +39,7 @@ func init() {
 
 func setupSharedVolume(
 	mgr manager.Manager,
-	targetLabel common.KVLabel,
+	targetLabel ctrlcommon.KVLabel,
 ) error {
 	shvol := &sharedvolume.Reconciler{
 		Client:          mgr.GetClient(),

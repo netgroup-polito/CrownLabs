@@ -23,19 +23,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 var _ = Describe("Labels", func() {
 	It("Should add the operator target label", func() {
-		tn := &v1alpha2.Tenant{}
+		tn := &clv1alpha2.Tenant{}
 
 		DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 		Expect(tn.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
 	})
 
 	It("Should add the first and last name labels", func() {
-		tn := &v1alpha2.Tenant{}
+		tn := &clv1alpha2.Tenant{}
 
 		DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 		Expect(tn.Labels).To(HaveKeyWithValue("crownlabs.polito.it/first-name", "Test"))
@@ -46,7 +46,7 @@ var _ = Describe("Labels", func() {
 		BeforeEach(func() {
 			builder.WithInterceptorFuncs(interceptor.Funcs{
 				Patch: func(_ context.Context, _ client.WithWatch, obj client.Object, _ client.Patch, _ ...client.PatchOption) error {
-					if tn, ok := obj.(*v1alpha2.Tenant); ok && tn.Name == tnName && len(tn.Labels) > 1 {
+					if tn, ok := obj.(*clv1alpha2.Tenant); ok && tn.Name == tnName && len(tn.Labels) > 1 {
 						return fmt.Errorf("error updating labels")
 					}
 					return nil
@@ -61,7 +61,7 @@ var _ = Describe("Labels", func() {
 		})
 
 		It("Should set status to not ready", func() {
-			tn := &v1alpha2.Tenant{}
+			tn := &clv1alpha2.Tenant{}
 
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: tnName}, tn, BeTrue(), timeout, interval)
 			Expect(tn.Status.Ready).To(BeFalse())

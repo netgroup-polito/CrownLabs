@@ -14,7 +14,7 @@ configuration:
   mountPath: /usr/share/nginx/html
   fileName: config.js
   backend:
-    graphql: https://graphql.example.com
+    graphql: /graph
     grafana: https://grafana.example.com/d/example
     bastion: ssh.example.com
   oidc:
@@ -26,6 +26,17 @@ configuration:
   mydrive:
     templateName: mydrive
     workspaceName: utilities
+  imagelist:
+    standalone: crownlabs-standalone
+    containerdisks: crownlabs-containerdisks
+  customResources:
+    nvidia.com/gpu: "NVIDIA GPU"
+    amd.com/gpu: "AMD GPU"  
+  defaultTimeouts:
+    cleanup:
+      stopAfterInactivity: "15d"
+      deleteAfterInactivity: "never"
+      deleteAfterCreation: "never"
 
 imagePullSecrets: []
 nameOverride: ""
@@ -49,12 +60,20 @@ service:
   type: ClusterIP
   port: 80
 
+global:
+  gateway: {}
+
 ingress:
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-production
   hostname: crownlabs.example.com
   path: /
   secret: frontend-app-certificate
+
+httproute:
+  gateway: {}
+    # name: crownlabs-main # defaults to global.gateway.name
+  path: /
 
 resources:
   limits:

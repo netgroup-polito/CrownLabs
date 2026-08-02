@@ -15,21 +15,18 @@
 package v1alpha2
 
 import (
-	"k8s.io/apimachinery/pkg/api/resource"
+	"encoding/json"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone";"LocalVM"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
 type EnvironmentType string
-
-// +kubebuilder:validation:Enum="Standard";"Exam";"Exercise"
-
-// EnvironmentScope is an enumeration of the scope in which the environment of the associated instance should be started:
-// each scope consists in presets for exposition and deployment.
-type EnvironmentScope string
 
 const (
 	// ClassContainer -> the environment is constituted by a Docker container exposing a service through a VNC server.
@@ -40,14 +37,33 @@ const (
 	ClassCloudVM EnvironmentType = "CloudVM"
 	// ClassStandalone -> the environment is constituted by a Docker Container exposing a web service through an http interface.
 	ClassStandalone EnvironmentType = "Standalone"
-
-	// ScopeStandard -> Normal operation (authentication, ssh, files access).
-	ScopeStandard EnvironmentScope = "Standard"
-	// ScopeExam -> Restricted access (no authentication, no mydrive access).
-	ScopeExam EnvironmentScope = "Exam"
-	// ScopeExercise -> Restricted access (no authentication, no mydrive access).
-	ScopeExercise EnvironmentScope = "Exercise"
+	// ClassLocalVM -> the environment is constituted by a Virtual Machine started from a local Golden Image.
+	ClassLocalVM EnvironmentType = "LocalVM"
 )
+
+// CleanupOptions defines the automatic actions to enforce termination policies.
+type CleanupOptions struct {
+	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
+	// +kubebuilder:default="never"
+	// The maximum lifetime of an Instance referencing the current Template.
+	// Once this period is expired, the Instance will be automatically deleted
+	// regardless of whether it is still in use or not.
+	// If set to "never", the instance will not be automatically terminated.
+	DeleteAfterCreation string `json:"deleteAfterCreation"`
+
+	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
+	// +kubebuilder:default="never"
+	// The maximum period of inactivity after which an Instance referencing
+	// the current Template will be automatically stopped, or deleted
+	// (if not persistent) to save resources.
+	StopAfterInactivity string `json:"stopAfterInactivity"`
+
+	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
+	// +kubebuilder:default="never"
+	// The maximum period of time a persistent instance can remain powered off
+	// after being stopped for inactivity, before being completely deleted.
+	DeleteAfterInactivity string `json:"deleteAfterInactivity"`
+}
 
 // TemplateSpec is the specification of the desired state of the Template.
 type TemplateSpec struct {
@@ -62,39 +78,23 @@ type TemplateSpec struct {
 
 	// The list of environments (i.e. VMs or containers) that compose the Template.
 	// Each environment must have a unique name within the Template.
+	// +kubebuilder:validation:MaxItems:=10
 	// +listType=map
 	// +listMapKey=name
 	EnvironmentList []Environment `json:"environmentList"`
 
-	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
-	// +kubebuilder:default="never"
-
-	// The maximum lifetime of an Instance referencing the current Template.
-	// Once this period is expired, the Instance may be automatically deleted
-	// or stopped to save resources. If set to "never", the instance will not be
-	// automatically terminated.
-	DeleteAfter string `json:"deleteAfter,omitempty"`
+	// +kubebuilder:default={deleteAfterCreation: "never", stopAfterInactivity: "never", deleteAfterInactivity: "never"}
+	// Automatic actions to enforce termination policies.
+	Cleanup CleanupOptions `json:"cleanup"`
 
 	// Labels that are used for the selection of the node.
 	// They are given by means of a pointer to check the presence of the field.
 	// In case it is present, the labels that are chosen are the ones present on the instance
 	NodeSelector *map[string]string `json:"nodeSelector,omitempty"`
 
-	// +kubebuilder:default="Standard"
-
-	// The scope associated with the environments belonging to the template (Standard, Exam, Exercise)
-	Scope EnvironmentScope `json:"scope,omitempty"`
-
 	// +kubebuilder:default=false
 	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
 	AllowPublicExposure bool `json:"allowPublicExposure,omitempty"`
-
-	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
-	// +kubebuilder:default="never"
-	// The maximum period of inactivity after which an Instance referencing
-	// the current Template will be automatically stopped or deleted to
-	// save resources.
-	InactivityTimeout string `json:"inactivityTimeout,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.
@@ -114,7 +114,7 @@ type Environment struct {
 	Image string `json:"image"`
 
 	// The type of environment to be instantiated, among VirtualMachine,
-	// Container, CloudVM and Standalone.
+	// Container, CloudVM, LocalVM and Standalone.
 	EnvironmentType EnvironmentType `json:"environmentType"`
 
 	// +kubebuilder:default=true
@@ -157,12 +157,7 @@ type Environment struct {
 // EnvironmentResources is the specification of the amount of resources
 // (i.e. CPU, RAM, ...) assigned to a certain environment.
 type EnvironmentResources struct {
-	// +kubebuilder:validation:Minimum:=1
-
-	// The maximum number of CPU cores made available to the environment
-	// (at least 1 core). This maps to the 'limits' specified
-	// for the actual pod representing the environment.
-	CPU uint32 `json:"cpu"`
+	apicommon.ResourceSpec `json:",inline"`
 
 	// +kubebuilder:validation:Minimum:=1
 	// +kubebuilder:validation:Maximum:=100
@@ -171,17 +166,26 @@ type EnvironmentResources struct {
 	// respect to the 'CPU' value. Essentially, this corresponds to the 'requests'
 	// specified for the actual pod representing the environment.
 	ReservedCPUPercentage uint32 `json:"reservedCPUPercentage"`
+}
 
-	// The amount of RAM memory assigned to the given environment. Requests and
-	// limits do correspond to avoid OOMKill issues.
-	Memory resource.Quantity `json:"memory"`
+// UnmarshalJSON implements custom unmarshaling to prevent method promotion issues.
+// TODO: Remove this workaround once the production mutation webhook is updated.
+func (e *EnvironmentResources) UnmarshalJSON(data []byte) error {
+	// 1. Unmarshal embedded ResourceSpec (handles cpu string/int, memory, disk, etc.)
+	if err := json.Unmarshal(data, &e.ResourceSpec); err != nil {
+		return err
+	}
 
-	// The size of the persistent disk allocated for the given environment.
-	// This field is meaningful only in case of persistent or container-based
-	// environments, while it is silently ignored in the other cases.
-	// In case of containers, when this field is not specified, an emptyDir will be
-	// attached to the pod but this could result in data loss whenever the pod dies.
-	Disk resource.Quantity `json:"disk,omitempty"`
+	// 2. Unmarshal EnvironmentResources specific fields
+	var aux struct {
+		ReservedCPUPercentage uint32 `json:"reservedCPUPercentage,omitempty"`
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+
+	e.ReservedCPUPercentage = aux.ReservedCPUPercentage
+	return nil
 }
 
 // ContainerStartupOpts specifies custom startup options for the created container,
@@ -218,7 +222,6 @@ type SharedVolumeMountInfo struct {
 // +kubebuilder:resource:shortName="tmpl"
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
-// +kubebuilder:printcolumn:name="Scope",type=string,JSONPath=`.spec.environmentList[0].scope`
 // +kubebuilder:printcolumn:name="Image",type=string,JSONPath=`.spec.environmentList[0].image`,priority=10
 // +kubebuilder:printcolumn:name="Type",type=string,JSONPath=`.spec.environmentList[0].environmentType`,priority=10
 // +kubebuilder:printcolumn:name="GUI",type=string,JSONPath=`.spec.environmentList[0].guiEnabled`,priority=10

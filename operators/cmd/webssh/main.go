@@ -24,23 +24,23 @@ import (
 
 	"github.com/go-logr/stdr"
 	"k8s.io/apimachinery/pkg/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 
-	crownlabsv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	crownlabsv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/webssh"
 )
 
 var (
-	scheme = runtime.NewScheme()
+	rscheme = runtime.NewScheme()
 )
 
 func init() {
-	_ = clientgoscheme.AddToScheme(scheme)
-	_ = crownlabsv1alpha1.AddToScheme(scheme)
-	_ = crownlabsv1alpha2.AddToScheme(scheme)
+	_ = scheme.AddToScheme(rscheme)
+	_ = clv1alpha1.AddToScheme(rscheme)
+	_ = clv1alpha2.AddToScheme(rscheme)
 }
 
 func main() {

@@ -19,38 +19,38 @@ import (
 	"context"
 	"fmt"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 func (r *Reconciler) enforceNamespace(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
-	ns := &v1.Namespace{
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetWorkspaceNamespaceName(ws),
 		},
 	}
 
-	if _, err := controllerutil.CreateOrUpdate(ctx, r.Client, ns, func() error {
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, ns, func() error {
 		// Configure the namespace
 		labels := forge.UpdateWorkspaceResourceCommonLabels(nil, r.TargetLabel)
 		forge.ConfigureWorkspaceNamespace(ns, labels)
 
-		return controllerutil.SetControllerReference(ws, ns, r.Scheme)
+		return ctrlutil.SetControllerReference(ws, ns, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating namespace %s for workspace %s: %w",
 			ns.Name, ws.Name, err)
 	}
 
-	ws.Status.Namespace = v1alpha2.NameCreated{
+	ws.Status.Namespace = clv1alpha2.NameCreated{
 		Name:    ns.Name,
 		Created: true,
 	}
@@ -60,9 +60,9 @@ func (r *Reconciler) enforceNamespace(
 
 func (r *Reconciler) enforceNamespaceAbsence(
 	ctx context.Context,
-	ws *v1alpha1.Workspace,
+	ws *clv1alpha1.Workspace,
 ) error {
-	ns := &v1.Namespace{
+	ns := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: forge.GetWorkspaceNamespaceName(ws),
 		},
@@ -73,7 +73,7 @@ func (r *Reconciler) enforceNamespaceAbsence(
 			ns.Name, ws.Name, err)
 	}
 
-	ws.Status.Namespace = v1alpha2.NameCreated{
+	ws.Status.Namespace = clv1alpha2.NameCreated{
 		Name:    ns.Name,
 		Created: false,
 	}

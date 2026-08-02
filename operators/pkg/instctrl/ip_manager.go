@@ -19,7 +19,7 @@ import (
 	"fmt"
 	"sort"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -165,7 +165,7 @@ func UpdateUsedPortsByIP(ctx context.Context, c client.Client, excludeSvcName, e
 	usedPortsByIP := make(map[string]map[int32]bool)
 	log := ctrl.LoggerFrom(ctx)
 
-	svcList := &v1.ServiceList{}
+	svcList := &corev1.ServiceList{}
 
 	// Use a label selector to list only the relevant services.
 	labels := forge.LoadBalancerServiceLabels(opts)
@@ -180,7 +180,7 @@ func UpdateUsedPortsByIP(ctx context.Context, c client.Client, excludeSvcName, e
 	for i := range svcList.Items {
 		svc := &svcList.Items[i]
 		// Check for ServiceType is LoadBalancer, although the label should be enough for the purpose.
-		if svc.Spec.Type != v1.ServiceTypeLoadBalancer {
+		if svc.Spec.Type != corev1.ServiceTypeLoadBalancer {
 			continue
 		}
 

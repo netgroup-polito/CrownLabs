@@ -21,9 +21,9 @@ import (
 	"github.com/go-logr/logr"
 	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
@@ -32,7 +32,7 @@ import (
 func (r *Reconciler) enforceTenantClusterResources(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	// Create ClusterRole for tenant access
 	if err := r.enforceTenantClusterRole(ctx, log, tn); err != nil {
@@ -53,7 +53,7 @@ func (r *Reconciler) enforceTenantClusterResources(
 func (r *Reconciler) enforceTenantClusterResourcesAbsence(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	// Delete ClusterRoleBinding
 	if err := r.enforceTenantClusterRoleBindingAbsence(ctx, log, tn); err != nil {
@@ -74,7 +74,7 @@ func (r *Reconciler) enforceTenantClusterResourcesAbsence(
 func (r *Reconciler) enforceTenantClusterRole(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	crName := forge.GetTenantClusterRoleResourceName(tn)
 
@@ -84,11 +84,11 @@ func (r *Reconciler) enforceTenantClusterRole(
 		},
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &cr, func() error {
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &cr, func() error {
 		// Configure the cluster role
 		forge.ConfigureTenantClusterRole(&cr, tn, forge.UpdateTenantResourceCommonLabels(nil, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, &cr, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &cr, r.Scheme)
 	})
 
 	if err != nil {
@@ -104,7 +104,7 @@ func (r *Reconciler) enforceTenantClusterRole(
 func (r *Reconciler) enforceTenantClusterRoleBinding(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	crbName := forge.GetTenantClusterRoleResourceName(tn)
 
@@ -114,11 +114,11 @@ func (r *Reconciler) enforceTenantClusterRoleBinding(
 		},
 	}
 
-	_, err := controllerutil.CreateOrUpdate(ctx, r.Client, &crb, func() error {
+	_, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &crb, func() error {
 		// Configure the cluster role binding
 		forge.ConfigureTenantClusterRoleBinding(&crb, tn, forge.UpdateTenantResourceCommonLabels(nil, r.TargetLabel))
 
-		return controllerutil.SetControllerReference(tn, &crb, r.Scheme)
+		return ctrlutil.SetControllerReference(tn, &crb, r.Scheme)
 	})
 
 	if err != nil {
@@ -134,7 +134,7 @@ func (r *Reconciler) enforceTenantClusterRoleBinding(
 func (r *Reconciler) enforceTenantClusterRoleAbsence(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	crName := forge.GetTenantClusterRoleResourceName(tn)
 
@@ -156,7 +156,7 @@ func (r *Reconciler) enforceTenantClusterRoleAbsence(
 func (r *Reconciler) enforceTenantClusterRoleBindingAbsence(
 	ctx context.Context,
 	log logr.Logger,
-	tn *v1alpha2.Tenant,
+	tn *clv1alpha2.Tenant,
 ) error {
 	crbName := forge.GetTenantClusterRoleResourceName(tn)
 

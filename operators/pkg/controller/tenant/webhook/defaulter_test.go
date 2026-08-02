@@ -26,8 +26,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
 )
 
@@ -45,18 +45,18 @@ var _ = Describe("Defaulter webhook", func() {
 		baseWorkspaces = []string{}
 	)
 
-	opSelector := common.NewLabel("crownlabs.polito.it/op-sel", "test")
+	opSelector := ctrlcommon.NewLabel("crownlabs.polito.it/op-sel", "test")
 
 	forgeOpSelectorMap := func(opSel string) map[string]string {
 		return map[string]string{opSelector.GetKey(): opSel}
 	}
 
-	forgeTenantWithLabels := func(name string, labels map[string]string) *v1alpha2.Tenant {
-		return &v1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}}
+	forgeTenantWithLabels := func(name string, labels map[string]string) *clv1alpha2.Tenant {
+		return &clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name, Labels: labels}}
 	}
 
-	forgeTenantWithWorkspaces := func(name string, workspaces []v1alpha2.TenantWorkspaceEntry) *v1alpha2.Tenant {
-		return &v1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name}, Spec: v1alpha2.TenantSpec{Workspaces: workspaces}}
+	forgeTenantWithWorkspaces := func(name string, workspaces []clv1alpha2.TenantWorkspaceEntry) *clv1alpha2.Tenant {
+		return &clv1alpha2.Tenant{ObjectMeta: metav1.ObjectMeta{Name: name}, Spec: clv1alpha2.TenantSpec{Workspaces: workspaces}}
 	}
 
 	JustBeforeEach(func() {
@@ -75,7 +75,7 @@ var _ = Describe("Defaulter webhook", func() {
 
 	Describe("The TenantMutator.Default method", func() {
 		var (
-			tenant *v1alpha2.Tenant
+			tenant *clv1alpha2.Tenant
 			obj    runtime.Object
 			ctx    context.Context
 		)
@@ -101,7 +101,7 @@ var _ = Describe("Defaulter webhook", func() {
 
 		Context("when creating the service tenant", func() {
 			BeforeEach(func() {
-				tenant = forgeTenantWithLabels(v1alpha2.SVCTenantName, map[string]string{opSelector.GetKey(): "should-be-removed"})
+				tenant = forgeTenantWithLabels(clv1alpha2.SVCTenantName, map[string]string{opSelector.GetKey(): "should-be-removed"})
 				obj = tenant
 				request = forgeRequest(admissionv1.Create, tenant, nil)
 				ctx = admission.NewContextWithRequest(ctx, request)
@@ -140,7 +140,7 @@ var _ = Describe("Defaulter webhook", func() {
 
 	Describe("The TenantMutator.EnforceTenantLabels method", func() {
 		type EnforceLabelsCase struct {
-			newTenant, oldTenant *v1alpha2.Tenant
+			newTenant, oldTenant *clv1alpha2.Tenant
 			operation            admissionv1.Operation
 			expectedLabels       map[string]string
 			expectedError        error
@@ -176,7 +176,7 @@ var _ = Describe("Defaulter webhook", func() {
 			When("operation is issued against the service tenant", func() {
 				WhenBody(EnforceLabelsCase{
 					operation:      admissionv1.Create,
-					newTenant:      forgeTenantWithLabels(v1alpha2.SVCTenantName, map[string]string{opSelector.GetKey(): "something-not-nil"}),
+					newTenant:      forgeTenantWithLabels(clv1alpha2.SVCTenantName, map[string]string{opSelector.GetKey(): "something-not-nil"}),
 					expectedLabels: map[string]string{opSelector.GetKey(): ""},
 				})
 			})
@@ -221,7 +221,7 @@ var _ = Describe("Defaulter webhook", func() {
 				var expectedErr error
 				WhenBody(EnforceLabelsCase{
 					operation:     admissionv1.Update,
-					newTenant:     &v1alpha2.Tenant{},
+					newTenant:     &clv1alpha2.Tenant{},
 					oldTenant:     nil,
 					expectedError: expectedErr,
 					beforeEach:    func(elc *EnforceLabelsCase) { _, elc.expectedError = mutatingWH.DecodeTenant(runtime.RawExtension{}) },
@@ -270,12 +270,12 @@ var _ = Describe("Defaulter webhook", func() {
 
 	Describe("The TenantMutator.EnforceTenantBaseWorkspaces method", func() {
 		type EnforceTenantBaseWorkspacesCase struct {
-			testTenant         *v1alpha2.Tenant
+			testTenant         *clv1alpha2.Tenant
 			testBaseWorkspaces []string
-			expectedWorkspaces []v1alpha2.TenantWorkspaceEntry
+			expectedWorkspaces []clv1alpha2.TenantWorkspaceEntry
 		}
 
-		exampleWs1 := v1alpha2.TenantWorkspaceEntry{Name: "workspace", Role: v1alpha2.Manager}
+		exampleWs1 := clv1alpha2.TenantWorkspaceEntry{Name: "workspace", Role: clv1alpha2.Manager}
 		testWsName := "utilities"
 
 		WhenBody := func(elc EnforceTenantBaseWorkspacesCase) {
@@ -292,38 +292,38 @@ var _ = Describe("Defaulter webhook", func() {
 
 		When("the tenant has no workspaces", func() {
 			WhenBody(EnforceTenantBaseWorkspacesCase{
-				testTenant:         forgeTenantWithWorkspaces(v1alpha2.SVCTenantName, nil),
+				testTenant:         forgeTenantWithWorkspaces(clv1alpha2.SVCTenantName, nil),
 				testBaseWorkspaces: []string{testWsName},
-				expectedWorkspaces: []v1alpha2.TenantWorkspaceEntry{{
+				expectedWorkspaces: []clv1alpha2.TenantWorkspaceEntry{{
 					Name: testWsName,
-					Role: v1alpha2.User,
+					Role: clv1alpha2.User,
 				}},
 			})
 		})
 
 		When("the tenant has some workspaces", func() {
 			WhenBody(EnforceTenantBaseWorkspacesCase{
-				testTenant:         forgeTenantWithWorkspaces(v1alpha2.SVCTenantName, []v1alpha2.TenantWorkspaceEntry{exampleWs1}),
+				testTenant:         forgeTenantWithWorkspaces(clv1alpha2.SVCTenantName, []clv1alpha2.TenantWorkspaceEntry{exampleWs1}),
 				testBaseWorkspaces: []string{testWsName},
-				expectedWorkspaces: []v1alpha2.TenantWorkspaceEntry{
+				expectedWorkspaces: []clv1alpha2.TenantWorkspaceEntry{
 					exampleWs1, {
 						Name: testWsName,
-						Role: v1alpha2.User,
+						Role: clv1alpha2.User,
 					}},
 			})
 		})
 
 		When("the tenant already has the base workspaces already set", func() {
 			WhenBody(EnforceTenantBaseWorkspacesCase{
-				testTenant: forgeTenantWithWorkspaces(v1alpha2.SVCTenantName, []v1alpha2.TenantWorkspaceEntry{exampleWs1, {
+				testTenant: forgeTenantWithWorkspaces(clv1alpha2.SVCTenantName, []clv1alpha2.TenantWorkspaceEntry{exampleWs1, {
 					Name: testWsName,
-					Role: v1alpha2.Manager,
+					Role: clv1alpha2.Manager,
 				}}),
 				testBaseWorkspaces: []string{testWsName},
-				expectedWorkspaces: []v1alpha2.TenantWorkspaceEntry{
+				expectedWorkspaces: []clv1alpha2.TenantWorkspaceEntry{
 					exampleWs1, {
 						Name: testWsName,
-						Role: v1alpha2.Manager,
+						Role: clv1alpha2.Manager,
 					}},
 			})
 		})

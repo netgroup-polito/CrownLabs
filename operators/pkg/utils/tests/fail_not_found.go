@@ -20,7 +20,7 @@ import (
 
 	"github.com/onsi/gomega/format"
 	"github.com/onsi/gomega/types"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
 // IsNotFoundErrorMatcher is a custom matcher to check when kubernetes resources do not exist.
@@ -35,7 +35,7 @@ func FailBecauseNotFound() types.GomegaMatcher {
 func (s *IsNotFoundErrorMatcher) Match(actual interface{}) (success bool, err error) {
 	switch e := actual.(type) {
 	case error:
-		return errors.IsNotFound(e), nil
+		return kerrors.IsNotFound(e), nil
 	default:
 		return false, fmt.Errorf("IsNotFoundErrorMatcher can match errors only")
 	}

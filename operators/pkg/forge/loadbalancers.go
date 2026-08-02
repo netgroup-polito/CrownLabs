@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"strings"
 
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -62,22 +62,22 @@ func ConfigureLoadBalancerAnnotationKeys(raw string) (s, ip string, err error) {
 }
 
 // LoadBalancerServiceSpec forges the spec for a LoadBalancer service for public exposure.
-func LoadBalancerServiceSpec(instance *clv1alpha2.Instance, ports []clv1alpha2.PublicServicePort) v1.ServiceSpec {
-	svcPorts := make([]v1.ServicePort, len(ports))
+func LoadBalancerServiceSpec(instance *clv1alpha2.Instance, ports []clv1alpha2.PublicServicePort) corev1.ServiceSpec {
+	svcPorts := make([]corev1.ServicePort, len(ports))
 	for i, p := range ports {
 		protocol := p.Protocol
 		if protocol == "" {
-			protocol = v1.ProtocolTCP
+			protocol = corev1.ProtocolTCP
 		}
-		svcPorts[i] = v1.ServicePort{
+		svcPorts[i] = corev1.ServicePort{
 			Name:       p.Name,
 			Port:       p.Port,
 			TargetPort: intstr.FromInt32(p.TargetPort),
 			Protocol:   protocol,
 		}
 	}
-	return v1.ServiceSpec{
-		Type:     v1.ServiceTypeLoadBalancer,
+	return corev1.ServiceSpec{
+		Type:     corev1.ServiceTypeLoadBalancer,
 		Selector: InstanceSelectorLabels(instance),
 		Ports:    svcPorts,
 	}
@@ -120,29 +120,6 @@ func LoadBalancerServiceName(instance *clv1alpha2.Instance) string {
 // PublicExposureNetworkPolicyName forges the name for a NetworkPolicy for public exposure.
 func PublicExposureNetworkPolicyName(instance *clv1alpha2.Instance) string {
 	return "crownlabs-allow-publicexposure-ingress-traffic-" + instance.Name
-}
-
-// ParseAnnotations parses a string like "key1=val1,key2=val2" into a map.
-func ParseAnnotations(raw string) (map[string]string, error) {
-	annotations := make(map[string]string)
-	if raw == "" {
-		return annotations, nil
-	}
-
-	pairs := strings.Split(raw, ",")
-	for _, pair := range pairs {
-		kv := strings.SplitN(strings.TrimSpace(pair), "=", 2)
-		if len(kv) != 2 {
-			return nil, fmt.Errorf("invalid annotation format: %s", pair)
-		}
-		key := strings.TrimSpace(kv[0])
-		value := strings.TrimSpace(kv[1])
-		if key == "" {
-			return nil, fmt.Errorf("empty annotation key in: %s", pair)
-		}
-		annotations[key] = value
-	}
-	return annotations, nil
 }
 
 // PublicExposureNetworkPolicy forges the NetworkPolicy object for a given instance.

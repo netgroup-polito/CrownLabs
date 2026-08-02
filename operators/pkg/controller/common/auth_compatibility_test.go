@@ -20,12 +20,12 @@ import (
 	"sync"
 	"time"
 
-	gk13 "github.com/Nerzal/gocloak/v13"
-	"github.com/Nerzal/gocloak/v7"
+	gocloak13 "github.com/Nerzal/gocloak/v13"
+	gocloak7 "github.com/Nerzal/gocloak/v7"
 	"github.com/go-logr/logr"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"go.uber.org/mock/gomock"
 
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 )
@@ -78,7 +78,7 @@ var _ = Describe("Auth Compatibility", func() {
 					Client: mKcClient,
 				}
 
-				mKcClient.EXPECT().LoginClient(gomock.Any(), "clientID", "clientSecret", "realm").Return(&gocloak.JWT{}, nil)
+				mKcClient.EXPECT().LoginClient(gomock.Any(), "clientID", "clientSecret", "realm").Return(&gocloak7.JWT{}, nil)
 
 				err := SetupKeycloakActorCompatibility(context.Background(), "url", "clientID", "clientSecret", "realm", "rolesClientID", testLogger)
 				Expect(err).NotTo(HaveOccurred())
@@ -148,7 +148,7 @@ var _ = Describe("Auth Compatibility", func() {
 				initialized:    true,
 				Client:         mKcClient,
 				Realm:          "test-realm",
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: 12345,
 				credentials: struct {
 					ClientID     string
@@ -184,7 +184,7 @@ var _ = Describe("Auth Compatibility", func() {
 		Context("when token is valid and not expired", func() {
 			It("should return the existing token", func() {
 				now := time.Now().Unix()
-				actorCompatibility.token = &gocloak.JWT{AccessToken: "test-token", ExpiresIn: 300}
+				actorCompatibility.token = &gocloak7.JWT{AccessToken: "test-token", ExpiresIn: 300}
 				actorCompatibility.tokenExpiresAt = now + 300 // valid for 5 minutes
 
 				token := actorCompatibility.GetAccessToken(context.Background())
@@ -197,7 +197,7 @@ var _ = Describe("Auth Compatibility", func() {
 				actorCompatibility.token = nil
 				actorCompatibility.tokenExpiresAt = 0
 
-				mKcClient.EXPECT().LoginClient(gomock.Any(), "test-client", "test-secret", "test-realm").Return(&gocloak.JWT{AccessToken: "new-token", ExpiresIn: 300}, nil)
+				mKcClient.EXPECT().LoginClient(gomock.Any(), "test-client", "test-secret", "test-realm").Return(&gocloak7.JWT{AccessToken: "new-token", ExpiresIn: 300}, nil)
 
 				token := actorCompatibility.GetAccessToken(context.Background())
 				Expect(token).To(Equal("new-token"))
@@ -207,10 +207,10 @@ var _ = Describe("Auth Compatibility", func() {
 		Context("when token is expired", func() {
 			It("should refresh the token", func() {
 				now := time.Now().Unix()
-				actorCompatibility.token = &gocloak.JWT{AccessToken: "old-token", ExpiresIn: 300}
+				actorCompatibility.token = &gocloak7.JWT{AccessToken: "old-token", ExpiresIn: 300}
 				actorCompatibility.tokenExpiresAt = now - 100 // expired
 
-				mKcClient.EXPECT().LoginClient(gomock.Any(), "test-client", "test-secret", "test-realm").Return(&gocloak.JWT{AccessToken: "new-token", ExpiresIn: 300}, nil)
+				mKcClient.EXPECT().LoginClient(gomock.Any(), "test-client", "test-secret", "test-realm").Return(&gocloak7.JWT{AccessToken: "new-token", ExpiresIn: 300}, nil)
 
 				token := actorCompatibility.GetAccessToken(context.Background())
 				Expect(token).To(Equal("new-token"))
@@ -220,10 +220,10 @@ var _ = Describe("Auth Compatibility", func() {
 		Context("when token is about to expire", func() {
 			It("should refresh the token", func() {
 				now := time.Now().Unix()
-				actorCompatibility.token = &gocloak.JWT{AccessToken: "old-token", ExpiresIn: 300}
+				actorCompatibility.token = &gocloak7.JWT{AccessToken: "old-token", ExpiresIn: 300}
 				actorCompatibility.tokenExpiresAt = now + 10 // expires in 10 seconds
 
-				mKcClient.EXPECT().LoginClient(gomock.Any(), "test-client", "test-secret", "test-realm").Return(&gocloak.JWT{AccessToken: "new-token", ExpiresIn: 300}, nil)
+				mKcClient.EXPECT().LoginClient(gomock.Any(), "test-client", "test-secret", "test-realm").Return(&gocloak7.JWT{AccessToken: "new-token", ExpiresIn: 300}, nil)
 
 				token := actorCompatibility.GetAccessToken(context.Background())
 				Expect(token).To(Equal("new-token"))
@@ -238,7 +238,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 			}
 		})
@@ -246,15 +246,15 @@ var _ = Describe("Auth Compatibility", func() {
 		Context("when user exists", func() {
 			It("should return the user", func() {
 				username := "test-user"
-				expectedUser := &gocloak.User{Username: &username}
-				expectedUserV13 := &gk13.User{Username: gocloak.StringP(username)}
+				expectedUser := &gocloak7.User{Username: &username}
+				expectedUserV13 := &gocloak13.User{Username: gocloak7.StringP(username)}
 
 				mKcClient.EXPECT().GetUsers(
 					gomock.Any(),
 					"test-token",
 					"test-realm",
-					gocloak.GetUsersParams{Username: &username},
-				).Return([]*gocloak.User{expectedUser}, nil)
+					gocloak7.GetUsersParams{Username: &username},
+				).Return([]*gocloak7.User{expectedUser}, nil)
 
 				user, err := actorCompatibility.GetUser(context.Background(), username)
 				Expect(err).NotTo(HaveOccurred())
@@ -270,8 +270,8 @@ var _ = Describe("Auth Compatibility", func() {
 					gomock.Any(),
 					"test-token",
 					"test-realm",
-					gocloak.GetUsersParams{Username: &username},
-				).Return([]*gocloak.User{}, nil)
+					gocloak7.GetUsersParams{Username: &username},
+				).Return([]*gocloak7.User{}, nil)
 
 				user, err := actorCompatibility.GetUser(context.Background(), username)
 				Expect(err).To(MatchError("404"))
@@ -287,7 +287,7 @@ var _ = Describe("Auth Compatibility", func() {
 					gomock.Any(),
 					"test-token",
 					"test-realm",
-					gocloak.GetUsersParams{Username: &username},
+					gocloak7.GetUsersParams{Username: &username},
 				).Return(nil, fmt.Errorf("error fetching user"))
 
 				user, err := actorCompatibility.GetUser(context.Background(), username)
@@ -299,16 +299,16 @@ var _ = Describe("Auth Compatibility", func() {
 		Context("when the username is a substring of another username", func() {
 			It("should return the right user", func() {
 				username := "test-user"
-				expectedUser := &gocloak.User{Username: &username}
-				expectedUserV13 := &gk13.User{Username: gocloak.StringP(username)}
-				otherUser := &gocloak.User{Username: gocloak.StringP("test-user-other")}
+				expectedUser := &gocloak7.User{Username: &username}
+				expectedUserV13 := &gocloak13.User{Username: gocloak7.StringP(username)}
+				otherUser := &gocloak7.User{Username: gocloak7.StringP("test-user-other")}
 
 				mKcClient.EXPECT().GetUsers(
 					gomock.Any(),
 					"test-token",
 					"test-realm",
-					gocloak.GetUsersParams{Username: &username},
-				).Return([]*gocloak.User{expectedUser, otherUser}, nil)
+					gocloak7.GetUsersParams{Username: &username},
+				).Return([]*gocloak7.User{expectedUser, otherUser}, nil)
 
 				user, err := actorCompatibility.GetUser(context.Background(), username)
 				Expect(err).NotTo(HaveOccurred())
@@ -324,7 +324,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 			}
 		})
@@ -336,13 +336,13 @@ var _ = Describe("Auth Compatibility", func() {
 			lastName := "User"
 			userID := "test-user-id"
 
-			expectedUser := gocloak.User{
+			expectedUser := gocloak7.User{
 				Username:      &username,
 				Email:         &email,
 				FirstName:     &firstName,
 				LastName:      &lastName,
-				Enabled:       gocloak.BoolP(true),
-				EmailVerified: gocloak.BoolP(false),
+				Enabled:       gocloak7.BoolP(true),
+				EmailVerified: gocloak7.BoolP(false),
 			}
 
 			mKcClient.EXPECT().CreateUser(
@@ -358,7 +358,7 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.ExecuteActionsEmail{
+				gocloak7.ExecuteActionsEmail{
 					UserID:   &userID,
 					Actions:  &requiredActions,
 					Lifespan: &lifespan,
@@ -376,13 +376,13 @@ var _ = Describe("Auth Compatibility", func() {
 				email := "test@example.com"
 				firstName := "Test"
 				lastName := "User"
-				expectedUser := gocloak.User{
+				expectedUser := gocloak7.User{
 					Username:      &username,
 					Email:         &email,
 					FirstName:     &firstName,
 					LastName:      &lastName,
-					Enabled:       gocloak.BoolP(true),
-					EmailVerified: gocloak.BoolP(false),
+					Enabled:       gocloak7.BoolP(true),
+					EmailVerified: gocloak7.BoolP(false),
 				}
 				mKcClient.EXPECT().CreateUser(
 					gomock.Any(),
@@ -402,13 +402,13 @@ var _ = Describe("Auth Compatibility", func() {
 				email := "test@example.com"
 				firstName := "Test"
 				lastName := "User"
-				expectedUser := gocloak.User{
+				expectedUser := gocloak7.User{
 					Username:      &username,
 					Email:         &email,
 					FirstName:     &firstName,
 					LastName:      &lastName,
-					Enabled:       gocloak.BoolP(true),
-					EmailVerified: gocloak.BoolP(false),
+					Enabled:       gocloak7.BoolP(true),
+					EmailVerified: gocloak7.BoolP(false),
 				}
 				userID := "test-user-id"
 				mKcClient.EXPECT().CreateUser(
@@ -423,7 +423,7 @@ var _ = Describe("Auth Compatibility", func() {
 					gomock.Any(),
 					"test-token",
 					"test-realm",
-					gocloak.ExecuteActionsEmail{
+					gocloak7.ExecuteActionsEmail{
 						UserID:   &userID,
 						Actions:  &requiredActions,
 						Lifespan: &lifespan,
@@ -443,7 +443,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 			}
 		})
@@ -470,7 +470,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 				clientIDCache:  make(map[string]string),
 				cacheMutex:     sync.RWMutex{},
@@ -485,8 +485,8 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &clientID},
-			).Return([]*gocloak.Client{{ClientID: &clientID, ID: &expectedIdentifier}}, nil)
+				gocloak7.GetClientsParams{ClientID: &clientID},
+			).Return([]*gocloak7.Client{{ClientID: &clientID, ID: &expectedIdentifier}}, nil)
 
 			result, err := actorCompatibility.getClientInternalIdentifierByClientID(context.Background(), clientID)
 			Expect(err).NotTo(HaveOccurred())
@@ -500,8 +500,8 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &clientID},
-			).Return([]*gocloak.Client{}, nil)
+				gocloak7.GetClientsParams{ClientID: &clientID},
+			).Return([]*gocloak7.Client{}, nil)
 
 			result, err := actorCompatibility.getClientInternalIdentifierByClientID(context.Background(), clientID)
 			Expect(err).To(HaveOccurred())
@@ -544,8 +544,8 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &clientID},
-			).Return([]*gocloak.Client{{ClientID: &clientID, ID: &expectedIdentifier}}, nil)
+				gocloak7.GetClientsParams{ClientID: &clientID},
+			).Return([]*gocloak7.Client{{ClientID: &clientID, ID: &expectedIdentifier}}, nil)
 
 			result, err := actorCompatibility.getClientInternalIdentifierByClientID(context.Background(), clientID)
 			Expect(err).NotTo(HaveOccurred())
@@ -565,7 +565,7 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &clientID},
+				gocloak7.GetClientsParams{ClientID: &clientID},
 			).Return(nil, fmt.Errorf("keycloak error"))
 
 			result, err := actorCompatibility.getClientInternalIdentifierByClientID(context.Background(), clientID)
@@ -581,7 +581,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 				RolesClientID:  "roles-client-id",
 				clientIDCache: map[string]string{
@@ -592,7 +592,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should return the role for a given role name", func() {
 			roleName := "test-role"
-			expectedRole := &gocloak.Role{Name: &roleName}
+			expectedRole := &gocloak7.Role{Name: &roleName}
 
 			mKcClient.EXPECT().GetClientRole(
 				gomock.Any(),
@@ -652,7 +652,7 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
+				gocloak7.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
 			).Return(nil, fmt.Errorf("error"))
 
 			role, err := actorCompatibility.GetRole(context.Background(), roleName)
@@ -668,7 +668,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 				RolesClientID:  "roles-client-id",
 				clientIDCache: map[string]string{
@@ -686,7 +686,7 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-token",
 				"test-realm",
 				"internal-roles-client-id",
-				gocloak.Role{
+				gocloak7.Role{
 					Name:        &roleName,
 					Description: &roleDescription,
 				},
@@ -706,7 +706,7 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-token",
 				"test-realm",
 				"internal-roles-client-id",
-				gocloak.Role{
+				gocloak7.Role{
 					Name:        &roleName,
 					Description: &roleDescription,
 				},
@@ -727,7 +727,7 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-token",
 				"test-realm",
 				"internal-roles-client-id",
-				gocloak.Role{
+				gocloak7.Role{
 					Name:        &roleName,
 					Description: &roleDescription,
 				},
@@ -737,7 +737,7 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
+				gocloak7.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
 			).Return(nil, fmt.Errorf("error"))
 
 			roleID, err := actorCompatibility.CreateRole(context.Background(), roleName, roleDescription)
@@ -753,7 +753,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 				RolesClientID:  "roles-client-id",
 				clientIDCache: map[string]string{
@@ -808,7 +808,7 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
+				gocloak7.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
 			).Return(nil, fmt.Errorf("error"))
 
 			err := actorCompatibility.DeleteRole(context.Background(), roleName)
@@ -838,7 +838,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 				RolesClientID:  "roles-client-id",
 				clientIDCache: map[string]string{
@@ -849,7 +849,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should return the roles for a given user ID", func() {
 			userID := "test-user-id"
-			expectedRoles := []*gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+			expectedRoles := []*gocloak7.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}}
 
 			mKcClient.EXPECT().GetClientRolesByUserID(
 				gomock.Any(),
@@ -880,7 +880,7 @@ var _ = Describe("Auth Compatibility", func() {
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
+				gocloak7.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
 			).Return(nil, fmt.Errorf("error"))
 
 			roles, err := actorCompatibility.GetUserRoles(context.Background(), userID)
@@ -928,7 +928,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 				RolesClientID:  "roles-client-id",
 				clientIDCache: map[string]string{
@@ -939,7 +939,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should add a user to multiple roles", func() {
 			userID := "test-user-id"
-			roles := []*gk13.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+			roles := []*gocloak13.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}}
 
 			mKcClient.EXPECT().AddClientRoleToUser(
 				gomock.Any(),
@@ -947,7 +947,7 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-realm",
 				"internal-roles-client-id",
 				userID,
-				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+				[]gocloak7.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}},
 			).Return(nil)
 
 			err := actorCompatibility.AddUserToRoles(context.Background(), userID, roles)
@@ -956,7 +956,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should return an error if the client ID is not found", func() {
 			userID := "test-user-id"
-			roles := []*gk13.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+			roles := []*gocloak13.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}}
 			actorCompatibility.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
 			mKcClient.EXPECT().AddClientRoleToUser(
 				gomock.Any(),
@@ -964,13 +964,13 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-realm",
 				"internal-roles-client-id",
 				userID,
-				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+				[]gocloak7.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}},
 			).Times(0) // No call to Keycloak since client ID is missing
 			mKcClient.EXPECT().GetClients(
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
+				gocloak7.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
 			).Return(nil, fmt.Errorf("error"))
 
 			err := actorCompatibility.AddUserToRoles(context.Background(), userID, roles)
@@ -979,7 +979,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should propagate errors from Keycloak", func() {
 			userID := "test-user-id"
-			roles := []*gk13.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}}
+			roles := []*gocloak13.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}}
 
 			mKcClient.EXPECT().AddClientRoleToUser(
 				gomock.Any(),
@@ -987,7 +987,7 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-realm",
 				"internal-roles-client-id",
 				userID,
-				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+				[]gocloak7.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}},
 			).Return(fmt.Errorf("keycloak error"))
 
 			err := actorCompatibility.AddUserToRoles(context.Background(), userID, roles)
@@ -1002,7 +1002,7 @@ var _ = Describe("Auth Compatibility", func() {
 				Realm:          "test-realm",
 				credentials:    struct{ ClientID, ClientSecret string }{ClientID: "test-client", ClientSecret: "test-secret"},
 				tokenMutex:     sync.RWMutex{},
-				token:          &gocloak.JWT{AccessToken: "test-token"},
+				token:          &gocloak7.JWT{AccessToken: "test-token"},
 				tokenExpiresAt: time.Now().Unix() + 3600, // valid for 1 hour
 				RolesClientID:  "roles-client-id",
 				clientIDCache: map[string]string{
@@ -1013,7 +1013,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should remove a user from multiple roles", func() {
 			userID := "test-user-id"
-			roles := []*gk13.Role{{Name: gk13.StringP("role1")}, {Name: gk13.StringP("role2")}}
+			roles := []*gocloak13.Role{{Name: gocloak13.StringP("role1")}, {Name: gocloak13.StringP("role2")}}
 
 			mKcClient.EXPECT().DeleteClientRoleFromUser(
 				gomock.Any(),
@@ -1021,7 +1021,7 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-realm",
 				"internal-roles-client-id",
 				userID,
-				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+				[]gocloak7.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}},
 			).Return(nil)
 
 			err := actorCompatibility.RemoveUserFromRoles(context.Background(), userID, roles)
@@ -1030,7 +1030,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should return an error if the client ID is not found", func() {
 			userID := "test-user-id"
-			roles := []*gk13.Role{{Name: gk13.StringP("role1")}, {Name: gk13.StringP("role2")}}
+			roles := []*gocloak13.Role{{Name: gocloak13.StringP("role1")}, {Name: gocloak13.StringP("role2")}}
 			actorCompatibility.clientIDCache = make(map[string]string) // Clear cache to simulate missing client ID
 			mKcClient.EXPECT().DeleteClientRoleFromUser(
 				gomock.Any(),
@@ -1038,13 +1038,13 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-realm",
 				"internal-roles-client-id",
 				userID,
-				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+				[]gocloak7.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}},
 			).Times(0) // No call to Keycloak since client ID is missing
 			mKcClient.EXPECT().GetClients(
 				gomock.Any(),
 				"test-token",
 				"test-realm",
-				gocloak.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
+				gocloak7.GetClientsParams{ClientID: &actorCompatibility.RolesClientID},
 			).Return(nil, fmt.Errorf("error"))
 
 			err := actorCompatibility.RemoveUserFromRoles(context.Background(), userID, roles)
@@ -1053,7 +1053,7 @@ var _ = Describe("Auth Compatibility", func() {
 
 		It("should propagate errors from Keycloak", func() {
 			userID := "test-user-id"
-			roles := []*gk13.Role{{Name: gk13.StringP("role1")}, {Name: gk13.StringP("role2")}}
+			roles := []*gocloak13.Role{{Name: gocloak13.StringP("role1")}, {Name: gocloak13.StringP("role2")}}
 
 			mKcClient.EXPECT().DeleteClientRoleFromUser(
 				gomock.Any(),
@@ -1061,7 +1061,7 @@ var _ = Describe("Auth Compatibility", func() {
 				"test-realm",
 				"internal-roles-client-id",
 				userID,
-				[]gocloak.Role{{Name: gocloak.StringP("role1")}, {Name: gocloak.StringP("role2")}},
+				[]gocloak7.Role{{Name: gocloak7.StringP("role1")}, {Name: gocloak7.StringP("role2")}},
 			).Return(fmt.Errorf("keycloak error"))
 
 			err := actorCompatibility.RemoveUserFromRoles(context.Background(), userID, roles)

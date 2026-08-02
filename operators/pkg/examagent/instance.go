@@ -27,7 +27,7 @@ import (
 	"strings"
 
 	"github.com/go-logr/logr"
-	"k8s.io/apimachinery/pkg/api/errors"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/utils/ptr"
@@ -91,8 +91,8 @@ func (ih *InstanceHandler) HandleGet(w http.ResponseWriter, r *http.Request, log
 	inst := ih.EmptyInstanceFromRequest(r)
 	log = log.WithValues("instance", inst.Name)
 
-	if err := ih.Client.Get(r.Context(), forge.NamespacedName(inst), inst); err != nil {
-		if errors.IsNotFound(err) {
+	if err := ih.Client.Get(r.Context(), forge.NamespacedNameFromObject(inst), inst); err != nil {
+		if kerrors.IsNotFound(err) {
 			log.Error(err, "instance not found")
 			WriteError(w, r, log, http.StatusNotFound, "The requested Instance does not exist.")
 			return

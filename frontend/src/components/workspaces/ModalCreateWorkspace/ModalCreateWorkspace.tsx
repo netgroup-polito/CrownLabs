@@ -1,10 +1,19 @@
 import type { FC } from 'react';
 import { useState, useContext, useEffect } from 'react';
-import { Modal, Form, Input, InputNumber, Select, Button } from 'antd';
-import { useCreateWorkspaceMutation, useApplyWorkspaceMutation, AutoEnroll } from '../../../generated-types';
+import { Modal, Form, Input, Select, Button } from 'antd';
+import {
+  useCreateWorkspaceMutation,
+  useApplyWorkspaceMutation,
+  AutoEnroll,
+} from '../../../generated-types';
 import type { ApolloError } from '@apollo/client';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { convertToGB } from '../../../utils';
+import {
+  convertToGiB,
+  getOriginalK8sKey,
+  getCamelCaseKey,
+} from '../../../utils';
+import QuotaFields from '../../shared/QuotaFields';
 
 export interface WorkspaceEditData {
   name: string;
@@ -13,6 +22,8 @@ export interface WorkspaceEditData {
   cpu: string;
   memory: string;
   instances: number;
+  disk?: string | null;
+  otherResources?: { [key: string]: string } | null;
 }
 
 export interface IModalCreateWorkspaceProps {
@@ -30,6 +41,8 @@ interface WorkspaceFormValues {
   cpu: number;
   memory: number;
   instances: number;
+  disk?: number;
+  otherResources?: { key: string; value: number }[];
 }
 
 const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
@@ -59,8 +72,17 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
         prettyName: editWorkspace.prettyName,
         autoEnroll: editWorkspace.autoEnroll || undefined,
         cpu: parseFloat(editWorkspace.cpu),
-        memory: convertToGB(editWorkspace.memory),
+        memory: convertToGiB(editWorkspace.memory),
         instances: editWorkspace.instances,
+        disk: editWorkspace.disk ? convertToGiB(editWorkspace.disk) : 0,
+        otherResources: editWorkspace.otherResources
+          ? Object.entries(editWorkspace.otherResources)
+              .filter(([_, v]) => parseFloat(v as string) > 0)
+              .map(([k, v]) => ({
+                key: getCamelCaseKey(k),
+                value: parseFloat(v as string),
+              }))
+          : [],
       });
     } else if (show && !editWorkspace) {
       form.resetFields();
@@ -68,7 +90,9 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
   }, [show, editWorkspace, form]);
 
   // Convert GraphQL enum value to Kubernetes expected value
-  const normalizeAutoEnroll = (value: string | undefined | null): AutoEnroll | null => {
+  const normalizeAutoEnroll = (
+    value: string | undefined | null,
+  ): AutoEnroll | null => {
     if (!value || value === AutoEnroll.Empty) return null;
     return value as AutoEnroll;
   };
@@ -76,16 +100,47 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
   const handleSubmit = async (values: WorkspaceFormValues) => {
     setLoading(true);
     try {
+      const otherResourcesMap: { [key: string]: string } = {};
+      values.otherResources?.forEach(res => {
+        if (res.key && res.value != null && res.value > 0) {
+          const k8sKey = getOriginalK8sKey(res.key);
+          otherResourcesMap[k8sKey] = res.value.toString();
+        }
+      });
+
+      const diskValue =
+        values.disk != null && values.disk >= 0 ? `${values.disk}Gi` : '0Gi';
+
       if (isEditMode) {
         // Edit mode: use apply mutation with JSON patch
         const autoEnrollValue = normalizeAutoEnroll(values.autoEnroll);
+
         const patchJson = JSON.stringify([
           { op: 'replace', path: '/spec/prettyName', value: values.prettyName },
           { op: 'replace', path: '/spec/autoEnroll', value: autoEnrollValue },
-          { op: 'replace', path: '/spec/quota/cpu', value: String(values.cpu) },
-          { op: 'replace', path: '/spec/quota/memory', value: `${values.memory}Gi` },
-          { op: 'replace', path: '/spec/quota/instances', value: values.instances },
+          { op: 'replace', path: '/spec/quota/cpu', value: values.cpu },
+          {
+            op: 'replace',
+            path: '/spec/quota/memory',
+            value: `${values.memory}Gi`,
+          },
+          {
+            op: 'replace',
+            path: '/spec/quota/instances',
+            value: values.instances,
+          },
+          {
+            op: 'replace',
+            path: '/spec/quota/disk',
+            value: diskValue,
+          },
+          {
+            op: 'replace',
+            path: '/spec/quota/otherResources',
+            value: otherResourcesMap,
+          },
         ]);
+
         await applyWorkspace({
           variables: {
             name: values.name,
@@ -100,8 +155,13 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
             name: values.name,
             prettyName: values.prettyName,
             autoEnroll: normalizeAutoEnroll(values.autoEnroll),
-            cpu: String(values.cpu),
-            memory: `${values.memory}Gi`, // Kubernetes Quantity format
+            cpu: values.cpu,
+            memory: `${values.memory}Gi`,
+            disk: diskValue,
+            otherResources: otherResourcesMap,
+            labels: {
+              'crownlabs.polito.it/operator-selector': 'production',
+            },
             instances: values.instances,
           },
         });
@@ -150,6 +210,8 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
           cpu: 4,
           memory: 8,
           instances: 5,
+          disk: 10,
+          otherResources: [],
         }}
       >
         <Form.Item
@@ -164,8 +226,16 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
             },
             {
               validator: async (_, value) => {
-                if (!isEditMode && value && existingWorkspaceNames.includes(value)) {
-                  return Promise.reject(new Error(`Workspace "${value}" already exists. Please choose a different name.`));
+                if (
+                  !isEditMode &&
+                  value &&
+                  existingWorkspaceNames.includes(value)
+                ) {
+                  return Promise.reject(
+                    new Error(
+                      `Workspace "${value}" already exists. Please choose a different name.`,
+                    ),
+                  );
                 }
                 return Promise.resolve();
               },
@@ -199,34 +269,38 @@ const ModalCreateWorkspace: FC<IModalCreateWorkspaceProps> = ({
           />
         </Form.Item>
 
-        <Form.Item
-          label="CPU"
-          name="cpu"
-          rules={[{ required: true, message: 'Please input CPU quota!' }]}
-          tooltip="Maximum number of CPU cores"
-        >
-          <InputNumber min={1} max={128} className="w-100" />
-        </Form.Item>
-
-        <Form.Item
-          label="Memory (GB)"
-          name="memory"
-          rules={[{ required: true, message: 'Please input memory quota!' }]}
-          tooltip="Maximum memory in gigabytes"
-        >
-          <InputNumber min={1} max={512} className="w-100" addonAfter="GB" />
-        </Form.Item>
-
-        <Form.Item
-          label="Instances"
-          name="instances"
-          rules={[
-            { required: true, message: 'Please input max instances!' },
-          ]}
-          tooltip="Maximum number of concurrent instances"
-        >
-          <InputNumber min={1} max={100} className="w-100" />
-        </Form.Item>
+        <QuotaFields
+          rules={{
+            cpu: [
+              { required: true, message: 'Please input CPU quota!' },
+              { type: 'number', min: 1, message: 'CPU must be at least 1' },
+            ],
+            memory: [
+              { required: true, message: 'Please input memory quota!' },
+              { type: 'number', min: 1, message: 'Memory must be at least 1' },
+            ],
+            instances: [
+              { required: true, message: 'Please input max instances!' },
+              { type: 'number', min: 1, message: 'Instances must be at least 1', },
+            ],
+            disk: [
+              { required: true, message: 'Please input disk quota!' },
+              { type: 'number', min: 0, message: 'Disk cannot be negative', },
+            ],
+          }}
+          limits={{
+            cpu: { min: 0, max: 128 },
+            memory: { min: 0, max: 512 },
+            instances: { min: 0, max: 100 },
+            disk: { min: 0, max: 2048 },
+          }}
+          tooltips={{
+            cpu: 'Maximum number of CPU cores',
+            memory: 'Maximum memory in gibibytes',
+            instances: 'Maximum number of concurrent instances',
+            disk: 'Maximum disk storage allocation',
+          }}
+        />
       </Form>
     </Modal>
   );

@@ -23,13 +23,13 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // handlePersonalWorkspace handles the personal workspace for the tenant.
-func (r *Reconciler) handlePersonalWorkspace(ctx context.Context, tn *v1alpha2.Tenant) error {
+func (r *Reconciler) handlePersonalWorkspace(ctx context.Context, tn *clv1alpha2.Tenant) error {
 	log := ctrl.LoggerFrom(ctx)
 	if !tn.Status.PersonalNamespace.Created {
 		// if the personal namespace is not created skip the rest.
@@ -60,9 +60,9 @@ func (r *Reconciler) handlePersonalWorkspace(ctx context.Context, tn *v1alpha2.T
 }
 
 // checkPersonalWorkspaceKeepAlive checks if the personal workspace should be kept alive because it has templates.
-func (r *Reconciler) checkPersonalWorkspaceKeepAlive(ctx context.Context, tn *v1alpha2.Tenant) (bool, error) {
+func (r *Reconciler) checkPersonalWorkspaceKeepAlive(ctx context.Context, tn *clv1alpha2.Tenant) (bool, error) {
 	log := ctrl.LoggerFrom(ctx)
-	templates := &v1alpha2.TemplateList{}
+	templates := &clv1alpha2.TemplateList{}
 	if tn.Spec.PersonalWorkspace == nil {
 		return false, nil
 	}

@@ -1,3 +1,4 @@
+{{ if .Values.webhook.enableValidating }}
 apiVersion: admissionregistration.k8s.io/v1
 kind: ValidatingWebhookConfiguration
 metadata:
@@ -37,7 +38,7 @@ webhooks:
   failurePolicy: Fail
   admissionReviewVersions:
   - v1
-  objectSelector:
+  namespaceSelector:
     matchLabels:
       {{ (split "=" .Values.configurations.targetLabel)._0 }}: {{ (split "=" .Values.configurations.targetLabel)._1 }}
   rules:
@@ -53,3 +54,4 @@ webhooks:
       path: /validator-v1alpha2-instance
       port: 443
   sideEffects: None
+{{ end }}

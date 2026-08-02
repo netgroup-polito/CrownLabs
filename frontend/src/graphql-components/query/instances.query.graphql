@@ -9,9 +9,9 @@ query ownedInstances($tenantNamespace: String!) {
         namespace
         creationTimestamp
         labels
+        annotations
       }
       status {
-        ip
         phase
         url
         nodeName
@@ -46,14 +46,6 @@ query ownedInstances($tenantNamespace: String!) {
         }
         tenantCrownlabsPolitoItTenantRef {
           name
-          tenantV1alpha2Wrapper {
-            itPolitoCrownlabsV1alpha2Tenant {
-              spec {
-                firstName
-                lastName
-              }
-            }
-          }
         }
         templateCrownlabsPolitoItTemplateRef {
           name
@@ -64,6 +56,11 @@ query ownedInstances($tenantNamespace: String!) {
                 prettyName
                 description
                 allowPublicExposure
+                cleanup {
+                  deleteAfterCreation
+                  stopAfterInactivity
+                  deleteAfterInactivity
+                }
                 environmentList {
                   name
                   guiEnabled
@@ -73,6 +70,7 @@ query ownedInstances($tenantNamespace: String!) {
                     cpu
                     memory
                     disk
+                    otherResources
                   }
                 }
               }

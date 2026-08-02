@@ -15,7 +15,7 @@
 package v1alpha2
 
 import (
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -123,6 +123,12 @@ type InstanceStatusEnv struct {
 	// accept incoming connections.
 	Phase EnvironmentPhase `json:"phase,omitempty"`
 
+	// Whether the Gateway or any other entity has accepted the exposition of the Instance to the outside world.
+	// This is required for the Instance to be exposed to the outside world.
+	// If not set, the Instance will not be exposed to the outside world.
+	// +kubebuilder:default=false
+	ExpositionAccepted bool `json:"expositionAccepted,omitempty"`
+
 	// The internal IP address associated with the remote environment, which can
 	// be used to access it through the SSH protocol (leveraging the SSH bastion
 	// in case it is not contacted from another CrownLabs Instance).
@@ -186,7 +192,7 @@ type PublicServicePort struct {
 	// The port protocol
 	// +kubebuilder:validation:Enum=TCP;UDP;SCTP
 	// +kubebuilder:default=TCP
-	Protocol v1.Protocol `json:"protocol,omitempty"`
+	Protocol corev1.Protocol `json:"protocol,omitempty"`
 }
 
 // PublicExposurePhase is an enumeration of the different phases associated with the public exposure of an instance.
@@ -222,6 +228,7 @@ type InstancePublicExposureStatus struct {
 // +kubebuilder:printcolumn:name="Pretty Name",type=string,JSONPath=`.spec.prettyName`
 // +kubebuilder:printcolumn:name="Running",type=string,JSONPath=`.spec.running`
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Exposition Accepted",type=boolean,JSONPath=`.status.environments[0].expositionAccepted`
 // +kubebuilder:printcolumn:name="URL",type=string,JSONPath=`.status.environments[0].url`,priority=10
 // +kubebuilder:printcolumn:name="IP Address",type=string,JSONPath=`.status.environments[0].ip`,priority=10
 // +kubebuilder:printcolumn:name="Ready In",type=string,JSONPath=`.status.environments[0].initialReadyTime`

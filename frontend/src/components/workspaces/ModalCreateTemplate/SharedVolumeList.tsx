@@ -28,7 +28,7 @@ export const SharedVolumeList: FC<SharedVolumeListProps> = ({
   };
 
   return (
-    <Form.List name={[parentFormName, 'sharedVolumeMounts']}  >
+    <Form.List name={[parentFormName, 'sharedVolumeMounts']}>
       {(fields, { add, remove }) => (
         <>
           {fields.map(({ key, name, ...restField }) => (

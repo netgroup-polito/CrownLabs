@@ -22,11 +22,13 @@ const getDefaultEnvironment = (envCount: number): TemplateFormEnv => {
     reservedCpu: 50,
     sharedVolumeMounts: [],
     rewriteUrl: false,
+    otherResources: {},
   };
 };
 
 interface IEnvironmentLabelProps {
-  availableImages: Image[];
+  availableImagesVM: Image[];
+  availableImagesContainer: Image[];
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
@@ -34,11 +36,12 @@ interface IEnvironmentLabelProps {
 }
 
 export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
-  availableImages,
+  availableImagesVM,
+  availableImagesContainer,
   resources,
   sharedVolumes,
   isPersonal,
-  setInfoNumberTemplate
+  setInfoNumberTemplate,
 }) => {
   const form = Form.useFormInstance();
   const environments = Form.useWatch<TemplateFormEnv[] | undefined>(
@@ -126,7 +129,8 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
                   <Environment
                     restField={restField}
                     parentFormName={name}
-                    availableImages={availableImages}
+                    availableImagesVM={availableImagesVM}
+                    availableImagesContainer={availableImagesContainer}
                     resources={resources}
                     sharedVolumes={sharedVolumes}
                     isPersonal={isPersonal}

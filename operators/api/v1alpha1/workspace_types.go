@@ -17,8 +17,8 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/common"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
@@ -49,7 +49,7 @@ type WorkspaceSpec struct {
 	AutoEnroll WorkspaceAutoenroll `json:"autoEnroll,omitempty"`
 
 	// The amount of resources associated with this workspace, and inherited by enrolled tenants.
-	Quota common.WorkspaceResourceQuota `json:"quota"`
+	Quota apicommon.WorkspaceResourceQuota `json:"quota"`
 }
 
 // WorkspaceStatus reflects the most recently observed status of the Workspace.
@@ -58,12 +58,12 @@ type WorkspaceStatus struct {
 	// This is the namespace that groups multiple related templates, together
 	// with all the accessory resources (e.g. RBACs) created by the tenant
 	// operator.
-	Namespace v1alpha2.NameCreated `json:"namespace,omitempty"`
+	Namespace clv1alpha2.NameCreated `json:"namespace,omitempty"`
 
 	// The list of the subscriptions to external services (e.g. Keycloak,
 	// ...), indicating for each one whether it succeeded or an error
 	// occurred.
-	Subscriptions map[string]v1alpha2.SubscriptionStatus `json:"subscription,omitempty"`
+	Subscriptions map[string]clv1alpha2.SubscriptionStatus `json:"subscription,omitempty"`
 
 	// Whether all subscriptions and resource creations succeeded or an error
 	// occurred. In case of errors, the other status fields provide additional

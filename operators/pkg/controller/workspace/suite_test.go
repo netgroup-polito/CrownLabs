@@ -20,10 +20,10 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegaTypes "github.com/onsi/gomega/types"
-	"go.uber.org/mock/gomock"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
-	"github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
+	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/workspace"
 )
@@ -53,7 +53,7 @@ var (
 	keycloakActor       *mock.MockKeycloakActorIface
 	workspaceReconciler workspace.Reconciler
 
-	wsResource             *v1alpha1.Workspace
+	wsResource             *clv1alpha1.Workspace
 	wsReconcileErrExpected gomegaTypes.GomegaMatcher
 
 	objects []client.Object
@@ -65,8 +65,8 @@ func TestWorkspace(t *testing.T) {
 }
 
 var _ = BeforeSuite(func() {
-	Expect(v1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
-	Expect(v1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(clv1alpha1.AddToScheme(scheme.Scheme)).To(Succeed())
+	Expect(clv1alpha2.AddToScheme(scheme.Scheme)).To(Succeed())
 })
 
 var _ = BeforeEach(func() {
@@ -78,14 +78,14 @@ var _ = BeforeEach(func() {
 
 	keycloakActor.EXPECT().IsInitialized().Return(false).AnyTimes()
 
-	wsResource = &v1alpha1.Workspace{
+	wsResource = &clv1alpha1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: wsName,
 			Labels: map[string]string{
 				"crownlabs.polito.it/operator-selector": "test",
 			},
 		},
-		Spec: v1alpha1.WorkspaceSpec{
+		Spec: clv1alpha1.WorkspaceSpec{
 			PrettyName: wsPrettyName,
 		},
 	}
@@ -106,7 +106,7 @@ var _ = JustBeforeEach(func() {
 		Client:        cl,
 		Scheme:        scheme.Scheme,
 		KeycloakActor: keycloakActor,
-		TargetLabel:   common.NewLabel("crownlabs.polito.it/operator-selector", "test"),
+		TargetLabel:   ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test"),
 	}
 
 	_, err := workspaceReconciler.Reconcile(ctx, ctrl.Request{
@@ -143,6 +143,6 @@ func removeObjFromObjectsList(obj client.Object) {
 }
 
 func workspaceBeingDeleted() {
-	wsResource.Finalizers = append(wsResource.Finalizers, v1alpha2.TnOperatorFinalizerName)
+	wsResource.Finalizers = append(wsResource.Finalizers, clv1alpha2.TnOperatorFinalizerName)
 	wsResource.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 }
