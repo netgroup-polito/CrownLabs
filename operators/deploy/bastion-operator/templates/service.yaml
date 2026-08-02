@@ -42,3 +42,24 @@ spec:
   selector:
     {{- include "webssh.selectorLabels" . | nindent 4 }}
 {{- end }}
+
+---
+
+{{- if .Values.webvnc.service }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "bastion-operator.fullname" . }}-webvnc
+  labels:
+    {{- include "webvnc.labels" . | nindent 4 }}
+    {{- include "bastion-operator.metricsAdditionalLabels" . | nindent 4 }}
+spec:
+  type: {{ .Values.webvnc.service.type }}
+  ports:
+    - port: {{ .Values.webvnc.service.port }}
+      targetPort: {{ .Values.webvnc.service.targetPort }}
+      protocol: TCP
+      name: webvnc
+  selector:
+    {{- include "webvnc.selectorLabels" . | nindent 4 }}
+{{- end }}
