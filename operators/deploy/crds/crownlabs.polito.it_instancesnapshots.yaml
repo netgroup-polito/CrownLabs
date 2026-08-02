@@ -191,8 +191,10 @@ spec:
               phase:
                 description: Phase is the current phase of the snapshot.
                 enum:
+                - ""
                 - Pending
-                - Ready
+                - Processing
+                - Completed
                 - Failed
                 type: string
             type: object

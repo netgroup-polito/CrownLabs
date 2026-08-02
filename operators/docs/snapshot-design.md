@@ -73,7 +73,7 @@ spec:
     name: desktop
   imageName: "ubuntu"
 status:
-  phase: Ready
+  phase: Completed
   artifact:
     dataVolumeRef:
       name: linux-vm-lab1-a1b2c3
@@ -112,13 +112,13 @@ The API targets a single environment per `InstanceSnapshot` request (`spec.sourc
 
 ### Private (same-namespace) flow
 
-4. The controller verifies again that the VM is not running (`Instance.spec.running=false` and no `VirtualMachineInstance` object exists). If running, the reconciliation fails and requeues. If off, the controller creates a CDI `DataVolume` clone from the source PVC, in the tenant namespace. CDI smart cloning (CSI volume cloning) ensures this is nearly instantaneous on supported storage backends.
-5. Once the `DataVolume` reports a ready condition and the underlying PVC is bound, the controller sets `InstanceSnapshot.status.phase=Ready`.
+4. The controller verifies again that the VM is not running (`Instance.spec.running=false` and no `VirtualMachineInstance` object exists). If running, the reconciliation fails and requeues. If off, the controller creates a CDI `DataVolume` clone from the source PVC, in the tenant namespace. CDI smart cloning (CSI volume cloning) ensures this is nearly instantaneous on supported storage backends. During this time, the controller sets `InstanceSnapshot.status.phase=Processing`.
+5. Once the `DataVolume` reports a ready condition and the underlying PVC is bound, the controller sets `InstanceSnapshot.status.phase=Completed`.
 
 ### Cross-namespace (workspace/public) flow
 
-4. The controller verifies again that the VM is not running. If off, the controller creates a CDI `DataVolume` in the same namespace as the `InstanceSnapshot` with `spec.source.pvc` pointing to the source PVC (cross-namespace clone).
-5. Once the `DataVolume` is ready and the underlying PVC is bound, the controller sets `InstanceSnapshot.status.phase=Ready`.
+4. The controller verifies again that the VM is not running. If off, the controller creates a CDI `DataVolume` in the same namespace as the `InstanceSnapshot` with `spec.source.pvc` pointing to the source PVC (cross-namespace clone). During this time, the phase is `Processing`.
+5. Once the `DataVolume` is ready and the underlying PVC is bound, the controller sets `InstanceSnapshot.status.phase=Completed`.
 
 ### Cleanup
 
@@ -232,7 +232,7 @@ The snapshot controller must expose standard Prometheus metrics:
 - Number of snapshots in progress, completed, and failed.
 - Duration of the snapshot operations.
 
-It must also emit Kubernetes `Events` on the `InstanceSnapshot` object for key lifecycle transitions (e.g., `SnapshotStarted`, `CloneStarted`, `SnapshotReady`, `SnapshotFailed`), which the CrownLabs frontend can use to provide user feedback.
+It must also emit Kubernetes `Events` on the `InstanceSnapshot` object for key lifecycle transitions (e.g., `SnapshotStarted`, `CloneStarted`, `SnapshotCompleted`, `SnapshotFailed`), which the CrownLabs frontend can use to provide user feedback.
 
 ## Implementation plan
 

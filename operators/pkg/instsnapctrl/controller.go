@@ -87,7 +87,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		snapshot.Status.Phase = clv1alpha2.SnapshotPhasePending
 	}
 
-	if snapshot.Status.Phase == clv1alpha2.SnapshotPhaseFailed || snapshot.Status.Phase == clv1alpha2.SnapshotPhaseReady {
+	if snapshot.Status.Phase == clv1alpha2.SnapshotPhaseFailed || snapshot.Status.Phase == clv1alpha2.SnapshotPhaseCompleted {
 		return ctrl.Result{}, nil // Already in a terminal state
 	}
 
@@ -187,7 +187,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			log.Error(err, "failed to create cloned DataVolume")
 			return ctrl.Result{}, err
 		}
-		snapshot.Status.Artifact.DataVolumeRef = corev1.ObjectReference{
+		snapshot.Status.Artifact.DataVolumeRef = clv1alpha2.GenericRef{
 			Name:      dv.Name,
 			Namespace: dv.Namespace,
 		}
@@ -199,12 +199,15 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Check DataVolume status
 	switch dv.Status.Phase {
 	case cdiv1beta1.Succeeded:
-		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseReady
-		snapshot.Status.Artifact.DataVolumeRef = corev1.ObjectReference{
+		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseCompleted
+		snapshot.Status.Artifact.DataVolumeRef = clv1alpha2.GenericRef{
 			Name:      dv.Name,
 			Namespace: dv.Namespace,
 		}
-		r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeNormal, "SnapshotReady", "Snapshot clone succeeded")
+		if dv.Spec.PVC != nil {
+			snapshot.Status.Artifact.VolumeSize = dv.Spec.PVC.Resources.Requests[corev1.ResourceStorage]
+		}
+		r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeNormal, "SnapshotCompleted", "Snapshot clone succeeded")
 		return ctrl.Result{}, nil
 	case cdiv1beta1.Failed:
 		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseFailed
@@ -212,6 +215,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	default:
 		// Not in a terminal state yet.
+		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseProcessing
 	}
 
 	return ctrl.Result{Requeue: true}, nil
