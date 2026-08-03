@@ -73,19 +73,6 @@ app.kubernetes.io/name: webssh
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
-{{- define "webvnc.labels" -}}
-helm.sh/chart: {{ include "bastion.chart" . }}
-{{ include "webvnc.selectorLabels" . }}
-app.kubernetes.io/version: {{ include "bastion.version" . | quote }}
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-app.kubernetes.io/component: webvnc
-{{- end }}
-
-{{- define "webvnc.selectorLabels" -}}
-app.kubernetes.io/name: webvnc
-app.kubernetes.io/instance: {{ .Release.Name }}
-{{- end }}
-
 {{/*
 Metrics selector additional labels
 */}}

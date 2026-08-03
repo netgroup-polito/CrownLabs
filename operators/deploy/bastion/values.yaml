@@ -11,7 +11,6 @@ image:
   repositoryBastion: crownlabs/ssh-bastion
   repositoryOperator: crownlabs/bastion-operator
   repositoryWebSSH: crownlabs/webssh
-  repositoryWebVNC: crownlabs/webvnc
   conntrackEnablerImage: alpine:3.20
   pullPolicy: IfNotPresent
   # Overrides the image tag whose default is the chart version.
@@ -97,13 +96,6 @@ resources:
     requests:
       memory: 100Mi
       cpu: 100m
-  webvnc:
-    limits:
-      memory: 250Mi
-      cpu: 1000m
-    requests:
-      memory: 100Mi
-      cpu: 100m
   connTrackEnabler:
     limits:
       memory: 100Mi
@@ -159,34 +151,6 @@ webssh:
     maxConCount: 1000
     vmPort: 22
     webSocketPort: 8085
-
-webvnc:
-  expositionEnabled: true
-  ingress:
-    annotations:
-      #cert-manager.io/cluster-issuer: letsencrypt-production
-      nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-      nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
-      nginx.ingress.kubernetes.io/websocket-services: '{{ include "bastion.fullname" . }}-webvnc'
-      nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
-    hostname: crownlabs.example.com
-    path: /webvnc
-    pathType: Prefix
-    secret: frontend-app-certificate # reuse the frontend secret
-  httproute:
-    gateway: {}
-      # name: crownlabs-main # defaults to global.gateway.name
-    path: /webvnc
-    timeouts:
-      request: 600s
-      backendRequest: 600s
-  service:
-    type: ClusterIP
-    port: 8086
-    targetPort: http
-  config:
-    maxConnCount: 1000
-    webSocketPort: 8086
 
 global:
   gateway: {}
