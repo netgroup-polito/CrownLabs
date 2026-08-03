@@ -1,4 +1,9 @@
-import { BarChartOutlined, UserOutlined, TeamOutlined, AppstoreOutlined } from '@ant-design/icons';
+import {
+  BarChartOutlined,
+  UserOutlined,
+  TeamOutlined,
+  AppstoreOutlined,
+} from '@ant-design/icons';
 import { useContext } from 'react';
 import './App.css';
 import {
@@ -79,8 +84,8 @@ function App() {
           linkPosition: LinkPosition.MenuButton,
         },
         {
-          route: { 
-            name: 'Manage users', 
+          route: {
+            name: 'Manage users',
             path: '/tenants',
             navbarMenuIcon: <TeamOutlined />,
           },
