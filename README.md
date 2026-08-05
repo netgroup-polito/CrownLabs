@@ -29,7 +29,7 @@ CrownLabs relies on two major high-level components:
 A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure.
 Please notice that, for the sake of clarity, the figure depicts only the most important elements for the provision of the actual service (i.e., remote computing labs), while omitting low-level components and the ones associated with the cluster operation (e.g monitoring).
 
-![CrownLabs High-Level Architecture](documentation/architecture.svg)
+For the graph see [here](./BIGPICTURE.md).
 
 ## Backend Business Logic
 
