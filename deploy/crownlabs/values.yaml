@@ -138,6 +138,11 @@ operator:
           password: ""
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
+        - name: snapshots-workspace
+          type: instancesnapshot
+          namespace: cldprog-5-block-vms-tests
+          registryName: harbor.ng.crownlabs.polito.it
+          imageListName: public-snapshots
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
