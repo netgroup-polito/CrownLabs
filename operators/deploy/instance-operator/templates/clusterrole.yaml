@@ -6,12 +6,8 @@ metadata:
     {{- include "instance-operator.labels" . | nindent 4 }}
 rules:
 - apiGroups: ["crownlabs.polito.it"]
-  resources: ["instances", "instances/status"]
+  resources: ["instances", "instances/status", "instancesnapshots", "instancesnapshots/status"]
   verbs: ["get","list","watch","create","update","patch","delete","deleteCollection"]
-
-- apiGroups: ["crownlabs.polito.it"]
-  resources: ["instancesnapshots", "instancesnapshots/status"]
-  verbs: ["get","list","watch","create","update","patch"]
 
 - apiGroups: ["crownlabs.polito.it"]
   resources: ["templates", "tenants", "sharedvolumes", "sharedvolumes/status"]
@@ -55,7 +51,7 @@ rules:
 
 - apiGroups: ["cdi.kubevirt.io"]
   resources: ["datavolumes"]
-  verbs: ["get","list","watch","create", "patch", "update"]
+  verbs: ["get","list","watch","create", "patch", "update", "delete"]
 
 - apiGroups: ["cdi.kubevirt.io"]
   resources: ["datavolumes/source"]

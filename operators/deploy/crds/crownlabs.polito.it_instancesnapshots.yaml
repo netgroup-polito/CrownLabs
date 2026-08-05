@@ -20,9 +20,6 @@ spec:
     - jsonPath: .status.phase
       name: Phase
       type: string
-    - jsonPath: .spec.imageName
-      name: ImageName
-      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -52,31 +49,13 @@ spec:
             description: InstanceSnapshotSpec defines the desired state of InstanceSnapshot.
             properties:
               environmentRef:
-                description: |-
-                  Environment represents the reference to the environment to be snapshotted, in case more are
-                  associated with the same Instance. If not specified, the first available environment is considered.
-                properties:
-                  name:
-                    description: The name of the resource to be referenced.
-                    type: string
-                  namespace:
-                    description: |-
-                      The namespace containing the resource to be referenced. It should be left
-                      empty in case of cluster-wide resources.
-                    type: string
-                required:
-                - name
-                type: object
-              imageName:
-                description: ImageName is the name of the image to pushed in the docker
-                  registry.
-                minLength: 1
+                description: Environment represents the name of the environment to
+                  be snapshotted.
+                pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
                 type: string
               instanceRef:
-                description: |-
-                  Instance is the reference to the persistent VM instance to be snapshotted.
-                  The instance should not be running, otherwise it won't be possible to
-                  steal the volume and extract its content.
+                description: Instance is the reference to the persistent VM instance
+                  to be snapshotted.
                 properties:
                   name:
                     description: The name of the resource to be referenced.
@@ -90,14 +69,101 @@ spec:
                 - name
                 type: object
             required:
-            - imageName
+            - environmentRef
             - instanceRef
             type: object
           status:
             description: InstanceSnapshotStatus defines the observed state of InstanceSnapshot.
             properties:
+              artifact:
+                description: Artifact contains references to the generated resources.
+                properties:
+                  dataVolumeRef:
+                    description: DataVolumeRef points to the generated DataVolume.
+                    properties:
+                      name:
+                        description: The name of the resource to be referenced.
+                        type: string
+                      namespace:
+                        description: |-
+                          The namespace containing the resource to be referenced. It should be left
+                          empty in case of cluster-wide resources.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  volumeSize:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: VolumeSize reports the dimension of the generated
+                      datavolume.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                required:
+                - dataVolumeRef
+                - volumeSize
+                type: object
+              conditions:
+                description: Conditions hold the latest available observations of
+                  the snapshot state.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
               phase:
-                description: Phase represents the current state of the Instance Snapshot.
+                description: Phase is the current phase of the snapshot.
                 enum:
                 - ""
                 - Pending
