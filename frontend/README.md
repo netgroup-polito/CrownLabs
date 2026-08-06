@@ -121,4 +121,4 @@ Instance IP addresses and SSH access instructions are handled through a joint ba
 
 ## Useful links
 
-- [Useful answer for deploying react app on subroute](https://stackoverflow.com/a/58508562/11143279)
+- [Useful answer for deploying react app on subroute](https://stackoverflow.com/questions/49429906/how-should-i-configure-create-react-app-to-serve-app-from-subdirectory/58508562#58508562)
