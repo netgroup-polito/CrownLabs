@@ -78,7 +78,11 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 				Path:        forge.ExpositionGUICleanPath(instance, environment),
 				ServiceName: svc.GetName(),
 			}
-			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, forge.GUIPortNumber)
+			var guiPort int32 = forge.GUIPortNumber
+			if environment.NativeVNC {
+				guiPort = forge.NativeVNCPortNumber
+			}
+			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, guiPort)
 		}
 		httpRoute.SetLabels(forge.EnvironmentObjectLabels(httpRoute.GetLabels(), instance, environment))
 

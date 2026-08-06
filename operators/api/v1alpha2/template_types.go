@@ -124,6 +124,12 @@ type Environment struct {
 
 	// +kubebuilder:default=false
 
+	// Whether the environment should use KubeVirt's native VNC (QEMU) instead of the
+	// TigerVNC/noVNC stack installed in the image. Requires masquerade networking.
+	NativeVNC bool `json:"nativeVNC,omitempty"`
+
+	// +kubebuilder:default=false
+
 	// For VNC based containers, hide the noVNC control bar when true
 	DisableControls bool `json:"disableControls,omitempty"`
 
