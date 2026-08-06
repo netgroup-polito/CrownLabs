@@ -36,7 +36,7 @@ var nativeVNCHookScriptData []byte
 // NativeVNCHookScript forges the onDefineDomain hook-sidecar script that injects QEMU's native
 // VNC-over-websocket listener into the libvirt domain XML, without exposing it to the guest.
 func NativeVNCHookScript() []byte {
-	return bytes.ReplaceAll(nativeVNCHookScriptData, []byte("$NATIVEVNCPORT"), []byte(strconv.Itoa(NativeVNCPortNumber)))
+	return bytes.ReplaceAll(nativeVNCHookScriptData, []byte("__NATIVEVNCPORT__"), []byte(strconv.Itoa(NativeVNCPortNumber)))
 }
 
 // NativeVNCHookConfigMapName returns the name of the ConfigMap holding the native VNC hook-sidecar script.
@@ -47,13 +47,14 @@ func NativeVNCHookConfigMapName(instance *clv1alpha2.Instance, environment *clv1
 // VirtualMachineAnnotations forges the annotations for the VirtualMachineInstance template,
 // attaching the native VNC hook-sidecar when enabled.
 func VirtualMachineAnnotations(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, annotations map[string]string) map[string]string {
+	if !environment.GuiEnabled || !environment.NativeVNC {
+		return annotations
+	}
 	if annotations == nil {
 		annotations = map[string]string{}
 	}
-	if environment.GuiEnabled && environment.NativeVNC {
-		annotations[hookSidecarsAnnotation] = fmt.Sprintf(
-			`[{"args": ["--version", "v1alpha3"], "configMap": {"name": %q, "key": %q, "hookPath": %q}}]`,
-			NativeVNCHookConfigMapName(instance, environment), NativeVNCHookConfigMapKey, nativeVNCHookPath)
-	}
+	annotations[hookSidecarsAnnotation] = fmt.Sprintf(
+		`[{"args": ["--version", "v1alpha3"], "configMap": {"name": %q, "key": %q, "hookPath": %q}}]`,
+		NativeVNCHookConfigMapName(instance, environment), NativeVNCHookConfigMapKey, nativeVNCHookPath)
 	return annotations
 }
