@@ -41,6 +41,11 @@ func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context) error {
 		return err
 	}
 
+	if err := r.EnforceNativeVNCHookConfigMap(ctx); err != nil {
+		log.Error(err, "failed to enforce the native VNC hook configmap existence")
+		return err
+	}
+
 	// Enforce the service and the ingress to expose the environment.
 	err := r.EnforceInstanceExposition(ctx)
 	if err != nil {
@@ -167,6 +172,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment, mountInfos)
 			}
 			vmi.SetLabels(forge.EnvironmentObjectLabels(vmi.GetLabels(), instance, environment))
+			vmi.SetAnnotations(forge.VirtualMachineAnnotations(instance, environment, vmi.GetAnnotations()))
 			return ctrl.SetControllerReference(instance, &vmi, r.Scheme)
 		})
 

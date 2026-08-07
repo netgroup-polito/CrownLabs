@@ -48,7 +48,11 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 
 	// Add the GUI port only if enabled.
 	if environment.GuiEnabled {
-		ports = append(ports, serviceSpecTCPPort(GUIPortName, GUIPortNumber))
+		var guiPort int32 = GUIPortNumber
+		if environment.NativeVNC {
+			guiPort = NativeVNCPortNumber
+		}
+		ports = append(ports, serviceSpecTCPPort(GUIPortName, guiPort))
 	}
 
 	// Kubernetes Services require at least one port. Fall back to the metrics
