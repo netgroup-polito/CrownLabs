@@ -110,7 +110,7 @@ func VolumeCloudInit(secretName string) virtv1.Volume {
 // object representing the definition of the VM corresponding to a given CrownLabs Environment.
 func VirtualMachineDomain(environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.DomainSpec {
 	iface := virtv1.DefaultBridgeNetworkInterface()
-	if environment.GuiEnabled && environment.NativeVNC {
+	if !environment.GuiEnabled {
 		iface = masqueradeNetworkInterfaceForNativeVNC()
 	}
 
@@ -262,11 +262,8 @@ func VirtualMachineMemoryRequirements(environment *clv1alpha2.Environment) resou
 
 // VirtualMachineReadinessProbe forges the readiness probe for a given VM environment.
 func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.Probe {
-	port := SSHPortNumber
-	switch {
-	case environment.GuiEnabled && environment.NativeVNC:
-		port = NativeVNCPortNumber
-	case environment.GuiEnabled:
+	port := NativeVNCPortNumber
+	if environment.GuiEnabled {
 		port = GUIPortNumber
 	}
 

@@ -45,9 +45,10 @@ func NativeVNCHookConfigMapName(instance *clv1alpha2.Instance, environment *clv1
 }
 
 // VirtualMachineAnnotations forges the annotations for the VirtualMachineInstance template,
-// attaching the native VNC hook-sidecar when enabled.
+// attaching the native VNC hook-sidecar for VM-family environments without a pre-installed
+// (TigerVNC/noVNC) graphical desktop.
 func VirtualMachineAnnotations(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, annotations map[string]string) map[string]string {
-	if !environment.GuiEnabled || !environment.NativeVNC {
+	if environment.GuiEnabled {
 		return annotations
 	}
 	if annotations == nil {

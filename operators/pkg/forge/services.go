@@ -41,18 +41,21 @@ const (
 func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) corev1.ServiceSpec {
 	ports := make([]corev1.ServicePort, 0)
 
-	// Do not add the ssh port on container-based instances, since no deamon is present.
-	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
-		ports = append(ports, serviceSpecTCPPort(SSHPortName, SSHPortNumber))
-	}
+	isVMFamily := environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM
 
-	// Add the GUI port only if enabled.
-	if environment.GuiEnabled {
-		var guiPort int32 = GUIPortNumber
-		if environment.NativeVNC {
-			guiPort = NativeVNCPortNumber
+	// Do not add the ssh port on container-based instances, since no deamon is present.
+	if isVMFamily {
+		ports = append(ports, serviceSpecTCPPort(SSHPortName, SSHPortNumber))
+
+		// VM-family environments always get a GUI-named port: the legacy TigerVNC/noVNC one
+		// when GuiEnabled, or KubeVirt's native VNC otherwise.
+		var guiPort int32 = NativeVNCPortNumber
+		if environment.GuiEnabled {
+			guiPort = GUIPortNumber
 		}
 		ports = append(ports, serviceSpecTCPPort(GUIPortName, guiPort))
+	} else if environment.GuiEnabled {
+		ports = append(ports, serviceSpecTCPPort(GUIPortName, GUIPortNumber))
 	}
 
 	// Kubernetes Services require at least one port. Fall back to the metrics

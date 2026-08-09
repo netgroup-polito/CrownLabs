@@ -28,13 +28,14 @@ import (
 )
 
 // EnforceNativeVNCHookConfigMap enforces the presence of the ConfigMap containing the hook-sidecar
-// script that injects QEMU's native VNC-over-websocket listener, when the environment opts into it.
+// script that injects QEMU's native VNC-over-websocket listener, for VM-family environments without
+// a pre-installed (TigerVNC/noVNC) graphical desktop.
 func (r *InstanceReconciler) EnforceNativeVNCHookConfigMap(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
-	if !environment.GuiEnabled || !environment.NativeVNC {
+	if environment.GuiEnabled {
 		return nil
 	}
 

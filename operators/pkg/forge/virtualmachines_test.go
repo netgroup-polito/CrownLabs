@@ -240,7 +240,20 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
-			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+
+			// Without a pre-installed graphical desktop (GuiEnabled: false), the environment
+			// gets masquerade networking with only SSH forwarded to the guest, so that KubeVirt's
+			// native VNC (QEMU) can be reached directly on the pod.
+			expectedIface := virtv1.DefaultMasqueradeNetworkInterface()
+			expectedIface.Ports = []virtv1.Port{{Name: forge.SSHPortName, Port: forge.SSHPortNumber, Protocol: "TCP"}}
+			Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
+		})
+
+		When("the environment has the GUI enabled", func() {
+			BeforeEach(func() { environment.GuiEnabled = true })
+			It("Should set the bridge network interface", func() {
+				Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+			})
 		})
 	})
 
@@ -408,7 +421,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			}),
 			Entry("When the environment has not the GUI enabled", VMReadinessProbeCase{
 				Environment: clv1alpha2.Environment{GuiEnabled: false},
-				Port:        forge.SSHPortNumber,
+				Port:        forge.NativeVNCPortNumber,
 			}),
 		)
 	})

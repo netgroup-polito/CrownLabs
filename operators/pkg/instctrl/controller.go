@@ -301,14 +301,11 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 			return err
 		}
 
-		// Calculate GUI requirements
+		// Calculate GUI requirements. VM-family environments always need a URL: either to the
+		// legacy TigerVNC/noVNC stack (GuiEnabled) or to KubeVirt's native VNC otherwise.
 		switch tmplEnv.EnvironmentType {
-		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer, clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
 			urlNeeded = true
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
-			if tmplEnv.GuiEnabled {
-				urlNeeded = true
-			}
 		}
 	}
 	if urlNeeded {

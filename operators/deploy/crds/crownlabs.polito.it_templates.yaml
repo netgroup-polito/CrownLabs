@@ -161,8 +161,10 @@ spec:
                       type: string
                     guiEnabled:
                       default: true
-                      description: Whether the environment is characterized by a graphical
-                        desktop or not.
+                      description: |-
+                        Whether the environment is characterized by a graphical desktop (with the TigerVNC/noVNC
+                        stack installed in the image) or not. VM-family environments without this flag get
+                        KubeVirt's native VNC (QEMU) instead, over masquerade networking.
                       type: boolean
                     image:
                       description: The VM or container to be started when instantiating
@@ -181,12 +183,6 @@ spec:
                         '-' or '.', must start and end with an alphanumeric character.
                       pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
                       type: string
-                    nativeVNC:
-                      default: false
-                      description: |-
-                        Whether the environment should use KubeVirt's native VNC (QEMU) instead of the
-                        TigerVNC/noVNC stack installed in the image. Requires masquerade networking.
-                      type: boolean
                     persistent:
                       default: false
                       description: |-
