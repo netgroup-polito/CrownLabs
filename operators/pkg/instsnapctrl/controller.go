@@ -180,23 +180,9 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			},
 		}
 
-		if snapshot.Spec.ImageName != "" {
-			dv.Annotations["crownlabs.polito.it/image-name"] = snapshot.Spec.ImageName
-		}
-		if snapshot.Spec.Description != "" {
-			dv.Annotations["crownlabs.polito.it/snapshot-description"] = snapshot.Spec.Description
-		}
-
-		// Auto-populate tenantRef from the source Instance if not already set.
-		if snapshot.Spec.Tenant.Name == "" {
-			snapshot.Spec.Tenant = instance.Spec.Tenant
-			if err := r.Update(ctx, &snapshot); err != nil {
-				log.Error(err, "failed to update snapshot with tenant ref")
-				return ctrl.Result{}, err
-			}
-		}
-		if snapshot.Spec.Tenant.Name != "" {
-			dv.Annotations["crownlabs.polito.it/snapshot-tenant"] = snapshot.Spec.Tenant.Name
+		if err := r.populateMetadata(ctx, &snapshot, &instance, &dv); err != nil {
+			log.Error(err, "failed to populate snapshot metadata")
+			return ctrl.Result{}, err
 		}
 
 		if err := ctrlutil.SetControllerReference(&snapshot, &dv, r.Scheme); err != nil {
@@ -239,6 +225,26 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	return ctrl.Result{Requeue: true}, nil
+}
+func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snapshot *clv1alpha2.InstanceSnapshot, instance *clv1alpha2.Instance, dv *cdiv1beta1.DataVolume) error {
+	if snapshot.Spec.ImageName != "" {
+		dv.Annotations["crownlabs.polito.it/image-name"] = snapshot.Spec.ImageName
+	}
+	if snapshot.Spec.Description != "" {
+		dv.Annotations["crownlabs.polito.it/snapshot-description"] = snapshot.Spec.Description
+	}
+
+	// Auto-populate tenantRef from the source Instance if not already set.
+	if snapshot.Spec.Tenant.Name == "" {
+		snapshot.Spec.Tenant = instance.Spec.Tenant
+		if err := r.Update(ctx, snapshot); err != nil {
+			return err
+		}
+	}
+	if snapshot.Spec.Tenant.Name != "" {
+		dv.Annotations["crownlabs.polito.it/snapshot-tenant"] = snapshot.Spec.Tenant.Name
+	}
+	return nil
 }
 
 func (r *InstanceSnapshotReconciler) cleanupDataVolume(ctx context.Context, snapshot *clv1alpha2.InstanceSnapshot) error {

@@ -62,7 +62,8 @@ spec:
                 pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
                 type: string
               imageName:
-                description: ImageName is an optional user-defined name for the snapshot image.
+                description: ImageName is an optional user-defined name for the snapshot
+                  image.
                 maxLength: 63
                 pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                 type: string
@@ -94,6 +95,8 @@ spec:
                       The namespace containing the resource to be referenced. It should be left
                       empty in case of cluster-wide resources.
                     type: string
+                required:
+                - name
                 type: object
             required:
             - environmentRef
