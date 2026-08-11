@@ -10,6 +10,8 @@ query workspaceQuotas($names: [String!]) {
           cpu
           memory
           instances
+          disk
+          otherResources
         }
       }
     }

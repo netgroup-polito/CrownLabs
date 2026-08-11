@@ -41,6 +41,13 @@ type InstanceValidator struct {
 	Client client.Client
 }
 
+// accumulateEnvResources aggregates the resource footprints from a list of environments into the running totals.
+func accumulateEnvResources(envList []clv1alpha2.Environment, total *apicommon.ResourceSpec) {
+	for i := range envList {
+		total.Accumulate(&envList[i].Resources.ResourceSpec)
+	}
+}
+
 func validateQuota(ctx context.Context, instance *clv1alpha2.Instance, cl client.Client) (admission.Warnings, error) {
 	var warnings admission.Warnings
 
@@ -109,14 +116,15 @@ func validateQuota(ctx context.Context, instance *clv1alpha2.Instance, cl client
 
 	// Calculate total resource usage
 	var totalInstances int64 = 1 // Count the instance being created.
-	var totalCPU int64
-	totalMemory := resource.MustParse("0")
+	totalResources := apicommon.ResourceSpec{
+		CPU:            0,
+		Memory:         resource.MustParse("0"),
+		Disk:           resource.MustParse("0"),
+		OtherResources: make(map[string]resource.Quantity),
+	}
 
 	// Add the resources of the instance being created
-	for i := range instanceTemplate.Spec.EnvironmentList {
-		totalCPU += int64(instanceTemplate.Spec.EnvironmentList[i].Resources.CPU)
-		totalMemory.Add(instanceTemplate.Spec.EnvironmentList[i].Resources.Memory)
-	}
+	accumulateEnvResources(instanceTemplate.Spec.EnvironmentList, &totalResources)
 
 	// Add the resources of the other instances
 	for i := range workspaceInstances.Items {
@@ -132,16 +140,13 @@ func validateQuota(ctx context.Context, instance *clv1alpha2.Instance, cl client
 
 		totalInstances++
 
-		instanceTemplate, exists := wsTemplates[workspaceInstances.Items[i].Spec.Template.Name]
+		tmpl, exists := wsTemplates[workspaceInstances.Items[i].Spec.Template.Name]
 		if !exists {
 			warnings = append(warnings, fmt.Sprintf("template %s not found in workspace namespace for instance %s; skipping resource calculation for this instance", workspaceInstances.Items[i].Spec.Template.Name, workspaceInstances.Items[i].Name))
 			continue
 		}
 
-		for j := range instanceTemplate.Spec.EnvironmentList {
-			totalCPU += int64(instanceTemplate.Spec.EnvironmentList[j].Resources.CPU)
-			totalMemory.Add(instanceTemplate.Spec.EnvironmentList[j].Resources.Memory)
-		}
+		accumulateEnvResources(tmpl.Spec.EnvironmentList, &totalResources)
 	}
 
 	// Check against the workspace quota
@@ -149,12 +154,29 @@ func validateQuota(ctx context.Context, instance *clv1alpha2.Instance, cl client
 		return warnings, fmt.Errorf("quota exceeded: Instances (%d > %d)", totalInstances, wsQuota.Instances)
 	}
 
-	if !wsQuota.CPU.IsZero() && totalCPU > wsQuota.CPU.Value() {
-		return warnings, fmt.Errorf("quota exceeded: CPU (%d > %d)", totalCPU, wsQuota.CPU.Value())
+	// Compare numeric CPU values directly using the uint32 fields
+	if wsQuota.CPU > 0 && totalResources.CPU > wsQuota.CPU {
+		return warnings, fmt.Errorf("quota exceeded: CPU (%d > %d)", totalResources.CPU, wsQuota.CPU)
 	}
 
-	if !wsQuota.Memory.IsZero() && totalMemory.Cmp(wsQuota.Memory) > 0 {
-		return warnings, fmt.Errorf("quota exceeded: Memory (%s > %s)", totalMemory.String(), wsQuota.Memory.String())
+	if !wsQuota.Memory.IsZero() && totalResources.Memory.Cmp(wsQuota.Memory) > 0 {
+		return warnings, fmt.Errorf("quota exceeded: Memory (%s > %s)", totalResources.Memory.String(), wsQuota.Memory.String())
+	}
+
+	if !wsQuota.Disk.IsZero() && totalResources.Disk.Cmp(wsQuota.Disk) > 0 {
+		return warnings, fmt.Errorf("quota exceeded: Disk (%s > %s)", totalResources.Disk.String(), wsQuota.Disk.String())
+	}
+
+	for resourceName, usedQty := range totalResources.OtherResources {
+		var quotaQty resource.Quantity // Defaults to zero quantity
+		if wsQuota.OtherResources != nil {
+			if q, exists := wsQuota.OtherResources[resourceName]; exists {
+				quotaQty = q
+			}
+		}
+		if usedQty.Cmp(quotaQty) > 0 {
+			return warnings, fmt.Errorf("quota exceeded: %s (%s > %s)", resourceName, usedQty.String(), quotaQty.String())
+		}
 	}
 
 	return warnings, nil

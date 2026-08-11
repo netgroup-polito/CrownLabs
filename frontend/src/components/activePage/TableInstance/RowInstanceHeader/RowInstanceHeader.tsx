@@ -200,7 +200,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
                 : 'lg:w-1/2 xl:w-7/12'
             }`}
           >
-            <div className="flex items-center justify-center hidden sm:block w-12 xl:w-40 text-center">
+            <div className="flex items-center justify-center hidden sm:block w-12 xl:w-56 text-center">
               <Text strong>Utils</Text>
             </div>
 
@@ -211,9 +211,7 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
               <Text strong>Age</Text>
               {getArrow(timeStampOrder, false)}
             </div>
-            <div
-              className="flex items-center justify-center w-24 hidden lg:block text-center whitespace-nowrap"
-            >
+            <div className="flex items-center justify-center w-24 hidden lg:block text-center whitespace-nowrap">
               <Text strong>Last Access</Text>
             </div>
           </div>

@@ -23,6 +23,8 @@ export default gql`
               cpu
               disk
               memory
+              reservedCPUPercentage
+              otherResources
             }
           }
           workspaceCrownlabsPolitoItWorkspaceRef {

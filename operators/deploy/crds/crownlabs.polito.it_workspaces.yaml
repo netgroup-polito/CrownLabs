@@ -69,15 +69,19 @@ spec:
                   and inherited by enrolled tenants.
                 properties:
                   cpu:
+                    description: The maximum amount of CPU required by this resource
+                      set.
+                    format: int64
+                    minimum: 1
+                    type: integer
+                  disk:
                     anyOf:
                     - type: integer
                     - type: string
-                    description: The maximum amount of CPU required by this Workspace.
+                    description: The maximum amount of disk occupancy required by
+                      this resource set.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
-                    x-kubernetes-validations:
-                    - message: Minimum 1 CPU core is required
-                      rule: quantity(self).compareTo(quantity('1')) >= 0
                   instances:
                     description: The maximum number of concurrent instances required
                       by this Workspace.
@@ -89,12 +93,23 @@ spec:
                     - type: integer
                     - type: string
                     description: The maximum amount of RAM memory required by this
-                      Workspace.
+                      resource set.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
                     x-kubernetes-validations:
                     - message: Minimum 1 GB of RAM is required
                       rule: quantity(self).compareTo(quantity('1Gi')) >= 0
+                  otherResources:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Generic map to handle any extended hardware resources (e.g., nvidia.com/gpu, amd.com/gpu)
+                      without hardcoding specific vendor keys.
+                    type: object
                 required:
                 - cpu
                 - instances

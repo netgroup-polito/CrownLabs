@@ -40,7 +40,7 @@ export interface ITemplatesTableProps {
   deleteTemplateLoading: boolean;
   createInstance: (
     id: string,
-    labelSelector?: JSON,
+    labelSelector?: Record<string, string>,
   ) => Promise<
     FetchResult<
       CreateInstanceMutation,

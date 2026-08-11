@@ -22,7 +22,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
           disableControls
           rewriteURL
           persistent
-          containerStartupOptions{
+          containerStartupOptions {
             sourceArchiveURL
             contentPath
             startupArgs
@@ -34,6 +34,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
             disk
             memory
             reservedCPUPercentage
+            otherResources
           }
           sharedVolumeMounts {
             sharedVolume {

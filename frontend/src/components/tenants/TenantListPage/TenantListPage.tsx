@@ -604,9 +604,7 @@ export default function TenantListPage() {
                       <Button
                         type="text"
                         icon={<EditOutlined />}
-                        onClick={() =>
-                          navigate('/tenants/' + tenant.userid)
-                        }
+                        onClick={() => navigate('/tenants/' + tenant.userid)}
                       />
                     </Tooltip>
                     <Tooltip title="Delete tenant">

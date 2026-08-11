@@ -51,8 +51,10 @@ var _ = Describe("InstanceValidator", func() {
 			Spec: clv1alpha1.WorkspaceSpec{
 				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 2,
-					CPU:       resource.MustParse("4"),
-					Memory:    resource.MustParse("8Gi"),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+					},
 				},
 			},
 		}
@@ -62,8 +64,10 @@ var _ = Describe("InstanceValidator", func() {
 				EnvironmentList: []clv1alpha2.Environment{{
 					Name: testEnvironment,
 					Resources: clv1alpha2.EnvironmentResources{
-						CPU:    2,
-						Memory: resource.MustParse("2Gi"),
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    2,
+							Memory: resource.MustParse("2Gi"),
+						},
 					},
 				}},
 				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
@@ -105,8 +109,10 @@ var _ = Describe("InstanceValidator", func() {
 			Spec: clv1alpha1.WorkspaceSpec{
 				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 1,
-					CPU:       resource.MustParse("2"),
-					Memory:    resource.MustParse("2Gi"),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    2,
+						Memory: resource.MustParse("2Gi"),
+					},
 				},
 			},
 		}
@@ -116,8 +122,10 @@ var _ = Describe("InstanceValidator", func() {
 				EnvironmentList: []clv1alpha2.Environment{{
 					Name: testEnvironment,
 					Resources: clv1alpha2.EnvironmentResources{
-						CPU:    2,
-						Memory: resource.MustParse("2Gi"),
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    2,
+							Memory: resource.MustParse("2Gi"),
+						},
 					},
 				}},
 				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
@@ -154,14 +162,118 @@ var _ = Describe("InstanceValidator", func() {
 		Expect(warnings).To(BeEmpty())
 	})
 
+	It("should deny creation when disk quota is exceeded", func() {
+		ws := &clv1alpha1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
+			Spec: clv1alpha1.WorkspaceSpec{
+				Quota: apicommon.WorkspaceResourceQuota{
+					Instances: 2,
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+						Disk:   resource.MustParse("10Gi"),
+					},
+				},
+			},
+		}
+		tmpl := &clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{{
+					Name: testEnvironment,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    4,
+							Memory: resource.MustParse("8Gi"),
+							Disk:   resource.MustParse("12Gi"),
+						},
+					},
+				}},
+				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
+			},
+		}
+		inst := &clv1alpha2.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testNewInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
+			},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, tmpl).Build()
+		validator := &webhook.InstanceValidator{Client: fakeClient}
+		warnings, err := validator.ValidateCreate(ctx, inst)
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(ContainSubstring("quota exceeded: Disk"))
+		Expect(warnings).To(BeEmpty())
+	})
+
+	It("should deny creation when extended resource quota is exceeded", func() {
+		ws := &clv1alpha1.Workspace{
+			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
+			Spec: clv1alpha1.WorkspaceSpec{
+				Quota: apicommon.WorkspaceResourceQuota{
+					Instances: 2,
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+						OtherResources: map[string]resource.Quantity{
+							"nvidia.com/gpu": resource.MustParse("1"),
+						},
+					},
+				},
+			},
+		}
+		tmpl := &clv1alpha2.Template{
+			ObjectMeta: metav1.ObjectMeta{Name: testTemplate, Namespace: testWorkspaceNamespace},
+			Spec: clv1alpha2.TemplateSpec{
+				EnvironmentList: []clv1alpha2.Environment{{
+					Name: testEnvironment,
+					Resources: clv1alpha2.EnvironmentResources{
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    4,
+							Memory: resource.MustParse("8Gi"),
+							OtherResources: map[string]resource.Quantity{
+								"nvidia.com/gpu": resource.MustParse("2"),
+							},
+						},
+					},
+				}},
+				WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
+			},
+		}
+		inst := &clv1alpha2.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      testNewInstance,
+				Namespace: testTenantNamespace,
+				Labels:    map[string]string{forge.LabelWorkspaceKey: testWorkspace},
+			},
+			Spec: clv1alpha2.InstanceSpec{
+				Template: clv1alpha2.GenericRef{Name: testTemplate, Namespace: testWorkspaceNamespace},
+				Running:  true,
+			},
+		}
+		fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, tmpl).Build()
+		validator := &webhook.InstanceValidator{Client: fakeClient}
+		warnings, err := validator.ValidateCreate(ctx, inst)
+		Expect(err).ToNot(BeNil())
+		Expect(err.Error()).To(ContainSubstring("quota exceeded: nvidia.com/gpu"))
+		Expect(warnings).To(BeEmpty())
+	})
+
 	It("should warn if template is missing for an instance", func() {
 		ws := &clv1alpha1.Workspace{
 			ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
 			Spec: clv1alpha1.WorkspaceSpec{
 				Quota: apicommon.WorkspaceResourceQuota{
 					Instances: 2,
-					CPU:       resource.MustParse("4"),
-					Memory:    resource.MustParse("8Gi"),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+					},
 				},
 			},
 		}

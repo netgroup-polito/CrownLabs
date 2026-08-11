@@ -15,6 +15,7 @@
 package instctrl_test
 
 import (
+	"context"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -22,7 +23,9 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
 	virtv1 "kubevirt.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
@@ -168,5 +171,217 @@ var _ = Describe("Status Inspection", func() {
 			Entry("When the deployment replicas are ready", ForgeDeployment(1, 1), clv1alpha2.EnvironmentPhaseReady),
 			Entry("When the deployment is being deleted", ForgeStoppingDeployment(), clv1alpha2.EnvironmentPhaseStopping),
 		)
+	})
+
+	Describe("The statusinspection.GetEnvironmentResolvedIP function", func() {
+		var (
+			reconciler instctrl.InstanceReconciler
+			ctx        context.Context
+			namespace  string
+			selector   map[string]string
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			namespace = "tenant-test"
+			selector = map[string]string{
+				"crownlabs.polito.it/instance":    "test-instance",
+				"crownlabs.polito.it/environment": "env-1",
+			}
+		})
+
+		Context("with ClassVM environment type", func() {
+			It("should return the IP of the Pod matching the selector", func() {
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "virt-launcher-test-pod",
+						Namespace: namespace,
+						Labels:    selector,
+					},
+					Status: corev1.PodStatus{
+						PodIP: "10.244.100.1",
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(pod).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(Equal("10.244.100.1"))
+			})
+		})
+
+		Context("with ClassCloudVM environment type", func() {
+			It("should return the IP of the Pod matching the selector", func() {
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "cloud-launcher-test-pod",
+						Namespace: namespace,
+						Labels:    selector,
+					},
+					Status: corev1.PodStatus{
+						PodIP: "10.244.100.2",
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(pod).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(Equal("10.244.100.2"))
+			})
+		})
+
+		Context("with ClassLocalVM environment type", func() {
+			It("should return the IP of the Pod matching the selector", func() {
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "local-launcher-test-pod",
+						Namespace: namespace,
+						Labels:    selector,
+					},
+					Status: corev1.PodStatus{
+						PodIP: "10.244.100.3",
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(pod).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(Equal("10.244.100.3"))
+			})
+		})
+
+		Context("with ClassContainer environment type", func() {
+			It("should return the IP of the Pod matching the selector", func() {
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "container-test-pod",
+						Namespace: namespace,
+						Labels:    selector,
+					},
+					Status: corev1.PodStatus{
+						PodIP: "10.244.100.4",
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(pod).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(Equal("10.244.100.4"))
+			})
+		})
+
+		Context("with multiple matching Pods (filtering)", func() {
+
+			It("should ignore terminating Pods", func() {
+				deletionTime := metav1.NewTime(time.Now())
+				podTerminating := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "test-pod-terminating",
+						Namespace:         namespace,
+						Labels:            selector,
+						DeletionTimestamp: &deletionTime,
+						Finalizers:        []string{"crownlabs.polito.it/test-finalizer"},
+						CreationTimestamp: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodRunning,
+						PodIP: "10.244.100.1",
+					},
+				}
+				podActive := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "test-pod-active",
+						Namespace:         namespace,
+						Labels:            selector,
+						CreationTimestamp: metav1.NewTime(time.Now()),
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodRunning,
+						PodIP: "10.244.100.2",
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(podTerminating, podActive).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(Equal("10.244.100.2"))
+			})
+
+			It("should ignore terminal Pods (Failed/Succeeded)", func() {
+				podFailed := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "test-pod-failed",
+						Namespace:         namespace,
+						Labels:            selector,
+						CreationTimestamp: metav1.NewTime(time.Now().Add(-1 * time.Minute)),
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodFailed,
+						PodIP: "10.244.100.1",
+					},
+				}
+				podSucceeded := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "test-pod-succeeded",
+						Namespace:         namespace,
+						Labels:            selector,
+						CreationTimestamp: metav1.NewTime(time.Now().Add(-2 * time.Minute)),
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodSucceeded,
+						PodIP: "10.244.100.3",
+					},
+				}
+				podActive := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:              "test-pod-active",
+						Namespace:         namespace,
+						Labels:            selector,
+						CreationTimestamp: metav1.NewTime(time.Now()),
+					},
+					Status: corev1.PodStatus{
+						Phase: corev1.PodRunning,
+						PodIP: "10.244.100.2",
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(podFailed, podSucceeded, podActive).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(Equal("10.244.100.2"))
+			})
+		})
+
+		Context("general behavior and error handling", func() {
+			It("should return empty string if the Pod has no PodIP", func() {
+				pod := &corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-pod-no-ip",
+						Namespace: namespace,
+						Labels:    selector,
+					},
+				}
+
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(pod).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(BeEmpty())
+			})
+
+			It("should return empty string if no Pod matches the selector", func() {
+				fakeClient := fake.NewClientBuilder().WithScheme(scheme.Scheme).Build()
+				reconciler = instctrl.InstanceReconciler{Client: fakeClient}
+
+				ip := reconciler.GetEnvironmentResolvedIP(ctx, namespace, selector)
+				Expect(ip).To(BeEmpty())
+			})
+		})
 	})
 })

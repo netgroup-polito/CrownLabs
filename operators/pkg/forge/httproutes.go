@@ -32,11 +32,8 @@ const (
 	// DefaultTimeoutSeconds -> the default timeout as a Gateway API Duration string (GEP-2257 format).
 	DefaultTimeoutSeconds = "3600s"
 
-	// StandaloneRewriteEndpoint -> the endpoint used to rewrite standalone GUI URLs.
-	StandaloneRewriteEndpoint = ""
-
-	// GUIRewriteEndpoint -> the endpoint used to rewrite CloudVM/VM GUI URLs.
-	GUIRewriteEndpoint = ""
+	// URLRewriteEndpoint -> the endpoint used to rewrite GUI URLs.
+	URLRewriteEndpoint = ""
 )
 
 // HTTPRouteTemplate groups the minimal parameters required to forge an HTTPRouteSpec.
@@ -55,18 +52,18 @@ type ExpositionConfig struct {
 	GatewayNamespace     string
 }
 
-// ParseGatewayParent parses a gateway parent reference of the form
+// ParseNamespacedName parses a reference of the form
 // "namespace/name" and returns the two components. Returns an error on invalid input.
-func ParseGatewayParent(raw string) (namespace, name string, err error) {
+func ParseNamespacedName(raw string) (namespace, name string, err error) {
 	raw = strings.TrimSpace(raw)
 	parts := strings.Split(raw, "/")
 	if len(parts) != 2 {
-		return "", "", fmt.Errorf("invalid gateway parent reference: %q", raw)
+		return "", "", fmt.Errorf("invalid namespaced name reference: %q", raw)
 	}
 	trim := strings.TrimSpace
 	namespace, name = trim(parts[0]), trim(parts[1])
 	if namespace == "" || name == "" {
-		return "", "", fmt.Errorf("invalid gateway parent reference, empty namespace or name: %q", raw)
+		return "", "", fmt.Errorf("invalid namespaced name reference, empty namespace or name: %q", raw)
 	}
 	return namespace, name, nil
 }
@@ -157,17 +154,21 @@ func HTTPRouteRuleFilters(environment *clv1alpha2.Environment) []gatewayv1.HTTPR
 	if environment == nil {
 		return nil
 	}
+
+	filters := []gatewayv1.HTTPRouteFilter{URLRewriteFilter(URLRewriteEndpoint)}
+
 	switch environment.EnvironmentType {
 	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		if !environment.RewriteURL {
-			return nil
+		if environment.RewriteURL {
+			return filters
 		}
-		return []gatewayv1.HTTPRouteFilter{URLRewriteFilter(StandaloneRewriteEndpoint)}
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
-		return []gatewayv1.HTTPRouteFilter{URLRewriteFilter(GUIRewriteEndpoint)}
+		return filters
 	default:
 		return nil
 	}
+
+	return nil
 }
 
 // URLRewriteFilter returns an URLRewrite filter for the given target endpoint.

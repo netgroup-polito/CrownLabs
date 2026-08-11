@@ -14,7 +14,6 @@ export default gql`
           annotations
         }
         status {
-          ip
           phase
           url
           nodeName

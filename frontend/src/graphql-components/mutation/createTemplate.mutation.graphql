@@ -50,6 +50,7 @@ mutation createTemplate(
           cpu
           disk
           memory
+          otherResources
           reservedCPUPercentage
         }
       }

@@ -1,0 +1,5 @@
+# Namespace for the operator's per-tenant "MyDrive" PVCs (--mydrive-pvcs-storage-class-name).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mydrive-pvcs

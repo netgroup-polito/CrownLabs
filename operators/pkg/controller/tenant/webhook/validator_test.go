@@ -473,8 +473,10 @@ var _ = Describe("Validator webhook", func() {
 				BeforeEach(func() {
 					newTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 						Instances: 2,
-						CPU:       resource.MustParse("4"),
-						Memory:    resource.MustParse("8Gi"),
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    4,
+							Memory: resource.MustParse("8Gi"),
+						},
 					}
 				})
 				When("It was disabled before", func() {
@@ -489,8 +491,10 @@ var _ = Describe("Validator webhook", func() {
 					BeforeEach(func() {
 						oldTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 							Instances: 2,
-							CPU:       resource.MustParse("4"),
-							Memory:    resource.MustParse("8Gi"),
+							ResourceSpec: apicommon.ResourceSpec{
+								CPU:    4,
+								Memory: resource.MustParse("8Gi"),
+							},
 						}
 					})
 					It("should allow the change", func() {
@@ -514,8 +518,10 @@ var _ = Describe("Validator webhook", func() {
 					BeforeEach(func() {
 						oldTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 							Instances: 2,
-							CPU:       resource.MustParse("4"),
-							Memory:    resource.MustParse("8Gi"),
+							ResourceSpec: apicommon.ResourceSpec{
+								CPU:    4,
+								Memory: resource.MustParse("8Gi"),
+							},
 						}
 						oldTenant.Status.PersonalNamespace.Created = true
 						oldTenant.Status.PersonalNamespace.Name = testTenantPersonalNamespace
@@ -596,8 +602,10 @@ var _ = Describe("Validator webhook", func() {
 					oldTenant.Spec.PersonalWorkspace = nil
 					newTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 						Instances: 2,
-						CPU:       resource.MustParse("4"),
-						Memory:    resource.MustParse("8Gi"),
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    4,
+							Memory: resource.MustParse("8Gi"),
+						},
 					}
 				})
 				It("should deny the change", func() {
@@ -610,8 +618,10 @@ var _ = Describe("Validator webhook", func() {
 				BeforeEach(func() {
 					oldTenant.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 						Instances: 2,
-						CPU:       resource.MustParse("4"),
-						Memory:    resource.MustParse("8Gi"),
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    4,
+							Memory: resource.MustParse("8Gi"),
+						},
 					}
 					newTenant.Spec.PersonalWorkspace = nil
 				})

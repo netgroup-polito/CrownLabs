@@ -43,8 +43,10 @@ var _ = Describe("Personal workspace handling", func() {
 			BeforeEach(func() {
 				tnResource.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
 					Instances: 2,
-					CPU:       resource.MustParse("4"),
-					Memory:    resource.MustParse("8Gi"),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    4,
+						Memory: resource.MustParse("8Gi"),
+					},
 				}
 			})
 			It("Should create the manage templates role binding for the tenant", func() {

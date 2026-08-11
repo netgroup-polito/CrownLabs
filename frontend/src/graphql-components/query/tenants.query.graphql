@@ -15,6 +15,8 @@ query tenants($labels: String, $retrieveWorkspaces: Boolean = false) {
           cpu
           memory
           instances
+          disk
+          otherResources
         }
         workspaces @include(if: $retrieveWorkspaces) {
           role

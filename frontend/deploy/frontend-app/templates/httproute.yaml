@@ -5,6 +5,7 @@ metadata:
   name: {{ include "frontend-app.fullname" . }}
   labels:
     {{- include "frontend-app.labels" . | nindent 4 }}
+    crownlabs.polito.it/public-route: "true"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
