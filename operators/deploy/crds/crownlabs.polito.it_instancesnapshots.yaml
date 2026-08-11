@@ -20,6 +20,9 @@ spec:
     - jsonPath: .status.phase
       name: Phase
       type: string
+    - jsonPath: .spec.tenantRef.name
+      name: Tenant
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -48,10 +51,20 @@ spec:
           spec:
             description: InstanceSnapshotSpec defines the desired state of InstanceSnapshot.
             properties:
+              description:
+                description: Description is an optional human-readable description
+                  of the snapshot.
+                maxLength: 512
+                type: string
               environmentRef:
                 description: Environment represents the name of the environment to
                   be snapshotted.
                 pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
+                type: string
+              imageName:
+                description: ImageName is an optional user-defined name for the snapshot image.
+                maxLength: 63
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                 type: string
               instanceRef:
                 description: Instance is the reference to the persistent VM instance
@@ -67,6 +80,20 @@ spec:
                     type: string
                 required:
                 - name
+                type: object
+              tenantRef:
+                description: |-
+                  Tenant is the reference to the Tenant who created the snapshot.
+                  If not specified, it is automatically populated from the source Instance.
+                properties:
+                  name:
+                    description: The name of the resource to be referenced.
+                    type: string
+                  namespace:
+                    description: |-
+                      The namespace containing the resource to be referenced. It should be left
+                      empty in case of cluster-wide resources.
+                    type: string
                 type: object
             required:
             - environmentRef

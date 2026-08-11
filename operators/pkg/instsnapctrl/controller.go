@@ -158,6 +158,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				Labels: map[string]string{
 					"crownlabs.polito.it/snapshot-artifact": "true",
 				},
+				Annotations: map[string]string{},
 			},
 			Spec: cdiv1beta1.DataVolumeSpec{
 				Source: &cdiv1beta1.DataVolumeSource{
@@ -177,6 +178,25 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 					},
 				},
 			},
+		}
+
+		if snapshot.Spec.ImageName != "" {
+			dv.Annotations["crownlabs.polito.it/image-name"] = snapshot.Spec.ImageName
+		}
+		if snapshot.Spec.Description != "" {
+			dv.Annotations["crownlabs.polito.it/snapshot-description"] = snapshot.Spec.Description
+		}
+
+		// Auto-populate tenantRef from the source Instance if not already set.
+		if snapshot.Spec.Tenant.Name == "" {
+			snapshot.Spec.Tenant = instance.Spec.Tenant
+			if err := r.Update(ctx, &snapshot); err != nil {
+				log.Error(err, "failed to update snapshot with tenant ref")
+				return ctrl.Result{}, err
+			}
+		}
+		if snapshot.Spec.Tenant.Name != "" {
+			dv.Annotations["crownlabs.polito.it/snapshot-tenant"] = snapshot.Spec.Tenant.Name
 		}
 
 		if err := ctrlutil.SetControllerReference(&snapshot, &dv, r.Scheme); err != nil {

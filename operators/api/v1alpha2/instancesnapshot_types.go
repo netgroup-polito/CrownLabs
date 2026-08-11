@@ -27,6 +27,22 @@ type InstanceSnapshotSpec struct {
 	// Environment represents the name of the environment to be snapshotted.
 	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
 	Environment string `json:"environmentRef"`
+
+	// ImageName is an optional user-defined name for the snapshot image.
+	// +optional
+	// +kubebuilder:validation:MaxLength=63
+	// +kubebuilder:validation:Pattern="^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+	ImageName string `json:"imageName,omitempty"`
+
+	// Description is an optional human-readable description of the snapshot.
+	// +optional
+	// +kubebuilder:validation:MaxLength=512
+	Description string `json:"description,omitempty"`
+
+	// Tenant is the reference to the Tenant who created the snapshot.
+	// If not specified, it is automatically populated from the source Instance.
+	// +optional
+	Tenant GenericRef `json:"tenantRef,omitempty"`
 }
 
 // SnapshotPhase describes the current phase of the InstanceSnapshot.
@@ -69,6 +85,7 @@ type InstanceSnapshotStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName="isnap"
 // +kubebuilder:printcolumn:name="Phase",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="Tenant",type=string,JSONPath=`.spec.tenantRef.name`
 // +kubebuilder:printcolumn:name="Age",type=date,JSONPath=`.metadata.creationTimestamp`
 
 // InstanceSnapshot is the Schema for the instancesnapshots API.
