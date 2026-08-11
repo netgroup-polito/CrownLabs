@@ -27,9 +27,10 @@ spec:
       amd.com/gpu: "1"
 ```
 
-In the example above, users belonging to this workspace can launch up to **3 active instances** (VMs or containers) simultaneously, and globally across the workspace cannot exceed **10 CPUs**, **64Gi of RAM**, **15Gi of Persistent Disk**, **1 NVIDIA GPU**, and **1 AMD GPU**.
+In the example above, users belonging to this workspace can launch up to **3 active instances** (VMs or containers) simultaneously, and cannot exceed **10 CPUs**, **64Gi of RAM**, **15Gi of Persistent Disk**, **1 NVIDIA GPU**, and **1 AMD GPU** globally within the workspace .
 
 Resource quotas can be updated at any time by modifying the `quota` section of the `Workspace` resource.
+In case resources are decreased, no enforcement is done for all the instances that are already running; hence, users who have already running instances may (temporarily) consume more resources than the maximum allowed values within the workspace.
 
 ### Resource Types Specification
 
@@ -44,6 +45,8 @@ The data types used within `ResourceSpec` in the Go backend are defined as follo
 | `otherResources` | `map[string]resource.Quantity` | Generic key-value map for extended hardware accelerators |
 
 ---
+`Resource.Quantity` is a common format used in Kubernetes, consisting in a number and a suffix (e.g., 16Gi).
+More information [here](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity).
 
 ## 2. Defining Quotas per User (Tenants)
 
@@ -82,7 +85,11 @@ spec:
 
 ## 3. How to Add New Custom Resources (Step-by-Step Guide)
 
-CrownLabs uses `otherResources: map[string]resource.Quantity` to avoid hardcoding specific hardware vendor keys in the backend Go codebase. Follow these steps to introduce a new custom resource (e.g., **Intel Gaudi TPU** `intel.com/gaudi` or new **AMD GPUs** `amd.com/gpu`):
+While currently the mostly used _other resource_ are Nvidia GPUs, we cannot exclude that in the future we may need to define new custom resources, such as **Intel Gaudi TPU** `intel.com/gaudi` or new **AMD GPUs** `amd.com/gpu`.
+
+CrownLabs source code has been created in order to support new resources without touching the code itself; in fact, it uses `otherResources: map[string]resource.Quantity` to avoid hardcoding specific hardware vendor keys in the backend Go codebase.
+
+This section documents the steps required to add a new custom resource within CrownLabs, which will be automatically applied in both the frontend (so that workspace administrator can set their limits) and in the backend (by the code that implements resource quota enforcement).
 
 ### Step 1: Cluster & Device Plugin Setup
 If physical hardware scheduling is required on worker nodes, ensure the hardware vendor's Device Plugin (e.g., NVIDIA GPU Operator, AMD GPU Device Plugin) is installed.
