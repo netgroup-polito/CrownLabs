@@ -90,8 +90,8 @@ func ConfigureWorkspaceManagerAggregatedBinding(ws *clv1alpha1.Workspace, rb *rb
 	}
 }
 
-// ConfigurePersonalWorkspaceManageTemplatesBinding configures a RoleBinding for a tenant to manage templates.
-func ConfigurePersonalWorkspaceManageTemplatesBinding(tn *clv1alpha2.Tenant, rb *rbacv1.RoleBinding, labels map[string]string) {
+// ConfigurePersonalWorkspaceManagerBinding configures a RoleBinding for a tenant to access all manager privileges in their personal workspace.
+func ConfigurePersonalWorkspaceManagerBinding(tn *clv1alpha2.Tenant, rb *rbacv1.RoleBinding, labels map[string]string) {
 	// Set the labels
 	if rb.Labels == nil {
 		rb.Labels = make(map[string]string)
@@ -104,7 +104,7 @@ func ConfigurePersonalWorkspaceManageTemplatesBinding(tn *clv1alpha2.Tenant, rb 
 	// Configure the role binding spec
 	rb.RoleRef = rbacv1.RoleRef{
 		Kind:     "ClusterRole",
-		Name:     ManageTemplatesRoleName,
+		Name:     WorkspaceManagerRoleName,
 		APIGroup: rbacv1.GroupName,
 	}
 	rb.Subjects = []rbacv1.Subject{

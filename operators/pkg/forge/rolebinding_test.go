@@ -165,12 +165,12 @@ var _ = Describe("RoleBinding forging", func() {
 		})
 	})
 
-	Describe("The forge.ConfigurePersonalWorkspaceManageTemplatesBinding function", func() {
+	Describe("The forge.ConfigurePersonalWorkspaceManagerBinding function", func() {
 		var rb *rbacv1.RoleBinding
 		BeforeEach(func() {
 			rb = &rbacv1.RoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-manage-templates",
+					Name:      "test-workspace-manager",
 					Namespace: "default",
 				},
 			}
@@ -178,7 +178,7 @@ var _ = Describe("RoleBinding forging", func() {
 
 		Context("When the RoleBinding has no labels", func() {
 			It("Should set the correct labels, RoleRef and Subject", func() {
-				forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tenant, rb, labels)
+				forge.ConfigurePersonalWorkspaceManagerBinding(tenant, rb, labels)
 
 				// Check labels
 				for k, v := range labels {
@@ -188,7 +188,7 @@ var _ = Describe("RoleBinding forging", func() {
 				Expect(rb.Namespace).To(Equal("tenant-" + tenant.Name))
 				// Check RoleRef
 				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-				Expect(rb.RoleRef.Name).To(Equal(forge.ManageTemplatesRoleName))
+				Expect(rb.RoleRef.Name).To(Equal(forge.WorkspaceManagerRoleName))
 				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 
 				// Check Subject
@@ -207,7 +207,7 @@ var _ = Describe("RoleBinding forging", func() {
 			})
 
 			It("Should keep existing labels, add new ones, and set correct Namespace, RoleRef and Subject ", func() {
-				forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tenant, rb, labels)
+				forge.ConfigurePersonalWorkspaceManagerBinding(tenant, rb, labels)
 
 				Expect(rb.Labels).To(HaveKeyWithValue("existing", "label"))
 				for k, v := range labels {
@@ -217,7 +217,7 @@ var _ = Describe("RoleBinding forging", func() {
 				Expect(rb.Namespace).To(Equal("tenant-" + tenant.Name))
 				// Check RoleRef
 				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-				Expect(rb.RoleRef.Name).To(Equal(forge.ManageTemplatesRoleName))
+				Expect(rb.RoleRef.Name).To(Equal(forge.WorkspaceManagerRoleName))
 				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 
 				// Check Subject
