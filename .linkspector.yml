@@ -1,6 +1,10 @@
 ignorePatterns:
   - pattern: "^https://.*\\.example\\.com/.*$"
-  # This link often returns http code 429 ("too many requests") when executed from github
+  - pattern: "^https://helm\\.sh/?.*$"
+  - pattern: "^https://kind\\.sigs\\.k8s\\.io/?.*$"
+  - pattern: "^https://sdk\\.operatorframework\\.io/?.*$"
+  - pattern: "^https://stackoverflow\\.com/questions/49429906/how-should-i-configure-create-react-app-to-serve-app-from-subdirectory/58508562#58508562$"
+  # This link often returns http code 429 ("too many requests") when executed from github  
   - pattern: "^https://developer.hashicorp.com/packer$"
   # mailpit.axllent.org returns http code 403 to the linkspector crawler when executed from
   # github actions (likely bot protection); the site itself is reachable from a real browser

@@ -24,9 +24,13 @@ The choice for our load-balancer went to MetalLB, which is a load-balancer imple
 Kubernetes clusters, using standard routing protocols. If you’re running on a supported IaaS platform then skip
 this step and use one of your provider.
 ​
-## [Ingress Controller](ingress-controller)
+## [DEPRECATED - Ingress Controller](ingress-controller)
 To expose HTTP and HTTPS routes from outside the cluster to services within the cluster we use NGINX Ingress Controller,
 which is a community-drive effort.
+​
+## [Gateway API](../deploy/crownlabs/docs/gateway-architecture-and-routing.md)
+We use Envoy Gateway implementing the Kubernetes Gateway API to expose HTTP and HTTPS from
+outside the cluster to services within the cluster, domain unification and security policies.
 ​
 ## [External DNS](external-dns-synchronization)
 ExternalDNS makes Kubernetes resources discoverable via public DNS servers (bind9).

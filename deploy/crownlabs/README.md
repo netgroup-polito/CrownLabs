@@ -28,6 +28,14 @@ Once the CRDs have been correctly installed, it is possible to deploy CrownLabs.
 First, it is necessary to configure the different parameters (e.g. number of replicas, URLs, credentials, ...), depending on the specific set-up.
 In particular, this operation can be completed creating a copy of the [default configuration](values.yaml), and customizing it with the suitable values.
 
+### Gateway API & Routing Configuration
+
+CrownLabs uses **Envoy Gateway** implementing the Kubernetes Gateway API (`gateway.networking.k8s.io/v1`) for L7 traffic routing and authentication.
+
+For detailed information regarding the Gateway Configuration Model, Control Flags, and Authentication mechanisms, please refer to the dedicated [Authentication and Centralized Gateway](docs/authentication-and-gateway.md) document.
+---
+
+
 Then, it is possible to proceed with the deployment/upgrade of CrownLabs (all commands are relative to the CrownLabs root directory):
 
 ```bash
