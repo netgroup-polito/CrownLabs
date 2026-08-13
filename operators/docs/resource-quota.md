@@ -145,16 +145,31 @@ CrownLabs enforces resource limits using a multi-tiered security and validation 
 [ 3. ResourceQuota ]      ──(Tenant Namespace Level)───────────► [ Passive Global Security Barrier ]
 ```
 
-1. **Validating Webhook (Cluster Level Enforcement):**
-   CrownLabs deploys a `ValidatingWebhookConfiguration` that intercepts `CREATE` and `UPDATE` operations on `Tenants` and `Instances`. 
+The three mechanisms operate at different levels of the stack, though the validators work together just at different levels:
+
+1. **Validating Webhook (Cluster Level Enforcement, within the API Server Gatekeeper):**
+   It executes _synchronous_ pre-checks before objects are written to `etcd`. This provides immediate feedback (e.g., HTTP 422 errors to GraphQL/UI) and evaluates complex CrownLabs business rules (e.g., verifying custom GPU labels, template-level CPU throttles, multi-workspace relationships) which standard Kubernetes primitives cannot understand. To simplify it, it's a check BEFORE the instance is created.
+   This is achieved though a `ValidatingWebhookConfiguration` that intercepts `CREATE` and `UPDATE` operations on `Tenants` and `Instances`. 
    * **Scope Filtering:** Uses `namespaceSelector` to match all CrownLabs-managed namespaces (`workspace-*` and `tenant-*`). This ensures **100% of instance creations are intercepted**, preventing validation bypasses.
    * **Failure Policy:** Configured with `failurePolicy: Fail` to block unvalidated or over-quota requests before they are written to `etcd`.
 
-2. **ResourceQuota (Tenant Namespace Barrier):**
-   When a Tenant is reconciled, the Tenant Operator creates a standard Kubernetes `ResourceQuota` inside the user's namespace (`tenant-<username>`). It acts as a passive container limit preventing cluster starvation.
-
-3. **Instance Validator (Workspace Level):**
+2. **Instance Validator (Workspace Level, within the Operator Reconciliation Loop):**
    A dedicated Go component that evaluates the real-time consumption of the user against their allowed course workspace limits before an instance is allowed to boot.
+   The difference with the webhook is that it acts at the runtime level, being an _asynchronous_ runtime evaluator inside the Instance Operator controller.
+   
+   It is needed because it handles race conditions, dynamic runtime updates, and workspace-specific bounds (e.g., checking if a specific course workspace quota is respected when launching an instance).
+   It also manages recovery loops (e.g., phase shifting to `ResourceQuotaExceeded` and requeuing every 60s during persistent storage allocation failures).
+   As an example: if a run-time action such as a disk creation (PVC) fails, then the instance validator catches that error and shifts the phase to `ResourceQuotaExceeded`, and after 60 seconds it tries to allocate the disk again.
+   This is a type of error that the webhook validator would not be able to catch since it is something that might happen at runtime.
+
+3. **ResourceQuota (Tenant Namespace Barrier, fallback mechanism):**
+   When a Tenant is reconciled, the Tenant Operator creates a standard Kubernetes `ResourceQuota` inside the user's namespace (`tenant-<username>`).
+   Its value equals the sum of the quotas across all Workspaces they are enrolled in, plus their Personal Workspace quota (e.g., `hard.cpu = sum(workspace_cpus) + personal_cpu`, `hard.memory = ...`), and it acts as a passive container limit preventing cluster starvation.
+   
+   While the custom Webhook and Operators handle CrownLabs-specific business logic at the Custom Resource level (`Tenant`, `Instance`), the native `ResourceQuota` operates directly on low-level Kubernetes primitives (`Pods`, `PVCs`).
+   It ensures that even if custom code experiences an unhandled failure or bypass, the Kubernetes API server natively blocks any pod or container from exceeding the user's hard limits.
+   `ResourceQuota` normally is not used if the validators are on, and it is useful if the validator is turned off, as it it applies some limits to a user instead of just leaving it to the native Kubernetes limits.
+   The reason why this check only works if the validators are off is because the validator checks are much more restrictive (validator limits resources based on the single workspace you want to create the instance in, ResourceQuota limits resources based on the sum total of all resource limits from all workspaces a user is in (including personal workspace).
 
 ---
 
