@@ -2,33 +2,39 @@
 
 ```mermaid
 %% ==== OVERVIEW GRAPH ====
-flowchart TB
+flowchart LR
 
-LogicalDomain
-Controller
-Workspace
-CRD
-Tenant
-Environment
-Frontend
+subgraph Cells
+direction TB
+    Controller:::ControllerStyle
+    Template:::TemplateStyle
+    CustomResource:::CustomResourceStyle
+    Tenant:::TenantStyle
+    Environment:::EnvironmentStyle
+    Frontend:::FrontendStyle
+end
+subgraph Domains["Logic Domains"]
+direction TB
+    Generic:::GenericDomainStyle
+    WorkspaceNS:::WorkspaceNSStyle
+    TenantNS:::TenantNSStyle
+    ReleasesNS:::ReleasesNSStyle
+end
 
-%% Class Definitions - Border Styles (BS)
-classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
-classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
-classDef WorkspaceBS stroke:#54724B,rx:12,ry:12,fill:none
-classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
-classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
-classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
-classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
+%% Class Definitions
+classDef ControllerStyle stroke:#FF8000,rx:12,ry:12,fill:none
+classDef TemplateStyle stroke:#0A6522,rx:12,ry:12,fill:none
+classDef CustomResourceStyle stroke:#FF0000,rx:12,ry:12,fill:none
+classDef TenantStyle stroke:#2222FF,rx:12,ry:12,fill:none
+classDef EnvironmentStyle stroke:#A865B5,rx:12,ry:12,fill:none
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
 
-%% Class Applications
-class LogicalDomain GenericDashedBS
-class Controller ControllerBS
-class Workspace WorkspaceBS
-class CRD CustomResourceBS
-class Tenant TenantBS
-class Environment EnvironmentBS
-class Frontend FrontendBS
+classDef GenericDomainStyle fill:none,rx:12,ry:12,stroke-dasharray:8
+classDef WorkspaceNSStyle stroke:#0A6522,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantNSStyle stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef ReleasesNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
+
+class Cells,Domains GenericDomainStyle
 ```
 
 # CrownLabs Big Picture
@@ -41,29 +47,29 @@ Argo["Argo/Helm¹"]
 Releases["Deployment Releases¹"]
 subgraph ReleasesNS["Deployment Releases Namespace"]
     Controllers@{shape: docs, label: "Controller Set¹"}
-    Frontend["Frontend-app⁴"]
+    Frontend["Frontend-app⁴"]:::FrontendStyle
     GraphQL["GraphQL Relay⁵"]
 
     Frontend .-> GraphQL
 end
 WorkspaceCR["`Workspace CR
     [cluster-wide]
-    _workspace: abc_`"]
+    _workspace: abc_`"]:::CustomResourceStyle
 Controllers --> WorkspaceCR
 subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
     TemplateCR["`Template CR
-        template: _foo_`"]
+        template: _foo_`"]:::CustomResourceStyle
     TemplateEnv@{shape: docs, label: "foo Environments"}
 
     TemplateCR --> TemplateEnv
 end
 TenantCR["`Tenant CR
     [cluster-wide]
-    _tenant: xyz-efg_`"]
+    _tenant: xyz-efg_`"]:::CustomResourceStyle
 Controllers --> TenantCR
 subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ ²`"]
     InstanceCR["`Instance CR
-        _instance: bar_`"]
+        _instance: bar_`"]:::CustomResourceStyle
     InstanceEnv@{shape: docs, label: "bar Environments"}
 
     InstanceCR --> InstanceEnv
@@ -85,23 +91,24 @@ InstanceCR -. references to .-> TemplateCR
 TenantCR --> TenantNS
 APIServer --> RBAC
 
-classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
-classDef ControllerDashedBS stroke:#E45756,rx:12,ry:12,fill:none,stroke-dasharray:8
-classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
-classDef WorkspaceDashedBS stroke:#54724B,rx:12,ry:12,fill:none,stroke-dasharray:8
-classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
-classDef TenantDashedBS stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
-classDef InstanceBS stroke:#BB55BB,rx:12,ry:12,fill:none
-classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
+classDef ControllerStyle stroke:#FF8000,rx:12,ry:12,fill:none
+classDef WorkspaceStyle stroke:#0A6522,rx:12,ry:12,fill:none
+classDef CustomResourceStyle stroke:#FF0000,rx:12,ry:12,fill:none
+classDef TenantStyle stroke:#2222FF,rx:12,ry:12,fill:none
+classDef EnvironmentStyle stroke:#A865B5,rx:12,ry:12,fill:none
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
 
-class K8S GenericDashedBS
-class ReleasesNS ControllerDashedBS
-class Controllers ControllerBS
-class WorkspaceCR,TenantCR,InstanceCR,TemplateCR CustomResourceBS
-class WorkspaceNS WorkspaceDashedBS
-class TenantNS TenantDashedBS
-class InstanceEnv,TemplateEnv InstanceBS
-class Frontend FrontendBS
+classDef GenericDomainStyle fill:none,rx:12,ry:12,stroke-dasharray:8
+classDef WorkspaceNSStyle stroke:#0A6522,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantNSStyle stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef ReleasesNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
+
+class K8S GenericDomainStyle
+class ReleasesNS ReleasesNSStyle
+class Controllers ControllerStyle
+class WorkspaceNS WorkspaceNSStyle
+class TemplateEnv,InstanceEnv EnvironmentStyle
+class TenantNS TenantNSStyle
 ```
 ¹More about Deployment+Gateway [here](BIGPICTURE.md#crownlabs-deployment).  
 ²More about Tenant [here](BIGPICTURE.md#tenant-business-logic).  
@@ -150,9 +157,9 @@ ProdDeploy -. hosts .-> FrontendController
 ProdDeploy -. hosts .-> QLKubeController
 ProdDeploy -. hosts .-> ShVolController
 
-classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
+classDef ReleasesNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
 
-class Controllers ControllerBS
+class Controllers ReleasesNSStyle
 ```
 
 ```mermaid
@@ -160,8 +167,8 @@ flowchart LR
 
 Gateway["`Gateway
     (Envoy Gateway API)`"]
-Proxy["Envoy Proxy"]
-GatewayClass["GatewayClass"]
+Proxy["Envoy Proxy"]:::GenericDomainStyle
+GatewayClass["GatewayClass"]:::GenericDomainStyle
 GatewayController["Gateway Controller"]
 APIServer["API Server"]
 subgraph Routes["HTTPRoutes"]
@@ -177,13 +184,13 @@ subgraph Routes["HTTPRoutes"]
         _/app/instauth/callback_`"]
     OtherRoute["`another HTTPRoute
         (if Tenant has label 
-        _crownlabs.polito.it/gw-access = crownlabs-main-production_)`"]
+        _crownlabs.polito.it/gw-access = crownlabs-main-production_)`"]:::TenantStyle
 end
 subgraph Backends["Backend Services"]
     WebSSHService["WebSSH Service"]
     FrontendService["Frontend-app Service"]
     QLKubeService["QLKube Service"]
-    OtherService["another Service"]
+    OtherService["another Service"]:::TenantStyle
     DummyService["dummy Service"]
     VM@{shape: docs, label: "VMs"}
 end
@@ -193,7 +200,7 @@ subgraph SecPols["Security Policies"]
         (dummy, only if route has label 
         _crownlabs.polito.it/public-route: true_)`"]
 end
-Traffic["Request Traffic"]
+Traffic["Request Traffic"]:::FrontendStyle
 
 Gateway -- manages --> Proxy
 Gateway -. accepts .-> Routes
@@ -218,13 +225,12 @@ GatewayController -. creates/updates .-> Routes
 APIServer --> Gateway
 GatewayClass -. used by .-> Gateway
 
-classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
-classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
-classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
+classDef GenericDomainStyle fill:none,rx:12,ry:12,stroke-dasharray:8
+classDef TenantStyle stroke:#2222FF,rx:12,ry:12,fill:none
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
 
-class GatewayClass,Proxy,Routes,PublicRoutes,SecPols,Backends GenericDashedBS
-class Traffic FrontendBS
-class OtherRoute,OtherService,VM TenantBS
+class Routes,PublicRoutes,SecPols,Backends GenericDomainStyle
+class VM TenantStyle
 ```
 
 ## Frontend Logic
@@ -234,15 +240,15 @@ The following will be placed in **home/frontend-app**
 flowchart LR
 
 Home["`Home Page
-    _crownlabs.polito.it_`"]
-Login["Login Page"]
+    _crownlabs.polito.it_`"]:::FrontendStyle
+Login["Login Page"]:::FrontendStyle
 Frontend["`Front-end
-    _crownlabs.polito.it/app_`"]
+    _crownlabs.polito.it/app_`"]:::FrontendStyle
 Remote["Remote Desktop"]
 OIDC["`OIDC Server
     (Authentication)`"]
 Graph["`GraphQL
-    _graphql.crownlabs.polito.it_`"]
+    _graphql.crownlabs.polito.it_`"]:::FrontendStyle
 GWAPI["Load Balancer + Gateway/Ingress"]
 
 Home --> Login
@@ -253,9 +259,7 @@ Frontend -. connects .-> Remote
 Frontend -. connects .-> GWAPI
 Remote --> GWAPI
 
-classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
-
-class Home,Login,Frontend,Graph FrontendBS
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
 ```
 
 ## Workspace Business Logic
@@ -264,15 +268,15 @@ The following will be placed in **home/operators/operator/workspace**
 ```mermaid
 flowchart LR
 
-WorkspaceController["Workspace Controller"]
+WorkspaceController["Workspace Controller"]:::ControllerStyle
 WorkspaceCR["`Workspace CR
-    _workspace: abc_`"]
+    _workspace: abc_`"]:::CustomResourceStyle
 subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_`"]
     subgraph TemplateFoo["`Template: _foo_`"]
         EnvContainer["`Environment 1
-            _(container-based)_`"]
+            _(container-based)_`"]:::EnvironmentStyle
         EnvVM["`Environment 2
-            _(vm-based)_`"]
+            _(vm-based)_`"]:::EnvironmentStyle
     end
 
     TemplateOther["`Another Template
@@ -282,17 +286,14 @@ end
 WorkspaceController -- reconciles --> WorkspaceCR
 WorkspaceCR --> WorkspaceNS
 
-classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
-classDef WorkspaceBS stroke:#54724B,rx:12,ry:12,fill:none
-classDef WorkspaceDashedBS stroke:#54724B,rx:12,ry:12,fill:none,stroke-dasharray:8
-classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
-classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
+classDef ControllerStyle stroke:#FF8000,rx:12,ry:12,fill:none
+classDef TemplateStyle stroke:#0A6522,rx:12,ry:12,fill:none
+classDef CustomResourceStyle stroke:#FF0000,rx:12,ry:12,fill:none
+classDef EnvironmentStyle stroke:#A865B5,rx:12,ry:12,fill:none
+classDef WorkspaceNSStyle stroke:#0A6522,rx:12,ry:12,fill:none,stroke-dasharray:8
 
-class WorkspaceNS WorkspaceDashedBS
-class TemplateFoo,TemplateOther WorkspaceBS
-class WorkspaceController ControllerBS
-class WorkspaceCR CustomResourceBS
-class EnvContainer,EnvVM EnvironmentBS
+class WorkspaceNS WorkspaceNSStyle
+class TemplateFoo,TemplateOther TemplateStyle
 ```
 
 ## Tenant Business Logic
@@ -301,28 +302,29 @@ The following will be placed in **home/operators/operator/tenant**
 ```mermaid
 flowchart LR
 
-TenantController["Tenant Controller"]
+TenantController["Tenant Controller"]:::ControllerStyle
+BastionController["Bastion Controller"]:::ControllerStyle
+SharedVolumeController["Shared Volume Controller"]:::ControllerStyle
+
 TenantCR["`Tenant CR
-_tenant: xyz.efg_`"]
-
-TenantController -- reconciles --> TenantCR
-BastionController -. watches .-> TenantCR
-
+_tenant: xyz.efg_`"]:::CustomResourceStyle
 subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ (has label for _operator-selector=production_)`"]
     InstanceCR["`Instance CR
-        _instance: bar_`"]
+        _instance: bar_`"]:::CustomResourceStyle
     ShVol["Shared Volume"]
-    ContainerEnv["Container-based Environment"]
-    VMEnv["VM-based Environment"]
+    ContainerEnv["Container-based Environment"]:::EnvironmentStyle
+    VMEnv["VM-based Environment"]:::EnvironmentStyle
 end
 
 subgraph TemplateFoo["`Template: _foo_`"]
     EnvContainer["`Environment 1
-        _(container-based)_`"]
+        _(container-based)_`"]:::EnvironmentStyle
     EnvVM["`Environment 2
-        _(vm-based)_`"]
+        _(vm-based)_`"]:::EnvironmentStyle
 end
 
+TenantController -- reconciles --> TenantCR
+BastionController -. watches .-> TenantCR
 TenantCR -- manages --> TenantNS
 SharedVolumeController -- reconciles --> ShVol
 InstanceCR -. references .-> TemplateFoo
@@ -331,32 +333,29 @@ EnvVM -. generates .-> VMEnv
 ContainerEnv -. attaches .-> ShVol
 VMEnv -. attaches .-> ShVol
 
-classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
-classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
-classDef WorkspaceBS stroke:#54724B,rx:12,ry:12,fill:none
-classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
-classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
-classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
+classDef ControllerStyle stroke:#FF8000,rx:12,ry:12,fill:none
+classDef CustomResourceStyle stroke:#FF0000,rx:12,ry:12,fill:none
+classDef EnvironmentStyle stroke:#A865B5,rx:12,ry:12,fill:none
+classDef WorkspaceNSStyle stroke:#0A6522,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantNSStyle stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
 
-classDef TenantBorderStyle fill:none,stroke:#5472FB,rx:12,ry:12
-class TenantNS TenantBorderStyle
-classDef ControllerBorderStyle stroke:#E45756
-class SharedVolumeController,TenantController,BastionController ControllerBorderStyle
-classDef CRBorderStyle stroke:#FF0000
-class TenantCR,InstanceCR CRBorderStyle
-classDef WorkspaceBorderStyle fill:none,stroke:#54724B,stroke-width:2px,rx:12,ry:12
-class TemplateFoo WorkspaceBorderStyle
-class ContainerEnv,VMEnv EnvironmentBS
+class TenantNS TenantNSStyle
+class TemplateFoo WorkspaceNSStyle
 ```
+
+## Instances Deep Dive
+The following will be placed in **home/operators/.../instctl**
 
 ```mermaid
 flowchart LR
 
-InstanceController["Instance Controller"]
-InstanceAutomationController["Instance Automation Controller"]
-InstanceSnapshotController["Instance Snapshot Controller"]
+InstanceController["Instance Controller"]:::ControllerStyle
+InstanceAutomationController["Instance Automation Controller"]:::ControllerStyle
+InstanceSnapshotController["Instance Snapshot Controller"]:::ControllerStyle
 
 subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_`"]
+    InstanceCR["`Instance CR
+        _instance: bar_`"]:::CustomResourceStyle
     subgraph Env1ContainerInst["`Instanced Environment 1 _(container-based)_`"]
         ExpositionEnv1["Ingress / HTTPRoute"]
         ServiceEnv1["Service"]
@@ -365,7 +364,6 @@ subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_`"]
         DeploymentEnv1 -. exposes .-> ServiceEnv1
         ServiceEnv1 -. routes .-> ExpositionEnv1
     end
-
     subgraph Env2VMInst["`Instanced Environment 2 _(VM-based)_`"]
         ExpositionEnv2["Ingress / HTTPRoute"]
         ServiceEnv2["Service"]
@@ -374,36 +372,26 @@ subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_`"]
         VirtualMachine -. exposes .-> ServiceEnv2
         ServiceEnv2 -. routes .-> ExpositionEnv2
     end
-
     VirtLauncherPod["KubeVirt VirtLauncher Pod"]
-    InstanceCR["`Instance CR
-        _instance: bar_`"]
 
     VirtualMachine -- becomes --> VirtLauncherPod
     InstanceCR -- becomes --> Env1ContainerInst
     InstanceCR -- becomes --> Env2VMInst
 end
+GWAPI["Load Balancer + Gateway/Ingress"]
 
 InstanceController -- reconciles --> InstanceCR
 InstanceAutomationController -- reconciles --> InstanceCR
 InstanceSnapshotController -- reconciles --> InstanceCR
-
-GWAPI["Load Balancer + Gateway/Ingress"]
 ExpositionEnv2 -. routes .-> GWAPI
 ExpositionEnv1 -. routes .-> GWAPI
 
-classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
-classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
-classDef WorkspaceBS stroke:#54724B,rx:12,ry:12,fill:none
-classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
-classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
-classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
+classDef ControllerStyle stroke:#FF8000,rx:12,ry:12,fill:none
+classDef CustomResourceStyle stroke:#FF0000,rx:12,ry:12,fill:none
+classDef EnvironmentStyle stroke:#A865B5,rx:12,ry:12,fill:none
+classDef WorkspaceNSStyle stroke:#0A6522,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantNSStyle stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
 
-classDef TenantBorderStyle fill:none,stroke:#5472FB,rx:12,ry:12
-class TenantNS,Env1ContainerInst,Env2VMInst TenantBorderStyle
-classDef ControllerBorderStyle stroke:#E45756
-class InstanceController,InstanceAutomationController,InstanceSnapshotController ControllerBorderStyle
-classDef CRBorderStyle stroke:#FF0000
-class InstanceCR CRBorderStyle
-
+class TenantNS TenantNSStyle
+class Env1ContainerInst,Env2VMInst EnvironmentStyle
 ```
