@@ -12,7 +12,7 @@ Tenant
 Environment
 Frontend
 
-%% General Class Definitions - Border Styles (BS)
+%% Class Definitions - Border Styles (BS)
 classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
 classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
 classDef WorkspaceBS stroke:#54724B,rx:12,ry:12,fill:none
@@ -46,6 +46,17 @@ subgraph ReleasesNS["Deployment Releases Namespace"]
 
     Frontend .-> GraphQL
 end
+WorkspaceCR["`Workspace CR
+    [cluster-wide]
+    _workspace: abc_`"]
+Controllers --> WorkspaceCR
+subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
+    TemplateCR["`Template CR
+        template: _foo_`"]
+    TemplateEnv@{shape: docs, label: "foo Environments"}
+
+    TemplateCR --> TemplateEnv
+end
 TenantCR["`Tenant CR
     [cluster-wide]
     _tenant: xyz-efg_`"]
@@ -62,17 +73,6 @@ subgraph K8S["K8S Provided Infratructure"]
     GWAPI["Load Balancer + Gateway/Ingress¹"]
 end
 RBAC["RBACs"]
-WorkspaceCR["`Workspace CR
-    [cluster-wide]
-    _workspace: abc_`"]
-Controllers --> WorkspaceCR
-subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
-    TemplateCR["`Template CR
-        template: _foo_`"]
-    TemplateEnv@{shape: docs, label: "foo Environments"}
-
-    TemplateCR --> TemplateEnv
-end
 
 Argo .-> Releases
 Releases -. hosts .-> Controllers
@@ -80,9 +80,9 @@ Frontend -. login .-> TenantNS
 Frontend -. connects to .-> GWAPI
 GraphQL .-> APIServer
 GWAPI .-> InstanceEnv
-WorkspaceCR --> TemplateCR
+WorkspaceCR --> WorkspaceNS
 InstanceCR -. references to .-> TemplateCR
-TenantCR --> InstanceCR
+TenantCR --> TenantNS
 APIServer --> RBAC
 
 classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
@@ -309,6 +309,54 @@ TenantController -- reconciles --> TenantCR
 BastionController -. watches .-> TenantCR
 
 subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ (has label for _operator-selector=production_)`"]
+    InstanceCR["`Instance CR
+        _instance: bar_`"]
+    ShVol["Shared Volume"]
+    ContainerEnv["Container-based Environment"]
+    VMEnv["VM-based Environment"]
+end
+
+subgraph TemplateFoo["`Template: _foo_`"]
+    EnvContainer["`Environment 1
+        _(container-based)_`"]
+    EnvVM["`Environment 2
+        _(vm-based)_`"]
+end
+
+TenantCR -- manages --> TenantNS
+SharedVolumeController -- reconciles --> ShVol
+InstanceCR -. references .-> TemplateFoo
+EnvContainer -. generates .-> ContainerEnv
+EnvVM -. generates .-> VMEnv
+ContainerEnv -. attaches .-> ShVol
+VMEnv -. attaches .-> ShVol
+
+classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
+classDef ControllerBS stroke:#E45756,rx:12,ry:12,fill:none
+classDef WorkspaceBS stroke:#54724B,rx:12,ry:12,fill:none
+classDef CustomResourceBS stroke:#FF0000,rx:12,ry:12,fill:none
+classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
+classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
+
+classDef TenantBorderStyle fill:none,stroke:#5472FB,rx:12,ry:12
+class TenantNS TenantBorderStyle
+classDef ControllerBorderStyle stroke:#E45756
+class SharedVolumeController,TenantController,BastionController ControllerBorderStyle
+classDef CRBorderStyle stroke:#FF0000
+class TenantCR,InstanceCR CRBorderStyle
+classDef WorkspaceBorderStyle fill:none,stroke:#54724B,stroke-width:2px,rx:12,ry:12
+class TemplateFoo WorkspaceBorderStyle
+class ContainerEnv,VMEnv EnvironmentBS
+```
+
+```mermaid
+flowchart LR
+
+InstanceController["Instance Controller"]
+InstanceAutomationController["Instance Automation Controller"]
+InstanceSnapshotController["Instance Snapshot Controller"]
+
+subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_`"]
     subgraph Env1ContainerInst["`Instanced Environment 1 _(container-based)_`"]
         ExpositionEnv1["Ingress / HTTPRoute"]
         ServiceEnv1["Service"]
@@ -330,33 +378,15 @@ subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ (has label for _operator-
     VirtLauncherPod["KubeVirt VirtLauncher Pod"]
     InstanceCR["`Instance CR
         _instance: bar_`"]
-    ShVol["Shared Volume"]
 
     VirtualMachine -- becomes --> VirtLauncherPod
     InstanceCR -- becomes --> Env1ContainerInst
     InstanceCR -- becomes --> Env2VMInst
-
-    Env1ContainerInst -. attaches .-> ShVol
-    Env2VMInst -. attaches .-> ShVol
 end
 
-subgraph TemplateFoo["`Template: _foo_`"]
-    EnvContainer["`Environment 1
-        _(container-based)_`"]
-    EnvVM["`Environment 2
-        _(vm-based)_`"]
-end 
-
-EnvContainer -. configures .-> DeploymentEnv1
-EnvVM -. configures .-> VirtualMachine
-InstanceCR -. references .-> TemplateFoo
-
-SharedVolumeController -- reconciles --> ShVol
-
-TenantCR -- manages --> TenantNS
 InstanceController -- reconciles --> InstanceCR
 InstanceAutomationController -- reconciles --> InstanceCR
-InstanceSnapshotController -- reconciles --> InstanceCR 
+InstanceSnapshotController -- reconciles --> InstanceCR
 
 GWAPI["Load Balancer + Gateway/Ingress"]
 ExpositionEnv2 -. routes .-> GWAPI
@@ -372,9 +402,8 @@ classDef EnvironmentBS stroke:#BB55BB,rx:12,ry:12,fill:none
 classDef TenantBorderStyle fill:none,stroke:#5472FB,rx:12,ry:12
 class TenantNS,Env1ContainerInst,Env2VMInst TenantBorderStyle
 classDef ControllerBorderStyle stroke:#E45756
-class InstanceController,InstanceAutomationController,InstanceSnapshotController,SharedVolumeController,TenantController,BastionController ControllerBorderStyle
+class InstanceController,InstanceAutomationController,InstanceSnapshotController ControllerBorderStyle
 classDef CRBorderStyle stroke:#FF0000
-class TenantCR,InstanceCR CRBorderStyle
-classDef WorkspaceBorderStyle fill:none,stroke:#54724B,stroke-width:2px,rx:12,ry:12
-class TemplateFoo WorkspaceBorderStyle
+class InstanceCR CRBorderStyle
+
 ```
