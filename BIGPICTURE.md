@@ -42,7 +42,7 @@ Releases["Deployment Releases¹"]
 subgraph ReleasesNS["Deployment Releases Namespace"]
     Controllers@{shape: docs, label: "Controller Set¹"}
     Frontend["Frontend-app⁴"]
-    GraphQL["GraphQL Relay"]
+    GraphQL["GraphQL Relay⁵"]
 
     Frontend .-> GraphQL
 end
@@ -73,7 +73,6 @@ subgraph WorkspaceNS["`Workspace Namespace: _workspace-abc_ ³`"]
 
     TemplateCR --> TemplateEnv
 end
-QLK["QLKube⁵"]
 
 Argo .-> Releases
 Releases -. hosts .-> Controllers
@@ -171,7 +170,7 @@ subgraph Routes["HTTPRoutes"]
         _/webssh_`"]
     FrontendRoute["`Frontend-app HTTPRoute
         _/_`"]
-    QLKubeRoute["`QLkube HTTPRoute
+    QLKubeRoute["`QLKube HTTPRoute
         _/graph_`"]
     end
     CallbackRoute["`callback HTTPRoute 
@@ -183,7 +182,7 @@ end
 subgraph Backends["Backend Services"]
     WebSSHService["WebSSH Service"]
     FrontendService["Frontend-app Service"]
-    QLKubeService["QLkube Service"]
+    QLKubeService["QLKube Service"]
     OtherService["another Service"]
     DummyService["dummy Service"]
     VM@{shape: docs, label: "VMs"}
@@ -221,9 +220,11 @@ GatewayClass -. used by .-> Gateway
 
 classDef GenericDashedBS fill:none,rx:12,ry:12,stroke-dasharray:8
 classDef FrontendBS stroke:#FDDCD7,rx:12,ry:12,fill:none
+classDef TenantBS stroke:#2222FF,rx:12,ry:12,fill:none
 
 class GatewayClass,Proxy,Routes,PublicRoutes,SecPols,Backends GenericDashedBS
 class Traffic FrontendBS
+class OtherRoute,OtherService,VM TenantBS
 ```
 
 ## Frontend Logic
