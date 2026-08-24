@@ -48,7 +48,8 @@ spec:
             {{- if .Values.global.gateway.gatewayApiMode }}
             mountPath: "{{ .Values.configuration.mountPath }}{{ .Values.httproute.path }}/{{ .Values.configuration.fileName }}"
             {{- else }}
-            mountPath: "{{ .Values.configuration.mountPath }}{{ .Values.ingress.path }}/{{ .Values.configuration.fileName }}"
+            {{- $ingress := default (dict) .Values.ingress }}
+            mountPath: "{{ .Values.configuration.mountPath }}{{ get $ingress "path" | default "/" }}/{{ .Values.configuration.fileName }}"
             {{- end }}
             subPath: "{{ .Values.configuration.fileName }}"
       volumes:
