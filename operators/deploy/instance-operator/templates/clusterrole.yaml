@@ -37,10 +37,6 @@ rules:
   resources: ["jobs", "jobs/status"]
   verbs: ["get", "list", "watch", "create", "update", "patch"]
 
-- apiGroups: ["networking.k8s.io"]
-  resources: ["ingresses"]
-  verbs: ["get","list","watch","create","patch","update","delete"]
-
 - apiGroups: ["gateway.networking.k8s.io"]
   resources: ["httproutes"]
   verbs: ["get","list","watch","create","patch","update","delete"]

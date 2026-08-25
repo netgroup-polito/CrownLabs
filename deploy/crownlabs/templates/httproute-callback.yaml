@@ -1,4 +1,4 @@
-{{- if and .Values.global.gateway.gatewayApiMode (.Values.global.gateway.securityPolicy.enabled | default true) }}
+{{- if .Values.global.gateway.securityPolicy.enabled | default true }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:

@@ -35,14 +35,14 @@ spec:
           - name: CROWNLABS_QLKUBE_PORT
             value: "8080"
           - name: BASE_URL
-            value: {{ .Values.ingress.path | quote }}
+            value: {{ .Values.httproute.path | quote }}
           ports:
             - name: http
               containerPort: 8080
               protocol: TCP
           readinessProbe:
             httpGet:
-              path: {{ printf "%s/healthz" (trimSuffix "/" .Values.ingress.path) }}
+              path: {{ printf "%s/healthz" (trimSuffix "/" .Values.httproute.path) }}
               port: http
             failureThreshold: 5
             initialDelaySeconds: 10

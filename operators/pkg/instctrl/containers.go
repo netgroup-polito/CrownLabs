@@ -34,7 +34,7 @@ func (r *InstanceReconciler) EnforceContainerEnvironment(ctx context.Context) er
 	log := ctrl.LoggerFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
-	// Enforce the service and the ingress to expose the environment.
+	// Enforce the service and the HTTPRoute to expose the environment.
 	if err := r.EnforceInstanceExposition(ctx); err != nil {
 		log.Error(err, "failed to enforce the instance exposition objects")
 		return err

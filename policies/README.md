@@ -4,7 +4,7 @@ This folder contains a set of policies restricting the operations that can be pe
 
 - Pod Security Standards
 - Avoid creation of services like load balancers (i.e., avoid creation of routable IPs) and node ports.
-- Force specific names for ingress hostname.
+- Force specific names for exposed hostnames.
 
 The above mentioned policies were mostly taken from [Kyverno Best Practices](https://kyverno.io/policies/?policytypes=Best%2520Practices).
 
@@ -27,7 +27,7 @@ Pods are configured to follow security best practices:
 - **Disallow Service Type LoadBalancer**: This policy restricts use of the Service type LoadBalancer.
 - **Disallow NodePort**: This policy validates that any new Services do not use the `NodePort` type.
 
-### Force specific name for ingress hostname
+### Force specific names for exposed hostnames
 
-- **Disallow empty Ingress host**: This policy ensures that there is a hostname for each rule defined.
-- **Restrict Ingress host**: This policy ensures thatthe hostname has the required format.
+- **Disallow empty host**: This policy ensures that there is a hostname for each rule defined.
+- **Restrict host**: This policy ensures that the hostname has the required format.

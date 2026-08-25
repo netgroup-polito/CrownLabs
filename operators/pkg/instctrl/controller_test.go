@@ -23,7 +23,6 @@ import (
 	. "github.com/onsi/gomega/gstruct"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -54,7 +53,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 		environmentList  []clv1alpha2.Environment
 		template         clv1alpha2.Template
 		myDriveMirrorPVC corev1.PersistentVolumeClaim
-		ingress          netv1.Ingress
+		httpRoute        gatewayv1.HTTPRoute
 		service          corev1.Service
 		createTenant     bool
 		createTemplate   bool
@@ -226,7 +225,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			By("Asserting the exposition resources aren't present", func() {
 				for _, env := range template.Spec.EnvironmentList {
 					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(FailBecauseNotFound())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(FailBecauseNotFound())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &httpRoute)).To(FailBecauseNotFound())
 				}
 			})
 
@@ -239,7 +238,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			By("Asserting the right exposition resources exist", func() {
 				for _, env := range template.Spec.EnvironmentList {
 					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(Succeed())
-					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(Succeed())
+					Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &httpRoute)).To(Succeed())
 				}
 			})
 
@@ -328,7 +327,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the exposition resources aren't present", func() {
 						for _, env := range template.Spec.EnvironmentList {
 							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(FailBecauseNotFound())
-							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(FailBecauseNotFound())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &httpRoute)).To(FailBecauseNotFound())
 						}
 					})
 
@@ -341,7 +340,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 					By("Asserting the right exposition resources exist", func() {
 						for _, env := range template.Spec.EnvironmentList {
 							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &service)).To(Succeed())
-							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ingress)).To(Succeed())
+							Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &httpRoute)).To(Succeed())
 						}
 					})
 
@@ -416,7 +415,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				By("Asserting the exposition resources aren't present", func() {
 					for i := range template.Spec.EnvironmentList {
 						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &service)).To(FailBecauseNotFound())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &ingress)).To(FailBecauseNotFound())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &httpRoute)).To(FailBecauseNotFound())
 					}
 				})
 
@@ -429,7 +428,7 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				By("Asserting the right exposition resources exist", func() {
 					for i := range template.Spec.EnvironmentList {
 						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &service)).To(Succeed())
-						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &ingress)).To(Succeed())
+						Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, template.Spec.EnvironmentList[i].Name), &httpRoute)).To(Succeed())
 					}
 				})
 
@@ -862,17 +861,12 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 
 	Context("Gateway API exposition handling", func() {
 		BeforeEach(func() {
-			instanceReconciler.ExpositionConfig.GatewayAPIMode = true
 			testName = "test-gwapi-exposition"
 			runInstance = true
 			for i := range environmentList {
 				environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
 				environmentList[i].GuiEnabled = true
 			}
-		})
-
-		AfterEach(func() {
-			instanceReconciler.ExpositionConfig.GatewayAPIMode = false
 		})
 
 		It("Should correctly create HTTPRoute and transition ExpositionAccepted when accepted by Gateway", func() {
@@ -882,11 +876,9 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			// Verify Service is created, HTTPRoute is created, and Ingress is NOT created
 			var svc corev1.Service
 			var route gatewayv1.HTTPRoute
-			var ing netv1.Ingress
 			for _, env := range template.Spec.EnvironmentList {
 				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &svc)).To(Succeed())
 				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &route)).To(Succeed())
-				Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(&instance, env.Name), &ing)).To(FailBecauseNotFound())
 			}
 
 			// Verify ExpositionAccepted is initially false

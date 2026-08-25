@@ -5,7 +5,6 @@
 global:
   version: "" # default set while packaging
   gateway:
-    gatewayApiMode: true
     name: "crownlabs-main"
     hostname: crownlabs.example.com
     securityPolicy:
@@ -37,9 +36,6 @@ frontend-app:
   replicaCount: 1
   image:
     repository: crownlabs/frontend-app
-  ingress:
-    hostname: crownlabs.example.com
-    path: /
   configuration:
     backend:
       graphql: /graph
@@ -64,8 +60,6 @@ qlkube:
   image:
     repository: crownlabs/qlkube
   rbacResourcesName: crownlabs-qlkube
-  ingress:
-    hostname: crownlabs.example.com
   harborToken: {}
   configuration:
     exposedAPIs:
@@ -255,6 +249,8 @@ instance-operator:
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
 
+    # WARNING: after the Gateway API migration, the following monitoring configuration will be ignored.
+    # The monitoring configuration has to be redefined in a future version, using the new Envoy Gateway API monitoring resources, if they are available.
     monitoring:
       prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
       queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})
@@ -264,6 +260,7 @@ instance-operator:
       queryBastionSSHData: bastion_ssh_connections{destination_ip="%s"}
       queryWebSSHData: bastion_web_ssh_connections{destination_ip="%s"}
       queryStep: 30s
+
     mailTemplateDir: /etc/crownmail/templates
     mailConfigDir: /etc/crownmail/configs
     automation:
@@ -307,15 +304,7 @@ bastion:
 
   webssh:
     expositionEnabled: true
-    ingress:
-      annotations:
-        nginx.ingress.kubernetes.io/proxy-buffer-size: "8k"
-      hostname: crownlabs.example.com
-      path: /webssh
-      pathType: Prefix
 
-# Gateway API core resources are rendered when gatewayAPI.enabled=true.
-# Application migration (Ingress vs HTTPRoute) remains controlled per app.
 gatewayAPI:
   # name: crownlabs-main
   class: envoy-public

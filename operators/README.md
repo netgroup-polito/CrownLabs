@@ -58,33 +58,31 @@ Based on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git), 
 The next picture shows the general architecture of the Instance Operator.
 On the left you can see the controller (in blue) and the two CRDs used to describe the desired status (in green) and better detailed below.
 On the right you can see the set of resources that are created for each environment.
-It is divided into two parts, one representing the components that are created only in the persistent case (that will be analyzed in the _Persistent Feature_ section), while the other one is the set of resources created in both scenarios (i.e. the VirtualMachine Instance itself and the components useful to connect to it, e.g. secret, service, and HTTPRoute or Ingress).
+It is divided into two parts, one representing the components that are created only in the persistent case (that will be analyzed in the _Persistent Feature_ section), while the other one is the set of resources created in both scenarios (i.e. the VirtualMachine Instance itself and the components useful to connect to it, e.g. secret, service, and HTTPRoute).
 
 ![Instance Operator Architecture](../documentation/instance-operator.svg)
 
 Upon the creation of an *Instance*, the operator triggers the creation of the following components:
-* Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (Service, and HTTPRoute when `gatewayApiMode` is enabled or Ingress otherwise)
+* Kubevirt VirtualMachine Instance and the logic to access the noVNC instance inside the VM (i.e. Service and HTTPRoute)
 * A [DataVolume](https://github.com/kubevirt/containerized-data-importer/blob/main/doc/datavolumes.md) (only in case of persistent VMs). It wraps a Persistent Volume Claim (PVC), and takes care of initializing it with the content of the selected VM image through an importer pod.
 
 All those resources are bound to the Instance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
 
 #### Gateway API & Exposition Flags
 
-The Instance Operator exposes VM and container instances through Gateway API `HTTPRoute` resources (or legacy `Ingress` objects):
+The Instance Operator exposes VM and container instances through Gateway API `HTTPRoute` resources:
 
 ##### Runtime Configuration Flags
 The Instance Operator behavior is configured through the following runtime command-line flags:
-* `--gateway-api-mode`: Enables Gateway API mode (`true`), triggering the reconciliation of `HTTPRoute` resources instead of legacy `Ingress` objects.
 * `--gateway-api-refs-values`: Specifies the target Gateway reference in `<gateway-namespace>/<gateway-name>` format (e.g., `crownlabs-production/crownlabs-main`). The operator parses this string to extract the target namespace and name to populate the `parentRef` field of the `HTTPRoute`. Note that this is a **strictly syntactic parser**: it only validates the format (the presence of the slash separator) but performs no semantic checks. It does not verify if the specified namespace or Gateway actually exist in the cluster. This avoids hardcoding internal names and guarantees maximum flexibility and decoupling from the Gateway's lifecycle.
-* `--enable-auth`: Enables (`true`) or disables (`false`) the enforcement of authentication on the exposed resources via Gateway/Ingress.
 
 ##### Exposition Enablement Mechanics
-To manage the exposure state of services dynamically without destroying or recreating the underlying workloads, CrownLabs uses toggle mechanisms (replacing legacy `ingress enable` patterns):
-* **For WebSSH Bastion**: Controlled via the Helm chart parameter `webssh.expositionEnabled` (which acts as the `exposition enable` flag). Enabling or disabling it toggles the generation of the `HTTPRoute`/`Ingress` resource, allowing or blocking external SSH access while the Bastion daemon pods remain running.
-* **For Instances (VMs/Containers)**: Controlled via the `running` field in the `InstanceSpec`. For non-persistent environments, when `running` is set to `false`, the operator tears down the exposition objects (`HTTPRoute`/`Ingress` and `Service`) to make the instance unreachable, while preserving the environment specification so it can be re-exposed later without data loss.
+To manage the exposure state of services dynamically without destroying or recreating the underlying workloads, CrownLabs uses toggle mechanisms:
+* **For WebSSH Bastion**: Controlled via the Helm chart parameter `webssh.expositionEnabled` (which acts as the `exposition enable` flag). Enabling or disabling it toggles the generation of the `HTTPRoute` resource, allowing or blocking external SSH access while the Bastion daemon pods remain running.
+* **For Instances (VMs/Containers)**: Controlled via the `running` field in the `InstanceSpec`. For non-persistent environments, when `running` is set to `false`, the operator tears down the exposition objects (`HTTPRoute` and `Service`) to make the instance unreachable, while preserving the environment specification so it can be re-exposed later without data loss.
 
 ##### Modular Refactoring: GUI Exposition Functions
-To abstract the differences between Ingress and HTTPRoute, all internal GUI exposure path helper functions have been renamed from `Ingress` to `Exposition`:
+To abstract the HTTP route management, all internal GUI exposure path helper functions use the `Exposition` naming:
 * `ExpositionGUIPath`: returns the path of the route targeting the environment GUI vnc or Standalone.
 * `ExpositionGUICleanPath`: returns the clean path without regex.
 * `ExpositionGuiStatusURL`: composes the instance GUI status URL.
@@ -97,7 +95,7 @@ This establishes a controller reference, ensuring that any modifications to the 
 
 ##### Exposition Accepted Status (`expositionAccepted`)
 The Instance Custom Resource Definition (CRD) includes the boolean status field `expositionAccepted` under each environment in `.status.environments[].expositionAccepted`.
-* **Accepted**: For HTTPRoute, the operator dynamically reads the Gateway's parent binding status to check if it has been accepted by the Gateway controller (using the `RouteConditionAccepted` condition). For legacy Ingress, the status is set to `true` immediately upon creation.
+* **Accepted**: For HTTPRoute, the operator dynamically reads the Gateway's parent binding status to check if it has been accepted by the Gateway controller (using the `RouteConditionAccepted` condition).
 * **Troubleshooting**: A status of `false` does not necessarily mean a platform failure. For example, in environments connecting via WebSSH Bastion where a public URL is absent, `false` is acceptable. However, if a public URL is present and `expositionAccepted` remains `false`, it indicates a listener mismatch, missing labels, or configuration issue that requires troubleshooting.
 
 ##### Dynamic Environment IP Resolution

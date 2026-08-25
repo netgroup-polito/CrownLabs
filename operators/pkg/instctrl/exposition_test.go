@@ -22,7 +22,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
@@ -65,7 +64,6 @@ var _ = Describe("Exposition helpers", func() {
 		index       int
 
 		serviceName   types.NamespacedName
-		ingressName   types.NamespacedName
 		httpRouteName types.NamespacedName
 
 		clusterIP = "1.1.1.1"
@@ -81,7 +79,6 @@ var _ = Describe("Exposition helpers", func() {
 		index = 0
 
 		serviceName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
-		ingressName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
 		httpRouteName = forge.NamespacedNameWithSuffix(&instance, environment.Name)
 
 		reconciler = instanceReconciler
@@ -177,182 +174,74 @@ var _ = Describe("Exposition helpers", func() {
 		})
 
 		Describe("HTTPRoute creation", func() {
-			Context("Gateway API mode enabled", func() {
-				BeforeEach(func() { reconciler.ExpositionConfig.GatewayAPIMode = true })
+			It("should return without creating resources when the environment index is out of range", func() {
+				index = 10
+				ctx = clctx.EnvironmentIndexInto(ctx, index)
 
-				It("should return without creating resources when the environment index is out of range", func() {
-					index = 10
-					ctx = clctx.EnvironmentIndexInto(ctx, index)
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
 
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(HaveOccurred())
-					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
-				})
-
-				It("should not create the HTTPRoute when no Service is available", func() {
-					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects().Build(), serviceClusterIP: ""}
-
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
-				})
-
-				It("should create the HTTPRoute for VMs with a GUI", func() {
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
-					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
-					Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
-				})
-
-				DescribeTable("should skip creating the HTTPRoute for GUI-less VMs and mark ExpositionAccepted false",
-					func(envType clv1alpha2.EnvironmentType) {
-						environment.EnvironmentType = envType
-						environment.GuiEnabled = false
-						ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-
-						err := reconciler.EnforceInstanceExposition(ctx)
-						Expect(err).ToNot(HaveOccurred())
-
-						Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
-						Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
-						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
-					},
-					Entry("ClassVM", clv1alpha2.ClassVM),
-					Entry("ClassCloudVM", clv1alpha2.ClassCloudVM),
-					Entry("ClassLocalVM", clv1alpha2.ClassLocalVM),
-				)
-
-				It("should leave the HTTPRoute present and mark ExpositionAccepted false if it is not yet accepted", func() {
-					httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}
-
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
-					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
-				})
-
-				It("should set ExpositionAccepted to true if the HTTPRoute is accepted", func() {
-					httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-					httpRoute.Status.Parents = []gatewayv1.RouteParentStatus{{ControllerName: "gateway.networking.k8s.io/gateway-controller", ParentRef: gatewayv1.ParentReference{Name: "fake-gw", Namespace: ptr.To(gatewayv1.Namespace("fake-gw-ns"))}, Conditions: []metav1.Condition{{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}}}
-					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}
-
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
-					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
-				})
-
-				It("should leave any Ingress if present if the HTTPRoute is not yet accepted", func() {
-					ingress := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-					httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&ingress, &httpRoute).Build(), serviceClusterIP: clusterIP}
-
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
-					Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(Succeed())
-					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
-				})
-
-				It("should remove an Ingress if present if the HTTPRoute is accepted", func() {
-					ingress := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-					httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-					httpRoute.Status.Parents = []gatewayv1.RouteParentStatus{{ControllerName: "gateway.networking.k8s.io/gateway-controller", ParentRef: gatewayv1.ParentReference{Name: "fake-gw", Namespace: ptr.To(gatewayv1.Namespace("fake-gw-ns"))}, Conditions: []metav1.Condition{{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}}}
-					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&ingress, &httpRoute).Build(), serviceClusterIP: clusterIP}
-
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
-					Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
-					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
-				})
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(HaveOccurred())
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
 			})
-		})
 
-		Describe("Ingress creation", func() {
-			Context("Gateway API mode disabled", func() {
-				BeforeEach(func() { reconciler.ExpositionConfig.GatewayAPIMode = false })
+			It("should not create the HTTPRoute when no Service is available", func() {
+				reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects().Build(), serviceClusterIP: ""}
 
-				It("should return without creating resources when the environment index is out of range", func() {
-					index = 10
-					ctx = clctx.EnvironmentIndexInto(ctx, index)
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
+			})
+
+			It("should create the HTTPRoute for VMs with a GUI", func() {
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
+				Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
+			})
+
+			DescribeTable("should skip creating the HTTPRoute for GUI-less VMs and mark ExpositionAccepted false",
+				func(envType clv1alpha2.EnvironmentType) {
+					environment.EnvironmentType = envType
+					environment.GuiEnabled = false
+					ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 
 					err := reconciler.EnforceInstanceExposition(ctx)
 					Expect(err).ToNot(HaveOccurred())
 
-					Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(HaveOccurred())
-					Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
-				})
-
-				It("should not create the Ingress when no Service is available", func() {
-					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects().Build(), serviceClusterIP: ""}
-
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
-				})
-
-				It("should create the Ingress for VMs with a GUI", func() {
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
-					Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(Succeed())
 					Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
-					Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
-					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
-				})
-
-				DescribeTable("should skip creating the Ingress for GUI-less VMs and mark ExpositionAccepted false",
-					func(envType clv1alpha2.EnvironmentType) {
-						environment.EnvironmentType = envType
-						environment.GuiEnabled = false
-						ctx, _ = clctx.EnvironmentInto(ctx, &environment)
-
-						err := reconciler.EnforceInstanceExposition(ctx)
-						Expect(err).ToNot(HaveOccurred())
-
-						Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
-						Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
-						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
-					},
-					Entry("ClassVM", clv1alpha2.ClassVM),
-					Entry("ClassCloudVM", clv1alpha2.ClassCloudVM),
-					Entry("ClassLocalVM", clv1alpha2.ClassLocalVM),
-				)
-
-				It("should delete the HTTPRoute if present and create the Ingress", func() {
-					httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}
-
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
-
 					Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
-					Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(Succeed())
-				})
+					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
+				},
+				Entry("ClassVM", clv1alpha2.ClassVM),
+				Entry("ClassCloudVM", clv1alpha2.ClassCloudVM),
+				Entry("ClassLocalVM", clv1alpha2.ClassLocalVM),
+			)
 
-				It("should add authentication annotations when enabled", func() {
-					reconciler.ExpositionConfig.EnableAuthentication = true
+			It("should leave the HTTPRoute present and mark ExpositionAccepted false if it is not yet accepted", func() {
+				httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
+				reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}
 
-					err := reconciler.EnforceInstanceExposition(ctx)
-					Expect(err).ToNot(HaveOccurred())
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
 
-					ing := netv1.Ingress{}
-					Expect(reconciler.Client.Get(ctx, ingressName, &ing)).To(Succeed())
-					Expect(ing.Annotations).To(HaveKey("nginx.ingress.kubernetes.io/auth-url"))
-					Expect(ing.Annotations).To(HaveKey("nginx.ingress.kubernetes.io/auth-signin"))
-				})
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
+				Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
+			})
+
+			It("should set ExpositionAccepted to true if the HTTPRoute is accepted", func() {
+				httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
+				httpRoute.Status.Parents = []gatewayv1.RouteParentStatus{{ControllerName: "gateway.networking.k8s.io/gateway-controller", ParentRef: gatewayv1.ParentReference{Name: "fake-gw", Namespace: ptr.To(gatewayv1.Namespace("fake-gw-ns"))}, Conditions: []metav1.Condition{{Type: string(gatewayv1.RouteConditionAccepted), Status: metav1.ConditionTrue}}}}
+				reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}
+
+				err := reconciler.EnforceInstanceExposition(ctx)
+				Expect(err).ToNot(HaveOccurred())
+
+				Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
+				Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
 			})
 		})
 	})
@@ -372,17 +261,15 @@ var _ = Describe("Exposition helpers", func() {
 			Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
 		})
 
-		It("should remove the Service, Ingress and HTTPRoute if present and clear status", func() {
+		It("should remove the Service and HTTPRoute if present and clear status", func() {
 			svc := corev1.Service{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-			ingress := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
 			httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
-			reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&svc, &ingress, &httpRoute).Build(), serviceClusterIP: clusterIP}
+			reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&svc, &httpRoute).Build(), serviceClusterIP: clusterIP}
 
 			err := reconciler.EnforceInstanceExposition(ctx)
 			Expect(err).ToNot(HaveOccurred())
 
 			Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(HaveOccurred())
-			Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
 			Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
 			Expect(instance.Status.Environments[index].IP).To(Equal(""))
 			Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
@@ -400,7 +287,6 @@ var _ = Describe("Exposition helpers", func() {
 		})
 
 		It("should not error when the HTTPRoute exists but has no status", func() {
-			reconciler.ExpositionConfig.GatewayAPIMode = true
 			instance.Spec.Running = true
 			httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
 			reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}
@@ -412,7 +298,6 @@ var _ = Describe("Exposition helpers", func() {
 		})
 
 		It("should not error when getHTTPRouteAcceptedStatus receives an HTTPRoute with empty status", func() {
-			reconciler.ExpositionConfig.GatewayAPIMode = true
 			instance.Spec.Running = true
 			httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name)}
 			reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&httpRoute).Build(), serviceClusterIP: clusterIP}

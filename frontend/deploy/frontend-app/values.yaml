@@ -2,6 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+global:
+  gateway: {}
+
 replicaCount: 1
 
 image:
@@ -59,16 +62,6 @@ securityContext:
 service:
   type: ClusterIP
   port: 80
-
-global:
-  gateway: {}
-
-ingress:
-  annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-production
-  hostname: crownlabs.example.com
-  path: /
-  secret: frontend-app-certificate
 
 httproute:
   gateway: {}

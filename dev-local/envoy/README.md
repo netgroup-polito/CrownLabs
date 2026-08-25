@@ -1,4 +1,4 @@
-# Envoy Gateway — single ingress point for dev-local
+# Envoy Gateway — single Gateway API entrypoint for dev-local
 
 This guide sets up a single [Envoy Gateway](https://gateway.envoyproxy.io/) (Kubernetes Gateway API) in front of every locally-exposed dev-local service.
 Every service becomes reachable under one local domain, `*.crownlabs.local`.
@@ -26,7 +26,7 @@ To run the Envoy Gateway, you need the following components:
 
 ## 1. Disable k3s's bundled Traefik
 
-Traefik is k3s's default ingress controller.
+Traefik is k3s's default service mesh/proxy stack.
 It runs its own `LoadBalancer` `Service`, bound to the node's ports 80 and 443 through k3s's `ServiceLB` (the `svclb-traefik` pod).
 The Envoy Gateway's own `Service` needs the same ports, so Traefik has to be removed.
 This project uses Envoy Gateway instead of Traefik's built-in Gateway API support, because Envoy Gateway supports more features.
