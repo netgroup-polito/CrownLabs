@@ -1,33 +1,30 @@
 # Local deployment support files
 
-This folder holds the support files and manifests you need to run pieces of the CrownLabs infrastructure locally.
-The goal is to keep everything in one place, instead of scattered across ad-hoc locations or lost in someone's shell history.
+When developing backend features, it is usually very useful to have a local instance of the CrownLabs infrastructure. This allows the developer to give himself rights he does not have on the real system, and to try modifications in a risk-free environment.
 
-## Structure
-
-```
-dev-local/<system>/manifests/<yaml-files>
-dev-local/<system>/README.md
-```
-
-Each `<system>` is a self-contained piece of local infrastructure, for example `keycloak`.
-Its `README.md` file lists the prerequisites and explains how, where, and what to deploy.
-Its `manifests/` folder holds the plain Kubernetes YAML files you apply with `kubectl apply`.
-
-You can apply the manifests in this folder as-is, with `kubectl apply -f`.
-If a resource is already templated in the main `deploy/` Helm chart, render it from that chart instead (`helm template -s ...`).
-Do not keep a hand-maintained, de-templated copy here: it can drift from the original.
-See step 1 in `operators/README.md` for an example.
+CrownLabs is a complex system, and installing all the required tools is not a straight-forward task. Previously, the installing instructions were scattered across ad-hoc locations or lost in someone's shell history. The files in this folder aim instead to collect all the information in a single place.
 
 ## Systems
 
-Set these up in order. Each one is a prerequisite for the next.
+The CrownLabs infrastructure is composed of the following systems, each one described in a subfolder of this directory.
 
-- [`base-k3s/`](base-k3s/README.md): install k3s and get `kubectl` access. This also explains how to merge k3s's kubeconfig into one that already has other clusters.
-- [`envoy/`](envoy/README.md): the single Envoy Gateway (Kubernetes Gateway API) that every locally-exposed service goes through, at `https://<service>.crownlabs.local`. Do this before `keycloak/`.
-- [`keycloak/`](keycloak/README.md): the local Keycloak setup (realm import) and the Kubernetes API server OIDC integration. Keycloak is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
-- [`operators/`](operators/README.md): the base RBAC setup and how to run the CrownLabs operator against the local realm.
+Please, set them up in the following order, since each one is a prerequisite for the next.
+
+- [`base-k3s/`](base-k3s/README.md): CrownLabs needs Kubernetes to run.
+  K3s is a lightweight Kubernetes distribution, that can be easily run on your laptop. The guide includes instructions to both install it from scratch, and to merge multiple kubeconfig files, in case you already have another cluster.
+- [`envoy/`](envoy/README.md): this is the new ingress controller for Kubernetes, allowing to correctly expose a service on a URL like `https://<service>.crownlabs.local`.
+- [`keycloak/`](keycloak/README.md): the identity and access management solution, providing single-sign-on and authentication for the various services. It is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
+- [`operators/`](operators/README.md): the components that constitute the server-side of the CrownLabs business logic.
 - [`mailpit/`](mailpit/README.md): a fake SMTP server with a web UI, for local email testing. Like Keycloak, it is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
+
+For each system, the dedicated subfolder contains:
+
+- a `README.md` file, listing the prerequisites, and explaining how to install the system (including what, where and when to deploy).
+- a `manifests` folder, containing all the Kubernetes YAML files that should be applied using `kubectl apply`.
+
+    You can apply the manifests in this folder as-is, with `kubectl apply -f`.
+    If a resource is already templated in the main `deploy/` Helm chart, render it from that chart instead (`helm template -s ...`).
+    Do not keep a hand-maintained, de-templated copy here: it can drift from the original.
 
 ## Running the full stack
 

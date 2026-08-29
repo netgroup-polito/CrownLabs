@@ -20,6 +20,10 @@ Render them straight from the real chart (`deploy/crownlabs`), instead of keepin
 ```bash
 cd dev-local/keycloak   # The chart's clusterroles/clusterrolebindings templates
                         # are rendered relative to this folder's location.
+
+# If helm is not installed, install it via
+sudo snap install helm --classic
+
 helm dependency build ../../deploy/crownlabs   # One-time step; only needed if deploy/crownlabs/charts is empty.
 helm template -s templates/clusterroles.yaml -s templates/clusterrolebindings.yaml ../../deploy/crownlabs | kubectl apply -f -
 ```
@@ -35,7 +39,7 @@ This means applying them is always safe, and safe to re-run any time the chart's
 # See ../keycloak/README.md step 2.
 export SSL_CERT_FILE=~/certs/crownlabs-ca.crt
 
-cd operators
+cd operators # in the main folder, not dev-local/operators
 make run-operator-local KEYCLOAK_CLIENT_SECRET=operator-local-dev-secret
 ```
 
