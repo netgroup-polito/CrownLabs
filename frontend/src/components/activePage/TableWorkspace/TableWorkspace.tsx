@@ -9,6 +9,7 @@ import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableTemplate from '../TableTemplate/TableTemplate';
 import TableWorkspaceRow from './TableWorkspaceRow';
 import UserList from '../../accountPage/UserList';
+import './TableWorkspace.less';
 import TableInstance from '../TableInstance/TableInstance';
 import { TenantContext } from '../../../contexts/TenantContext';
 
