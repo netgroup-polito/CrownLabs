@@ -33,6 +33,9 @@ const (
 
 	// ManageSharedVolumesRoleName -> the name of the ClusterRole for managing shared volumes in workspaces.
 	ManageSharedVolumesRoleName = "crownlabs-manage-sharedvolumes"
+
+	// ManageInstanceSnapshotsRoleName -> the name of the ClusterRole for managing instance snapshots in workspaces.
+	ManageInstanceSnapshotsRoleName = "crownlabs-manage-instancesnapshots"
 )
 
 // ConfigureWorkspaceUserViewTemplatesBinding configures a RoleBinding for a workspace user to view templates.
@@ -133,6 +136,31 @@ func ConfigurePersonalWorkspaceManageTemplatesBinding(tn *clv1alpha2.Tenant, rb 
 		{
 			Kind:     rbacv1.UserKind,
 			Name:     tn.Name,
+			APIGroup: rbacv1.GroupName,
+		},
+	}
+}
+
+// ConfigureWorkspaceManagerManageInstanceSnapshotsBinding configures a RoleBinding for a workspace manager to manage instance snapshots.
+func ConfigureWorkspaceManagerManageInstanceSnapshotsBinding(ws *clv1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
+	// Set labels
+	if rb.Labels == nil {
+		rb.Labels = make(map[string]string)
+	}
+	maps.Copy(rb.Labels, labels)
+
+	// Configure RoleRef
+	rb.RoleRef = rbacv1.RoleRef{
+		Kind:     "ClusterRole",
+		Name:     ManageInstanceSnapshotsRoleName,
+		APIGroup: rbacv1.GroupName,
+	}
+
+	// Configure Subjects
+	rb.Subjects = []rbacv1.Subject{
+		{
+			Kind:     rbacv1.GroupKind,
+			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, clv1alpha2.Manager)),
 			APIGroup: rbacv1.GroupName,
 		},
 	}

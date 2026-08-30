@@ -53,6 +53,11 @@ func (r *Reconciler) enforceRoleBindings(
 		return fmt.Errorf("error while managing Manager Manage SharedVolumes RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
+	// Enforce Manager Manage InstanceSnapshots RoleBinding
+	if err := r.enforceManagerManageInstanceSnapshotsRoleBinding(ctx, ws, namespace); err != nil {
+		return fmt.Errorf("error while managing Manager Manage InstanceSnapshots RoleBinding for workspace %s: %w", ws.Name, err)
+	}
+
 	return nil
 }
 
@@ -187,6 +192,34 @@ func (r *Reconciler) enforceManagerManageSharedVolumesRoleBinding(
 		return ctrlutil.SetControllerReference(ws, rb, r.Scheme)
 	}); err != nil {
 		return fmt.Errorf("error while creating/updating Manager Manage SharedVolumes RoleBinding: %w", err)
+	}
+
+	return nil
+}
+
+// enforceManagerManageInstanceSnapshotsRoleBinding creates or updates the RoleBinding for Manager Manage InstanceSnapshots.
+func (r *Reconciler) enforceManagerManageInstanceSnapshotsRoleBinding(
+	ctx context.Context,
+	ws *clv1alpha1.Workspace,
+	namespace string,
+) error {
+	rb := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      forge.ManageInstanceSnapshotsRoleName,
+			Namespace: namespace,
+		},
+	}
+
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
+		// Update labels
+		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
+
+		// Configure the RoleBinding
+		forge.ConfigureWorkspaceManagerManageInstanceSnapshotsBinding(ws, rb, rb.Labels)
+
+		return ctrlutil.SetControllerReference(ws, rb, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error while creating/updating Manager Manage InstanceSnapshots RoleBinding: %w", err)
 	}
 
 	return nil

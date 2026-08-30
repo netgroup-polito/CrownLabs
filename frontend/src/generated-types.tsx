@@ -228,35 +228,6 @@ export type EnvironmentListListItemInput = {
   storageClassName?: InputMaybe<Scalars['String']['input']>;
 };
 
-/**
- * Environment represents the reference to the environment to be snapshotted, in case more are
- * associated with the same Instance. If not specified, the first available environment is considered.
- */
-export type EnvironmentRef = {
-  __typename?: 'EnvironmentRef';
-  /** The name of the resource to be referenced. */
-  name: Scalars['String']['output'];
-  /**
-   * The namespace containing the resource to be referenced. It should be left
-   * empty in case of cluster-wide resources.
-   */
-  namespace?: Maybe<Scalars['String']['output']>;
-};
-
-/**
- * Environment represents the reference to the environment to be snapshotted, in case more are
- * associated with the same Instance. If not specified, the first available environment is considered.
- */
-export type EnvironmentRefInput = {
-  /** The name of the resource to be referenced. */
-  name: Scalars['String']['input'];
-  /**
-   * The namespace containing the resource to be referenced. It should be left
-   * empty in case of cluster-wide resources.
-   */
-  namespace?: InputMaybe<Scalars['String']['input']>;
-};
-
 export enum EnvironmentType {
   CloudVm = 'CloudVM',
   Container = 'Container',
@@ -351,37 +322,6 @@ export type ImagesListItemInput = {
   name: Scalars['String']['input'];
   /** The list of versions the image is available in. */
   versions: Array<InputMaybe<Scalars['String']['input']>>;
-};
-
-/**
- * Instance is the reference to the persistent VM instance to be snapshotted.
- * The instance should not be running, otherwise it won't be possible to
- * steal the volume and extract its content.
- */
-export type InstanceRef = {
-  __typename?: 'InstanceRef';
-  /** The name of the resource to be referenced. */
-  name: Scalars['String']['output'];
-  /**
-   * The namespace containing the resource to be referenced. It should be left
-   * empty in case of cluster-wide resources.
-   */
-  namespace?: Maybe<Scalars['String']['output']>;
-};
-
-/**
- * Instance is the reference to the persistent VM instance to be snapshotted.
- * The instance should not be running, otherwise it won't be possible to
- * steal the volume and extract its content.
- */
-export type InstanceRefInput = {
-  /** The name of the resource to be referenced. */
-  name: Scalars['String']['input'];
-  /**
-   * The namespace containing the resource to be referenced. It should be left
-   * empty in case of cluster-wide resources.
-   */
-  namespace?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** DeleteOptions may be provided when deleting an API object. */
@@ -805,54 +745,6 @@ export type ItPolitoCrownlabsV1alpha2InstanceList = {
   metadata?: Maybe<IoK8sApimachineryPkgApisMetaV1ListMeta>;
 };
 
-/** InstanceSnapshot is the Schema for the instancesnapshots API. */
-export type ItPolitoCrownlabsV1alpha2InstanceSnapshot = {
-  __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot';
-  /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-  apiVersion?: Maybe<Scalars['String']['output']>;
-  /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-  kind?: Maybe<Scalars['String']['output']>;
-  /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
-  metadata?: Maybe<IoK8sApimachineryPkgApisMetaV1ObjectMeta>;
-  /** InstanceSnapshotSpec defines the desired state of InstanceSnapshot. */
-  spec?: Maybe<Spec4>;
-  /** InstanceSnapshotStatus defines the observed state of InstanceSnapshot. */
-  status?: Maybe<Status4>;
-};
-
-/** InstanceSnapshot is the Schema for the instancesnapshots API. */
-export type ItPolitoCrownlabsV1alpha2InstanceSnapshotInput = {
-  /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-  apiVersion?: InputMaybe<Scalars['String']['input']>;
-  /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-  kind?: InputMaybe<Scalars['String']['input']>;
-  /** ObjectMeta is metadata that all persisted resources must have, which includes all objects users must create. */
-  metadata?: InputMaybe<IoK8sApimachineryPkgApisMetaV1ObjectMetaInput>;
-  /** InstanceSnapshotSpec defines the desired state of InstanceSnapshot. */
-  spec?: InputMaybe<Spec4Input>;
-  /** InstanceSnapshotStatus defines the observed state of InstanceSnapshot. */
-  status?: InputMaybe<Status4Input>;
-};
-
-/** InstanceSnapshotList is a list of InstanceSnapshot */
-export type ItPolitoCrownlabsV1alpha2InstanceSnapshotList = {
-  __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshotList';
-  /** APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
-  apiVersion?: Maybe<Scalars['String']['output']>;
-  /** List of instancesnapshots. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md */
-  items: Array<Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>>;
-  /** Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
-  kind?: Maybe<Scalars['String']['output']>;
-  /** ListMeta describes metadata that synthetic resources must have, including lists and various status objects. A resource may have only one of {ObjectMeta, ListMeta}. */
-  metadata?: Maybe<IoK8sApimachineryPkgApisMetaV1ListMeta>;
-};
-
-export type ItPolitoCrownlabsV1alpha2InstanceSnapshotUpdate = {
-  __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshotUpdate';
-  payload?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  updateType?: Maybe<UpdateType>;
-};
-
 export type ItPolitoCrownlabsV1alpha2InstanceUpdate = {
   __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate';
   payload?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
@@ -1073,12 +965,6 @@ export type Mutation = {
    */
   createCrownlabsPolitoItV1alpha2NamespacedInstance?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
   /**
-   * create an InstanceSnapshot
-   *
-   * Equivalent to POST /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots
-   */
-  createCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  /**
    * create a SharedVolume
    *
    * Equivalent to POST /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes
@@ -1127,12 +1013,6 @@ export type Mutation = {
    */
   deleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstance?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
   /**
-   * delete collection of InstanceSnapshot
-   *
-   * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots
-   */
-  deleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstanceSnapshot?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
-  /**
    * delete collection of SharedVolume
    *
    * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes
@@ -1156,12 +1036,6 @@ export type Mutation = {
    * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instances/{name}
    */
   deleteCrownlabsPolitoItV1alpha2NamespacedInstance?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
-  /**
-   * delete an InstanceSnapshot
-   *
-   * Equivalent to DELETE /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}
-   */
-  deleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<IoK8sApimachineryPkgApisMetaV1Status>;
   /**
    * delete a SharedVolume
    *
@@ -1240,30 +1114,6 @@ export type Mutation = {
    * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instances/{name}#application/json-patch+json
    */
   patchCrownlabsPolitoItV1alpha2NamespacedInstanceJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
-  /**
-   * partially update the specified InstanceSnapshot
-   *
-   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}
-   */
-  patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  /**
-   * partially update the specified InstanceSnapshot
-   *
-   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}#application/json-patch+json
-   */
-  patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  /**
-   * partially update status of the specified InstanceSnapshot
-   *
-   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}/status
-   */
-  patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatus?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  /**
-   * partially update status of the specified InstanceSnapshot
-   *
-   * Equivalent to PATCH /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}/status#application/json-patch+json
-   */
-  patchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusJsonPatch?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
   /**
    * partially update status of the specified Instance
    *
@@ -1379,18 +1229,6 @@ export type Mutation = {
    */
   replaceCrownlabsPolitoItV1alpha2NamespacedInstance?: Maybe<ItPolitoCrownlabsV1alpha2Instance>;
   /**
-   * replace the specified InstanceSnapshot
-   *
-   * Equivalent to PUT /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}
-   */
-  replaceCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  /**
-   * replace status of the specified InstanceSnapshot
-   *
-   * Equivalent to PUT /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}/status
-   */
-  replaceCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatus?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  /**
    * replace status of the specified Instance
    *
    * Equivalent to PUT /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instances/{name}/status
@@ -1458,16 +1296,6 @@ export type MutationCreateCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
   fieldManager?: InputMaybe<Scalars['String']['input']>;
   fieldValidation?: InputMaybe<Scalars['String']['input']>;
   itPolitoCrownlabsV1alpha2InstanceInput: ItPolitoCrownlabsV1alpha2InstanceInput;
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationCreateCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  fieldManager?: InputMaybe<Scalars['String']['input']>;
-  fieldValidation?: InputMaybe<Scalars['String']['input']>;
-  itPolitoCrownlabsV1alpha2InstanceSnapshotInput: ItPolitoCrownlabsV1alpha2InstanceSnapshotInput;
   namespace: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
 };
@@ -1572,22 +1400,6 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstanceA
 };
 
 
-export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionNamespacedInstanceSnapshotArgs = {
-  allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
-  continue?: InputMaybe<Scalars['String']['input']>;
-  fieldSelector?: InputMaybe<Scalars['String']['input']>;
-  labelSelector?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-  resourceVersion?: InputMaybe<Scalars['String']['input']>;
-  resourceVersionMatch?: InputMaybe<Scalars['String']['input']>;
-  sendInitialEvents?: InputMaybe<Scalars['Boolean']['input']>;
-  timeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
-  watch?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
 export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionNamespacedSharedVolumeArgs = {
   allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
   continue?: InputMaybe<Scalars['String']['input']>;
@@ -1636,19 +1448,6 @@ export type MutationDeleteCrownlabsPolitoItV1alpha2CollectionTenantArgs = {
 
 
 export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
-  ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
-  ioK8sApimachineryPkgApisMetaV1DeleteOptionsInput?: InputMaybe<IoK8sApimachineryPkgApisMetaV1DeleteOptionsInput>;
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  orphanDependents?: InputMaybe<Scalars['Boolean']['input']>;
-  pretty?: InputMaybe<Scalars['String']['input']>;
-  propagationPolicy?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationDeleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   gracePeriodSeconds?: InputMaybe<Scalars['Int']['input']>;
   ignoreStoreReadErrorWithClusterBreakingPotential?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1796,52 +1595,6 @@ export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
 
 
 export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceJsonPatchArgs = {
-  applicationJsonPatchJsonInput: Scalars['String']['input'];
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  fieldManager?: InputMaybe<Scalars['String']['input']>;
-  fieldValidation?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
-  applicationApplyPatchYamlInput: Scalars['String']['input'];
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  fieldManager?: InputMaybe<Scalars['String']['input']>;
-  fieldValidation?: InputMaybe<Scalars['String']['input']>;
-  force?: InputMaybe<Scalars['Boolean']['input']>;
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotJsonPatchArgs = {
-  applicationJsonPatchJsonInput: Scalars['String']['input'];
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  fieldManager?: InputMaybe<Scalars['String']['input']>;
-  fieldValidation?: InputMaybe<Scalars['String']['input']>;
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusArgs = {
-  applicationApplyPatchYamlInput: Scalars['String']['input'];
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  fieldManager?: InputMaybe<Scalars['String']['input']>;
-  fieldValidation?: InputMaybe<Scalars['String']['input']>;
-  force?: InputMaybe<Scalars['Boolean']['input']>;
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationPatchCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusJsonPatchArgs = {
   applicationJsonPatchJsonInput: Scalars['String']['input'];
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
@@ -2060,28 +1813,6 @@ export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
 };
 
 
-export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  fieldManager?: InputMaybe<Scalars['String']['input']>;
-  fieldValidation?: InputMaybe<Scalars['String']['input']>;
-  itPolitoCrownlabsV1alpha2InstanceSnapshotInput: ItPolitoCrownlabsV1alpha2InstanceSnapshotInput;
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusArgs = {
-  dryRun?: InputMaybe<Scalars['String']['input']>;
-  fieldManager?: InputMaybe<Scalars['String']['input']>;
-  fieldValidation?: InputMaybe<Scalars['String']['input']>;
-  itPolitoCrownlabsV1alpha2InstanceSnapshotInput: ItPolitoCrownlabsV1alpha2InstanceSnapshotInput;
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-};
-
-
 export type MutationReplaceCrownlabsPolitoItV1alpha2NamespacedInstanceStatusArgs = {
   dryRun?: InputMaybe<Scalars['String']['input']>;
   fieldManager?: InputMaybe<Scalars['String']['input']>;
@@ -2278,14 +2009,6 @@ export enum Phase3 {
   Empty = '_EMPTY_'
 }
 
-export enum Phase4 {
-  Completed = 'Completed',
-  Failed = 'Failed',
-  Pending = 'Pending',
-  Processing = 'Processing',
-  Empty = '_EMPTY_'
-}
-
 export enum Phase5 {
   Deleting = 'Deleting',
   Error = 'Error',
@@ -2446,18 +2169,6 @@ export type Query = {
    */
   itPolitoCrownlabsV1alpha2InstanceList?: Maybe<ItPolitoCrownlabsV1alpha2InstanceList>;
   /**
-   * read the specified InstanceSnapshot
-   *
-   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}
-   */
-  itPolitoCrownlabsV1alpha2InstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
-  /**
-   * list objects of kind InstanceSnapshot
-   *
-   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/instancesnapshots
-   */
-  itPolitoCrownlabsV1alpha2InstanceSnapshotList?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshotList>;
-  /**
    * read the specified SharedVolume
    *
    * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/sharedvolumes/{name}
@@ -2500,12 +2211,6 @@ export type Query = {
    */
   listCrownlabsPolitoItV1alpha2NamespacedInstance?: Maybe<ItPolitoCrownlabsV1alpha2InstanceList>;
   /**
-   * list objects of kind InstanceSnapshot
-   *
-   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots
-   */
-  listCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshotList>;
-  /**
    * list objects of kind SharedVolume
    *
    * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/sharedvolumes
@@ -2529,12 +2234,6 @@ export type Query = {
    * Equivalent to GET /apis/crownlabs.polito.it/v1alpha1/workspaces/{name}/status
    */
   readCrownlabsPolitoItV1alpha1WorkspaceStatus?: Maybe<ItPolitoCrownlabsV1alpha1Workspace>;
-  /**
-   * read status of the specified InstanceSnapshot
-   *
-   * Equivalent to GET /apis/crownlabs.polito.it/v1alpha2/namespaces/{namespace}/instancesnapshots/{name}/status
-   */
-  readCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatus?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshot>;
   /**
    * read status of the specified Instance
    *
@@ -2615,29 +2314,6 @@ export type QueryItPolitoCrownlabsV1alpha2InstanceArgs = {
 
 
 export type QueryItPolitoCrownlabsV1alpha2InstanceListArgs = {
-  allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
-  continue?: InputMaybe<Scalars['String']['input']>;
-  fieldSelector?: InputMaybe<Scalars['String']['input']>;
-  labelSelector?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  pretty?: InputMaybe<Scalars['String']['input']>;
-  resourceVersion?: InputMaybe<Scalars['String']['input']>;
-  resourceVersionMatch?: InputMaybe<Scalars['String']['input']>;
-  sendInitialEvents?: InputMaybe<Scalars['Boolean']['input']>;
-  timeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
-  watch?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
-export type QueryItPolitoCrownlabsV1alpha2InstanceSnapshotArgs = {
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-  resourceVersion?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryItPolitoCrownlabsV1alpha2InstanceSnapshotListArgs = {
   allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
   continue?: InputMaybe<Scalars['String']['input']>;
   fieldSelector?: InputMaybe<Scalars['String']['input']>;
@@ -2738,22 +2414,6 @@ export type QueryListCrownlabsPolitoItV1alpha2NamespacedInstanceArgs = {
 };
 
 
-export type QueryListCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotArgs = {
-  allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
-  continue?: InputMaybe<Scalars['String']['input']>;
-  fieldSelector?: InputMaybe<Scalars['String']['input']>;
-  labelSelector?: InputMaybe<Scalars['String']['input']>;
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  namespace: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-  resourceVersion?: InputMaybe<Scalars['String']['input']>;
-  resourceVersionMatch?: InputMaybe<Scalars['String']['input']>;
-  sendInitialEvents?: InputMaybe<Scalars['Boolean']['input']>;
-  timeoutSeconds?: InputMaybe<Scalars['Int']['input']>;
-  watch?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-
 export type QueryListCrownlabsPolitoItV1alpha2SharedVolumeForAllNamespacesArgs = {
   allowWatchBookmarks?: InputMaybe<Scalars['Boolean']['input']>;
   continue?: InputMaybe<Scalars['String']['input']>;
@@ -2793,14 +2453,6 @@ export type QueryReadCrownlabsPolitoItV1alpha1ImageListStatusArgs = {
 
 export type QueryReadCrownlabsPolitoItV1alpha1WorkspaceStatusArgs = {
   name: Scalars['String']['input'];
-  pretty?: InputMaybe<Scalars['String']['input']>;
-  resourceVersion?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type QueryReadCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshotStatusArgs = {
-  name: Scalars['String']['input'];
-  namespace: Scalars['String']['input'];
   pretty?: InputMaybe<Scalars['String']['input']>;
   resourceVersion?: InputMaybe<Scalars['String']['input']>;
 };
@@ -3144,41 +2796,6 @@ export type Spec3Input = {
   tenantCrownlabsPolitoItTenantRef: TenantCrownlabsPolitoItTenantRefInput;
 };
 
-/** InstanceSnapshotSpec defines the desired state of InstanceSnapshot. */
-export type Spec4 = {
-  __typename?: 'Spec4';
-  /**
-   * Environment represents the reference to the environment to be snapshotted, in case more are
-   * associated with the same Instance. If not specified, the first available environment is considered.
-   */
-  environmentRef?: Maybe<EnvironmentRef>;
-  /** ImageName is the name of the image to pushed in the docker registry. */
-  imageName: Scalars['String']['output'];
-  /**
-   * Instance is the reference to the persistent VM instance to be snapshotted.
-   * The instance should not be running, otherwise it won't be possible to
-   * steal the volume and extract its content.
-   */
-  instanceRef: InstanceRef;
-};
-
-/** InstanceSnapshotSpec defines the desired state of InstanceSnapshot. */
-export type Spec4Input = {
-  /**
-   * Environment represents the reference to the environment to be snapshotted, in case more are
-   * associated with the same Instance. If not specified, the first available environment is considered.
-   */
-  environmentRef?: InputMaybe<EnvironmentRefInput>;
-  /** ImageName is the name of the image to pushed in the docker registry. */
-  imageName: Scalars['String']['input'];
-  /**
-   * Instance is the reference to the persistent VM instance to be snapshotted.
-   * The instance should not be running, otherwise it won't be possible to
-   * steal the volume and extract its content.
-   */
-  instanceRef: InstanceRefInput;
-};
-
 /** SharedVolumeSpec is the specification of the desired state of the Shared Volume. */
 export type Spec5 = {
   __typename?: 'Spec5';
@@ -3488,19 +3105,6 @@ export type Status3Input = {
   url?: InputMaybe<Scalars['String']['input']>;
 };
 
-/** InstanceSnapshotStatus defines the observed state of InstanceSnapshot. */
-export type Status4 = {
-  __typename?: 'Status4';
-  /** Phase represents the current state of the Instance Snapshot. */
-  phase: Phase4;
-};
-
-/** InstanceSnapshotStatus defines the observed state of InstanceSnapshot. */
-export type Status4Input = {
-  /** Phase represents the current state of the Instance Snapshot. */
-  phase: Phase4;
-};
-
 /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
 export type Status5 = {
   __typename?: 'Status5';
@@ -3610,7 +3214,6 @@ export type Subscription = {
   itPolitoCrownlabsV1alpha1ImageListUpdate?: Maybe<ItPolitoCrownlabsV1alpha1ImageListUpdate>;
   itPolitoCrownlabsV1alpha1WorkspaceUpdate?: Maybe<ItPolitoCrownlabsV1alpha1WorkspaceUpdate>;
   itPolitoCrownlabsV1alpha2InstanceLabelsUpdate?: Maybe<ItPolitoCrownlabsV1alpha2InstanceUpdate>;
-  itPolitoCrownlabsV1alpha2InstanceSnapshotUpdate?: Maybe<ItPolitoCrownlabsV1alpha2InstanceSnapshotUpdate>;
   itPolitoCrownlabsV1alpha2InstanceUpdate?: Maybe<ItPolitoCrownlabsV1alpha2InstanceUpdate>;
   itPolitoCrownlabsV1alpha2TemplateUpdate?: Maybe<ItPolitoCrownlabsV1alpha2TemplateUpdate>;
   itPolitoCrownlabsV1alpha2TenantUpdate?: Maybe<ItPolitoCrownlabsV1alpha2TenantUpdate>;
@@ -3631,12 +3234,6 @@ export type SubscriptionItPolitoCrownlabsV1alpha1WorkspaceUpdateArgs = {
 
 export type SubscriptionItPolitoCrownlabsV1alpha2InstanceLabelsUpdateArgs = {
   labelSelector?: InputMaybe<Scalars['String']['input']>;
-};
-
-
-export type SubscriptionItPolitoCrownlabsV1alpha2InstanceSnapshotUpdateArgs = {
-  name?: InputMaybe<Scalars['String']['input']>;
-  namespace: Scalars['String']['input'];
 };
 
 
