@@ -4,10 +4,13 @@ import type { Dispatch, FC, SetStateAction } from 'react';
 import { useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
-import type { Instance, Workspace } from '../../../utils';
+import { WorkspaceRole, type Instance, type Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import TableTemplate from '../TableTemplate/TableTemplate';
 import TableWorkspaceRow from './TableWorkspaceRow';
+import UserList from '../../accountPage/UserList';
+import TableInstance from '../TableInstance/TableInstance';
+import { TenantContext } from '../../../contexts/TenantContext';
 
 const expandedWS = new SessionValue(StorageKeys.Active_ID_WS, '');
 export interface ITableWorkspaceProps {
@@ -48,8 +51,10 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     selectToDestroy,
     setSelectedPersistent,
   } = props;
+
   const [expandedId, setExpandedId] = useState(expandedWS.get().split(','));
   const { apolloErrorCatcher } = useContext(ErrorContext);
+  const { hasSSHKeys } = useContext(TenantContext);
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
@@ -127,38 +132,17 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     <div
       className={`rowInstance-bg-color cl-table flex-grow flex-wrap content-between py-0 overflow-auto scrollbar`}
     >
-      <Table
-        rowKey={record => record.name}
-        columns={columns}
-        size="middle"
-        dataSource={workspaces}
-        pagination={false}
-        showHeader={false}
-        expandable={{
-          onExpand: (_expanded, ws) => expandRow(ws.name),
-          expandedRowKeys: expandedId,
-          expandIcon: ({ expanded, onExpand, record }) => (
-            <CaretRightOutlined
-              className="transition-icon"
-              onClick={e => onExpand(record, e)}
-              rotate={expanded ? 90 : 0}
-            />
-          ),
-          expandedRowRender: record => (
-            <TableTemplate
-              templates={record.templates!}
-              collapseAll={collapseAll}
-              expandAll={expandAll}
-              setCollapseAll={setCollapseAll}
-              setExpandAll={setExpandAll}
-              handleManagerSorting={handleManagerSorting}
-              showAdvanced={showAdvanced}
-              showCheckbox={showCheckbox}
-              selectiveDestroy={selectiveDestroy}
-              selectToDestroy={selectToDestroy}
-            />
-          ),
-        }}
+      <TableInstance
+        showGuiIcon={false}
+        viewMode={WorkspaceRole.manager}
+        extended={true}
+        instances={instances}
+        hasSSHKeys={hasSSHKeys}
+        handleManagerSorting={handleManagerSorting}
+        showAdvanced={showAdvanced}
+        showCheckbox={showCheckbox}
+        selectiveDestroy={selectiveDestroy}
+        selectToDestroy={selectToDestroy}
       />
     </div>
   );
