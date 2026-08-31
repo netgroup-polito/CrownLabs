@@ -117,6 +117,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
 
     return [
       {
+        key: 'Extra',
         title: 'Extra',
         width: '5em',
         render: (_: any, instance: Instance) => (
@@ -145,10 +146,13 @@ const TableInstance: FC<ITableInstanceProps> = ({
       <div>
         <Table
           className="rowInstance-bg-color h-10"
-          dataSource={instances}
+          dataSource={instances.map((instance, index) => {
+            return { ...instance, key: index };
+          })}
           pagination={false}
           columns={[
             {
+              key: 'status',
               title: 'Status',
               dataIndex: 'status',
               align: 'center',
@@ -164,24 +168,28 @@ const TableInstance: FC<ITableInstanceProps> = ({
               className: 'px-0',
             },
             {
+              key: 'ID',
               title: 'ID',
               dataIndex: 'tenantId',
               // responsive: ["sm"],
               ellipsis: true,
             },
             {
+              key: 'User',
               title: 'User',
               dataIndex: 'tenantDisplayName',
               responsive: ['xl'],
               ellipsis: true,
             },
             {
+              key: 'Instance Name',
               title: 'Instance Name',
               dataIndex: 'prettyName',
               responsive: ['sm'],
               ellipsis: true,
             },
             {
+              key: 'Workspace',
               title: 'Workspace',
               dataIndex: 'workspaceName',
               responsive: ['md'],
@@ -189,6 +197,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
               // ellipsis: true,
             },
             {
+              key: 'Template',
               title: 'Template',
               dataIndex: 'templatePrettyName',
               responsive: ['md'],
@@ -196,6 +205,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
             },
             ...extraItem,
             {
+              key: 'Age',
               title: 'Age',
               dataIndex: 'timeStamp',
               responsive: ['xl'],
@@ -203,6 +213,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
               render: timeStamp => formatElapsedTime(now, timeStamp, 'unknown'),
             },
             {
+              key: 'Last access',
               title: 'Last access',
               dataIndex: 'lastActivity',
               responsive: ['xl'],
@@ -210,6 +221,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
               render: lastActivity => formatRelativeDate(lastActivity, now),
             },
             {
+              key: 'Actions',
               title: 'Actions',
               dataIndex: '',
               // responsive: ["sm"],
