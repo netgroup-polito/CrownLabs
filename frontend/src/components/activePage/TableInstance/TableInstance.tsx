@@ -1,15 +1,23 @@
 import { DeleteOutlined } from '@ant-design/icons';
-import { Button, Table } from 'antd';
-import { type FC, useContext, useState } from 'react';
+import { Button, Grid, Table } from 'antd';
+import { type FC, useCallback, useContext, useMemo, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import { TenantContext } from '../../../contexts/TenantContext';
-import { type Instance, WorkspaceRole } from '../../../utils';
+import {
+  formatRelativeDate,
+  type Instance,
+  WorkspaceRole,
+} from '../../../utils';
 import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
-import RowInstanceActions from './RowInstanceActions/RowInstanceActions';
+import RowInstanceActions, {
+  formatElapsedTime,
+} from './RowInstanceActions/RowInstanceActions';
 import RowInstanceHeader from './RowInstanceHeader/RowInstanceHeader';
 import RowInstanceTitle from './RowInstanceTitle/RowInstanceTitle';
 import './TableInstance.less';
+import RowInstanceStatus from './RowInstanceStatus/RowInstanceStatus';
+import UtilsButton from './UtilsButton';
 
 const { Column } = Table;
 export interface ITableInstanceProps {
@@ -28,6 +36,7 @@ export interface ITableInstanceProps {
   ) => void;
   selectiveDestroy?: string[];
   selectToDestroy?: (instanceId: string) => void;
+  workspacePrettyName?: { [k: string]: string };
 }
 
 const TableInstance: FC<ITableInstanceProps> = ({
@@ -42,6 +51,7 @@ const TableInstance: FC<ITableInstanceProps> = ({
   handleManagerSorting,
   selectiveDestroy,
   selectToDestroy,
+  workspacePrettyName,
 }) => {
   const { now } = useContext(TenantContext);
   const [showAlert, setShowAlert] = useState(false);
@@ -88,6 +98,138 @@ const TableInstance: FC<ITableInstanceProps> = ({
   };
 
   const [{ templateId }] = instances;
+
+  const screensize = Grid.useBreakpoint();
+
+  const formatWorkspaceName = useCallback(
+    (workspaceName: string) =>
+      workspacePrettyName ? workspacePrettyName[workspaceName] : workspaceName,
+    [workspacePrettyName],
+  );
+
+  const extraItem = useMemo(() => {
+    let hiddenCols = 0;
+
+    if (screensize.xxl || screensize.xl) return [];
+    else if (screensize.lg) hiddenCols = 3;
+    else if (screensize.sm) hiddenCols = 5;
+    else if (screensize.xs) hiddenCols = 6;
+
+    return [
+      {
+        title: 'Extra',
+        width: '5em',
+        render: (_: any, instance: Instance) => (
+          <UtilsButton
+            age={
+              hiddenCols > 0 &&
+              formatElapsedTime(now, instance.timeStamp, 'unknown')
+            }
+            lastAccess={
+              hiddenCols > 1 && formatRelativeDate(instance.lastActivity, now)
+            }
+            user={hiddenCols > 2 && instance.tenantDisplayName}
+            template={hiddenCols > 3 && instance.templatePrettyName}
+            workspace={
+              hiddenCols > 4 && formatWorkspaceName(instance.workspaceName)
+            }
+            instanceName={hiddenCols > 5 && instance.prettyName}
+          />
+        ),
+      },
+    ];
+  }, [screensize]);
+
+  if (viewMode === WorkspaceRole.manager)
+    return (
+      <div>
+        <Table
+          className="rowInstance-bg-color h-10"
+          dataSource={instances}
+          pagination={false}
+          columns={[
+            {
+              title: 'Status',
+              dataIndex: 'status',
+              align: 'center',
+              render: (status, instance) => (
+                <div className="flex justify-center">
+                  <RowInstanceStatus
+                    status={status}
+                    environments={instance.environments}
+                  />
+                </div>
+              ),
+              width: '4em',
+              className: 'px-0',
+            },
+            {
+              title: 'ID',
+              dataIndex: 'tenantId',
+              // responsive: ["sm"],
+              ellipsis: true,
+            },
+            {
+              title: 'User',
+              dataIndex: 'tenantDisplayName',
+              responsive: ['xl'],
+              ellipsis: true,
+            },
+            {
+              title: 'Instance Name',
+              dataIndex: 'prettyName',
+              responsive: ['sm'],
+              ellipsis: true,
+            },
+            {
+              title: 'Workspace',
+              dataIndex: 'workspaceName',
+              responsive: ['md'],
+              render: workspaceName => formatWorkspaceName(workspaceName),
+              // ellipsis: true,
+            },
+            {
+              title: 'Template',
+              dataIndex: 'templatePrettyName',
+              responsive: ['md'],
+              // ellipsis: true,
+            },
+            ...extraItem,
+            {
+              title: 'Age',
+              dataIndex: 'timeStamp',
+              responsive: ['xl'],
+              width: '7em',
+              render: timeStamp => formatElapsedTime(now, timeStamp, 'unknown'),
+            },
+            {
+              title: 'Last access',
+              dataIndex: 'lastActivity',
+              responsive: ['xl'],
+              width: '9em',
+              render: lastActivity => formatRelativeDate(lastActivity, now),
+            },
+            {
+              title: 'Actions',
+              dataIndex: '',
+              // responsive: ["sm"],
+              render: (_, instance) => (
+                <RowInstanceActions
+                  instance={instance}
+                  hasSSHKeys={hasSSHKeys}
+                  now={now}
+                  fileManager={true}
+                  extended={false}
+                  viewMode={viewMode}
+                />
+              ),
+              width: screensize.xs ? '180px' : '230px',
+              align: 'center',
+            },
+          ]}
+        />
+      </div>
+    );
 
   return (
     <>

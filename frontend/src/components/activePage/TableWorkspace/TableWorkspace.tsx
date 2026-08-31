@@ -1,14 +1,9 @@
-import { CaretRightOutlined } from '@ant-design/icons';
-import { Table } from 'antd';
 import type { Dispatch, FC, SetStateAction } from 'react';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useMemo, useState } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import { WorkspaceRole, type Instance, type Workspace } from '../../../utils';
 import { SessionValue, StorageKeys } from '../../../utilsStorage';
-import TableTemplate from '../TableTemplate/TableTemplate';
-import TableWorkspaceRow from './TableWorkspaceRow';
-import UserList from '../../accountPage/UserList';
 import './TableWorkspace.less';
 import TableInstance from '../TableInstance/TableInstance';
 import { TenantContext } from '../../../contexts/TenantContext';
@@ -41,8 +36,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     workspaces,
     collapseAll,
     expandAll,
-    setCollapseAll,
-    setExpandAll,
     showAdvanced,
     showCheckbox,
     handleManagerSorting,
@@ -69,11 +62,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     setExpandedId([]);
   };
 
-  const expandRow = (rowId: string) =>
-    expandedId.includes(rowId)
-      ? setExpandedId(old => old.filter(id => id !== rowId))
-      : setExpandedId(old => [...old, rowId]);
-
   const destroySelected = async () => {
     const selection = instances.filter(i => selectiveDestroy.includes(i.id));
     for (const { tenantNamespace, name: instanceId, id } of selection) {
@@ -84,21 +72,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
       selectToDestroy(id);
     }
   };
-
-  const columns = [
-    {
-      title: 'Template',
-      key: 'template',
-      render: ({ prettyName, templates, name }: Workspace) => (
-        <TableWorkspaceRow
-          title={prettyName}
-          id={name}
-          templates={templates || []}
-          expandRow={expandRow}
-        />
-      ),
-    },
-  ];
 
   useEffect(() => {
     const persistent =
@@ -129,6 +102,11 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [destroySelectedTrigger]);
 
+  const workspacePrettyName = useMemo(
+    () => Object.fromEntries(workspaces.map(ws => [ws.name, ws.prettyName])),
+    [workspaces],
+  );
+
   return (
     <div
       className={`rowInstance-bg-color cl-table flex-grow flex-wrap content-between py-0 overflow-auto scrollbar`}
@@ -138,6 +116,7 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
         viewMode={WorkspaceRole.manager}
         extended={true}
         instances={instances}
+        workspacePrettyName={workspacePrettyName}
         hasSSHKeys={hasSSHKeys}
         handleManagerSorting={handleManagerSorting}
         showAdvanced={showAdvanced}
