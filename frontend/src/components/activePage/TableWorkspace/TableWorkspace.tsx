@@ -1,21 +1,15 @@
 import type { Dispatch, FC, SetStateAction } from 'react';
-import { useContext, useEffect, useMemo, useState } from 'react';
+import { useContext, useEffect, useMemo } from 'react';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { useDeleteInstanceMutation } from '../../../generated-types';
 import { WorkspaceRole, type Instance, type Workspace } from '../../../utils';
-import { SessionValue, StorageKeys } from '../../../utilsStorage';
 import './TableWorkspace.less';
 import TableInstance from '../TableInstance/TableInstance';
 import { TenantContext } from '../../../contexts/TenantContext';
 
-const expandedWS = new SessionValue(StorageKeys.Active_ID_WS, '');
 export interface ITableWorkspaceProps {
   instances: Array<Instance>;
   workspaces: Array<Workspace>;
-  collapseAll: boolean;
-  expandAll: boolean;
-  setCollapseAll: Dispatch<SetStateAction<boolean>>;
-  setExpandAll: Dispatch<SetStateAction<boolean>>;
   showAdvanced: boolean;
   showCheckbox: boolean;
   handleManagerSorting: (
@@ -34,8 +28,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
   const {
     instances,
     workspaces,
-    collapseAll,
-    expandAll,
     showAdvanced,
     showCheckbox,
     handleManagerSorting,
@@ -46,21 +38,12 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     setSelectedPersistent,
   } = props;
 
-  const [expandedId, setExpandedId] = useState(expandedWS.get().split(','));
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const { hasSSHKeys } = useContext(TenantContext);
 
   const [deleteInstanceMutation] = useDeleteInstanceMutation({
     onError: apolloErrorCatcher,
   });
-
-  const expandWorkspace = () => {
-    setExpandedId(workspaces.map(ws => ws.name));
-  };
-
-  const collapseWorkspace = () => {
-    setExpandedId([]);
-  };
 
   const destroySelected = async () => {
     const selection = instances.filter(i => selectiveDestroy.includes(i.id));
@@ -83,16 +66,6 @@ const TableWorkspace: FC<ITableWorkspaceProps> = ({ ...props }) => {
     setSelectedPersistent(persistent.length > 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectiveDestroy]);
-
-  useEffect(() => {
-    expandedWS.set(expandedId.join(','));
-  }, [expandedId]);
-
-  useEffect(() => {
-    if (collapseAll) collapseWorkspace();
-    if (expandAll) expandWorkspace();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [collapseAll, expandAll]);
 
   useEffect(() => {
     if (destroySelectedTrigger) {
