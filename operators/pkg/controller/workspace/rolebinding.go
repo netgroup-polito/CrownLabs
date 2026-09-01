@@ -48,18 +48,6 @@ func (r *Reconciler) enforceRoleBindings(
 		return fmt.Errorf("error while managing Manager Aggregated RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
-	// Delete old RoleBindings (Migration)
-	if err := r.deleteSingleRb(ctx, namespace, forge.ManageTemplatesRoleName); err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("error deleting old Manager Manage Templates RoleBinding: %w", err)
-		}
-	}
-	if err := r.deleteSingleRb(ctx, namespace, forge.ManageSharedVolumesRoleName); err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("error deleting old Manager Manage SharedVolumes RoleBinding: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -83,20 +71,6 @@ func (r *Reconciler) enforceRoleBindingsAbsence(
 	if err := r.deleteSingleRb(ctx, namespace, forge.WorkspaceManagerRoleName); err != nil {
 		if client.IgnoreNotFound(err) != nil {
 			return fmt.Errorf("error deleting Manager Aggregated RoleBinding: %w", err)
-		}
-	}
-
-	// Delete Manager Manage Templates RoleBinding (Migration cleanup)
-	if err := r.deleteSingleRb(ctx, namespace, forge.ManageTemplatesRoleName); err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("error deleting Manager Manage Templates RoleBinding: %w", err)
-		}
-	}
-
-	// Delete Manager Manage SharedVolumes RoleBinding (Migration cleanup)
-	if err := r.deleteSingleRb(ctx, namespace, forge.ManageSharedVolumesRoleName); err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("error deleting Manager Manage SharedVolumes RoleBinding: %w", err)
 		}
 	}
 

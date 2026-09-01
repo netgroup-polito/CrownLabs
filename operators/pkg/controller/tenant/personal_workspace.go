@@ -57,14 +57,6 @@ func (r *Reconciler) handlePersonalWorkspace(ctx context.Context, tn *clv1alpha2
 		}
 	}
 
-	// Migration: delete old RoleBinding if it exists
-	oldRB := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: forge.ManageTemplatesRoleName, Namespace: tn.Status.PersonalNamespace.Name}}
-	if err := utils.EnforceObjectAbsence(ctx, r.Client, &oldRB, "old personal workspace manage-templates role binding"); err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 

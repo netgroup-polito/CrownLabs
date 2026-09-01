@@ -52,50 +52,6 @@ var roleBindingResources = []*rbacv1.RoleBinding{
 			APIGroup: "rbac.authorization.k8s.io",
 		},
 	},
-	{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "crownlabs-manage-templates",
-			Namespace: "workspace-" + wsName,
-			Labels: map[string]string{
-				"crownlabs.polito.it/operator-selector": "test",
-				"crownlabs.polito.it/managed-by":        "workspace",
-			},
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + ":manager",
-				APIGroup: "rbac.authorization.k8s.io",
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     "crownlabs-manage-templates",
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-	},
-	{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "crownlabs-manage-sharedvolumes",
-			Namespace: "workspace-" + wsName,
-			Labels: map[string]string{
-				"crownlabs.polito.it/operator-selector": "test",
-				"crownlabs.polito.it/managed-by":        "workspace",
-			},
-		},
-		Subjects: []rbacv1.Subject{
-			{
-				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + ":manager",
-				APIGroup: "rbac.authorization.k8s.io",
-			},
-		},
-		RoleRef: rbacv1.RoleRef{
-			Kind:     "ClusterRole",
-			Name:     "crownlabs-manage-sharedvolumes",
-			APIGroup: "rbac.authorization.k8s.io",
-		},
-	},
 }
 
 var _ = Describe("RoleBinding", func() {
@@ -114,42 +70,6 @@ var _ = Describe("RoleBinding", func() {
 			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
 				Kind:     "Group",
 				Name:     "kubernetes:workspace-" + wsName + ":user",
-				APIGroup: "rbac.authorization.k8s.io",
-			}))
-		})
-
-		It("Should create a rolebinding for the workspace managers to manage templates", func() {
-			rb := &rbacv1.RoleBinding{}
-
-			DoesEventuallyExists(ctx, cl, client.ObjectKey{
-				Name:      "crownlabs-manage-templates",
-				Namespace: "workspace-" + wsName,
-			}, rb, BeTrue(), timeout, interval)
-			Expect(rb.RoleRef.Name).To(Equal("crownlabs-manage-templates"))
-			Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-			Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
-			Expect(rb.Subjects).To(HaveLen(1))
-			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
-				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + ":manager",
-				APIGroup: "rbac.authorization.k8s.io",
-			}))
-		})
-
-		It("Should create a rolebinding for the workspace managers to manage sharedvolumes", func() {
-			rb := &rbacv1.RoleBinding{}
-
-			DoesEventuallyExists(ctx, cl, client.ObjectKey{
-				Name:      "crownlabs-manage-sharedvolumes",
-				Namespace: "workspace-" + wsName,
-			}, rb, BeTrue(), timeout, interval)
-			Expect(rb.RoleRef.Name).To(Equal("crownlabs-manage-sharedvolumes"))
-			Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-			Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
-			Expect(rb.Subjects).To(HaveLen(1))
-			Expect(rb.Subjects).To(ContainElement(rbacv1.Subject{
-				Kind:     "Group",
-				Name:     "kubernetes:workspace-" + wsName + ":manager",
 				APIGroup: "rbac.authorization.k8s.io",
 			}))
 		})

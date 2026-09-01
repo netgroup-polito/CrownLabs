@@ -28,14 +28,8 @@ const (
 	// ViewTemplatesRoleName -> the name of the ClusterRole for viewing templates in workspaces.
 	ViewTemplatesRoleName = "crownlabs-view-templates"
 
-	// ManageTemplatesRoleName -> the name of the ClusterRole for managing templates in workspaces.
-	ManageTemplatesRoleName = "crownlabs-manage-templates"
-
 	// WorkspaceManagerRoleName -> the name of the ClusterRole for managers in workspaces.
 	WorkspaceManagerRoleName = "crownlabs-workspace-manager"
-
-	// ManageSharedVolumesRoleName -> the name of the ClusterRole for managing shared volumes in workspaces.
-	ManageSharedVolumesRoleName = "crownlabs-manage-sharedvolumes"
 )
 
 // ConfigureWorkspaceUserViewTemplatesBinding configures a RoleBinding for a workspace user to view templates.
