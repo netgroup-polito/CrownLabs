@@ -1,0 +1,108 @@
+# Mailpit: fake SMTP server + web UI for local email testing. No persistence
+# (Mailpit defaults to an in-memory message store when MP_DATABASE isn't
+# set — fine for local dev, same ephemeral tradeoff already made for
+# Postgres in ../../keycloak/manifests/keycloak.yaml).
+#
+# Two Services, deliberately not symmetric:
+# - 'mailpit-smtp' (1025) stays ClusterIP-only. SMTP isn't HTTP, so it can't
+#   go behind an HTTPRoute — it's consumed in-cluster by whatever CrownLabs
+#   component ends up sending mail.
+# - 'mailpit' (8025, the web UI) is ClusterIP too, but gets routed through
+#   the shared Gateway via the HTTPRoute below — see ../../envoy/README.md.
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit-smtp
+  labels:
+    app: mailpit
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 1025
+      targetPort: smtp
+      name: smtp
+  selector:
+    app: mailpit
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mailpit
+  labels:
+    app: mailpit
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP
+      port: 8025
+      targetPort: http
+      name: http
+  selector:
+    app: mailpit
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: mailpit
+  labels:
+    app: mailpit
+spec:
+  parentRefs:
+    - name: crownlabs
+      sectionName: https
+  hostnames:
+    - mail.crownlabs.local
+  rules:
+    - backendRefs:
+        - name: mailpit
+          port: 8025
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mailpit
+  labels:
+    app: mailpit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mailpit
+  template:
+    metadata:
+      labels:
+        app: mailpit
+    spec:
+      containers:
+        - name: mailpit
+          image: axllent/mailpit:latest
+          env:
+            # No auth needed for local dev: accept any SMTP credentials
+            # (or none) instead of tracking a set of fake ones.
+            - name: MP_SMTP_AUTH_ACCEPT_ANY
+              value: "1"
+            - name: MP_SMTP_AUTH_ALLOW_INSECURE
+              value: "1"
+          ports:
+            - name: smtp
+              containerPort: 1025
+            - name: http
+              containerPort: 8025
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8025
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8025
+            periodSeconds: 10
+          resources:
+            limits:
+              cpu: 500m
+              memory: 256Mi
+            requests:
+              cpu: 50m
+              memory: 64Mi
