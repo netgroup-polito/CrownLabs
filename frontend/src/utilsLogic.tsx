@@ -826,6 +826,38 @@ const makeNotificationContent = (
   } as JointContent;
 };
 
+export const makeImageNotificationContent = (
+  imageName: string,
+  notification: string,
+) => {
+  const font20px = { fontSize: '20px' };
+
+  return {
+    content: (
+      <div className="flex justify-between items-start gap-1 p-1 w-72">
+        <div className="flex flex-none items-start">
+          <CheckCircleOutlined
+            className="success-color-fg mr-3"
+            style={font20px}
+          />
+        </div>
+        <div className="flex flex-grow flex-col items-start gap-1">
+          <div className="pr-1 flex justify-start">
+            <b>Image creation requested</b>
+          </div>
+          <div className="pr-1 flex justify-start">
+            Image Name: <i>&nbsp;{imageName}</i>
+          </div>
+          <div className="pr-1 text-left">{notification}</div>
+        </div>
+      </div>
+    ),
+    icon: <></>,
+    className: 'mr-6 flex justify-end',
+    duration: 5,
+  } as JointContent;
+};
+
 export const notifyStatus = (
   status: Nullable<string>,
   instance: Nullable<DeepPartial<ItPolitoCrownlabsV1alpha2Instance>>,

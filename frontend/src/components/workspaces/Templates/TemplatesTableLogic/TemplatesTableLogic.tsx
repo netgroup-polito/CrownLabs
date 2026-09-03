@@ -483,7 +483,7 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           )}
         </Spin>
       </div>
-      {!loadingTemplate ? (
+      {role === WorkspaceRole.manager && !loadingTemplate ? (
         <div
           style={{
             position: 'sticky',

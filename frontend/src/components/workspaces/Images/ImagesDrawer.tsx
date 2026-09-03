@@ -1,32 +1,30 @@
-import { DeleteOutlined } from '@ant-design/icons';
-import {
-  Badge,
-  Button,
-  Drawer,
-  Empty,
-  Table,
-  Tooltip,
-} from 'antd';
+import { DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Badge, Button, Drawer, Empty, Table, Tooltip } from 'antd';
 import { useState, type FC } from 'react';
 import { ModalAlert } from '../../common/ModalAlert';
 
-type MockSnapshotImage = {
+type MockImage = {
   id: string;
   name: string;
+  description: string;
   size: string;
   createdAt: string;
 };
 
-const initialMockImages: MockSnapshotImage[] = [
+const initialMockImages: MockImage[] = [
   {
-    id: 'snapshot-image-1',
-    name: 'snapshot-of-ubuntu-dev',
+    id: 'image-1',
+    name: 'image-of-ubuntu-dev',
+    description:
+      'Ubuntu 24.04 development image with cloud-init reset, Docker, Git, Python, and the CrownLabs base toolchain preinstalled.',
     size: '12.4 GiB',
     createdAt: '29 Jul 2026, 14:35',
   },
   {
-    id: 'snapshot-image-2',
-    name: 'snapshot-of-cloud-vm',
+    id: 'image-2',
+    name: 'image-of-cloud-vm',
+    description:
+      'Cloud VM image prepared for networking labs, with common diagnostic tools and the initial system configuration already completed.',
     size: '8.7 GiB',
     createdAt: '30 Jul 2026, 09:10',
   },
@@ -34,9 +32,8 @@ const initialMockImages: MockSnapshotImage[] = [
 
 const ImagesDrawer: FC = () => {
   const [open, setOpen] = useState(false);
-  const [images, setImages] =
-    useState<MockSnapshotImage[]>(initialMockImages);
-  const [selectedImage, setSelectedImage] = useState<MockSnapshotImage>();
+  const [images, setImages] = useState<MockImage[]>(initialMockImages);
+  const [selectedImage, setSelectedImage] = useState<MockImage>();
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
 
   const columns = [
@@ -44,6 +41,25 @@ const ImagesDrawer: FC = () => {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+      render: (name: string, image: MockImage) => (
+        <span className="flex items-center gap-2">
+          {name}
+          <Tooltip
+            title={image.description}
+            placement="top"
+            trigger="hover"
+            zIndex={2000}
+            getPopupContainer={() => document.body}
+          >
+            <span
+              className="inline-flex cursor-help"
+              aria-label={`Description for ${image.name}`}
+            >
+              <InfoCircleOutlined />
+            </span>
+          </Tooltip>
+        </span>
+      ),
     },
     {
       title: 'Size',
@@ -59,7 +75,7 @@ const ImagesDrawer: FC = () => {
       title: 'Action',
       key: 'action',
       width: 90,
-      render: (_: unknown, image: MockSnapshotImage) => (
+      render: (_: unknown, image: MockImage) => (
         <Tooltip title="Delete image">
           <DeleteOutlined
             className="cursor-pointer"
@@ -127,7 +143,7 @@ const ImagesDrawer: FC = () => {
                   key="close"
                   shape="round"
                   className="mr-2 w-24"
-                  type="primary"
+                  type="default"
                   onClick={() => setShowDeleteModalConfirm(false)}
                 >
                   Close
@@ -136,7 +152,8 @@ const ImagesDrawer: FC = () => {
                   key="delete"
                   shape="round"
                   className="ml-2 w-24"
-                  color="red"
+                  type="primary"
+                  danger
                   onClick={() => {
                     if (selectedImage) {
                       setImages(current =>
