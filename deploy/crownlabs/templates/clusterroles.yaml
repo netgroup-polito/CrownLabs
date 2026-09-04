@@ -4,6 +4,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-view-instances
   labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -22,6 +23,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-instances
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -45,6 +47,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-view-instance-snapshots
   labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -63,6 +66,8 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-instance-snapshots
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    crownlabs.polito.it/aggregate-to-workspace-manager: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -86,6 +91,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-view-templates
   labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -103,6 +109,8 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-templates
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    crownlabs.polito.it/aggregate-to-workspace-manager: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -125,6 +133,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-view-tenants
   labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -142,6 +151,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-tenants
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -162,6 +172,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-view-workspaces
   labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -179,6 +190,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-workspaces
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -201,6 +213,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-view-image-lists
   labels:
+    rbac.authorization.k8s.io/aggregate-to-view: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
 - apiGroups:
@@ -218,6 +231,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-image-lists
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
 - apiGroups:
@@ -409,6 +423,8 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-sharedvolumes
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
+    crownlabs.polito.it/aggregate-to-workspace-manager: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
   - apiGroups:
@@ -424,4 +440,17 @@ rules:
       - patch
       - delete
       - deletecollection
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-workspace-manager
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+aggregationRule:
+  clusterRoleSelectors:
+    - matchLabels:
+        crownlabs.polito.it/aggregate-to-workspace-manager: "true"
+rules: []
 {{- end }}
