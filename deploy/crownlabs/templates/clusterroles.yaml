@@ -423,6 +423,7 @@ kind: ClusterRole
 metadata:
   name: crownlabs-manage-sharedvolumes
   labels:
+    rbac.authorization.k8s.io/aggregate-to-admin: "true"
     crownlabs.polito.it/aggregate-to-workspace-manager: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
 rules:
