@@ -30,32 +30,32 @@ var _ = Describe("HTTPRoute helpers", func() {
 		host        = "crownlabs.example.com"
 	)
 
-	Describe("ParseGatewayParent behavior", func() {
-		It("ParseGatewayParent parses valid parent references", func() {
-			ns, name, err := forge.ParseGatewayParent("my-ns/my-gateway")
+	Describe("ParseNamespacedName behavior", func() {
+		It("ParseNamespacedName parses valid parent references", func() {
+			ns, name, err := forge.ParseNamespacedName("my-ns/my-gateway")
 			Expect(err).ToNot(HaveOccurred())
 			Expect(ns).To(Equal("my-ns"))
 			Expect(name).To(Equal("my-gateway"))
 		})
 
-		Context("ParseGatewayParent errors on invalid input", func() {
+		Context("ParseNamespacedName errors on invalid input", func() {
 			It("errors on empty string", func() {
-				_, _, err := forge.ParseGatewayParent("")
+				_, _, err := forge.ParseNamespacedName("")
 				Expect(err).To(HaveOccurred())
 			})
 
 			It("errors on missing namespace", func() {
-				_, _, err := forge.ParseGatewayParent("/my-gateway")
+				_, _, err := forge.ParseNamespacedName("/my-gateway")
 				Expect(err).To(HaveOccurred())
 			})
 
 			It("errors on missing name", func() {
-				_, _, err := forge.ParseGatewayParent("my-ns/")
+				_, _, err := forge.ParseNamespacedName("my-ns/")
 				Expect(err).To(HaveOccurred())
 			})
 
 			It("errors on extra slashes", func() {
-				_, _, err := forge.ParseGatewayParent("my-ns/my-gateway/extra")
+				_, _, err := forge.ParseNamespacedName("my-ns/my-gateway/extra")
 				Expect(err).To(HaveOccurred())
 			})
 		})

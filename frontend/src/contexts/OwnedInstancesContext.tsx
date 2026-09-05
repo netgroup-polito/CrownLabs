@@ -12,6 +12,7 @@ export interface IQuota {
   cpu: number;
   memory: number;
   disk: number;
+  otherResources?: { [key: string]: number };
 }
 
 interface IOwnedInstancesContext {

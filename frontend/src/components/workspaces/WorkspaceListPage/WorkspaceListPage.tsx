@@ -1,10 +1,33 @@
 import { useContext, useMemo, useState } from 'react';
-import { Modal, Table, Input, Spin, Col, Tooltip, Button, Badge, message } from 'antd';
+import {
+  Modal,
+  Table,
+  Input,
+  Spin,
+  Col,
+  Tooltip,
+  Button,
+  Badge,
+  message,
+} from 'antd';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
-import { useWorkspacesQuery, useAllTemplatesQuery, useDeleteWorkspaceMutation, AutoEnroll } from '../../../generated-types';
+import {
+  useWorkspacesQuery,
+  useAllTemplatesQuery,
+  useDeleteWorkspaceMutation,
+  AutoEnroll,
+} from '../../../generated-types';
 import Box from '../../common/Box';
-import { DeleteOutlined, EditOutlined, ExclamationCircleOutlined, PlusOutlined, UserSwitchOutlined } from '@ant-design/icons';
-import ModalCreateWorkspace, { type WorkspaceEditData } from '../ModalCreateWorkspace';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  PlusOutlined,
+  UserSwitchOutlined,
+} from '@ant-design/icons';
+import ModalCreateWorkspace, {
+  type WorkspaceEditData,
+} from '../ModalCreateWorkspace';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
 import { WorkspaceRole, type Workspace } from '../../../utils';
 
@@ -18,6 +41,8 @@ interface WorkspaceData {
   instances: number;
   templateCount: number;
   key: string;
+  disk?: string;
+  otherResources?: { [key: string]: string } | null;
 }
 
 export default function WorkspaceListPage() {
@@ -30,22 +55,26 @@ export default function WorkspaceListPage() {
 
   const [searchText, setSearchText] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editWorkspace, setEditWorkspace] = useState<WorkspaceEditData | null>(null);
-  const [usersModalWorkspace, setUsersModalWorkspace] = useState<WorkspaceData | null>(null);
+  const [editWorkspace, setEditWorkspace] = useState<WorkspaceEditData | null>(
+    null,
+  );
+  const [usersModalWorkspace, setUsersModalWorkspace] =
+    useState<WorkspaceData | null>(null);
 
   const { data, loading, error, refetch } = useWorkspacesQuery({
     onError: apolloErrorCatcher,
     notifyOnNetworkStatusChange: true,
   });
 
-  const { data: templatesData, loading: templatesLoading } = useAllTemplatesQuery({
-    onError: apolloErrorCatcher,
-  });
+  const { data: templatesData, loading: templatesLoading } =
+    useAllTemplatesQuery({
+      onError: apolloErrorCatcher,
+    });
 
   const templateCountByWorkspace = useMemo(() => {
     const countMap = new Map<string, number>();
     if (templatesData?.allTemplates?.items) {
-      templatesData.allTemplates.items.forEach((template) => {
+      templatesData.allTemplates.items.forEach(template => {
         const namespace = template?.metadata?.namespace;
         if (namespace) {
           countMap.set(namespace, (countMap.get(namespace) || 0) + 1);
@@ -71,6 +100,8 @@ export default function WorkspaceListPage() {
         cpu: ws?.spec?.quota?.cpu || '0',
         memory: ws?.spec?.quota?.memory || '0Gi',
         instances: ws?.spec?.quota?.instances || 0,
+        disk: ws?.spec?.quota?.disk || '0Gi',
+        otherResources: ws?.spec?.quota?.otherResources || null,
         templateCount: templateCountByWorkspace.get(workspaceNamespace) || 0,
         key: workspaceName,
       };
@@ -100,6 +131,8 @@ export default function WorkspaceListPage() {
       cpu: workspace.cpu,
       memory: workspace.memory,
       instances: workspace.instances,
+      disk: workspace.disk,
+      otherResources: workspace.otherResources,
     });
     setShowCreateModal(true);
   };
@@ -119,7 +152,9 @@ export default function WorkspaceListPage() {
       cancelText: 'Cancel',
       onOk: async () => {
         await deleteWorkspace({ variables: { name: workspace.name } });
-        messageApi.success(`Workspace "${workspace.prettyName}" deleted successfully`);
+        messageApi.success(
+          `Workspace "${workspace.prettyName}" deleted successfully`,
+        );
         refetch();
       },
     });
@@ -216,16 +251,20 @@ export default function WorkspaceListPage() {
               title="Actions"
               key="actions"
               width={100}
-              render={(workspace: WorkspaceData) => (
+              render={(workspace: WorkspaceData) =>
                 workspace.deleting ? (
                   <Badge status="processing" text="Deleting..." />
                 ) : (
                   <div className="flex gap-2">
                     <Tooltip title="Edit workspace">
-                      <EditOutlined onClick={() => handleEditWorkspace(workspace)} />
+                      <EditOutlined
+                        onClick={() => handleEditWorkspace(workspace)}
+                      />
                     </Tooltip>
                     <Tooltip title="Manage users">
-                      <UserSwitchOutlined onClick={() => setUsersModalWorkspace(workspace)} />
+                      <UserSwitchOutlined
+                        onClick={() => setUsersModalWorkspace(workspace)}
+                      />
                     </Tooltip>
                     <Tooltip
                       title={
@@ -235,13 +274,20 @@ export default function WorkspaceListPage() {
                       }
                     >
                       <DeleteOutlined
-                        className={workspace.templateCount > 0 ? 'cursor-not-allowed opacity-30' : 'text-red-500'}
-                        onClick={() => workspace.templateCount === 0 && handleDeleteWorkspace(workspace)}
+                        className={
+                          workspace.templateCount > 0
+                            ? 'cursor-not-allowed opacity-30'
+                            : 'text-red-500'
+                        }
+                        onClick={() =>
+                          workspace.templateCount === 0 &&
+                          handleDeleteWorkspace(workspace)
+                        }
                       />
                     </Tooltip>
                   </div>
                 )
-              )}
+              }
             />
           </Table>
         </Spin>
@@ -263,12 +309,14 @@ export default function WorkspaceListPage() {
       >
         {usersModalWorkspace && (
           <UserListLogic
-            workspace={{
-              name: usersModalWorkspace.name,
-              namespace: `workspace-${usersModalWorkspace.name}`,
-              prettyName: usersModalWorkspace.prettyName,
-              role: WorkspaceRole.manager,
-            } satisfies Workspace}
+            workspace={
+              {
+                name: usersModalWorkspace.name,
+                namespace: `workspace-${usersModalWorkspace.name}`,
+                prettyName: usersModalWorkspace.prettyName,
+                role: WorkspaceRole.manager,
+              } satisfies Workspace
+            }
           />
         )}
       </Modal>

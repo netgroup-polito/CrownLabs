@@ -24,6 +24,7 @@ import (
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -35,9 +36,9 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		templateName      = "test-template"
 		instanceNamespace = "tenant-tester"
 		image             = "internal/registry/image:v1.0"
+		cpu               = 2
 		localVMImage      = "golden-images/debian-nginx-raw-block"
 		invalidLocalImage = "golden-images/debian/nginx/raw-block"
-		cpu               = 2
 		cpuReserved       = 25
 		memory            = "1250M"
 		disk              = "20Gi"
@@ -67,10 +68,12 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		environment = clv1alpha2.Environment{
 			Image: image,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   cpu,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    cpu,
+					Memory: resource.MustParse(memory),
+					Disk:   resource.MustParse(disk),
+				},
 				ReservedCPUPercentage: cpuReserved,
-				Memory:                resource.MustParse(memory),
-				Disk:                  resource.MustParse(disk),
 			},
 		}
 		template = clv1alpha2.Template{

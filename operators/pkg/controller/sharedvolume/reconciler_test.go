@@ -31,6 +31,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -115,10 +116,12 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 			Persistent:      false,
 			GuiEnabled:      true,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   1,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    1,
+					Memory: resource.MustParse("1Gi"),
+					Disk:   resource.MustParse("10Gi"),
+				},
 				ReservedCPUPercentage: 20,
-				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 			},
 			MountMyDriveVolume: false,
 		}
@@ -129,10 +132,12 @@ var _ = Describe("The sharedvolume-controller Reconcile method", Ordered, func()
 			Persistent:      false,
 			GuiEnabled:      true,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   1,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    1,
+					Memory: resource.MustParse("1Gi"),
+					Disk:   resource.MustParse("10Gi"),
+				},
 				ReservedCPUPercentage: 20,
-				Memory:                *resource.NewScaledQuantity(1, resource.Giga),
-				Disk:                  *resource.NewScaledQuantity(10, resource.Giga),
 			},
 			MountMyDriveVolume: false,
 			SharedVolumeMounts: []clv1alpha2.SharedVolumeMountInfo{

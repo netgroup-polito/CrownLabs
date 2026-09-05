@@ -41,6 +41,7 @@ export type TemplateFormEnv = {
   containerStartupOptions?: ContainerStartupOptionsForm;
   storageClassName?: string;
   mountMyDriveVolume?: boolean;
+  otherResources?: Record<string, number>;
 };
 
 export type ContainerStartupOptionsForm = {
@@ -48,7 +49,7 @@ export type ContainerStartupOptionsForm = {
   contentPath: string;
   startupArgs: string[];
   EnforceWorkDir: boolean;
-}
+};
 
 export type ChildFormItem = {
   parentFormName: number;

@@ -1,6 +1,12 @@
-# Ingress Controller - nginx
+# DEPRECATED - Ingress Controller - nginx
 
-We use [*ingress-ngnix*](https://kubernetes.github.io/ingress-nginx/) as ingress controller, to dispatch incoming requests to the requested service running in the cluster.
+> [!WARNING]
+> **This component is DEPRECATED.** 
+> As of July 2026, the L7 traffic routing and public exposure are handled by the **Kubernetes Gateway API** (powered by **Envoy Gateway**). 
+> 
+> Please refer to the [Gateway API Documentation](../../deploy/crownlabs/docs/gateway-architecture-and-routing.md) for the active L7 traffic routing configuration, optimized parameters, timeouts, and migration strategy.
+
+We legacy-used [*ingress-ngnix*](https://kubernetes.github.io/ingress-nginx/) as ingress controller, to dispatch incoming requests to the requested service running in the cluster.
 In the following, two different ingress controllers are created and coupled with two LoadBalancer services.
 One operates as a *global frontend* of the cluster reachable through an external (public) IP address, while the other can be adopted to expose resources on the *internal network* (i.e. with a private IP address).
 

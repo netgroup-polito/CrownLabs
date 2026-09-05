@@ -8,7 +8,6 @@ query instancesLabelSelector($labels: String) {
         annotations
       }
       status {
-        ip
         phase
         url
         nodeName

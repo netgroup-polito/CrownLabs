@@ -1,0 +1,28 @@
+{{- if and .Values.global.gateway.gatewayApiMode (.Values.global.gateway.securityPolicy.enabled | default true) }}
+{{- if .Values.global.gateway.securityPolicy.secret.enabled }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Values.global.gateway.securityPolicy.secret.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  {{- toYaml .Values.global.gateway.securityPolicy.secret.stringData | nindent 4 }}
+---
+{{- end }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: {{ .Values.global.gateway.securityPolicy.name }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+spec:
+  targetRefs:
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.global.gateway.name }}
+  {{- toYaml .Values.global.gateway.securityPolicy.spec | nindent 2 }}
+{{- end }}

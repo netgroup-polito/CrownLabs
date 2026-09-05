@@ -53,7 +53,7 @@ spec:
   prettyName: Dark coffee
   description: Too strong to keep it running for a long time
   environmentList:
-    - name: dark-coffee
+    - name: dark-coffee1
       environmentType: Container
       image: registry.crownlabs.example.com/coffee/dark:strongest
       guiEnabled: false
@@ -62,6 +62,7 @@ spec:
       resources:
         cpu: 4
         memory: 1G
+        disk: 1G
         reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: coffee

@@ -192,34 +192,41 @@ spec:
                         with the environment.
                       properties:
                         cpu:
-                          description: |-
-                            The maximum number of CPU cores made available to the environment
-                            (at least 1 core). This maps to the 'limits' specified
-                            for the actual pod representing the environment.
-                          format: int32
+                          description: The maximum amount of CPU required by this
+                            resource set.
+                          format: int64
                           minimum: 1
                           type: integer
                         disk:
                           anyOf:
                           - type: integer
                           - type: string
-                          description: |-
-                            The size of the persistent disk allocated for the given environment.
-                            This field is meaningful only in case of persistent or container-based
-                            environments, while it is silently ignored in the other cases.
-                            In case of containers, when this field is not specified, an emptyDir will be
-                            attached to the pod but this could result in data loss whenever the pod dies.
+                          description: The maximum amount of disk occupancy required
+                            by this resource set.
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
                         memory:
                           anyOf:
                           - type: integer
                           - type: string
-                          description: |-
-                            The amount of RAM memory assigned to the given environment. Requests and
-                            limits do correspond to avoid OOMKill issues.
+                          description: The maximum amount of RAM memory required by
+                            this resource set.
                           pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                           x-kubernetes-int-or-string: true
+                          x-kubernetes-validations:
+                          - message: Minimum 1 GB of RAM is required
+                            rule: quantity(self).compareTo(quantity('1Gi')) >= 0
+                        otherResources:
+                          additionalProperties:
+                            anyOf:
+                            - type: integer
+                            - type: string
+                            pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                            x-kubernetes-int-or-string: true
+                          description: |-
+                            Generic map to handle any extended hardware resources (e.g., nvidia.com/gpu, amd.com/gpu)
+                            without hardcoding specific vendor keys.
+                          type: object
                         reservedCPUPercentage:
                           description: |-
                             The percentage of reserved CPU cores, ranging between 1 and 100, with
@@ -286,6 +293,7 @@ spec:
                   - name
                   - resources
                   type: object
+                maxItems: 10
                 type: array
                 x-kubernetes-list-map-keys:
                 - name

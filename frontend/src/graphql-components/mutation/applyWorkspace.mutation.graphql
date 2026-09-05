@@ -19,6 +19,8 @@ mutation applyWorkspace(
         cpu
         memory
         instances
+        disk
+        otherResources
       }
     }
   }

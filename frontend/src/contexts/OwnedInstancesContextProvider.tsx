@@ -5,7 +5,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
 } from 'react';
 import { ErrorContext } from '../errorHandling/ErrorContext';
 import { ErrorTypes } from '../errorHandling/utils';
@@ -18,7 +17,7 @@ import { TenantContext } from './TenantContext';
 import { AuthContext } from './AuthContext';
 import { OwnedInstancesContext } from './OwnedInstancesContext';
 import { type Instance } from '../utils';
-import { makeGuiInstance, SubObjType } from '../utilsLogic';
+import { makeGuiInstance } from '../utilsLogic';
 import { handleInstanceUpdate } from '../utils/instanceSubscriptionHandler';
 import {
   calculateAvailableQuota,
@@ -33,8 +32,6 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
   const { makeErrorCatcher, apolloErrorCatcher, errorsQueue } =
     useContext(ErrorContext);
 
-  const [instances, setInstances] = useState<Instance[]>([]);
-
   const tenantNs = tenantData?.tenant?.status?.personalNamespace?.name;
 
   const {
@@ -48,15 +45,11 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
     skip: !tenantNs,
     onError: apolloErrorCatcher,
     fetchPolicy: 'cache-and-network',
-    onCompleted: data => {
-      // Convert GraphQL instances to GUI instances
-      const guiInstances =
-        data?.instanceList?.instances
-          ?.map(makeGuiInstance)
-          .filter((i): i is Instance => i !== null) ?? [];
-      setInstances(guiInstances);
-    },
   });
+
+  const instances = useMemo(() => data?.instanceList?.instances
+    ?.map(makeGuiInstance)
+    .filter((i): i is Instance => i !== null) ?? [], [data]);
 
   // Keep track of raw instances for quota calculations
   const rawInstances = useMemo(() => {
@@ -90,7 +83,7 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
         if (!guiInstance) return prev;
 
         // Use the shared handler for instance updates
-        const { instances, objType } = handleInstanceUpdate(
+        const { instances } = handleInstanceUpdate(
           { instanceList: prev.instanceList ?? undefined },
           { instance, updateType },
           {
@@ -98,32 +91,6 @@ const OwnedInstancesContextProvider: FC<PropsWithChildren> = props => {
             notifier,
           },
         );
-
-        // Update GUI instances state based on objType
-        if (objType !== SubObjType.Drop) {
-          setInstances(prevInstances => {
-            const index = prevInstances.findIndex(
-              i => i.name === guiInstance.name && i.id === guiInstance.id,
-            );
-
-            if (objType === SubObjType.Deletion) {
-              if (index !== -1) {
-                return prevInstances.filter((_, i) => i !== index);
-              }
-              return prevInstances;
-            }
-
-            if (index !== -1) {
-              // Update existing instance
-              const newInstances = [...prevInstances];
-              newInstances[index] = guiInstance;
-              return newInstances;
-            } else {
-              // Add new instance
-              return [...prevInstances, guiInstance];
-            }
-          });
-        }
 
         return {
           ...prev,

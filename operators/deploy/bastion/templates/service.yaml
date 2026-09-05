@@ -38,6 +38,7 @@ spec:
       targetPort: {{ .Values.webssh.service.targetPort }}
       protocol: TCP
       name: webssh
+      appProtocol: kubernetes.io/ws
   selector:
     {{- include "webssh.selectorLabels" . | nindent 4 }}
 {{- end }}

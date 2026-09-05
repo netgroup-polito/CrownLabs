@@ -5,6 +5,7 @@ metadata:
   name: {{ include "qlkube.fullname" . }}
   labels:
     {{- include "qlkube.labels" . | nindent 4 }}
+    crownlabs.polito.it/public-route: "true"
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -18,7 +19,10 @@ spec:
     - matches:
         - path:
             type: PathPrefix
-            value: {{ .Values.ingress.path }}
+            value: {{ .Values.httproute.path }}
+      timeouts:
+        request: {{ .Values.httproute.timeouts.request | default "600s" }}
+        backendRequest: {{ .Values.httproute.timeouts.backendRequest | default "600s" }}
       backendRefs:
         - group: ""
           kind: Service

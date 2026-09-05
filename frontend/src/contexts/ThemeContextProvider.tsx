@@ -77,9 +77,7 @@ const ThemeContextProvider: FC<PropsWithChildren> = props => {
             hashed: false,
           }}
         >
-          
-            {children}
-          
+          {children}
         </ConfigProvider>
       </StyleProvider>
     </ThemeContext.Provider>
