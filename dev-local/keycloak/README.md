@@ -87,9 +87,8 @@ See [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md) for the ful
 Here are just the commands:
 
 ```bash
-mkdir -p ~/certs
-kubectl get secret crownlabs-tls -n default -o jsonpath='{.data.ca\.crt}' | base64 -d > ~/certs/crownlabs-ca.crt
-sudo cp ~/certs/crownlabs-ca.crt /etc/rancher/k3s/crownlabs-ca.crt
+kubectl get secret crownlabs-tls -n default -o jsonpath='{.data.ca\.crt}' | base64 -d | sudo tee /usr/local/share/ca-certificates/crownlabs-ca.crt
+sudo update-ca-certificates
 ```
 
 Write a dedicated drop-in file (this requires root) instead of editing the shared `/etc/rancher/k3s/config.yaml` file directly.

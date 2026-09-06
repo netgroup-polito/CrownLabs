@@ -35,12 +35,8 @@ This means applying them is always safe, and safe to re-run any time the chart's
 ## 2. Run the CrownLabs operator
 
 ```bash
-# The operator's Go HTTP client must also trust the Gateway's self-signed certificate.
-# See ../keycloak/README.md step 2.
-export SSL_CERT_FILE=~/certs/crownlabs-ca.crt
-
 cd operators # in the main folder, not dev-local/operators
-make run-operator-local KEYCLOAK_CLIENT_SECRET=operator-local-dev-secret
+make run-operator-local
 ```
 
 `KEYCLOAK_URL` defaults to `https://keycloak.crownlabs.local` (the Gateway's `HTTPRoute` hostname, see [`../envoy/README.md`](../envoy/README.md)).
