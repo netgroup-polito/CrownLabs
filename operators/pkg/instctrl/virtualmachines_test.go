@@ -257,7 +257,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 				It("The VMI should be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
-					Expect(vmi.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
+					Expect(vmi.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentObjectLabels(nil, &instance, &environment))))
 					Expect(vmi.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
@@ -315,7 +315,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 				It("The VMI should still be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
-					Expect(vmi.GetLabels()).To(Equal(forge.EnvironmentObjectLabels(nil, &instance, &environment)))
+					Expect(vmi.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentObjectLabels(nil, &instance, &environment))))
 					Expect(vmi.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
