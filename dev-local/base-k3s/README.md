@@ -1,6 +1,11 @@
 # Base k3s cluster
 
-This is the base k3s cluster for the local development environment. Set it up before anything else in `dev-local/`.
+CrownLabs needs a Kubernetes cluster, to host:
+
+- the required tooling (envoy, keycloak, ...) installed in the other steps of these guides
+- any container that you start from inside the frontend
+
+In the following steps, you can find the commands to set it up.
 
 ## 1. Install k3s
 
@@ -8,64 +13,140 @@ This is the base k3s cluster for the local development environment. Set it up be
 curl -sfL https://get.k3s.io | sh -
 ```
 
+k3s is a `systemctl` service, therefore you have the usual commands:
+
+- `sudo systemctl start k3s`: power the cluster on
+- `sudo systemctl stop k3s`: power the cluster off
+- `sudo systemctl enable k3s`: enable the automatic start on system boot
+- `sudo systemctl disable k3s`: disable the automatic start on system boot
+
+Leaving the cluster on will not host anything running by itself.
+However, you will probably install (and have always running):
+
+- the envoy ingress controller
+- the keycloak process
+- any container you start from the
+
 ## 2. kubeconfig access
 
-k3s writes its kubeconfig to `/etc/rancher/k3s/k3s.yaml`, owned by root and readable only by root by default.
+[kubeconfig]: ## "The kubeconfig is a file that contains all the authorization details to connect to a Kubernetes cluster with the kubectl command. While the guides don't use the command directly, it's still used inside the commands we use. For this reason, we need to have a correct kubeconfig pointing to the k3s cluster we just created. kubectl will read the config from ~/.kube/config."
 
-**Don't copy it to `~/.kube/config`** — a copy goes stale the moment k3s regenerates its certificates (which it does on its own schedule, not just on `systemctl restart`), silently leaving you with an unusable kubeconfig until you remember to re-copy it.
-Instead, tell k3s to write the *original* file group-readable, and read it from its real location directly — it's always fresh, because it's the actual file k3s keeps updating in place, not a snapshot of it.
+k3s writes its [kubeconfig][kubeconfig] to `/etc/rancher/k3s/k3s.yaml`, owned by root and readable only by root by default.
 
-This can be done with the following commands:
+The intuitive setup would be to copy this file to `~/.kube/config`.
+However, this approach does not work, since k3s periodically updates its certificates.
+Whenever that happens, your copied kubeconfig would not work anymore, since the certificates do not match.
+
+Instead, the best option consists in instructing kubectl to use the original file, that is always updated.
+This however requires to make it accessible enough.
+
+### 2.1. Making the kubeconfig accessible
+
+Inside the OS, we create a new group called `k3s-admins`, to which we register:
 
 ```bash
-# One-time: a dedicated group whose members can read k3s's kubeconfig,
-# and you as a member of it — root remains the file's owner either way.
 sudo groupadd --system k3s-admins 2>/dev/null || true
 sudo usermod -aG k3s-admins "$USER"
+```
 
-# k3s.yaml.d/*.yaml drop-ins merge automatically (alphabetical order) into
-# the main config.yaml — each concern gets its own file instead of everyone
-# editing the same shared one (see envoy/README.md and
-# keycloak/apiserver-oidc-integration.md, which each add their own drop-in
-# here later, with no risk of clobbering this one).
+Then, we need to configure k3s so that the kubeconfig is readable by this group.
+This can be done by means of a yaml file in the config folder for k3s.
+
+We cannot modify directly the `config.yaml` of k3s, but we can specify our changes in a `.yaml` file inside the folder `config.yaml.d`.
+When starting, k3s will take care of integrating all the files of this folder in alphabetical order into its `config.yaml`.
+We will exploit this functionality in the future guides, when we will apply more modifications to the k3s config.
+
+The following command creates the `config.yaml.d` folder if not present.
+Then, it creates a config modification that tells k3s to create the kubeconfig with group `k3s-admins` and permission 640 (owner RW, group R, other nothing).
+
+```bash
 sudo mkdir -p /etc/rancher/k3s/config.yaml.d
 sudo tee /etc/rancher/k3s/config.yaml.d/10-kubeconfig-access.yaml > /dev/null <<'EOF'
 write-kubeconfig-mode: "0640"
 write-kubeconfig-group: k3s-admins
 EOF
+```
 
+The cluster needs to be restarted for the changes to take place:
+
+```bash
 sudo systemctl restart k3s
 ```
 
-**Log out and back in** (or `newgrp k3s-admins` for just the current shell) so your new group membership actually takes effect — group changes don't apply to already-open sessions.
+Finally, we need the group change to take effect in the shell.
+This can be done by either:
 
-### If you don't already have a kubeconfig (or don't care about other clusters)
+- running the command `newgrp k3s-admins` to update the single shell; or
+- logging out and in from the system, to update all shells.
+
+### 2.2. Instructing kubectl to use the file (single kubeconfig)
+
+Note: if you already have a kubeconfig on your system, please skip to the next section.
+This step assumes that either the local k3s is the only cluster you are accessing, or you don't care about the previous kubeconfig you had.
+
+kubectl uses `~/.kube/config` as config location, unless a `KUBECONFIG` environment variable is set.
+Therefore, we just need to set it to point to the correct file (both in the shell and in `~/.bashrc`, so that it is set in every shell):
 
 ```bash
 echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
 ```
 
-### If you already have a kubeconfig with other clusters/contexts
+### 2.2. Instructing kubectl to use the file (multiple kubeconfigs)
 
-Point `KUBECONFIG` at **both files at once** — not a one-time copy.
-This way k3s's own file is always read fresh from disk, however often its security certificates get regenerated:
+In this case, we can have the `KUBECONFIG` env variable point to multiple configuration files:
 
 ```bash
 echo 'export KUBECONFIG=~/.kube/config:/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
 export KUBECONFIG=~/.kube/config:/etc/rancher/k3s/k3s.yaml
 ```
 
-k3s always names its cluster, user and context `default`.
-This will likely collide with an entry already in `~/.kube/config` — tools like Docker Desktop, kind, and minikube also pick the name `default`.
-When `KUBECONFIG` lists multiple files, `kubectl` silently lets the first file's entry shadow the second one, separately for the cluster, user and context maps.
-If that's your case, rename the **other** entry's cluster, user *and* context — all three, since renaming only the context still leaves the cluster and user names colliding, which would point k3s's context at the other tool's cluster.
-You can rename them however you prefer: `kubectl config rename-context`, `set-cluster`/`set-credentials`, or just an editor.
-You own `~/.kube/config`, so it's safe to edit freely.
-Leave `/etc/rancher/k3s/k3s.yaml` untouched, though — it's only group-*readable*, and must stay that way to keep being read live:
+This way, kubectl will be able to load multiple kubeconfigs at the same time.
+Kubeconfigs will be read in the order they appear, in this case the default one will be before the k3s.
+Each cluster, context and user in a new file will be considered _if and only if_ it has a name different from any previous one.
+We have to ensure that.
+
+As we said, k3s will regenerate the file at "random" intervals, so we cannot rely on changing its names.
+In particular, it will always use `default` for both the cluster, the context and the user.
+Therefore, we have to change the names in the pre-existing kubeconfig(s) to something different than `default`.
+Remember to change both the cluster, the context and the user names, and to update the content of the context accordingly
+
+<!-- prettier-ignore-start -->
+
+> Here is an example of how to update the kubeconfig:
+>
+> ```yaml
+> apiVersion: v1
+> kind: Config
+> clusters:
+> - cluster: ...
+>   name: default # --> nameCluster
+> contexts:
+> - context:
+>     cluster: default # --> nameCluster
+>     user: default # --> nameUser
+>     name: default # --> nameContext
+> current-context: default # --> nameContext
+> users:
+> - name: default # --> nameUser
+>   user: ...
+> ```
+>
+> The three names do not necessarily need to be different.
+
+<!-- prettier-ignore-end -->
+
+Once you have the two (or more) kubeconfigs, you can check that kubectl can see both:
 
 ```bash
-kubectl config use-context default   # k3s
+kubectl config get-contexts
+```
+
+You can switch from one to the other using:
+
+```bash
+sudo kubectl config use-context default       # switch to k3s
+sudo kubectl config use-context <other-name>  # switch to another cluster
 ```
 
 ## Verify
