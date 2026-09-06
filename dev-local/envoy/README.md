@@ -13,17 +13,6 @@ TLS terminates at the Gateway, using one self-signed wildcard certificate.
 Every backend behind the Gateway, such as Keycloak and [Mailpit](../mailpit/README.md), is reached over plain HTTP internally.
 No other component needs its own certificate or HTTPS listener.
 
-## 0. Prerequisites
-
-To run the Envoy Gateway, you need the following components:
-
-- The base k3s cluster. See [`../base-k3s/README.md`](../base-k3s/README.md).
-- cert-manager, which issues the wildcard certificate used below:
-  ```bash
-  kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.3/cert-manager.yaml
-  kubectl wait --for=condition=Available deployment --all -n cert-manager --timeout=120s
-  ```
-
 ## 1. Disable k3s's bundled Traefik
 
 Traefik is k3s's default ingress controller.
@@ -31,9 +20,7 @@ It runs its own `LoadBalancer` `Service`, bound to the node's ports 80 and 443 t
 The Envoy Gateway's own `Service` needs the same ports, so Traefik has to be removed.
 This project uses Envoy Gateway instead of Traefik's built-in Gateway API support, because Envoy Gateway supports more features.
 
-To disable Traefik, add a dedicated drop-in file under `/etc/rancher/k3s/config.yaml.d/` (this requires root access).
-k3s automatically merges every `*.yaml` file in that folder into its configuration, in alphabetical order.
-There is no single shared file to edit by hand.
+To disable Traefik, you can add a new file inside the `config.yaml.d` folder, as was already done to change the kubeconfig file settings:
 
 ```bash
 sudo mkdir -p /etc/rancher/k3s/config.yaml.d
@@ -42,6 +29,8 @@ disable:
   - traefik
 EOF
 ```
+
+To have these changes apply, a restart of the k3s cluster is required:
 
 ```bash
 sudo systemctl restart k3s
@@ -75,22 +64,22 @@ Envoy Gateway's own CRDs coexist with, and upgrade, that chart's CRDs in step 2 
 
 ## 2. Install the Gateway API CRDs and the Envoy Gateway controller
 
-Always pin an explicit release, and never use `latest`.
-The `latest` *tag* for the install manifest and the `latest` *image* tag can drift out of sync with each other.
-We tested this: it produced a controller crash, with the error `no matches for kind "ListenerSet" in version "gateway.networking.k8s.io/v1"`, because the CRD bundle was older than what the controller image expected.
+> [Gateway API](https://kubernetes.io/docs/concepts/services-networking/gateway/) [CRDs](https://kubernetes.io/docs/concepts/extend-kubernetes/api-extension/custom-resources/) (CRDs = Custom Resources) is a family of API kinds that provide dynamic infrastructure provisioning and advanced traffic routing.
 
-In this guide, we use the tag 1.8.2
+In this guide, we install Envoy 1.8.2.
+
+Please never use `latest`, as the Gateway API and Envoy images tagged as `latest` can drift out of sync.
+
+> In a test we conducted using the `latest` tag, the controller crashed with the error `no matches for kind "ListenerSet" in version "gateway.networking.k8s.io/v1"`.
+> This is because the CRD bundle was older than what the controller image expected.
 
 ```bash
 kubectl apply --server-side --force-conflicts -f https://github.com/envoyproxy/gateway/releases/download/v1.8.2/install.yaml
 kubectl wait --timeout=120s -n envoy-gateway-system deployment/envoy-gateway --for=condition=Available
 ```
 
-The `--force-conflicts` flag is required here.
-k3s's bundled `traefik-crd` chart already installs the core Gateway API CRDs (`GatewayClass`, `Gateway`, `HTTPRoute`, and others) at an older schema version, managed by `helm`.
-This flag lets Envoy Gateway take over that field ownership, so it can upgrade the CRDs.
-It is safe to run this command even before you disable Traefik itself, because Helm never deletes CRDs when you uninstall a chart.
-This means the CRDs stay safe even after the `traefik-crd` release eventually goes away.
+The `--force-conflicts` flag allows the Envoy Gateway to take over the Gateway API CRDs ownership, to upgrade them.
+It is necessary, since there are already some Gateway API CRDs installed by traefik.
 
 > If you hit the error `The CustomResourceDefinition "backendtlspolicies.gateway.networking.k8s.io" is invalid: status.storedVersions[0]: ... must remain in spec.versions`, please do the following:
 >
@@ -98,18 +87,39 @@ This means the CRDs stay safe even after the `traefik-crd` release eventually go
 > 2. Delete just that CRD before re-running the command above:
 >    `kubectl delete crd backendtlspolicies.gateway.networking.k8s.io`.
 
-## 3. Apply the shared Gateway
+## 3. Install cert-manager
+
+Since Envoy terminates the TLS connection, it requires some way to generate certificates.
+For development, we will only use self-signed certificates.
+We will generate them during the next steps, now we start installing the container to handle them:
+
+```bash
+kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.20.3/cert-manager.yaml
+kubectl wait --for=condition=Available deployment --all -n cert-manager --timeout=120s
+```
+
+## 4. Deploy Envoy
+
+First of all, we have to generate a self-signed CA root authority.
+We will use it to sign the next certificates, to be able to serve the pages via HTTPS.
+The first time we will open the browser on a hosted page, we will have to instruct it to trust the certificate.
+
+Then, we need a certificate.
+For ease of use during development, we will only generate a single wildcard certificate `*.crownlabs.local`, that will work for all pages.
+It is be stored in the `crownlabs-tls` secret.
+
+For the gateway itself, we need to create a `GatewayClass` and a `Gateway` listening on ports 80 and 443.
+For HTTPS, it uses the `crownlabs-tls` certificate we just created.
+
+Finally, we add a redirect to any HTTP request.
+A status 301 will prompt the user to use HTTPS.
+
+All these things are done automatically by applying the manifest in this folder:
 
 ```bash
 kubectl apply -f dev-local/envoy/manifests
 kubectl wait --for=condition=Ready certificate/crownlabs-tls -n default --timeout=30s
 ```
-
-This applies:
-
-- `ClusterIssuer selfsigned` and `Certificate crownlabs-tls`: the wildcard certificate (`*.crownlabs.local`), issued by cert-manager and stored in the `crownlabs-tls` Secret.
-- `GatewayClass envoy-gateway` and `Gateway crownlabs` (in the `default` namespace): one HTTPS listener on port 443, which terminates TLS with the certificate above, and one HTTP listener on port 80, used only for redirects.
-- `HTTPRoute http-to-https-redirect`: any plain HTTP request to `*.crownlabs.local` gets a 301 redirect to HTTPS.
 
 Envoy Gateway automatically creates the actual `LoadBalancer` `Service` that backs this `Gateway`, under the `envoy-gateway-system` namespace, with an auto-generated name.
 To find it:
@@ -118,6 +128,8 @@ To find it:
 kubectl get svc -n envoy-gateway-system
 # Look for the LoadBalancer-type Service, for example envoy-default-crownlabs-<hash>.
 ```
+
+Please take note of the name of the LoadBalancer service, as it will be required later in the guide.
 
 Once Traefik is disabled (step 1) and its DaemonSet has released ports 80 and 443, k3s's `ServiceLB` assigns those same ports to this Service.
 You can verify with the following command:
@@ -128,53 +140,77 @@ kubectl get gateway crownlabs -n default
 # It stays False, with reason "AddressNotAssigned", until Traefik is actually gone and ports 80/443 are free.
 ```
 
-## 4. `/etc/hosts`
+## 5. Configure the static DNS
 
-Add one line per hostname routed through the Gateway, pointing at `127.0.0.1`.
-This is a single-node cluster, so the node itself _is_ `127.0.0.1`.
+In your local machine, you will try accessing URLs such as `keycloak.crownlabs.local`.
+Since there is no DNS to point the URL to the right IP, you will have to add them manually.
+This is done by inserting a tuple `<ip> <URL>` in the file `/etc/hosts` in your machine.
 
-We will need routings for keycloak and mailpit, so we can already prepare them:
+In the next steps of this guide, we will setup the keycloak and mailpit services, so we can start adding the DNS resolutions right now.
+The target IP address is simply the host itself, so `127.0.0.1`:
 
 ```bash
 echo "127.0.0.1 keycloak.crownlabs.local" | sudo tee -a /etc/hosts
 echo "127.0.0.1 mail.crownlabs.local" | sudo tee -a /etc/hosts
 ```
 
-Keep in mind that now we have the routings, but there is still nothing listening behind.
+Keep in mind that now we have the routings, but there is still nothing listening listening behind.
 To really try if everything is working, you will first have to setup the next services.
 
-Please note that the changes to the local `/etc/hosts` file only take effect when you connect to the cluster from the same host.
-If a second machine also connects to the k3s cluster, you need to update the `/etc/hosts` file on that machine too, replacing `127.0.0.1` with the actual IP address of the k3s host.
+These rules only work on the same machine where k3s is hosted, due to the reflexive nature of the address.
+If you are accessing the pages from a different host in the same network, you would have to modify these rules, using the IP of the k3s host instead of `127.0.0.1`.
 
-> **On WSL2, editing `/etc/hosts` alone is not enough for the browser.**
-> The command above only edits the _Linux/WSL2-side_ `/etc/hosts` file.
-> This lets processes running inside WSL2 itself (the API server, `curl`, the operator) resolve the hostname.
-> The browser, however, runs on **Windows**, and Windows resolves hostnames using its own, separate hosts file.
-> We tested this: without updating the Windows hosts file, the browser fails with `DNS_PROBE_FINISHED_NXDOMAIN`, not a certificate warning, because the connection never even opens.
-> Add the same line to the Windows hosts file too, from an **elevated** PowerShell window.
-> Plain Notepad-as-administrator can silently fail here: if the elevation did not actually take effect, Windows' File/Registry Virtualization redirects the save to a per-user shadow copy, with no error message. The edit then looks successful, but the real file stays untouched.
->
-> ```powershell
-> Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 keycloak.crownlabs.local"
-> Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 mail.crownlabs.local"
-> ```
->
-> Verify the change actually landed:
->
-> ```powershell
-> Get-Content C:\Windows\System32\drivers\etc\hosts | Select-String crownlabs
-> ```
->
-> Then run `ipconfig /flushdns` and `ping keycloak.crownlabs.local` (expect a reply from `127.0.0.1`) before you retry the browser.
+## 5b. Configure the static DNS on WSL2
 
-## 5. On WSL2: bridge the Gateway
+_If you are not using WSL2, or you are accessing the pages directly on the Linux environment, you can ignore this step._
 
-On WSL2, the browser on Windows cannot reach the Gateway's ports directly, for the same reason described earlier for Keycloak's old NodePort setup.
-A `LoadBalancer` Service backed by k3s's `ServiceLB` does not open a real listening socket on ports 80 and 443.
+The `/etc/hosts` edited in the previous step only takes affect in the Linux side.
+They will be in place if you access the URLs directly from Linux, for example with a `curl` command.
+However, if you will use your Windows browser to access the URLs, they won't work.
+Instead, you would see a `DNS_PROBE_FINISHED_NXDOMAIN` error, because the DNS cannot be solved.
+
+To solve this issue, you have to add the static DNS entries also on Windows.
+
+This can be done with the following commands, executed on an elevated PowerShell window:
+
+```powershell
+Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 keycloak.crownlabs.local"
+Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 mail.crownlabs.local"
+```
+
+Please note that directly editing the file `C:\Windows\System32\drivers\etc\hosts` may not work, despite using Notepad "run as Administrator": if the elevation did not actually take effect, you would be editing a per-user shallow copy, without any notification.
+You would then successfully edit this other file, but the real one remains untouched.
+
+You can verify that the file was correctly edited with the following command:
+
+```powershell
+Get-Content C:\Windows\System32\drivers\etc\hosts | Select-String crownlabs
+```
+
+Moreover, you can flush the DNS and try to ping one of the two addresses, to check that the correct address (`127.0.0.1`) is used:
+
+```powershell
+ipconfig /flushdns
+ping keycloak.crownlabs.local
+```
+
+## 6. Bridging the Gateway
+
+_Strictly speaking, this step is only required if you are working on WSL2.
+However, following it in the other cases does not produce any disadvantage.
+For this reason, all URLs in the following guides will be shown assuming this step is active, in order to eliminate unnecessary distinctions in the guides._
+
+The Envoy Gateway is backed by a k3s `ServiceLB`, which does not open a real listening socket on ports 80 and 443.
 Instead, it uses `iptables` rules to redirect traffic (DNAT).
-Windows' `localhostForwarding` feature only relays real listening sockets, so it has nothing to forward here, and the browser fails with `ERR_CONNECTION_REFUSED`.
 
-The fix follows the same pattern used before, but now you only need **one** bridge, covering every hostname behind the Gateway instead of one bridge per service. The bridge can be created by running the [`./WSL2_bridge.sh`](./WSL2_bridge.sh) script. It requires the gateway service name to be inserted, using the following commands:
+While this works on the Linux (WSL2) environment, it is not translated to Windows.
+That's because the `localhostForwarding` from WSL2 to Windows only forwards real listening sockets.
+Here there is none, so nothing is forwarded.
+If you open the URLs in a Windows browser, it cannot connect, and you get an error `ERR_CONNECTION_REFUSED`.
+
+The solution to this is to use the `kubectl port-forward` command to expose the port 443 from the envoy gateway to a real port in the k3s host. In this case, port 8443 is chosen.
+For simplicity, the full command is saved in the [`./WSL2_bridge.sh`](./WSL2_bridge.sh) script.
+Before running it, you need to configure it once with the following commands, replacing `<gateway-service-name>` with the Service name found in step 4:
 
 ```bash
 GATEWAY_SERVICE_NAME=<gateway-service-name>
@@ -182,30 +218,27 @@ echo "export GW_SERVICE_NAME=$GATEWAY_SERVICE_NAME" >> ~/.bashrc
 export GW_SERVICE_NAME=$GATEWAY_SERVICE_NAME
 ```
 
-Replace `<gateway-service-name>` with the Service name you found in step 3.
-
-If you run the script, you will start a process that keeps the bridge opened as long as it is running.
-
-With the bridge opened, you can access the URLs from any Windows browser. The only care you need to have is that the port `:8443` must always be specified.
-This is the same reasoning as the old `:18543` bridge: if you try to reuse port 443 itself, kube-proxy's own `iptables` rules for that port hijack the connection, and it times out.
+When running the `WSL2_bridge.sh` script, a process is started to keep the bridge opened as long as the script itself is running.
+With the bridge opened, the URLs can be accessed from any location, both on Linux and on Windows. The only care required is that the port `:8443` must always be specified, since it is not the standard HTTPS port.
 
 Please, keep in mind that:
+
 - the command explained for the bridge only needs to be executed once (unless the gateway service name changes)
 - `WSL2_bridge.sh` must instead be running every time the bridge is needed
 
+_Note: if you elected to skip this step, all the URLs are still accessible in the environment where the k3s cluster is.
+The only difference is that they will be on port 443 instead of port 8443.
+Please keep this in mind also for all the URLs in the next guides._
+
 ## Final checks
 
-As previously said, there is no way to check the correctness of the envoy setup at this point, since it has nowhere to redirect requests to.
+As previously stated, there is no way to check the correctness of the envoy setup at this point, since it has nowhere to redirect requests to.
 
 Once there are services running, you can try connecting them, to check that both the service and envoy are correctly running.
 
 Expected end state:
+
 - ✅ Traefik is disabled, the Gateway API CRDs are upgraded, and the Envoy Gateway controller is running.
 - ✅ `Gateway crownlabs` shows `PROGRAMMED = True`.
 - ✅ `/etc/hosts` has an entry for every hostname you use.
-- ✅ (WSL2 only) `WSL2_bridge.sh` bridge is setup.
-
-## Next
-
-- [`../keycloak/README.md`](../keycloak/README.md): set up Keycloak, now reachable at `https://keycloak.crownlabs.local` through the `HTTPRoute` in its own manifest.
-- [`../mailpit/README.md`](../mailpit/README.md): set up the fake SMTP server and web UI, reachable at `https://mail.crownlabs.local` the same way.
+- ✅ `WSL2_bridge.sh` bridge is setup.
