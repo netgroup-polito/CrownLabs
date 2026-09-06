@@ -1,0 +1,17 @@
+apiVersion: plugin.kubevirt.io/v1alpha1
+kind: Plugin
+metadata:
+  name: {{ include "instance-operator.fullname" . }}-native-vnc
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+spec:
+  domainHooks:
+  - condition: >-
+      vmi.metadata.namespace == "{{ .Release.Namespace }}" &&
+      vmi.metadata.labels['crownlabs.polito.it/native-vnc'] == 'true'
+    cel:
+      expression: >-
+        Domain{QEMUCommandline: DomainQEMUCommandline{Args: [
+          DomainQEMUCommandlineArg{Value: "-vnc"},
+          DomainQEMUCommandlineArg{Value: "0.0.0.0:0,websocket=5901"}
+        ]}}

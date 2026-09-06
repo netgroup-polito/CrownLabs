@@ -242,10 +242,15 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
 
 			// Without a pre-installed graphical desktop (GuiEnabled: false), the environment
-			// gets masquerade networking with only SSH forwarded to the guest, so that KubeVirt's
-			// native VNC (QEMU) can be reached directly on the pod.
+			// gets masquerade networking with every port forwarded to the guest except the
+			// native VNC one, so that KubeVirt's native VNC (QEMU) can be reached directly on the pod.
 			expectedIface := virtv1.DefaultMasqueradeNetworkInterface()
-			expectedIface.Ports = []virtv1.Port{{Name: forge.SSHPortName, Port: forge.SSHPortNumber, Protocol: "TCP"}}
+			expectedIface.PortRanges = []virtv1.PortRange{
+				{Protocol: "TCP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+				{Protocol: "TCP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+				{Protocol: "UDP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+				{Protocol: "UDP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+			}
 			Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
 		})
 

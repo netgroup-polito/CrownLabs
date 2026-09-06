@@ -65,8 +65,7 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Temp
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels:      EnvironmentSelectorLabels(instance, environment),
-				Annotations: VirtualMachineAnnotations(instance, environment, nil),
+				Labels: EnvironmentSelectorLabels(instance, environment),
 			},
 			Spec: VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},
@@ -345,14 +344,15 @@ func DataVolumeSpec(environment *clv1alpha2.Environment) (cdiv1beta1.DataVolumeS
 	}, nil
 }
 
-// masqueradeNetworkInterfaceForNativeVNC forges a masquerade interface that forwards SSH
-// to the guest, while deliberately leaving the native VNC port out of Ports: declaring it
-// would redirect it into the guest via NAT, where nothing listens (QEMU's VNC socket lives
-// in the pod's own network namespace, not inside the guest).
+// masqueradeNetworkInterfaceForNativeVNC forges a masquerade interface that forwards to the guest
+// all ports except the one used by QEMU's native VNC-over-websocket server, which is used for the readiness probe.
 func masqueradeNetworkInterfaceForNativeVNC() *virtv1.Interface {
 	iface := virtv1.DefaultMasqueradeNetworkInterface()
-	iface.Ports = []virtv1.Port{
-		{Name: SSHPortName, Port: SSHPortNumber, Protocol: "TCP"},
+	iface.PortRanges = []virtv1.PortRange{
+		{Protocol: "TCP", Start: 1, End: NativeVNCPortNumber - 1},
+		{Protocol: "TCP", Start: NativeVNCPortNumber + 1, End: 65535},
+		{Protocol: "UDP", Start: 1, End: NativeVNCPortNumber - 1},
+		{Protocol: "UDP", Start: NativeVNCPortNumber + 1, End: 65535},
 	}
 	return iface
 }
