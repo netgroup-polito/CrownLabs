@@ -144,6 +144,12 @@ kubectl config get-contexts
 
 You can switch from one to the other using:
 
+_NOTE: after further testing, the following commands do not work.
+Initially, they were without the sudo, but they were raising an error.
+The error disappeared with the sudo, but it was later discovered that the context change would not take place for the user, if the command is run with sudo.
+The correct command will be published in a future commit, once found.
+In the meantime, please use a single kubeconfig (that part of the guide is confirmed to work)._
+
 ```bash
 sudo kubectl config use-context default       # switch to k3s
 sudo kubectl config use-context <other-name>  # switch to another cluster
