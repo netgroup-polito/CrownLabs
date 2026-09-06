@@ -16,6 +16,7 @@ Please, set them up in the following order, since each one is a prerequisite for
 - [`keycloak/`](keycloak/README.md): the identity and access management solution, providing single-sign-on and authentication for the various services. It is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
 - [`operators/`](operators/README.md): the components that constitute the server-side of the CrownLabs business logic.
 - [`mailpit/`](mailpit/README.md): a fake SMTP server with a web UI, for local email testing. Like Keycloak, it is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
+  While all the other systems are almost always required, this one may be skipped, if the system enhancements you have to do are not related to sending emails.
 
 For each system, the dedicated subfolder contains:
 
