@@ -7,8 +7,8 @@ metadata:
 spec:
   domainHooks:
   - condition: >-
-      vmi.metadata.namespace == "{{ .Release.Namespace }}" &&
-      vmi.metadata.labels['crownlabs.polito.it/native-vnc'] == 'true'
+      vmi.namespace == "{{ .Release.Namespace }}" &&
+      vmi.labels['crownlabs.polito.it/native-vnc'] == 'true'
     cel:
       expression: >-
         Domain{QEMUCommandline: DomainQEMUCommandline{Args: [
