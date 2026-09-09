@@ -7,7 +7,6 @@ metadata:
 spec:
   domainHooks:
   - condition: >-
-      vmi.Namespace == "{{ .Release.Namespace }}" &&
       vmi.Labels['crownlabs.polito.it/native-vnc'] == 'true'
     cel:
       expression: >-
