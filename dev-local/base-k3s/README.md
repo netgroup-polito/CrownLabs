@@ -37,8 +37,14 @@ The intuitive setup would be to copy this file to `~/.kube/config`.
 However, this approach does not work, since k3s periodically updates its certificates.
 Whenever that happens, your copied kubeconfig would not work anymore, since the certificates do not match.
 
-Instead, the best option consists in instructing kubectl to use the original file, that is always updated.
-This however requires to make it accessible enough.
+Another option would be to have kubectl read directly the original file.
+However, this option does not work either, since the `k3s` folder is writable only by root.
+
+In the end, the solution adopted is to have a symlink in the `~/.kube` folder that points to the original `k3s.yaml` file.
+This allows kubectl to work in a directory where it can write, while always using the updated file.
+
+By default, the `k3s.yaml` file created by k3s only allows root to access it.
+We will also instruct k3s to make it readable by the user, too.
 
 ### 2.1. Making the kubeconfig accessible
 
@@ -79,26 +85,34 @@ This can be done by either:
 - running the command `newgrp k3s-admins` to update the single shell; or
 - logging out and in from the system, to update all shells.
 
-### 2.2. Instructing kubectl to use the file (single kubeconfig)
+### 2.2. Creating the symlink
 
-Note: if you already have a kubeconfig on your system, please skip to the next section.
-This step assumes that either the local k3s is the only cluster you are accessing, or you don't care about the previous kubeconfig you had.
-
-kubectl uses `~/.kube/config` as config location, unless a `KUBECONFIG` environment variable is set.
-Therefore, we just need to set it to point to the correct file (both in the shell and in `~/.bashrc`, so that it is set in every shell):
+As described before, we want to create a symlink to k3s's file in the `~/.kube` folder:
 
 ```bash
-echo 'export KUBECONFIG=/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
-export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+ln -s /etc/rancher/k3s/k3s.yaml ~/.kube/k3s.yaml
 ```
 
-### 2.2. Instructing kubectl to use the file (multiple kubeconfigs)
+### 2.3. Instructing kubectl to use the file (single kubeconfig)
+
+_Note: if you already have a kubeconfig on your system, please skip to the next section.
+This step assumes that either the local k3s is the only cluster you are accessing, or you don't care about the previous kubeconfig you had._
+
+kubectl uses the file `~/.kube/config` as config location, unless a `KUBECONFIG` environment variable is set.
+Therefore, we just need to set it to point to the correct file (both in the shell and in `~/.bashrc`, so that it is set in every newly created shell):
+
+```bash
+echo 'export KUBECONFIG=~/.kube/k3s.yaml' >> ~/.bashrc
+export KUBECONFIG=~/.kube/k3s.yaml
+```
+
+### 2.3. Instructing kubectl to use the file (multiple kubeconfigs)
 
 In this case, we can have the `KUBECONFIG` env variable point to multiple configuration files:
 
 ```bash
-echo 'export KUBECONFIG=~/.kube/config:/etc/rancher/k3s/k3s.yaml' >> ~/.bashrc
-export KUBECONFIG=~/.kube/config:/etc/rancher/k3s/k3s.yaml
+echo 'export KUBECONFIG=~/.kube/config:~/.kube/k3s.yaml' >> ~/.bashrc
+export KUBECONFIG=~/.kube/config:~/.kube/k3s.yaml
 ```
 
 This way, kubectl will be able to load multiple kubeconfigs at the same time.
@@ -144,15 +158,9 @@ kubectl config get-contexts
 
 You can switch from one to the other using:
 
-_NOTE: after further testing, the following commands do not work.
-Initially, they were without the sudo, but they were raising an error.
-The error disappeared with the sudo, but it was later discovered that the context change would not take place for the user, if the command is run with sudo.
-The correct command will be published in a future commit, once found.
-In the meantime, please use a single kubeconfig (that part of the guide is confirmed to work)._
-
 ```bash
-sudo kubectl config use-context default       # switch to k3s
-sudo kubectl config use-context <other-name>  # switch to another cluster
+kubectl config use-context default       # switch to k3s
+kubectl config use-context <other-name>  # switch to another cluster
 ```
 
 ## Verify
