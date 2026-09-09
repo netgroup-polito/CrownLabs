@@ -156,6 +156,8 @@ run-operator-local: KEYCLOAK_URL=https://keycloak.crownlabs.local
 run-operator-local: KEYCLOAK_REALM=crownlabs
 run-operator-local: KEYCLOAK_CLIENT_ID=operator-local
 run-operator-local: KEYCLOAK_TARGET_CLIENT=operator-local
+run-operator-local: KEYCLOAK_CLIENT_SECRET=operator-local-dev-secret
+run-operator-local: SSL_CERT_FILE=/etc/rancher/k3s/crownlabs-ca.crt
 run-operator-local: install-local samples-res-local run-operator ## Prepare, then run the main operator locally against the dev-local Keycloak (requires KEYCLOAK_CLIENT_SECRET).
 
 .PHONY: install-local
