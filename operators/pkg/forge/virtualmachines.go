@@ -65,7 +65,7 @@ func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Temp
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: EnvironmentSelectorLabels(instance, environment),
+				Labels: VirtualMachineLabels(environment, EnvironmentSelectorLabels(instance, environment)),
 			},
 			Spec: VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},
