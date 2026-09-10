@@ -96,7 +96,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentSelectorLabels(&instance, &environment))))
 		})
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
