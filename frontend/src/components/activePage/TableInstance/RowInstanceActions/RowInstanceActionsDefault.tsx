@@ -18,6 +18,7 @@ import {
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
+import { BASE_URL } from '../../../../env';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -208,10 +209,11 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           <Button
             onClick={() =>
               window.open(
-                `/instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`,
+                `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`,
                 '_blank',
               )
             }
+
 
             type="link"
             className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0 border-0`}
@@ -230,10 +232,10 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
           className={`hidden ${extended
-              ? viewMode === WorkspaceRole.manager
-                ? 'xl:block'
-                : 'lg:block'
-              : 'sm:block '
+            ? viewMode === WorkspaceRole.manager
+              ? 'xl:block'
+              : 'lg:block'
+            : 'sm:block '
             } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
           {environments && environments.length > 1 ? (
@@ -272,9 +274,9 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
         </div>
         <div
           className={`hidden ${extended
-              ? `sm:block ${viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
-              }`
-              : 'xs:block sm:hidden'
+            ? `sm:block ${viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
+            }`
+            : 'xs:block sm:hidden'
             } block flex items-center ${connectDisabled ? 'cursor-not-allowed' : ''
             }`}
         >
