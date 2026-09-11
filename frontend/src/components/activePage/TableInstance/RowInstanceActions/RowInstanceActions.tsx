@@ -10,6 +10,7 @@ import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
 import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent from '../SSHModalContent/SSHModalContent';
+import NativeVNCViewer from '../../NativeVNCViewer/NativeVNCViewer';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
 import {
@@ -80,6 +81,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
   const { persistent } = instance;
 
   const [sshModal, setSshModal] = useState(false);
+  const [vncModal, setVncModal] = useState(false);
   const [showExposureModal, setShowExposureModal] = useState(false);
 
   const onEnablePublicExposure = useCallback(
@@ -87,6 +89,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
     [],
   );
   const closeSshModal = useCallback(() => setSshModal(false), []);
+  const closeVncModal = useCallback(() => setVncModal(false), []);
   const closeExposureModal = useCallback(() => setShowExposureModal(false), []);
 
   const timeValue = useMemo(
@@ -97,6 +100,15 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
     () => formatRelativeDate(instance.lastActivity, now),
     [instance.lastActivity, now],
   );
+
+  const nativeVncEnv = instance.environments?.find(env => !env.guiEnabled);
+  const vncWsUrl = (() => {
+    if (!nativeVncEnv || !instance.url) return undefined;
+    const baseUrl = instance.url.endsWith('/')
+      ? instance.url.slice(0, -1)
+      : instance.url;
+    return `${baseUrl}/${nativeVncEnv.name}/`.replace(/^https/, 'wss');
+  })();
 
   const fieldsDropdown = useMemo(
     () => ({
@@ -159,6 +171,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           )}
           <RowInstanceActionsDefault
             setSshModal={setSshModal}
+            setVncModal={setVncModal}
             extended={extended}
             instance={instance}
             viewMode={viewMode}
@@ -185,6 +198,26 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           environments={instance.environments}
         />
       </Modal>
+      <Modal
+        title="Native VNC (provisional test)"
+        width={900}
+        open={vncModal}
+        onOk={closeVncModal}
+        onCancel={closeVncModal}
+        footer={<Button onClick={closeVncModal}>Close</Button>}
+        centered
+      >
+        {vncWsUrl ? (
+          <div style={{ height: '70vh' }}>
+            <NativeVNCViewer wsUrl={vncWsUrl} />
+          </div>
+        ) : (
+          <div>
+            <p>VNC environment not found or instance URL is missing.</p>
+          </div>
+        )}
+      </Modal>
+
       {/* show exposure modal only when allowed or in dev */}
       {allowPublic && (
         <PublicExposureModal
