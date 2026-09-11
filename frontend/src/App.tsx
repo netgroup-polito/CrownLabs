@@ -23,6 +23,7 @@ import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from './env';
 import TenantPage from './components/tenants/TenantPage';
 import TenantListPage from './components/tenants/TenantListPage';
 import WorkspaceListPage from './components/workspaces/WorkspaceListPage';
+import NativeVNCPage from './components/activePage/NativeVNCPage/NativeVNCPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -64,15 +65,15 @@ function App() {
         },
         ...(hasUtilitiesAccess
           ? [
-              {
-                route: {
-                  name: 'Drive',
-                  path: '/drive',
-                },
-                content: <DriveView key="/drive" />,
-                linkPosition: LinkPosition.NavbarButton,
+            {
+              route: {
+                name: 'Drive',
+                path: '/drive',
               },
-            ]
+              content: <DriveView key="/drive" />,
+              linkPosition: LinkPosition.NavbarButton,
+            },
+          ]
           : []),
         {
           route: {
@@ -129,6 +130,17 @@ function App() {
           ),
           linkPosition: LinkPosition.WebSSH,
         },
+        {
+          route: {
+            name: 'Native VNC',
+            path: '/instance/:namespace/:VMname/:environment/vnc',
+          },
+          content: (
+            <NativeVNCPage key="/instance/:namespace/:VMname/:environment/vnc" />
+          ),
+          linkPosition: LinkPosition.Hidden,
+        },
+
       ]}
     />
   );

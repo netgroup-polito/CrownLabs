@@ -23,13 +23,12 @@ export interface IRowInstanceActionsDefaultProps {
   instance: Instance;
   viewMode: WorkspaceRole;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
-  setVncModal: React.Dispatch<SetStateAction<boolean>>;
 }
 
 const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
-  const { extended, instance, viewMode, setSshModal, setVncModal } = props;
+  const { extended, instance, viewMode, setSshModal } = props;
   const {
     prettyName,
     url,
@@ -192,9 +191,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           onClick={() => setShowDeleteModalConfirm(true)}
           type="link"
           danger
-          className={`hidden ${
-            extended ? 'sm:block' : 'xs:block'
-          } py-0 border-0`}
+          className={`hidden ${extended ? 'sm:block' : 'xs:block'
+            } py-0 border-0`}
           shape="circle"
           size="middle"
           icon={
@@ -208,7 +206,13 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       {nativeVncEnv && (
         <Tooltip placement="top" title="Test native VNC (provisional)">
           <Button
-            onClick={() => setVncModal(true)}
+            onClick={() =>
+              window.open(
+                `/instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`,
+                '_blank',
+              )
+            }
+
             type="link"
             className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0 border-0`}
             shape="circle"
@@ -225,13 +229,12 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
 
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
-          className={`hidden ${
-            extended
+          className={`hidden ${extended
               ? viewMode === WorkspaceRole.manager
                 ? 'xl:block'
                 : 'lg:block'
               : 'sm:block '
-          } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
+            } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
           {environments && environments.length > 1 ? (
             <Dropdown
@@ -268,15 +271,12 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           )}
         </div>
         <div
-          className={`hidden ${
-            extended
-              ? `sm:block ${
-                  viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
-                }`
+          className={`hidden ${extended
+              ? `sm:block ${viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
+              }`
               : 'xs:block sm:hidden'
-          } block flex items-center ${
-            connectDisabled ? 'cursor-not-allowed' : ''
-          }`}
+            } block flex items-center ${connectDisabled ? 'cursor-not-allowed' : ''
+            }`}
         >
           {environments && environments.length > 1 ? (
             <Dropdown
@@ -285,9 +285,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
               disabled={connectDisabled}
             >
               <Button
-                className={`${
-                  connectDisabled ? 'pointer-events-none' : ''
-                } flex items-center justify-center p-0 border-0`}
+                className={`${connectDisabled ? 'pointer-events-none' : ''
+                  } flex items-center justify-center p-0 border-0`}
                 type={!extended ? 'link' : 'default'}
                 color={classFromPropsMobile()}
                 shape="circle"
@@ -303,9 +302,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             </Dropdown>
           ) : (
             <Button
-              className={`${
-                connectDisabled ? 'pointer-events-none' : ''
-              } flex items-center justify-center p-0 border-0`}
+              className={`${connectDisabled ? 'pointer-events-none' : ''
+                } flex items-center justify-center p-0 border-0`}
               type={!extended ? 'link' : 'default'}
               color={classFromPropsMobile()}
               shape="circle"
