@@ -11,6 +11,7 @@ const NativeVNCViewer: FC<INativeVNCViewerProps> = ({ wsUrl }) => {
     <VncScreen
       url={wsUrl}
       scaleViewport
+      focusOnClick
       background="#000000"
       className="native-vnc-viewer"
       onConnect={() => console.log('[native-vnc] connected')}
