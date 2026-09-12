@@ -16,28 +16,28 @@ const NativeVNCPage: FC = () => {
   });
 
   const instanceUrl = data?.instance?.status?.url;
-
-  const wsUrl = (() => {
+  const envUrl = (() => {
     if (!instanceUrl) return undefined;
     const baseUrl = instanceUrl.endsWith('/')
       ? instanceUrl.slice(0, -1)
       : instanceUrl;
-    return `${baseUrl}/${environment}/`.replace(/^https/, 'wss');
+    return `${baseUrl}/${environment}/`;
   })();
+
+  const wsUrl = envUrl?.replace(/^https/, 'wss');
 
   const [sessionState, setSessionState] = useState<
     'checking' | 'ready' | 'needsLogin'
   >('checking');
 
   useEffect(() => {
-    if (!instanceUrl) return;
+    if (!envUrl) return;
     let cancelled = false;
 
-    fetch(instanceUrl, { credentials: 'include' })
+    fetch(envUrl, { credentials: 'include' })
       .then(res => {
         if (cancelled) return;
-        const backHome =
-          new URL(res.url).origin === new URL(instanceUrl).origin;
+        const backHome = new URL(res.url).origin === new URL(envUrl).origin;
         setSessionState(backHome ? 'ready' : 'needsLogin');
       })
       .catch(() => {
@@ -47,7 +47,8 @@ const NativeVNCPage: FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [instanceUrl]);
+  }, [envUrl]);
+
 
   if (loading || sessionState === 'checking')
     return <div className="native-vnc-page-status">Loading…</div>;
@@ -64,7 +65,7 @@ const NativeVNCPage: FC = () => {
       <div className="native-vnc-page-status">
         <div>
           <p>Your session has expired.</p>
-          <button onClick={() => instanceUrl && window.open(instanceUrl, '_blank')}>
+          <button onClick={() => envUrl && window.open(envUrl, '_blank')}>
             Log in again
           </button>
         </div>
