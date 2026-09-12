@@ -3,6 +3,7 @@ import {
   ExportOutlined,
   DownOutlined,
   CodeOutlined,
+  ExperimentOutlined,
 } from '@ant-design/icons';
 import { Tooltip, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
@@ -17,6 +18,8 @@ import {
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
+import { BASE_URL } from '../../../../env';
+import { refreshInstanceSession } from '../../../../utils/nativeVncSession';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -94,7 +97,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   const connectDisabled =
     status !== Phase2.Ready ||
     (environmentType === EnvironmentType.Container && !gui);
-
+  // TODO: remove this button when native VNC migration is complete
+  const nativeVncEnv = environments?.find(env => !env.guiEnabled);
   const font22px = { fontSize: '22px' };
 
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
@@ -202,6 +206,32 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           }
         />
       </Tooltip>
+      {nativeVncEnv && (
+        <Tooltip placement="top" title="Test native VNC (provisional)">
+          <Button
+            onClick={async () => {
+              const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
+              const sessionWindow = await refreshInstanceSession(
+                `${baseUrl}/${nativeVncEnv.name}/`,
+              );
+              if (sessionWindow) {
+                sessionWindow.location.href = `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`;
+              }
+            }}
+            type="link"
+            className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0 border-0`}
+            shape="circle"
+            size="middle"
+            icon={
+              <ExperimentOutlined
+                className="flex justify-center items-center"
+                style={font22px}
+              />
+            }
+          />
+        </Tooltip>
+      )}
+
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
           className={`hidden ${

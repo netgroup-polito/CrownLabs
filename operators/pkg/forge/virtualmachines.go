@@ -47,6 +47,9 @@ const (
 	// PodBridgeNetworkLiveMigrationAnnotation enables live migration for VMs using the pod bridge network.
 	PodBridgeNetworkLiveMigrationAnnotation = "kubevirt.io/allow-pod-bridge-network-live-migration"
 	podBridgeNetworkLiveMigrationValue      = "true"
+
+	// NativeVNCPortNumber -> the port QEMU's native VNC-over-websocket server listens on.
+	NativeVNCPortNumber = 5901
 )
 
 var (
@@ -61,8 +64,10 @@ var (
 func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.VirtualMachineSpec {
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
-			ObjectMeta: metav1.ObjectMeta{Labels: EnvironmentSelectorLabels(instance, environment)},
-			Spec:       VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: VirtualMachineLabels(environment, EnvironmentSelectorLabels(instance, environment)),
+			},
+			Spec: VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},
 	}
 }
@@ -103,6 +108,11 @@ func VolumeCloudInit(secretName string) virtv1.Volume {
 // VirtualMachineDomain forges the specification of the domain of a Kubevirt VirtualMachineInstance
 // object representing the definition of the VM corresponding to a given CrownLabs Environment.
 func VirtualMachineDomain(environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.DomainSpec {
+	iface := virtv1.DefaultBridgeNetworkInterface()
+	if !environment.GuiEnabled {
+		iface = masqueradeNetworkInterfaceForNativeVNC()
+	}
+
 	return virtv1.DomainSpec{
 		CPU:       &virtv1.CPU{Cores: Int64ToUint32(environment.Resources.CPU)},
 		Memory:    &virtv1.Memory{Guest: &environment.Resources.Memory},
@@ -110,7 +120,7 @@ func VirtualMachineDomain(environment *clv1alpha2.Environment, mountInfos []core
 		Devices: virtv1.Devices{
 			Disks:       VolumeDiskTargets(environment),
 			Filesystems: VirtualMachineFilesystems(mountInfos),
-			Interfaces:  []virtv1.Interface{*virtv1.DefaultBridgeNetworkInterface()},
+			Interfaces:  []virtv1.Interface{*iface},
 		},
 	}
 }
@@ -251,7 +261,7 @@ func VirtualMachineMemoryRequirements(environment *clv1alpha2.Environment) resou
 
 // VirtualMachineReadinessProbe forges the readiness probe for a given VM environment.
 func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.Probe {
-	port := SSHPortNumber
+	port := NativeVNCPortNumber
 	if environment.GuiEnabled {
 		port = GUIPortNumber
 	}
@@ -332,4 +342,17 @@ func DataVolumeSpec(environment *clv1alpha2.Environment) (cdiv1beta1.DataVolumeS
 			},
 		},
 	}, nil
+}
+
+// masqueradeNetworkInterfaceForNativeVNC forges a masquerade interface that forwards to the guest
+// all ports except the one used by QEMU's native VNC-over-websocket server, which is used for the readiness probe.
+func masqueradeNetworkInterfaceForNativeVNC() *virtv1.Interface {
+	iface := virtv1.DefaultMasqueradeNetworkInterface()
+	iface.PortRanges = []virtv1.PortRange{
+		{Protocol: "TCP", Start: 1, End: NativeVNCPortNumber - 1},
+		{Protocol: "TCP", Start: NativeVNCPortNumber + 1, End: 65535},
+		{Protocol: "UDP", Start: 1, End: NativeVNCPortNumber - 1},
+		{Protocol: "UDP", Start: NativeVNCPortNumber + 1, End: 65535},
+	}
+	return iface
 }

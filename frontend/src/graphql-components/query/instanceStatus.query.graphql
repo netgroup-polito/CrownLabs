@@ -1,0 +1,10 @@
+query instanceStatus($name: String!, $namespace: String!) {
+  instance: readCrownlabsPolitoItV1alpha2NamespacedInstanceStatus(
+    name: $name
+    namespace: $namespace
+  ) {
+    status {
+      url
+    }
+  }
+}

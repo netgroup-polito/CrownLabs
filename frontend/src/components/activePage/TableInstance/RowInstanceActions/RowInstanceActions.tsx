@@ -185,6 +185,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           environments={instance.environments}
         />
       </Modal>
+
       {/* show exposure modal only when allowed or in dev */}
       {allowPublic && (
         <PublicExposureModal

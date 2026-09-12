@@ -21,6 +21,23 @@ export type Scalars = {
   JSON: { input: any; output: any; }
 };
 
+/** Artifact contains references to the generated resources. */
+export type Artifact = {
+  __typename?: 'Artifact';
+  /** DataVolumeRef points to the generated DataVolume. */
+  dataVolumeRef?: Maybe<DataVolumeRef>;
+  /** VolumeSize reports the dimension of the generated datavolume. */
+  volumeSize?: Maybe<Scalars['JSON']['output']>;
+};
+
+/** Artifact contains references to the generated resources. */
+export type ArtifactInput = {
+  /** DataVolumeRef points to the generated DataVolume. */
+  dataVolumeRef?: InputMaybe<DataVolumeRefInput>;
+  /** VolumeSize reports the dimension of the generated datavolume. */
+  volumeSize?: InputMaybe<Scalars['JSON']['input']>;
+};
+
 export enum AutoEnroll {
   Empty = '_EMPTY_',
   Immediate = 'immediate',
@@ -93,6 +110,71 @@ export type CleanupInput = {
   stopAfterInactivity: Scalars['String']['input'];
 };
 
+/** Condition contains details for one aspect of the current state of this API Resource. */
+export type ConditionsListItem = {
+  __typename?: 'ConditionsListItem';
+  /**
+   * lastTransitionTime is the last time the condition transitioned from one status to another.
+   * This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+   */
+  lastTransitionTime: Scalars['String']['output'];
+  /**
+   * message is a human readable message indicating details about the transition.
+   * This may be an empty string.
+   */
+  message: Scalars['String']['output'];
+  /**
+   * observedGeneration represents the .metadata.generation that the condition was set based upon.
+   * For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+   * with respect to the current state of the instance.
+   */
+  observedGeneration?: Maybe<Scalars['BigInt']['output']>;
+  /**
+   * reason contains a programmatic identifier indicating the reason for the condition's last transition.
+   * Producers of specific condition types may define expected values and meanings for this field,
+   * and whether the values are considered a guaranteed API.
+   * The value should be a CamelCase string.
+   * This field may not be empty.
+   */
+  reason: Scalars['String']['output'];
+  /** status of the condition, one of True, False, Unknown. */
+  status: Status5;
+  /** type of condition in CamelCase or in foo.example.com/CamelCase. */
+  type: Scalars['String']['output'];
+};
+
+/** Condition contains details for one aspect of the current state of this API Resource. */
+export type ConditionsListItemInput = {
+  /**
+   * lastTransitionTime is the last time the condition transitioned from one status to another.
+   * This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+   */
+  lastTransitionTime: Scalars['String']['input'];
+  /**
+   * message is a human readable message indicating details about the transition.
+   * This may be an empty string.
+   */
+  message: Scalars['String']['input'];
+  /**
+   * observedGeneration represents the .metadata.generation that the condition was set based upon.
+   * For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+   * with respect to the current state of the instance.
+   */
+  observedGeneration?: InputMaybe<Scalars['BigInt']['input']>;
+  /**
+   * reason contains a programmatic identifier indicating the reason for the condition's last transition.
+   * Producers of specific condition types may define expected values and meanings for this field,
+   * and whether the values are considered a guaranteed API.
+   * The value should be a CamelCase string.
+   * This field may not be empty.
+   */
+  reason: Scalars['String']['input'];
+  /** status of the condition, one of True, False, Unknown. */
+  status: Status5;
+  /** type of condition in CamelCase or in foo.example.com/CamelCase. */
+  type: Scalars['String']['input'];
+};
+
 /** Options to customize container startup */
 export type ContainerStartupOptions = {
   __typename?: 'ContainerStartupOptions';
@@ -143,6 +225,89 @@ export type CustomizationUrlsInput = {
   contentOrigin?: InputMaybe<Scalars['String']['input']>;
   /** URL which is periodically checked (with a GET request) to determine automatic instance shutdown. Should return any 2xx status code if the instance has to keep running, any 4xx otherwise. In case of 2xx response, it should output a JSON with a `deadline` field containing a ISO_8601 compliant date/time string of the expected instance termination time. See instautoctrl.StatusCheckResponse for exact definition. */
   statusCheck?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** DataVolumeRef points to the generated DataVolume. */
+export type DataVolumeRef = {
+  __typename?: 'DataVolumeRef';
+  /** API version of the referent. */
+  apiVersion?: Maybe<Scalars['String']['output']>;
+  /**
+   * If referring to a piece of an object instead of an entire object, this string
+   * should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+   * For example, if the object reference is to a container within a pod, this would take on a value like:
+   * "spec.containers{name}" (where "name" refers to the name of the container that triggered
+   * the event) or if no container name is specified "spec.containers[2]" (container with
+   * index 2 in this pod). This syntax is chosen only to have some well-defined way of
+   * referencing a part of an object.
+   */
+  fieldPath?: Maybe<Scalars['String']['output']>;
+  /**
+   * Kind of the referent.
+   * More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+   */
+  kind?: Maybe<Scalars['String']['output']>;
+  /**
+   * Name of the referent.
+   * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+   */
+  name?: Maybe<Scalars['String']['output']>;
+  /**
+   * Namespace of the referent.
+   * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+   */
+  namespace?: Maybe<Scalars['String']['output']>;
+  /**
+   * Specific resourceVersion to which this reference is made, if any.
+   * More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+   */
+  resourceVersion?: Maybe<Scalars['String']['output']>;
+  /**
+   * UID of the referent.
+   * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+   */
+  uid?: Maybe<Scalars['String']['output']>;
+};
+
+/** DataVolumeRef points to the generated DataVolume. */
+export type DataVolumeRefInput = {
+  /** API version of the referent. */
+  apiVersion?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * If referring to a piece of an object instead of an entire object, this string
+   * should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+   * For example, if the object reference is to a container within a pod, this would take on a value like:
+   * "spec.containers{name}" (where "name" refers to the name of the container that triggered
+   * the event) or if no container name is specified "spec.containers[2]" (container with
+   * index 2 in this pod). This syntax is chosen only to have some well-defined way of
+   * referencing a part of an object.
+   */
+  fieldPath?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Kind of the referent.
+   * More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+   */
+  kind?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Name of the referent.
+   * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+   */
+  name?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Namespace of the referent.
+   * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+   */
+  namespace?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Specific resourceVersion to which this reference is made, if any.
+   * More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+   */
+  resourceVersion?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * UID of the referent.
+   * More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+   */
+  uid?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Environment defines the characteristics of an environment composing the Template. */
@@ -226,35 +391,6 @@ export type EnvironmentListListItemInput = {
   sharedVolumeMounts?: InputMaybe<Array<InputMaybe<SharedVolumeMountsListItemInput>>>;
   /** Name of the storage class to be used for the persistent volume (when needed) */
   storageClassName?: InputMaybe<Scalars['String']['input']>;
-};
-
-/**
- * Environment represents the reference to the environment to be snapshotted, in case more are
- * associated with the same Instance. If not specified, the first available environment is considered.
- */
-export type EnvironmentRef = {
-  __typename?: 'EnvironmentRef';
-  /** The name of the resource to be referenced. */
-  name: Scalars['String']['output'];
-  /**
-   * The namespace containing the resource to be referenced. It should be left
-   * empty in case of cluster-wide resources.
-   */
-  namespace?: Maybe<Scalars['String']['output']>;
-};
-
-/**
- * Environment represents the reference to the environment to be snapshotted, in case more are
- * associated with the same Instance. If not specified, the first available environment is considered.
- */
-export type EnvironmentRefInput = {
-  /** The name of the resource to be referenced. */
-  name: Scalars['String']['input'];
-  /**
-   * The namespace containing the resource to be referenced. It should be left
-   * empty in case of cluster-wide resources.
-   */
-  namespace?: InputMaybe<Scalars['String']['input']>;
 };
 
 export enum EnvironmentType {
@@ -353,11 +489,7 @@ export type ImagesListItemInput = {
   versions: Array<InputMaybe<Scalars['String']['input']>>;
 };
 
-/**
- * Instance is the reference to the persistent VM instance to be snapshotted.
- * The instance should not be running, otherwise it won't be possible to
- * steal the volume and extract its content.
- */
+/** Instance is the reference to the persistent VM instance to be snapshotted. */
 export type InstanceRef = {
   __typename?: 'InstanceRef';
   /** The name of the resource to be referenced. */
@@ -369,11 +501,7 @@ export type InstanceRef = {
   namespace?: Maybe<Scalars['String']['output']>;
 };
 
-/**
- * Instance is the reference to the persistent VM instance to be snapshotted.
- * The instance should not be running, otherwise it won't be possible to
- * steal the volume and extract its content.
- */
+/** Instance is the reference to the persistent VM instance to be snapshotted. */
 export type InstanceRefInput = {
   /** The name of the resource to be referenced. */
   name: Scalars['String']['input'];
@@ -871,7 +999,7 @@ export type ItPolitoCrownlabsV1alpha2SharedVolume = {
   /** SharedVolumeSpec is the specification of the desired state of the Shared Volume. */
   spec?: Maybe<Spec5>;
   /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
-  status?: Maybe<Status5>;
+  status?: Maybe<Status6>;
 };
 
 /** SharedVolume describes a shared volume between tenants in CrownLabs. */
@@ -885,7 +1013,7 @@ export type ItPolitoCrownlabsV1alpha2SharedVolumeInput = {
   /** SharedVolumeSpec is the specification of the desired state of the Shared Volume. */
   spec?: InputMaybe<Spec5Input>;
   /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
-  status?: InputMaybe<Status5Input>;
+  status?: InputMaybe<Status6Input>;
 };
 
 /** SharedVolumeList is a list of SharedVolume */
@@ -961,7 +1089,7 @@ export type ItPolitoCrownlabsV1alpha2Tenant = {
   /** TenantSpec is the specification of the desired state of the Tenant. */
   spec?: Maybe<Spec7>;
   /** TenantStatus reflects the most recently observed status of the Tenant. */
-  status?: Maybe<Status7>;
+  status?: Maybe<Status8>;
 };
 
 /** Tenant describes a user of CrownLabs. */
@@ -975,7 +1103,7 @@ export type ItPolitoCrownlabsV1alpha2TenantInput = {
   /** TenantSpec is the specification of the desired state of the Tenant. */
   spec?: InputMaybe<Spec7Input>;
   /** TenantStatus reflects the most recently observed status of the Tenant. */
-  status?: InputMaybe<Status7Input>;
+  status?: InputMaybe<Status8Input>;
 };
 
 /** TenantList is a list of Tenant */
@@ -2279,11 +2407,9 @@ export enum Phase3 {
 }
 
 export enum Phase4 {
-  Completed = 'Completed',
   Failed = 'Failed',
   Pending = 'Pending',
-  Processing = 'Processing',
-  Empty = '_EMPTY_'
+  Ready = 'Ready'
 }
 
 export enum Phase5 {
@@ -3147,35 +3273,17 @@ export type Spec3Input = {
 /** InstanceSnapshotSpec defines the desired state of InstanceSnapshot. */
 export type Spec4 = {
   __typename?: 'Spec4';
-  /**
-   * Environment represents the reference to the environment to be snapshotted, in case more are
-   * associated with the same Instance. If not specified, the first available environment is considered.
-   */
-  environmentRef?: Maybe<EnvironmentRef>;
-  /** ImageName is the name of the image to pushed in the docker registry. */
-  imageName: Scalars['String']['output'];
-  /**
-   * Instance is the reference to the persistent VM instance to be snapshotted.
-   * The instance should not be running, otherwise it won't be possible to
-   * steal the volume and extract its content.
-   */
+  /** Environment represents the name of the environment to be snapshotted. */
+  environmentRef: Scalars['String']['output'];
+  /** Instance is the reference to the persistent VM instance to be snapshotted. */
   instanceRef: InstanceRef;
 };
 
 /** InstanceSnapshotSpec defines the desired state of InstanceSnapshot. */
 export type Spec4Input = {
-  /**
-   * Environment represents the reference to the environment to be snapshotted, in case more are
-   * associated with the same Instance. If not specified, the first available environment is considered.
-   */
-  environmentRef?: InputMaybe<EnvironmentRefInput>;
-  /** ImageName is the name of the image to pushed in the docker registry. */
-  imageName: Scalars['String']['input'];
-  /**
-   * Instance is the reference to the persistent VM instance to be snapshotted.
-   * The instance should not be running, otherwise it won't be possible to
-   * steal the volume and extract its content.
-   */
+  /** Environment represents the name of the environment to be snapshotted. */
+  environmentRef: Scalars['String']['input'];
+  /** Instance is the reference to the persistent VM instance to be snapshotted. */
   instanceRef: InstanceRefInput;
 };
 
@@ -3491,19 +3599,33 @@ export type Status3Input = {
 /** InstanceSnapshotStatus defines the observed state of InstanceSnapshot. */
 export type Status4 = {
   __typename?: 'Status4';
-  /** Phase represents the current state of the Instance Snapshot. */
-  phase: Phase4;
+  /** Artifact contains references to the generated resources. */
+  artifact?: Maybe<Artifact>;
+  /** Conditions hold the latest available observations of the snapshot state. */
+  conditions?: Maybe<Array<Maybe<ConditionsListItem>>>;
+  /** Phase is the current phase of the snapshot. */
+  phase?: Maybe<Phase4>;
 };
 
 /** InstanceSnapshotStatus defines the observed state of InstanceSnapshot. */
 export type Status4Input = {
-  /** Phase represents the current state of the Instance Snapshot. */
-  phase: Phase4;
+  /** Artifact contains references to the generated resources. */
+  artifact?: InputMaybe<ArtifactInput>;
+  /** Conditions hold the latest available observations of the snapshot state. */
+  conditions?: InputMaybe<Array<InputMaybe<ConditionsListItemInput>>>;
+  /** Phase is the current phase of the snapshot. */
+  phase?: InputMaybe<Phase4>;
 };
 
+export enum Status5 {
+  False = 'False',
+  True = 'True',
+  Unknown = 'Unknown'
+}
+
 /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
-export type Status5 = {
-  __typename?: 'Status5';
+export type Status6 = {
+  __typename?: 'Status6';
   /** The NFS path. */
   exportPath?: Maybe<Scalars['String']['output']>;
   /** The current phase of the lifecycle of the Shared Volume. */
@@ -3513,7 +3635,7 @@ export type Status5 = {
 };
 
 /** SharedVolumeStatus reflects the most recently observed status of the Shared Volume. */
-export type Status5Input = {
+export type Status6Input = {
   /** The NFS path. */
   exportPath?: InputMaybe<Scalars['String']['input']>;
   /** The current phase of the lifecycle of the Shared Volume. */
@@ -3523,8 +3645,8 @@ export type Status5Input = {
 };
 
 /** TenantStatus reflects the most recently observed status of the Tenant. */
-export type Status7 = {
-  __typename?: 'Status7';
+export type Status8 = {
+  __typename?: 'Status8';
   /**
    * The list of Workspaces that are throwing errors during subscription.
    * This mainly happens if .spec.Workspaces contains references to Workspaces
@@ -3565,7 +3687,7 @@ export type Status7 = {
 };
 
 /** TenantStatus reflects the most recently observed status of the Tenant. */
-export type Status7Input = {
+export type Status8Input = {
   /**
    * The list of Workspaces that are throwing errors during subscription.
    * This mainly happens if .spec.Workspaces contains references to Workspaces
@@ -3814,7 +3936,7 @@ export type ApplySharedVolumeMutationVariables = Exact<{
 }>;
 
 
-export type ApplySharedVolumeMutation = { __typename?: 'Mutation', applySharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, status?: { __typename?: 'Status5', phase?: Phase5 | null } | null } | null };
+export type ApplySharedVolumeMutation = { __typename?: 'Mutation', applySharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, status?: { __typename?: 'Status6', phase?: Phase5 | null } | null } | null };
 
 export type ApplyTemplateMutationVariables = Exact<{
   templateId: Scalars['String']['input'];
@@ -3883,7 +4005,7 @@ export type CreateSharedVolumeMutationVariables = Exact<{
 }>;
 
 
-export type CreateSharedVolumeMutation = { __typename?: 'Mutation', createdSharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase5 | null } | null } | null };
+export type CreateSharedVolumeMutation = { __typename?: 'Mutation', createdSharedVolume?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status6', phase?: Phase5 | null } | null } | null };
 
 export type CreateTemplateMutationVariables = Exact<{
   workspaceId: Scalars['String']['input'];
@@ -3973,6 +4095,14 @@ export type ImagesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type ImagesQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha1ImageListList', images: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha1ImageList', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec', projectBaseName?: string | null, registryName: string, images: Array<{ __typename?: 'ImagesListItem', name: string, versions: Array<string | null> } | null> } | null } | null> } | null };
 
+export type InstanceStatusQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+  namespace: Scalars['String']['input'];
+}>;
+
+
+export type InstanceStatusQuery = { __typename?: 'Query', instance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', status?: { __typename?: 'Status3', url?: string | null } | null } | null };
+
 export type OwnedInstancesQueryVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
 }>;
@@ -3997,7 +4127,7 @@ export type WorkspaceSharedVolumesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceSharedVolumesQuery = { __typename?: 'Query', sharedvolumeList?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolumeList', sharedvolumes: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status5', phase?: Phase5 | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
+export type WorkspaceSharedVolumesQuery = { __typename?: 'Query', sharedvolumeList?: { __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolumeList', sharedvolumes: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2SharedVolume', spec?: { __typename?: 'Spec5', prettyName: string, size: any } | null, status?: { __typename?: 'Status6', phase?: Phase5 | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
 export type WorkspaceTemplatesQueryVariables = Exact<{
   workspaceNamespace: Scalars['String']['input'];
@@ -4011,7 +4141,7 @@ export type TenantQueryVariables = Exact<{
 }>;
 
 
-export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, personalWorkspace?: { __typename?: 'PersonalWorkspace', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean } } | null } | null };
+export type TenantQuery = { __typename?: 'Query', tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, personalWorkspace?: { __typename?: 'PersonalWorkspace', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status8', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean } } | null } | null };
 
 export type TenantsQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
@@ -4070,7 +4200,7 @@ export type UpdatedTenantSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, personalWorkspace?: { __typename?: 'PersonalWorkspace', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status7', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean } } | null } | null } | null };
+export type UpdatedTenantSubscription = { __typename?: 'Subscription', updatedTenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2TenantUpdate', updateType?: UpdateType | null, tenant?: { __typename?: 'ItPolitoCrownlabsV1alpha2Tenant', spec?: { __typename?: 'Spec7', email: string, firstName: string, lastName: string, lastLogin?: string | null, publicKeys?: Array<string | null> | null, personalWorkspace?: { __typename?: 'PersonalWorkspace', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } | null, workspaces?: Array<{ __typename?: 'WorkspacesListItem', role: Role, name: string, workspaceWrapperTenantV1alpha2?: { __typename?: 'WorkspaceWrapperTenantV1alpha2', itPolitoCrownlabsV1alpha1Workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', prettyName: string, quota: { __typename?: 'Quota', cpu: any, instances: any, memory: any, disk?: any | null, otherResources?: any | null } } | null, status?: { __typename?: 'Status2', namespace?: { __typename?: 'Namespace', name?: string | null } | null } | null } | null } | null } | null> | null } | null, metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, creationTimestamp?: string | null, labels?: any | null } | null, status?: { __typename?: 'Status8', personalNamespace: { __typename?: 'PersonalNamespace', name?: string | null, created: boolean } } | null } | null } | null };
 
 
 export const ApplyInstanceDocument = gql`
@@ -5058,6 +5188,55 @@ export type ImagesQueryHookResult = ReturnType<typeof useImagesQuery>;
 export type ImagesLazyQueryHookResult = ReturnType<typeof useImagesLazyQuery>;
 export type ImagesSuspenseQueryHookResult = ReturnType<typeof useImagesSuspenseQuery>;
 export type ImagesQueryResult = Apollo.QueryResult<ImagesQuery, ImagesQueryVariables>;
+export const InstanceStatusDocument = gql`
+    query instanceStatus($name: String!, $namespace: String!) {
+  instance: readCrownlabsPolitoItV1alpha2NamespacedInstanceStatus(
+    name: $name
+    namespace: $namespace
+  ) {
+    status {
+      url
+    }
+  }
+}
+    `;
+
+/**
+ * __useInstanceStatusQuery__
+ *
+ * To run a query within a React component, call `useInstanceStatusQuery` and pass it any options that fit your needs.
+ * When your component renders, `useInstanceStatusQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useInstanceStatusQuery({
+ *   variables: {
+ *      name: // value for 'name'
+ *      namespace: // value for 'namespace'
+ *   },
+ * });
+ */
+export function useInstanceStatusQuery(baseOptions: Apollo.QueryHookOptions<InstanceStatusQuery, InstanceStatusQueryVariables> & ({ variables: InstanceStatusQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<InstanceStatusQuery, InstanceStatusQueryVariables>(InstanceStatusDocument, options);
+      }
+export function useInstanceStatusLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<InstanceStatusQuery, InstanceStatusQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<InstanceStatusQuery, InstanceStatusQueryVariables>(InstanceStatusDocument, options);
+        }
+// @ts-ignore
+export function useInstanceStatusSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<InstanceStatusQuery, InstanceStatusQueryVariables>): Apollo.UseSuspenseQueryResult<InstanceStatusQuery, InstanceStatusQueryVariables>;
+export function useInstanceStatusSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InstanceStatusQuery, InstanceStatusQueryVariables>): Apollo.UseSuspenseQueryResult<InstanceStatusQuery | undefined, InstanceStatusQueryVariables>;
+export function useInstanceStatusSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<InstanceStatusQuery, InstanceStatusQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<InstanceStatusQuery, InstanceStatusQueryVariables>(InstanceStatusDocument, options);
+        }
+export type InstanceStatusQueryHookResult = ReturnType<typeof useInstanceStatusQuery>;
+export type InstanceStatusLazyQueryHookResult = ReturnType<typeof useInstanceStatusLazyQuery>;
+export type InstanceStatusSuspenseQueryHookResult = ReturnType<typeof useInstanceStatusSuspenseQuery>;
+export type InstanceStatusQueryResult = Apollo.QueryResult<InstanceStatusQuery, InstanceStatusQueryVariables>;
 export const OwnedInstancesDocument = gql`
     query ownedInstances($tenantNamespace: String!) {
   instanceList: listCrownlabsPolitoItV1alpha2NamespacedInstance(
