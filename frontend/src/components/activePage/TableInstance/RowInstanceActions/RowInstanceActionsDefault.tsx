@@ -19,6 +19,7 @@ import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
 import { BASE_URL } from '../../../../env';
+import { refreshInstanceSession } from '../../../../utils/nativeVncSession';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -192,8 +193,9 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           onClick={() => setShowDeleteModalConfirm(true)}
           type="link"
           danger
-          className={`hidden ${extended ? 'sm:block' : 'xs:block'
-            } py-0 border-0`}
+          className={`hidden ${
+            extended ? 'sm:block' : 'xs:block'
+          } py-0 border-0`}
           shape="circle"
           size="middle"
           icon={
@@ -207,14 +209,15 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       {nativeVncEnv && (
         <Tooltip placement="top" title="Test native VNC (provisional)">
           <Button
-            onClick={() =>
-              window.open(
-                `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`,
-                '_blank',
-              )
-            }
-
-
+            onClick={async () => {
+              const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
+              const sessionWindow = await refreshInstanceSession(
+                `${baseUrl}/${nativeVncEnv.name}/`,
+              );
+              if (sessionWindow) {
+                sessionWindow.location.href = `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`;
+              }
+            }}
             type="link"
             className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0 border-0`}
             shape="circle"
@@ -231,12 +234,13 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
 
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
-          className={`hidden ${extended
-            ? viewMode === WorkspaceRole.manager
-              ? 'xl:block'
-              : 'lg:block'
-            : 'sm:block '
-            } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
+          className={`hidden ${
+            extended
+              ? viewMode === WorkspaceRole.manager
+                ? 'xl:block'
+                : 'lg:block'
+              : 'sm:block '
+          } ${connectDisabled ? 'cursor-not-allowed' : ''}`}
         >
           {environments && environments.length > 1 ? (
             <Dropdown
@@ -273,12 +277,15 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           )}
         </div>
         <div
-          className={`hidden ${extended
-            ? `sm:block ${viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
-            }`
-            : 'xs:block sm:hidden'
-            } block flex items-center ${connectDisabled ? 'cursor-not-allowed' : ''
-            }`}
+          className={`hidden ${
+            extended
+              ? `sm:block ${
+                  viewMode === WorkspaceRole.manager ? 'xl:hidden' : 'lg:hidden'
+                }`
+              : 'xs:block sm:hidden'
+          } block flex items-center ${
+            connectDisabled ? 'cursor-not-allowed' : ''
+          }`}
         >
           {environments && environments.length > 1 ? (
             <Dropdown
@@ -287,8 +294,9 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
               disabled={connectDisabled}
             >
               <Button
-                className={`${connectDisabled ? 'pointer-events-none' : ''
-                  } flex items-center justify-center p-0 border-0`}
+                className={`${
+                  connectDisabled ? 'pointer-events-none' : ''
+                } flex items-center justify-center p-0 border-0`}
                 type={!extended ? 'link' : 'default'}
                 color={classFromPropsMobile()}
                 shape="circle"
@@ -304,8 +312,9 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
             </Dropdown>
           ) : (
             <Button
-              className={`${connectDisabled ? 'pointer-events-none' : ''
-                } flex items-center justify-center p-0 border-0`}
+              className={`${
+                connectDisabled ? 'pointer-events-none' : ''
+              } flex items-center justify-center p-0 border-0`}
               type={!extended ? 'link' : 'default'}
               color={classFromPropsMobile()}
               shape="circle"

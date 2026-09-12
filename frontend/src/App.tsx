@@ -65,15 +65,15 @@ function App() {
         },
         ...(hasUtilitiesAccess
           ? [
-            {
-              route: {
-                name: 'Drive',
-                path: '/drive',
+              {
+                route: {
+                  name: 'Drive',
+                  path: '/drive',
+                },
+                content: <DriveView key="/drive" />,
+                linkPosition: LinkPosition.NavbarButton,
               },
-              content: <DriveView key="/drive" />,
-              linkPosition: LinkPosition.NavbarButton,
-            },
-          ]
+            ]
           : []),
         {
           route: {
@@ -140,7 +140,6 @@ function App() {
           ),
           linkPosition: LinkPosition.Hidden,
         },
-
       ]}
     />
   );

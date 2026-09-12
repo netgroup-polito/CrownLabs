@@ -1,15 +1,13 @@
-import { type FC, useEffect, useState } from 'react';
+import { type FC, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Button } from 'antd';
 import { VncScreen } from 'react-vnc';
 import { useInstanceStatusQuery } from '../../../generated-types';
+import { refreshInstanceSession } from '../../../utils/nativeVncSession';
 import './NativeVNCPage.css';
 
 const NativeVNCPage: FC = () => {
-  const {
-    namespace = '',
-    VMname: name = '',
-    environment = '',
-  } = useParams();
+  const { namespace = '', VMname: name = '', environment = '' } = useParams();
 
   const { data, loading, error } = useInstanceStatusQuery({
     variables: { name, namespace },
@@ -23,51 +21,36 @@ const NativeVNCPage: FC = () => {
       : instanceUrl;
     return `${baseUrl}/${environment}/`;
   })();
-
   const wsUrl = envUrl?.replace(/^https/, 'wss');
 
-  const [sessionState, setSessionState] = useState<
-    'checking' | 'ready' | 'needsLogin'
-  >('checking');
+  const [connectionFailed, setConnectionFailed] = useState(false);
+  const connectedRef = useRef(false);
 
-  useEffect(() => {
-    if (!envUrl) return;
-    let cancelled = false;
+  if (loading) return <div className="native-vnc-page-status">Loading…</div>;
 
-    fetch(envUrl, { credentials: 'include' })
-      .then(res => {
-        if (cancelled) return;
-        const backHome = new URL(res.url).origin === new URL(envUrl).origin;
-        setSessionState(backHome ? 'ready' : 'needsLogin');
-      })
-      .catch(() => {
-        if (!cancelled) setSessionState('ready');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [envUrl]);
-
-
-  if (loading || sessionState === 'checking')
-    return <div className="native-vnc-page-status">Loading…</div>;
-
-  if (error || !wsUrl)
+  if (error || !envUrl || !wsUrl)
     return (
       <div className="native-vnc-page-status">
         Unable to load the VNC connection for this instance.
       </div>
     );
 
-  if (sessionState === 'needsLogin')
+  if (connectionFailed)
     return (
       <div className="native-vnc-page-status">
         <div>
-          <p>Your session has expired.</p>
-          <button onClick={() => envUrl && window.open(envUrl, '_blank')}>
+          <p>Unable to connect. Your session may have expired.</p>
+          <Button
+            onClick={async () => {
+              const sessionWindow = await refreshInstanceSession(envUrl);
+              if (sessionWindow) {
+                sessionWindow.close();
+                window.location.reload();
+              }
+            }}
+          >
             Log in again
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -79,8 +62,12 @@ const NativeVNCPage: FC = () => {
       focusOnClick
       background="#000000"
       className="native-vnc-page"
-      onConnect={() => console.log('[native-vnc] connected')}
-      onDisconnect={() => console.log('[native-vnc] disconnected')}
+      onConnect={() => {
+        connectedRef.current = true;
+      }}
+      onDisconnect={() => {
+        if (!connectedRef.current) setConnectionFailed(true);
+      }}
     />
   );
 };
