@@ -19,7 +19,6 @@ import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
 import { BASE_URL } from '../../../../env';
-import { refreshInstanceSession } from '../../../../utils/nativeVncSession';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -209,15 +208,12 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
       {nativeVncEnv && (
         <Tooltip placement="top" title="Test native VNC (provisional)">
           <Button
-            onClick={async () => {
-              const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
-              const sessionWindow = await refreshInstanceSession(
-                `${baseUrl}/${nativeVncEnv.name}/`,
-              );
-              if (sessionWindow) {
-                sessionWindow.location.href = `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`;
-              }
-            }}
+            onClick={() =>
+              window.open(
+                `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`,
+                '_blank',
+              )
+            }
             type="link"
             className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0 border-0`}
             shape="circle"
