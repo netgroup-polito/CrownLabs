@@ -43,7 +43,7 @@ You do not need `kubectl port-forward` on native Linux.
 See [`../envoy/README.md`](../envoy/README.md) for how this works: one shared Gateway, backed by `ServiceLB` on ports 80 and 443, instead of a separate `NodePort` per service.
 
 > **On WSL2**: this has the same underlying limitation as everything else behind the Gateway.
-> See [`../envoy/README.md`](../envoy/README.md) step 5 for the one bridge you need (`kubectl port-forward ... 8443:443`).
+> See [`../envoy/README.md`](../envoy/README.md) step 5 for the bridge you need (`WSL2_bridge.sh`).
 > **Append `:8443` to every hostname in this guide and in `apiserver-oidc-integration.md` when you use WSL2** (for example, `https://keycloak.crownlabs.local:8443`).
 > This must exactly match the URL the browser actually uses to reach Keycloak, because that URL ends up in the token's `iss` (issuer) claim.
 >
@@ -87,9 +87,8 @@ See [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md) for the ful
 Here are just the commands:
 
 ```bash
-mkdir -p ~/certs
-kubectl get secret crownlabs-tls -n default -o jsonpath='{.data.ca\.crt}' | base64 -d > ~/certs/crownlabs-ca.crt
-sudo cp ~/certs/crownlabs-ca.crt /etc/rancher/k3s/crownlabs-ca.crt
+kubectl get secret crownlabs-tls -n default -o jsonpath='{.data.ca\.crt}' | base64 -d | sudo tee /usr/local/share/ca-certificates/crownlabs-ca.crt
+sudo update-ca-certificates
 ```
 
 Write a dedicated drop-in file (this requires root) instead of editing the shared `/etc/rancher/k3s/config.yaml` file directly.
@@ -118,7 +117,7 @@ journalctl -u k3s -f   # Confirm there is no "invalid authentication configurati
 ```
 
 Restarting k3s restarts the whole control plane.
-The API server is briefly unreachable, and you need to restart any process with an open watch or proxy connection to it (`kubectl proxy`, `kubectl port-forward`, the operators) afterwards.
+The API server is briefly unreachable, and you need to restart any process with an open watch or proxy connection to it (`kubectl proxy`, `kubectl port-forward`, `WSL_bridge`, the operators) afterwards.
 Confirm `kubectl get nodes` reports `Ready` before you move on.
 
 ## Final checks
