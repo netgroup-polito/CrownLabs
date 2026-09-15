@@ -146,6 +146,18 @@ run-operator: generate ## Run the main operator locally
 				--enable-imagelist=true\
 				--mydrive-pvcs-storage-class-name=$(MYDRIVE_STORAGE_CLASS)
 
+# The double target below is used to set Keycloak defaults for the dev-local
+# Keycloak setup (see ../dev-local/keycloak/README.md) without touching
+# run-operator's own defaults. KEYCLOAK_CLIENT_SECRET has no default: it is
+# per-realm-install and must still be passed explicitly, e.g.:
+#   make run-operator-local KEYCLOAK_CLIENT_SECRET="$SECRET"
+.PHONY: run-operator-local
+run-operator-local: KEYCLOAK_URL=https://keycloak.crownlabs.local
+run-operator-local: KEYCLOAK_REALM=crownlabs
+run-operator-local: KEYCLOAK_CLIENT_ID=operator-local
+run-operator-local: KEYCLOAK_TARGET_CLIENT=operator-local
+run-operator-local: install-local samples-res-local run-operator ## Prepare, then run the main operator locally against the dev-local Keycloak (requires KEYCLOAK_CLIENT_SECRET).
+
 .PHONY: install-local
 install-local: manifests ## Install CrownLabs & support CRDs.
 	kubectl apply -f deploy/crds --wait

@@ -21,10 +21,15 @@ For more information, visit the CrownLabs website ([https://crownlabs.polito.it]
 
 ## Architecture
 
-CrownLabs relies on two major high-level components:
+CrownLabs relies on three major high-level components:
 * **The Backend Business Logic**, which provides the different CrownLabs functionalities and is implemented by custom Kubernetes operators (e.g. the Instance Operator);
 * **qlkube**, a middleware that can expose the Kubernetes API Server as a GraphQL service;
 * **The Frontend Dashboard**, which interacts with the Kubernetes API Server through _qlkube_ and exposes the different CrownLabs custom resources through a graphical interface.
+
+In addition, **Envoy Gateway** (implementing the Kubernetes Gateway API) manages HTTP/HTTPS traffic routing:
+* **Static Routes** for core auxiliary services: `/` (Frontend Dashboard), `/graph` (qlkube), and `/webssh` (Bastion Web SSH);
+* **Dynamic Routes** generated on-demand for per-user VM and container instances;
+* **Security Policies**
 
 A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure.
 Please notice that, for the sake of clarity, the figure depicts only the most important elements for the provision of the actual service (i.e., remote computing labs), while omitting low-level components and the ones associated with the cluster operation (e.g monitoring).

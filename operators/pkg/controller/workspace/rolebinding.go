@@ -43,14 +43,9 @@ func (r *Reconciler) enforceRoleBindings(
 		return fmt.Errorf("error while managing User View Templates RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
-	// Enforce Manager Manage Templates RoleBinding
-	if err := r.enforceManagerManageTemplatesRoleBinding(ctx, ws, namespace); err != nil {
-		return fmt.Errorf("error while managing Manager Manage Templates RoleBinding for workspace %s: %w", ws.Name, err)
-	}
-
-	// Enforce Manager Manage SharedVolumes RoleBinding
-	if err := r.enforceManagerManageSharedVolumesRoleBinding(ctx, ws, namespace); err != nil {
-		return fmt.Errorf("error while managing Manager Manage SharedVolumes RoleBinding for workspace %s: %w", ws.Name, err)
+	// Enforce Manager Aggregated RoleBinding
+	if err := r.enforceManagerAggregatedRoleBinding(ctx, ws, namespace); err != nil {
+		return fmt.Errorf("error while managing Manager Aggregated RoleBinding for workspace %s: %w", ws.Name, err)
 	}
 
 	// Enforce Manager Manage InstanceSnapshots RoleBinding
@@ -77,17 +72,10 @@ func (r *Reconciler) enforceRoleBindingsAbsence(
 		}
 	}
 
-	// Delete Manager Manage Templates RoleBinding
-	if err := r.deleteSingleRb(ctx, namespace, forge.ManageTemplatesRoleName); err != nil {
+	// Delete Manager Aggregated RoleBinding
+	if err := r.deleteSingleRb(ctx, namespace, forge.WorkspaceManagerRoleName); err != nil {
 		if client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("error deleting Manager Manage Templates RoleBinding: %w", err)
-		}
-	}
-
-	// Delete Manager Manage SharedVolumes RoleBinding
-	if err := r.deleteSingleRb(ctx, namespace, forge.ManageSharedVolumesRoleName); err != nil {
-		if client.IgnoreNotFound(err) != nil {
-			return fmt.Errorf("error deleting Manager Manage SharedVolumes RoleBinding: %w", err)
+			return fmt.Errorf("error deleting Manager Aggregated RoleBinding: %w", err)
 		}
 	}
 
@@ -141,15 +129,15 @@ func (r *Reconciler) enforceUserViewTemplatesRoleBinding(
 	return nil
 }
 
-// enforceManagerManageTemplatesRoleBinding creates or updates the RoleBinding for Manager Manage Templates.
-func (r *Reconciler) enforceManagerManageTemplatesRoleBinding(
+// enforceManagerAggregatedRoleBinding creates or updates the RoleBinding for Workspace Managers.
+func (r *Reconciler) enforceManagerAggregatedRoleBinding(
 	ctx context.Context,
 	ws *clv1alpha1.Workspace,
 	namespace string,
 ) error {
 	rb := &rbacv1.RoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      forge.ManageTemplatesRoleName,
+			Name:      forge.WorkspaceManagerRoleName,
 			Namespace: namespace,
 		},
 	}
@@ -159,39 +147,11 @@ func (r *Reconciler) enforceManagerManageTemplatesRoleBinding(
 		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
 
 		// Configure the RoleBinding
-		forge.ConfigureWorkspaceManagerManageTemplatesBinding(ws, rb, rb.Labels)
+		forge.ConfigureWorkspaceManagerAggregatedBinding(ws, rb, rb.Labels)
 
 		return ctrlutil.SetControllerReference(ws, rb, r.Scheme)
 	}); err != nil {
-		return fmt.Errorf("error while creating/updating Manager Manage Templates RoleBinding: %w", err)
-	}
-
-	return nil
-}
-
-// enforceManagerManageSharedVolumesRoleBinding creates or updates the RoleBinding for Manager Manage SharedVolumes.
-func (r *Reconciler) enforceManagerManageSharedVolumesRoleBinding(
-	ctx context.Context,
-	ws *clv1alpha1.Workspace,
-	namespace string,
-) error {
-	rb := &rbacv1.RoleBinding{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      forge.ManageSharedVolumesRoleName,
-			Namespace: namespace,
-		},
-	}
-
-	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, rb, func() error {
-		// Update labels
-		rb.Labels = forge.UpdateWorkspaceResourceCommonLabels(rb.Labels, r.TargetLabel)
-
-		// Configure the RoleBinding
-		forge.ConfigureWorkspaceManagerManageSharedVolumesBinding(ws, rb, rb.Labels)
-
-		return ctrlutil.SetControllerReference(ws, rb, r.Scheme)
-	}); err != nil {
-		return fmt.Errorf("error while creating/updating Manager Manage SharedVolumes RoleBinding: %w", err)
+		return fmt.Errorf("error while creating/updating Manager Aggregated RoleBinding: %w", err)
 	}
 
 	return nil

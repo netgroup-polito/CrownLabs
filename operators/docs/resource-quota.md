@@ -1,71 +1,189 @@
-# Defining quotas per workspace and per user
+# Defining Quotas per Workspace and per User
 
-## Defining quotas per workspace
+This document outlines the architecture, data models, enforcement mechanisms, and instructions for managing resource quotas within CrownLabs.
 
-Each workspace has the maximum resource quota defined in the `spec` of the CrownLabs workspace itself, as in the following example which refers to the `test` workspace:
+---
 
-    admin@k8s-master:~$ kubectl get workspace test -o yaml
-    apiVersion: crownlabs.polito.it/v1alpha1
-    kind: Workspace
-    ...
-    spec:
-      prettyName: CrownLabs workspace dedicated to testing
-      quota:
-        cpu: 10
-        instances: 3
-        memory: 64Gi
-        disk: 15Gi
-        otherResources:
-          nvidia.com/gpu: "1"
-          amd.com/gpu: "1"
+## 1. Defining Quotas per Workspace
 
-In the above example, users belonging to this workspace can launch up to 3 instances (either VMs or containers), but globally cannot consume more than 10CPUs, 64Gi of memory, 15Gi of disk, 1 NVIDIA GPU and 1 AMD GPU.
+Each workspace defines its maximum allowed resource allocation in the `spec.quota` field of the CrownLabs `Workspace` Custom Resource. 
 
-Resource quotas can be changed by simply updating the `quota` section of the workspace specification.
+Example configuration for the `test` workspace:
 
-Types of the resources defined above are the following:
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: test
+spec:
+  prettyName: CrownLabs workspace dedicated to testing
+  quota:
+    cpu: 10
+    instances: 3
+    memory: 64Gi
+    disk: 15Gi
+    otherResources:
+      nvidia.com/gpu: "1"
+      amd.com/gpu: "1"
+```
 
-- CPU: int64
-- Instances: int64
-- Memory: resource.Quantity
-- Disk: resource.Quantity
-- otherResources: map[string]resource.Quantity
+In the example above, users belonging to this workspace can launch up to **3 active instances** (VMs or containers) simultaneously, and cannot exceed **10 CPUs**, **64Gi of RAM**, **15Gi of Persistent Disk**, **1 NVIDIA GPU**, and **1 AMD GPU** globally within the workspace .
 
-## Defining quotas per user
+Resource quotas can be updated at any time by modifying the `quota` section of the `Workspace` resource.
+In case resources are decreased, no enforcement is done for all the instances that are already running; hence, users who have already running instances may (temporarily) consume more resources than the maximum allowed values within the workspace.
 
-While each CrownLabs workspace has its own resource limits, the values associated to each user depends on the sum of the resource quota of each workspace it belongs to.
-For instance, if a user belongs to a first workspace whose CPU limit is 10, and a second workspace whose CPU limit is 8, the total CPU limit for the user is 18, no matter which workspace it is currently using.
+### Resource Types Specification
 
-In other words, with this (simple) resource quota algorithm, the above user can consume up to 18 CPU even when launching instances (VMs or containers) all within the same workspace, as the user quota has the precedence over the workspace quota.
+The data types used within `ResourceSpec` in the Go backend are defined as follows:
 
-NOTE: Regarding CPU limits it must be taken into account that CPU Cores are essentially summed among different workspaces, but objects like Templates (which belong to a specific Workspace) own an extra property which is ReservedCPUPercentage that limits the CPU Usage of the instances belonging to a specific template with this property defined.
+| Resource Field | Go Data Type | Description |
+| :--- | :--- | :--- |
+| `instances` | `int64` | Maximum number of active/running instances allowed |
+| `cpu` | `int64` | Maximum vCPU cores allocated |
+| `memory` | `resource.Quantity` | Maximum RAM memory (e.g., `16Gi`) |
+| `disk` | `resource.Quantity` | Maximum persistent storage allocated (e.g., `20Gi`) |
+| `otherResources` | `map[string]resource.Quantity` | Generic key-value map for extended hardware accelerators |
 
-Beyond the accumulated limits inherited from course workspaces, each user is allocated a Personal Workspace. This quota acts as a standalone baseline for private workloads and may be configured or expanded by modifying the `personalWorkspace` field directly within the `Tenant`'s Custom Resource.
+---
+`Resource.Quantity` is a common format used in Kubernetes, consisting in a number and a suffix (e.g., 16Gi).
+More information [here](https://pkg.go.dev/k8s.io/apimachinery/pkg/api/resource#Quantity).
 
-Moreover, otherResources property has a particular management with respect to the other kinds of resources: it is a map which relates a key to a specific value. This is done in order to make CrownLabs future-proof so that if a particular custom resource has to be added to the cluster then all is necessary is to add the specific custom resource to the map otherResources. During the addition of this property the reason that made CrownLabs developers to design such a kind of resource was based on the opportunity to provide both NVIDIA and AMD GPUs in the near future.
+## 2. Defining Quotas per User (Tenants)
 
-## Enforcement Mechanism: ResourceQuota vs Validation Webhook
+While each CrownLabs workspace enforces its own boundaries, the total allowance assigned to a user depends on the **sum of the resource quotas** of all workspaces they belong to, plus their **Personal Workspace**.
 
-Understanding how CrownLabs enforces these limits under the hood is critical for cluster administrators.
+For instance, if a user is enrolled in:
+* **Workspace A:** CPU limit = `10`
+* **Workspace B:** CPU limit = `8`
 
-1. The Native Kubernetes ResourceQuota (Global Barrier):
-   When a Tenant is reconciled, the Tenant Operator automatically creates a standard Kubernetes `ResourceQuota` object inside the user's personal namespace (`tenant-<username>`). However, because all instances created by a single tenant are placed inside this same namespace regardless of the CrownLabs workspace they belong to, this native quota represents only a part of the global security barrier.
+The total accumulated CPU limit for this user across the platform is `18`. 
 
-2. The Validation Webhook (Fine-Grained Check):
-   To enforce workspace-specific logic and handle the sum of multiple workspaces correctly, CrownLabs leverages a custom Validation Webhook. This webhook intercepts the API traffic whenever an Instance is:
-   * Created from scratch.
-   * Resumed or unpaused (which updates the active resource consumption).
+> **NOTE on CPU Limits:** CPU cores are summed across workspaces. However, individual `Templates` (which belong to a specific Workspace) can define an extra property called `ReservedCPUPercentage` (e.g., `50%`), which throttles the actual vCPU allocation of instances spawned from that template.
 
-The webhook calculates the current real-time consumption of the user, compares it against the allowed sum of their workspaces, and explicitly denies the operation if the request would lead to a quota violation.
+### Personal Workspace Quota
 
-## Runtime Behavior and Quota Violations
+Beyond the accumulated limits inherited from course workspaces, each user is allocated a **Personal Workspace**. This acts as a private, standalone sandbox. Its quota is configured directly within the `personalWorkspace` field of the `Tenant` Custom Resource:
 
-When a user attempts to launch or resume an environment but the required resources exceed the allowed quota, CrownLabs prevents the cluster from entering a broken state:
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Tenant
+metadata:
+  name: s343940
+spec:
+  firstName: John
+  lastName: Doe
+  personalWorkspace:
+    cpu: 4
+    memory: 8Gi
+    instances: 2
+    disk: 10Gi
+    otherResources:
+      nvidia.com/gpu: "0"
+```
 
-1. Environment Phase: The Instance Controller intercepts the quota exhaustion error during the environment enforcement phase and changes the specific environment status to `ResourceQuotaExceeded`.
+---
 
-2. Automatic Recovery (Requeuing): Instead of failing permanently, the controller emits a warning event and automatically schedules a new reconciliation check.
+## 3. How to Add New Custom Resources (Step-by-Step Guide)
 
-Once the tenant terminates other running instances (freeing up resources) or an administrator increases the workspace quota, the next periodic check will automatically succeed, and the environment will transition smoothly into the `Starting` and `Ready` phases.
+While currently the mostly used _other resource_ are Nvidia GPUs, we cannot exclude that in the future we may need to define new custom resources, such as **Intel Gaudi TPU** `intel.com/gaudi` or new **AMD GPUs** `amd.com/gpu`.
 
-NOTE: In case of a Disk failure, the reconciliaton check is hard-coded in instctrl/controller.go and a new attempt to recover Instance execution happens after 1 minute (cyclically)
+CrownLabs source code has been created in order to support new resources without touching the code itself; in fact, it uses `otherResources: map[string]resource.Quantity` to avoid hardcoding specific hardware vendor keys in the backend Go codebase.
+
+This section documents the steps required to add a new custom resource within CrownLabs, which will be automatically applied in both the frontend (so that workspace administrator can set their limits) and in the backend (by the code that implements resource quota enforcement).
+
+### Step 1: Cluster & Device Plugin Setup
+If physical hardware scheduling is required on worker nodes, ensure the hardware vendor's Device Plugin (e.g., NVIDIA GPU Operator, AMD GPU Device Plugin) is installed.
+
+Once active, Kubernetes automatically registers the custom hardware under node allocatable resources:
+
+```bash
+kubectl get nodes -o jsonpath='{.items[*].status.allocatable}'
+# Expected output on nodes with active plugins: includes something akin to "[intel.com/gaudi](https://intel.com/gaudi)": "2" or "[nvidia.com/gpu](https://nvidia.com/gpu)": "2"
+```
+
+> **Note on Logical vs Physical Quotas:** CrownLabs quota enforcement operates as an independent logical accounting layer. In test environments without physical GPU hardware or Device Plugins, CrownLabs will still track, display, and validate custom resource limits (`otherResources`) seamlessly across Workspaces and Tenants.
+
+### Step 2: Key Normalization (Kubernetes vs GraphQL)
+Kubernetes resource keys use slashes (e.g., `nvidia.com/gpu`). Because GraphQL field names cannot contain `/` or `.`, the `qlkube` middleware automatically converts keys between formats:
+* **Kubernetes API:** `intel.com/gaudi`
+* **GraphQL Schema (camelCase):** `intelComGaudi`
+
+The frontend helper `getOriginalK8sKey(key)` automatically maps GraphQL camelCase keys back to standard Kubernetes format so that `totalQuota` and `consumedQuota` comparisons match seamlessly.
+
+### Step 3: Frontend Environment Variable
+Add the new resource to the `VITE_APP_CUSTOM_RESOURCES` environment variable in the frontend deployment configuration (`.env`):
+
+```env
+VITE_APP_CUSTOM_RESOURCES={"nvidia.com/gpu":"NVIDIA GPU","amd.com/gpu":"AMD GPU","intel.com/gaudi":"Intel Gaudi TPU"}
+```
+
+> ### **IMPORTANT : Future Enhancement (Dynamic Frontend Template Resources):**  
+> Currently, the Custom Resource options available during Template creation/editing are statically loaded from the `VITE_APP_CUSTOM_RESOURCES` environment variable. In future iterations, the frontend UI should dynamically filter these options, displaying *only* the Custom Resources that are actively allocated (quota > 0) within the specific Workspace owning the Template.
+
+### Step 4: Update Workspace or Tenant CRD
+Administrators can now assign the new resource directly inside any `Workspace` or `Tenant` YAML definition:
+
+```yaml
+otherResources:
+  intel.com/gaudi: "1"
+```
+
+## 4. Enforcement Mechanism: ResourceQuota vs Validation Webhook
+
+CrownLabs enforces resource limits using a multi-tiered security and validation pipeline:
+
+```
+[ User Request ] 
+       │
+       ▼
+[ 1. Validating Webhook ] ──(intercepts via namespaceSelector)──► [ Rejects if Invalid / Over-quota ]
+       │
+       ▼
+[ 2. Instance Validator ] ──(Go component)─────────────────────► [ Verifies Workspace bounds ]
+       │
+       ▼
+[ 3. ResourceQuota ]      ──(Tenant Namespace Level)───────────► [ Passive Global Security Barrier ]
+```
+
+The three mechanisms operate at different levels of the stack, though the validators work together just at different levels:
+
+1. **Validating Webhook (Cluster Level Enforcement, within the API Server Gatekeeper):**
+   It executes _synchronous_ pre-checks before objects are written to `etcd`. This provides immediate feedback (e.g., HTTP 422 errors to GraphQL/UI) and evaluates complex CrownLabs business rules (e.g., verifying custom GPU labels, template-level CPU throttles, multi-workspace relationships) which standard Kubernetes primitives cannot understand. To simplify it, it's a check BEFORE the instance is created.
+   This is achieved though a `ValidatingWebhookConfiguration` that intercepts `CREATE` and `UPDATE` operations on `Tenants` and `Instances`. 
+   * **Scope Filtering:** Uses `namespaceSelector` to match all CrownLabs-managed namespaces (`workspace-*` and `tenant-*`). This ensures **100% of instance creations are intercepted**, preventing validation bypasses.
+   * **Failure Policy:** Configured with `failurePolicy: Fail` to block unvalidated or over-quota requests before they are written to `etcd`.
+
+2. **Instance Validator (Workspace Level, within the Operator Reconciliation Loop):**
+   A dedicated Go component that evaluates the real-time consumption of the user against their allowed course workspace limits before an instance is allowed to boot.
+   The difference with the webhook is that it acts at the runtime level, being an _asynchronous_ runtime evaluator inside the Instance Operator controller.
+   
+   It is needed because it handles race conditions, dynamic runtime updates, and workspace-specific bounds (e.g., checking if a specific course workspace quota is respected when launching an instance).
+   It also manages recovery loops (e.g., phase shifting to `ResourceQuotaExceeded` and requeuing every 60s during persistent storage allocation failures).
+   As an example: if a run-time action such as a disk creation (PVC) fails, then the instance validator catches that error and shifts the phase to `ResourceQuotaExceeded`, and after 60 seconds it tries to allocate the disk again.
+   This is a type of error that the webhook validator would not be able to catch since it is something that might happen at runtime.
+
+3. **ResourceQuota (Tenant Namespace Barrier, fallback mechanism):**
+   When a Tenant is reconciled, the Tenant Operator creates a standard Kubernetes `ResourceQuota` inside the user's namespace (`tenant-<username>`).
+   Its value equals the sum of the quotas across all Workspaces they are enrolled in, plus their Personal Workspace quota (e.g., `hard.cpu = sum(workspace_cpus) + personal_cpu`, `hard.memory = ...`), and it acts as a passive container limit preventing cluster starvation.
+   
+   While the custom Webhook and Operators handle CrownLabs-specific business logic at the Custom Resource level (`Tenant`, `Instance`), the native `ResourceQuota` operates directly on low-level Kubernetes primitives (`Pods`, `PVCs`).
+   It ensures that even if custom code experiences an unhandled failure or bypass, the Kubernetes API server natively blocks any pod or container from exceeding the user's hard limits.
+   `ResourceQuota` normally is not used if the validators are on, and it is useful if the validator is turned off, as it it applies some limits to a user instead of just leaving it to the native Kubernetes limits.
+   The reason why this check only works if the validators are off is because the validator checks are much more restrictive (validator limits resources based on the single workspace you want to create the instance in, ResourceQuota limits resources based on the sum total of all resource limits from all workspaces a user is in (including personal workspace).
+
+---
+
+## 5. Runtime Behavior, Persistent Disk Edge Cases, and Auto-Recovery
+
+### The Persistent Storage Allocation Trap
+Standard compute resources (CPU/RAM) are validated at Pod scheduling time. If quota is exceeded, the API server rejects the request immediately.
+
+However, for **persistent environments**, the Persistent Volume Claim (PVC) is provisioned **at the beginning of the deployment chain**, before compute validation hooks complete:
+* **Previous Unhandled State:** A storage quota breach caused the PVC allocation to fail, putting the environment into a `CreationLoopBackoff` crash state and marking the entire `Instance` phase as unrecoverably `Failed`.
+
+### The Requeuing Solution
+To handle storage quota violations gracefully, the Instance Controller (`pkg/instctrl/controller.go`) implements explicit error trapping:
+
+1. **Phase Shift:** When a disk allocation error occurs due to quota exhaustion, the controller intercepts the error and updates the individual environment status to `ResourceQuotaExceeded`.
+2. **Deterministic Requeue:** Instead of dropping into a terminal `Failed` state, the controller schedules a clean reconciliation requeue every **60 seconds** (`ctrl.Result{RequeueAfter: 1 * time.Minute}`).
+3. **Automatic Recovery:** As soon as the user terminates other persistent instances or an administrator increases the workspace disk limit, the next periodic check succeeds automatically, transitioning the instance to `Starting` and `Ready` without requiring manual intervention.
