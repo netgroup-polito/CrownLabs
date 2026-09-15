@@ -109,28 +109,3 @@ func ConfigurePersonalWorkspaceManagerBinding(tn *clv1alpha2.Tenant, rb *rbacv1.
 		},
 	}
 }
-
-// ConfigureWorkspaceManagerManageInstanceSnapshotsBinding configures a RoleBinding for a workspace manager to manage instance snapshots.
-func ConfigureWorkspaceManagerManageInstanceSnapshotsBinding(ws *clv1alpha1.Workspace, rb *rbacv1.RoleBinding, labels map[string]string) {
-	// Set labels
-	if rb.Labels == nil {
-		rb.Labels = make(map[string]string)
-	}
-	maps.Copy(rb.Labels, labels)
-
-	// Configure RoleRef
-	rb.RoleRef = rbacv1.RoleRef{
-		Kind:     "ClusterRole",
-		Name:     ManageInstanceSnapshotsRoleName,
-		APIGroup: rbacv1.GroupName,
-	}
-
-	// Configure Subjects
-	rb.Subjects = []rbacv1.Subject{
-		{
-			Kind:     rbacv1.GroupKind,
-			Name:     fmt.Sprintf("kubernetes:%s", WorkspaceRoleName(ws.Name, clv1alpha2.Manager)),
-			APIGroup: rbacv1.GroupName,
-		},
-	}
-}
