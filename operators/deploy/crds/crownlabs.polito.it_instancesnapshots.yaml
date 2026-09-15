@@ -29,8 +29,7 @@ spec:
     name: v1alpha2
     schema:
       openAPIV3Schema:
-        description: InstanceSnapshot describes a snapshot of a CrownLabs persistent
-          instance.
+        description: InstanceSnapshot is the Schema for the instancesnapshots API.
         properties:
           apiVersion:
             description: |-
@@ -50,29 +49,27 @@ spec:
           metadata:
             type: object
           spec:
-            description: InstanceSnapshotSpec is the specification of the desired
-              state of the InstanceSnapshot.
+            description: InstanceSnapshotSpec defines the desired state of InstanceSnapshot.
             properties:
               description:
-                description: An optional human-readable description of the snapshot.
-                maxLength: 200
+                description: Description is an optional human-readable description
+                  of the snapshot.
+                maxLength: 512
                 type: string
               environmentRef:
-                description: The name of the environment to be snapshotted.
+                description: Environment represents the name of the environment to
+                  be snapshotted.
                 pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
                 type: string
               imageName:
-                description: |-
-                  An optional user-defined name for the snapshot image.
-                  Must be a valid RFC 1035 label name: starts with a lowercase letter,
-                  may contain lowercase letters, digits, and hyphens, and ends with
-                  a lowercase letter or digit. Maximum 63 characters.
+                description: ImageName is an optional user-defined name for the snapshot
+                  image.
                 maxLength: 63
-                minLength: 1
-                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
+                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
                 type: string
               instanceRef:
-                description: The reference to the persistent VM instance to be snapshotted.
+                description: Instance is the reference to the persistent VM instance
+                  to be snapshotted.
                 properties:
                   name:
                     description: The name of the resource to be referenced.
@@ -87,7 +84,7 @@ spec:
                 type: object
               tenantRef:
                 description: |-
-                  The reference to the Tenant who created the snapshot.
+                  Tenant is the reference to the Tenant who created the snapshot.
                   If not specified, it is automatically populated from the source Instance.
                 properties:
                   name:
@@ -106,14 +103,13 @@ spec:
             - instanceRef
             type: object
           status:
-            description: InstanceSnapshotStatus reflects the most recently observed
-              status of the InstanceSnapshot.
+            description: InstanceSnapshotStatus defines the observed state of InstanceSnapshot.
             properties:
               artifact:
-                description: References to the generated resources.
+                description: Artifact contains references to the generated resources.
                 properties:
                   dataVolumeRef:
-                    description: The reference to the generated DataVolume.
+                    description: DataVolumeRef points to the generated DataVolume.
                     properties:
                       name:
                         description: The name of the resource to be referenced.
@@ -130,7 +126,8 @@ spec:
                     anyOf:
                     - type: integer
                     - type: string
-                    description: The dimension of the generated datavolume.
+                    description: VolumeSize reports the dimension of the generated
+                      datavolume.
                     pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
                     x-kubernetes-int-or-string: true
                 required:
@@ -138,7 +135,8 @@ spec:
                 - volumeSize
                 type: object
               conditions:
-                description: The latest available observations of the snapshot state.
+                description: Conditions hold the latest available observations of
+                  the snapshot state.
                 items:
                   description: Condition contains details for one aspect of the current
                     state of this API Resource.
@@ -195,7 +193,7 @@ spec:
                   type: object
                 type: array
               phase:
-                description: The current phase of the snapshot.
+                description: Phase is the current phase of the snapshot.
                 enum:
                 - ""
                 - Pending
