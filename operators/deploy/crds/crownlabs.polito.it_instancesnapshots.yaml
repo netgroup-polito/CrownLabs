@@ -62,9 +62,14 @@ spec:
                 pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
                 type: string
               imageName:
-                description: An optional user-defined name for the snapshot image.
+                description: |-
+                  An optional user-defined name for the snapshot image.
+                  Must be a valid RFC 1035 label name: starts with a lowercase letter,
+                  may contain lowercase letters, digits, and hyphens, and ends with
+                  a lowercase letter or digit. Maximum 63 characters.
                 maxLength: 63
-                pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?$
+                minLength: 1
+                pattern: ^[a-z]([-a-z0-9]*[a-z0-9])?$
                 type: string
               instanceRef:
                 description: The reference to the persistent VM instance to be snapshotted.
