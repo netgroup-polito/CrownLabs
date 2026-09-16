@@ -6,10 +6,6 @@ This document details how the CrownLabs Go operators are implemented to reconcil
 
 CrownLabs operators rely on specific configuration flags to coordinate Gateway API route generation and namespace authorization:
 
-* **`global.gateway.gatewayApiMode` (`--gateway-api-mode`)**:
-  - **Purpose**: Controls whether CrownLabs operates in Gateway API mode or legacy Ingress mode.
-  - **Usage**: When enabled (`true`), the Instance Operator reconciles Gateway API `HTTPRoute` resources (`enforceInstanceExpositionHTTPRoutePresence`). When disabled (`false`), it falls back to legacy Kubernetes `Ingress` resources.
-
 * **`gatewayApiRefsValues` (`--gateway-api-refs-values`)**:
   - **Purpose**: Specifies the target Gateway reference formatted as `<gateway-namespace>/<gateway-name>` (e.g., `crownlabs-production/crownlabs-main`).
   - **Usage**: Required by the Instance Operator to forge the `parentRef` inside generated `HTTPRoute` specifications. Without this parameter, `HTTPRoute` resources cannot target the correct Gateway instance.
@@ -23,10 +19,8 @@ CrownLabs operators rely on specific configuration flags to coordinate Gateway A
 ### 1. Gateway API Acceptance Logic
 The "Acceptance" mechanism verifies if the route for an instance has been correctly processed by the Gateway.
 - **Gateway Validation**: When an `HTTPRoute` is created, the Gateway API operator checks its validity. It verifies if the namespace and the gateway name are correct, and if the rules are compatible with the gateway policies. If everything is correct, the Gateway "accepts" the route by injecting a `RouteConditionAccepted = True` status condition into the `HTTPRoute`. Otherwise, it rejects it.
-- **Instance Status (`expositionAccepted`)**: The CrownLabs Instance controller reads this acceptance state and exposes it in the Instance status as a boolean flag (`expositionAccepted`). 
-  * *Legacy Ingress Compatibility*: Since legacy `Ingress` resources do not natively report an acceptance status like `HTTPRoute` does, the operator immediately hardcodes `expositionAccepted = true` upon Ingress creation.
+- **Instance Status (`expositionAccepted`)**: The CrownLabs Instance controller reads this acceptance state and exposes it in the Instance status as a boolean flag (`expositionAccepted`).
   * *Troubleshooting Note*: If a public endpoint/URL is deliberately absent (e.g. for pure Bastion connections without direct exposure), an `expositionAccepted: false` value is perfectly acceptable. However, if a public URL is expected but the flag remains `false`, it indicates a configuration problem that requires investigation.
-- **Safe Migration**: This status acts as a safety parachute during hot migrations. The system verifies the successful creation and acceptance of the new `HTTPRoute` before destroying the legacy `Ingress`, minimizing any service disruption.
 
 ### 2. HTTPRoute Specification Structure
 To keep resource definitions clean and simplify troubleshooting, CrownLabs implements a simplified `HTTPRoute` specification in the operator:
@@ -46,4 +40,3 @@ For environments utilizing Headless Services:
 ### 4. Rollout Strategy
 To prevent service disruption when updating or creating exposition resources, a **safe rollout** strategy is implemented in the operator logic:
 1. **Create-Before-Destroy**: The Instance Operator creates the new `HTTPRoute` resource first and verifies that the Gateway has accepted it.
-2. **Downtime Minimization**: Only after the route is successfully accepted and DNS is synchronized does the operator destroy any older or conflicting resources (like legacy Ingresses during transitions). This act of creating the new path before tearing down the old one acts as a safety net to ensure zero downtime.

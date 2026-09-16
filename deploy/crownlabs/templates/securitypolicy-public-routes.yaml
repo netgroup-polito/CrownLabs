@@ -1,4 +1,4 @@
-{{- if and .Values.global.gateway.gatewayApiMode (.Values.global.gateway.securityPolicy.enabled | default true) }}
+{{- if .Values.global.gateway.securityPolicy.enabled | default true }}
 apiVersion: gateway.envoyproxy.io/v1alpha1
 kind: SecurityPolicy
 metadata:

@@ -2,6 +2,9 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+global:
+  gateway: {}
+
 replicaCount: 1
 
 image:
@@ -77,20 +80,6 @@ securityContext:
 service:
   type: ClusterIP
   port: 8080
-
-global:
-  gateway: {}
-
-ingress:
-  annotations:
-    nginx.ingress.kubernetes.io/custom-http-errors: "418"
-    nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
-    nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
-
-  # Note: this hostname is not used in Gateway API mode
-  hostname: crownlabs.example.com
-  path: /graph
-  secret: frontend-app-certificate
 
 httproute:
   gateway: {}

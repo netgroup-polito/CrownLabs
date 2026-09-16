@@ -39,7 +39,6 @@ spec:
           args:
             - '--namespace-whitelist={{ .Values.configurations.generic.whitelistLabels }}'
             - '--website-base-url={{ .Values.configurations.generic.websiteBaseUrl | default .Values.global.gateway.hostname }}'
-            - '--instances-auth-url={{ .Values.configurations.generic.instancesAuthUrl }}'
             - '--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}'
             - '--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}'
             - '--vm-registry={{ .Values.configurations.privateContainerRegistry.url }}'
@@ -53,7 +52,6 @@ spec:
             - '--public-exposure-common-labels={{ .Values.configurations.publicExposure.commonLabels | join "," }}'
             - '--public-exposure-loadbalancer-ips-key={{ .Values.configurations.publicExposure.loadBalancerIPsKey }}'
             - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
-            - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
             - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
           ports:
             - name: op-metrics

@@ -41,7 +41,7 @@ func (r *InstanceReconciler) EnforceVMEnvironment(ctx context.Context) error {
 		return err
 	}
 
-	// Enforce the service and the ingress to expose the environment.
+	// Enforce the service and the HTTPRoute to expose the environment.
 	err := r.EnforceInstanceExposition(ctx)
 	if err != nil {
 		log.Error(err, "failed to enforce the instance exposition objects")

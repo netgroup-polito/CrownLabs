@@ -18,7 +18,6 @@ import (
 	"context"
 
 	corev1 "k8s.io/api/core/v1"
-	netv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
@@ -33,15 +32,12 @@ import (
 )
 
 // EnforceInstanceExposition ensures the presence/absence of the objects required to expose
-// an environment (i.e. service, ingress or gateway), depending on whether the instance is running or not.
+// an environment (i.e. service or gateway), depending on whether the instance is running or not.
 func (r *InstanceReconciler) EnforceInstanceExposition(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 
-	if instance.Spec.Running && r.ExpositionConfig.GatewayAPIMode {
+	if instance.Spec.Running {
 		return r.enforceHTTPRoutePresence(ctx)
-	}
-	if instance.Spec.Running && !r.ExpositionConfig.GatewayAPIMode {
-		return r.enforceIngressPresence(ctx)
 	}
 
 	return r.enforceInstanceExpositionAbsence(ctx)
@@ -107,75 +103,6 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 		return nil
 	}
 
-	// Destroy any Ingress
-	if err := r.enforceIngressAbsence(ctx); err != nil {
-		log.Error(err, "failed to remove conflicting ingress", "httproute", klog.KObj(&httpRoute))
-		return err
-	}
-
-	return nil
-}
-
-// enforceIngressPresence ensures the presence of the Ingress required to expose an environment.
-func (r *InstanceReconciler) enforceIngressPresence(ctx context.Context) error {
-	log := ctrl.LoggerFrom(ctx)
-	instance := clctx.InstanceFrom(ctx)
-	environment := clctx.EnvironmentFrom(ctx)
-	envIndex := clctx.EnvironmentIndexFrom(ctx)
-
-	svc, err := r.enforceServicePresence(ctx)
-	if err != nil {
-		return err
-	}
-	// If service presence couldn't be ensured due to out-of-range index, nothing to do
-	if svc == nil || svc.Spec.ClusterIP == "" {
-		return nil
-	}
-
-	// No need to create ingress resources in case of gui-less VMs
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && !environment.GuiEnabled {
-		return nil
-	}
-
-	// Enforce the Ingress presence
-	host := r.ExpositionConfig.WebsiteBaseURL
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
-	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &ingressGUI, func() error {
-		// Ingress specifications are forged only at creation time, to prevent issues in case of updates.
-		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
-		if ingressGUI.CreationTimestamp.IsZero() {
-			ingressGUI.Spec = forge.IngressSpec(host, forge.ExpositionGUIPath(instance, environment),
-				forge.IngressDefaultCertificateName, svc.GetName(), forge.GUIPortName)
-		}
-		ingressGUI.SetLabels(forge.EnvironmentObjectLabels(ingressGUI.GetLabels(), instance, environment))
-
-		ingressGUI.SetAnnotations(forge.IngressGUIAnnotations(environment, ingressGUI.GetAnnotations()))
-
-		// Add authentication annotations only if enabled.
-		if r.ExpositionConfig.EnableAuthentication {
-			ingressGUI.SetAnnotations(forge.IngressAuthenticationAnnotations(ingressGUI.GetAnnotations(), r.ExpositionConfig.InstancesAuthURL))
-		}
-
-		return ctrl.SetControllerReference(instance, &ingressGUI, r.Scheme)
-	})
-
-	if err != nil {
-		log.Error(err, "failed to create object", "ingress", klog.KObj(&ingressGUI))
-		return err
-	}
-
-	log.V(utils.FromResult(res)).Info("object enforced", "ingress", klog.KObj(&ingressGUI), "result", res)
-
-	// Update the instance status to mark the exposition as accepted a priori
-	// for Ingress-based exposition (Ingresses are considered accepted).
-	instance.Status.Environments[envIndex].ExpositionAccepted = true
-
-	// Destroy any HTTPRoute
-	if err := r.enforceHTTPRouteAbsence(ctx); err != nil {
-		log.Error(err, "failed to remove conflicting httproute", "ingress", klog.KObj(&ingressGUI))
-		return err
-	}
-
 	return nil
 }
 
@@ -221,7 +148,7 @@ func (r *InstanceReconciler) enforceServicePresence(ctx context.Context) (*corev
 	return &service, nil
 }
 
-// enforceInstanceExpositionAbsence ensures the absence of the objects required to expose an environment (i.e. service, ingress).
+// enforceInstanceExpositionAbsence ensures the absence of the objects required to expose an environment (i.e. service, HTTPRoute).
 func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Context) error {
 	instance := clctx.InstanceFrom(ctx)
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
@@ -247,11 +174,6 @@ func (r *InstanceReconciler) enforceInstanceExpositionAbsence(ctx context.Contex
 	if err := r.enforceHTTPRouteAbsence(ctx); err != nil {
 		return err
 	}
-	// Enforce Ingress absence
-	if err := r.enforceIngressAbsence(ctx); err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -262,18 +184,6 @@ func (r *InstanceReconciler) enforceHTTPRouteAbsence(ctx context.Context) error 
 
 	httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	if err := utils.EnforceObjectAbsence(ctx, r.Client, &httpRoute, "httproute"); err != nil {
-		return err
-	}
-	return nil
-}
-
-// enforceIngressAbsence removes the Ingress exposed resource for the environment.
-func (r *InstanceReconciler) enforceIngressAbsence(ctx context.Context) error {
-	instance := clctx.InstanceFrom(ctx)
-	environment := clctx.EnvironmentFrom(ctx)
-
-	ingressGUI := netv1.Ingress{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
-	if err := utils.EnforceObjectAbsence(ctx, r.Client, &ingressGUI, "ingress"); err != nil {
 		return err
 	}
 	return nil
