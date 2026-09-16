@@ -32,4 +32,10 @@ body,
   justify-content: center;
   background: #000;
   color: #fff;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.native-vnc-session-probe {
+  display: none;
 }
