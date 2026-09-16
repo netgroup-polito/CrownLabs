@@ -46,6 +46,8 @@ export interface ImageCreationModalProps {
   canUseWorkspaceDestinations: boolean;
   canPublishToPublicRegistry: boolean;
   canCreateImage: boolean;
+  creating?: boolean;
+  loadingWorkspaces?: boolean;
   otherWorkspaceOptions: WorkspaceOption[];
   initialSelection?: ImageDestinationSelection;
   onCancel: () => void;
@@ -84,6 +86,8 @@ export const ImageCreationModal: FC<ImageCreationModalProps> = ({
   canUseWorkspaceDestinations,
   canPublishToPublicRegistry,
   canCreateImage,
+  creating = false,
+  loadingWorkspaces = false,
   otherWorkspaceOptions,
   initialSelection,
   onCancel,
@@ -196,7 +200,8 @@ export const ImageCreationModal: FC<ImageCreationModalProps> = ({
           workspace,
         })
       }
-      okButtonProps={{ disabled: createDisabled }}
+      okButtonProps={{ disabled: createDisabled, loading: creating }}
+      cancelButtonProps={{ disabled: creating }}
       centered
       width={760}
       destroyOnHidden
@@ -277,6 +282,7 @@ export const ImageCreationModal: FC<ImageCreationModalProps> = ({
                       placeholder="Search or select a workspace"
                       value={workspace}
                       options={selectableWorkspaces}
+                      loading={loadingWorkspaces}
                       showSearch
                       optionFilterProp="label"
                       onClick={event => event.stopPropagation()}

@@ -388,7 +388,7 @@ export const makeGuiInstance = (
       );
 
       return {
-        name: envStatus?.name ?? '',
+        name: envStatus?.name ?? templateEnv?.name ?? '',
         phase: envStatus?.phase,
         ip: envStatus?.ip,
         guiEnabled: templateEnv?.guiEnabled ?? false,

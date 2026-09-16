@@ -82,6 +82,9 @@ qlkube:
             - resource: templates
               version: v1alpha2
               mapping: itPolitoCrownlabsV1alpha2Template
+            - resource: instancesnapshots
+              version: v1alpha2
+              mapping: itPolitoCrownlabsV1alpha2InstanceSnapshot
     wrappers:
       fileName: wrappers.js
       resources:

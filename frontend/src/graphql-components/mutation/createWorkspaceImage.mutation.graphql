@@ -1,0 +1,61 @@
+mutation createWorkspaceImage(
+  $destinationNamespace: String!
+  $sourceInstanceName: String!
+  $sourceInstanceNamespace: String!
+  $environmentName: String!
+  $imageName: String!
+  $description: String = ""
+) {
+  createdImage: createCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot(
+    namespace: $destinationNamespace
+    itPolitoCrownlabsV1alpha2InstanceSnapshotInput: {
+      apiVersion: "crownlabs.polito.it/v1alpha2"
+      kind: "InstanceSnapshot"
+      metadata: { name: $imageName, namespace: $destinationNamespace }
+      spec: {
+        instanceRef: {
+          name: $sourceInstanceName
+          namespace: $sourceInstanceNamespace
+        }
+        environmentRef: $environmentName
+        imageName: $imageName
+        description: $description
+      }
+    }
+  ) {
+    metadata {
+      name
+      namespace
+      uid
+      creationTimestamp
+      generation
+    }
+    spec {
+      instanceRef {
+        name
+        namespace
+      }
+      environmentRef
+      imageName
+      description
+      tenantRef {
+        name
+        namespace
+      }
+    }
+    status {
+      phase
+      artifact {
+        volumeSize
+      }
+      conditions {
+        type
+        status
+        reason
+        message
+        observedGeneration
+        lastTransitionTime
+      }
+    }
+  }
+}

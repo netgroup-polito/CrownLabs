@@ -1,51 +1,142 @@
 import { DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { Badge, Button, Drawer, Empty, Table, Tooltip } from 'antd';
-import { useState, type FC } from 'react';
+import { useContext, useEffect, useMemo, useState, type FC } from 'react';
+import {
+  type UpdatedWorkspaceImagesSubscription,
+  useDeleteWorkspaceImageMutation,
+  useWorkspaceImagesQuery,
+} from '../../../generated-types';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
+import { ErrorTypes } from '../../../errorHandling/utils';
 import { ModalAlert } from '../../common/ModalAlert';
+import { updateWorkspaceImages } from './workspaceImagesUpdates';
+import { updatedWorkspaceImages } from '../../../graphql-components/subscription';
 
-type MockImage = {
+type WorkspaceImage = {
   id: string;
+  resourceName: string;
   name: string;
+  author: string;
   description: string;
   size: string;
   createdAt: string;
 };
 
-const initialMockImages: MockImage[] = [
-  {
-    id: 'image-1',
-    name: 'image-of-ubuntu-dev',
-    description:
-      'Ubuntu 24.04 development image with cloud-init reset, Docker, Git, Python, and the CrownLabs base toolchain preinstalled.',
-    size: '12.4 GiB',
-    createdAt: '29 Jul 2026, 14:35',
-  },
-  {
-    id: 'image-2',
-    name: 'image-of-cloud-vm',
-    description:
-      'Cloud VM image prepared for networking labs, with common diagnostic tools and the initial system configuration already completed.',
-    size: '8.7 GiB',
-    createdAt: '30 Jul 2026, 09:10',
-  },
-];
+export interface ImagesDrawerProps {
+  workspaceNamespace: string;
+}
 
-const ImagesDrawer: FC = () => {
+const formatCreationDate = (value?: string | null) => {
+  if (!value) return '—';
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '—';
+
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
+};
+
+const ImagesDrawer: FC<ImagesDrawerProps> = ({ workspaceNamespace }) => {
+  const { apolloErrorCatcher, makeErrorCatcher } = useContext(ErrorContext);
   const [open, setOpen] = useState(false);
-  const [images, setImages] = useState<MockImage[]>(initialMockImages);
-  const [selectedImage, setSelectedImage] = useState<MockImage>();
+  const [selectedImage, setSelectedImage] = useState<WorkspaceImage>();
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
+
+  const {
+    data,
+    loading: loadingImages,
+    error: imagesError,
+    subscribeToMore,
+  } = useWorkspaceImagesQuery({
+    variables: { workspaceNamespace },
+    skip: !workspaceNamespace,
+    fetchPolicy: 'network-only',
+    onError: apolloErrorCatcher,
+  });
+
+  useEffect(() => {
+    if (!workspaceNamespace || loadingImages || imagesError) return;
+
+    // Keep the subscription active while mounted, even with the drawer closed,
+    // so the badge and mutations from other views stay synchronized too.
+    const unsubscribe = subscribeToMore<UpdatedWorkspaceImagesSubscription>({
+      document: updatedWorkspaceImages,
+      variables: { workspaceNamespace },
+      onError: makeErrorCatcher(ErrorTypes.GenericError),
+      updateQuery: (previous, { subscriptionData }) =>
+        updateWorkspaceImages(
+          previous,
+          subscriptionData.data?.updatedImage,
+          workspaceNamespace,
+        ),
+    });
+
+    return () => unsubscribe();
+  }, [
+    makeErrorCatcher,
+    imagesError,
+    loadingImages,
+    subscribeToMore,
+    workspaceNamespace,
+  ]);
+
+  const [deleteWorkspaceImage, { loading: deletingImage }] =
+    useDeleteWorkspaceImageMutation({
+      onError: apolloErrorCatcher,
+    });
+
+  const images = useMemo<WorkspaceImage[]>(
+    () =>
+      (data?.imageList?.images ?? [])
+        .filter(image => image?.metadata?.name)
+        .map(image => ({
+          id: image?.metadata?.uid ?? image?.metadata?.name ?? '',
+          resourceName: image?.metadata?.name ?? '',
+          name: image?.spec?.imageName ?? image?.metadata?.name ?? '',
+          author: image?.spec?.tenantRef?.name ?? 'Unknown',
+          description:
+            image?.spec?.description?.trim() || 'No description provided.',
+          size: image?.status?.artifact?.volumeSize
+            ? String(image.status.artifact.volumeSize)
+            : '—',
+          createdAt: formatCreationDate(image?.metadata?.creationTimestamp),
+        }))
+        .sort((a, b) => a.name.localeCompare(b.name)),
+    [data?.imageList?.images],
+  );
+
+  const confirmDelete = async () => {
+    if (!selectedImage) return;
+
+    await deleteWorkspaceImage({
+      variables: {
+        workspaceNamespace,
+        imageName: selectedImage.resourceName,
+      },
+    });
+    setShowDeleteModalConfirm(false);
+    setSelectedImage(undefined);
+  };
 
   const columns = [
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
-      render: (name: string, image: MockImage) => (
+      render: (name: string, image: WorkspaceImage) => (
         <span className="flex items-center gap-2">
           {name}
           <Tooltip
-            title={image.description}
+            title={
+              <div>
+                <div>{image.description}</div>
+                <div className="mt-1">
+                  <b>Author:</b> {image.author}
+                </div>
+              </div>
+            }
             placement="top"
             trigger="hover"
             zIndex={2000}
@@ -75,12 +166,13 @@ const ImagesDrawer: FC = () => {
       title: 'Action',
       key: 'action',
       width: 90,
-      render: (_: unknown, image: MockImage) => (
+      render: (_: unknown, image: WorkspaceImage) => (
         <Tooltip title="Delete image">
           <DeleteOutlined
             className="cursor-pointer"
             aria-label={`Delete ${image.name}`}
             onClick={() => {
+              if (deletingImage) return;
               setSelectedImage(image);
               setShowDeleteModalConfirm(true);
             }}
@@ -119,66 +211,58 @@ const ImagesDrawer: FC = () => {
           zIndex: 1000,
         }}
       >
-        {images.length ? (
-          <>
-            <Table
-              columns={columns}
-              dataSource={images}
-              rowKey="id"
-              pagination={false}
-            />
-            <ModalAlert
-              headTitle="Confirm image deletion"
-              message={
-                <>
-                  Do you really want to delete <b>{selectedImage?.name}</b>?
-                  <br />
-                  The image will no longer be available.
-                </>
-              }
-              description="This is a frontend prototype. The deletion only affects the mock data."
-              type="warning"
-              buttons={[
-                <Button
-                  key="close"
-                  shape="round"
-                  className="mr-2 w-24"
-                  type="default"
-                  onClick={() => setShowDeleteModalConfirm(false)}
-                >
-                  Close
-                </Button>,
-                <Button
-                  key="delete"
-                  shape="round"
-                  className="ml-2 w-24"
-                  type="primary"
-                  danger
-                  onClick={() => {
-                    if (selectedImage) {
-                      setImages(current =>
-                        current.filter(
-                          currentImage => currentImage.id !== selectedImage.id,
-                        ),
-                      );
-                    }
-                    setShowDeleteModalConfirm(false);
-                    setSelectedImage(undefined);
-                  }}
-                >
-                  Delete
-                </Button>,
-              ]}
-              show={showDeleteModalConfirm}
-              setShow={setShowDeleteModalConfirm}
-            />
-          </>
+        {images.length || loadingImages ? (
+          <Table
+            columns={columns}
+            dataSource={images}
+            rowKey="id"
+            pagination={false}
+            loading={loadingImages}
+          />
         ) : (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description="No images found"
           />
         )}
+
+        <ModalAlert
+          headTitle="Confirm image deletion"
+          message={
+            <>
+              Do you really want to delete <b>{selectedImage?.name}</b>?
+              <br />
+              The image and its associated data will no longer be available.
+            </>
+          }
+          description="This action cannot be undone."
+          type="warning"
+          buttons={[
+            <Button
+              key="close"
+              shape="round"
+              className="mr-2 w-24"
+              type="default"
+              disabled={deletingImage}
+              onClick={() => setShowDeleteModalConfirm(false)}
+            >
+              Close
+            </Button>,
+            <Button
+              key="delete"
+              shape="round"
+              className="ml-2 w-24"
+              type="primary"
+              danger
+              loading={deletingImage}
+              onClick={() => void confirmDelete().catch(() => undefined)}
+            >
+              Delete
+            </Button>,
+          ]}
+          show={showDeleteModalConfirm}
+          setShow={setShowDeleteModalConfirm}
+        />
       </Drawer>
     </div>
   );

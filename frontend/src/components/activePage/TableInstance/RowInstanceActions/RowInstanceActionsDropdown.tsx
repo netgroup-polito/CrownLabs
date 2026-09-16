@@ -26,7 +26,9 @@ import {
   Phase2,
   Role,
   useApplyInstanceMutation,
+  useCreateWorkspaceImageMutation,
   useDeleteInstanceMutation,
+  useWorkspacesQuery,
 } from '../../../../generated-types';
 import {
   makeImageNotificationContent,
@@ -86,6 +88,10 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const [applyInstanceMutation] = useApplyInstanceMutation({
     onError: apolloErrorCatcher,
   });
+  const [createWorkspaceImage, { loading: creatingWorkspaceImage }] =
+    useCreateWorkspaceImageMutation({
+      onError: apolloErrorCatcher,
+    });
   const navigate = useNavigate();
   const { data: tenantData, notify } = useContext(TenantContext);
   const { profile } = useContext(AuthContext);
@@ -118,10 +124,17 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         canUseWorkspaceDestinations || canPublishToPublicRegistry,
       canUseWorkspaceDestinations,
       canPublishToPublicRegistry,
+      isClusterAdmin,
       isPersonalWorkspace,
       personalWorkspaceAvailable,
     };
   }, [instance.workspaceName, profile, tenantData?.tenant]);
+
+  const { data: allWorkspacesData, loading: loadingAllWorkspaces } =
+    useWorkspacesQuery({
+      skip: !imageCreationPermissions.isClusterAdmin || !imageModalOpen,
+      onError: apolloErrorCatcher,
+    });
 
   const imageCreationAvailability = useMemo(() => {
     const latestInstance =
@@ -129,16 +142,20 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
       instance;
     const hasSingleEnvironment = latestInstance.environments?.length === 1;
     const supportsImages =
-      latestInstance.environmentType === EnvironmentType.VirtualMachine ||
-      latestInstance.environmentType === EnvironmentType.CloudVm;
+      latestInstance.persistent &&
+      (latestInstance.environmentType === EnvironmentType.VirtualMachine ||
+        latestInstance.environmentType === EnvironmentType.CloudVm);
 
     return {
       showAction:
-        hasSingleEnvironment && imageCreationPermissions.canCreateImages,
+        hasSingleEnvironment &&
+        supportsImages &&
+        imageCreationPermissions.canCreateImages,
       canCreate:
         hasSingleEnvironment &&
         imageCreationPermissions.canCreateImages &&
         supportsImages &&
+        Boolean(latestInstance.environments?.[0]?.name) &&
         latestInstance.status === Phase2.Off,
     };
   }, [imageCreationPermissions.canCreateImages, instance, ownedInstances]);
@@ -218,6 +235,118 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const defaultImageName = `image-of-${instance.name}`
     .slice(0, 63)
     .replace(/-+$/, '');
+
+  const currentWorkspaceNamespace = useMemo(() => {
+    if (imageCreationPermissions.isPersonalWorkspace) {
+      return instance.tenantNamespace;
+    }
+
+    const currentWorkspace = tenantData?.tenant?.spec?.workspaces?.find(
+      workspace => workspace?.name === instance.workspaceName,
+    );
+
+    return (
+      currentWorkspace?.workspaceWrapperTenantV1alpha2
+        ?.itPolitoCrownlabsV1alpha1Workspace?.status?.namespace?.name ??
+      `workspace-${instance.workspaceName}`
+    );
+  }, [
+    imageCreationPermissions.isPersonalWorkspace,
+    instance.tenantNamespace,
+    instance.workspaceName,
+    tenantData?.tenant?.spec?.workspaces,
+  ]);
+
+  const otherWorkspaceOptions = useMemo(() => {
+    if (imageCreationPermissions.isClusterAdmin) {
+      return (allWorkspacesData?.workspaces?.items ?? [])
+        .filter(workspace =>
+          Boolean(
+            workspace?.metadata?.name && !workspace.metadata.deletionTimestamp,
+          ),
+        )
+        .map(workspace => ({
+          value: `workspace-${workspace?.metadata?.name}`,
+          label: workspace?.spec?.prettyName ?? workspace?.metadata?.name ?? '',
+        }))
+        .filter(option => option.label && option.value);
+    }
+
+    return (tenantData?.tenant?.spec?.workspaces ?? [])
+      .filter(workspace => workspace?.role === Role.Manager)
+      .map(workspace => {
+        const workspaceResource =
+          workspace?.workspaceWrapperTenantV1alpha2
+            ?.itPolitoCrownlabsV1alpha1Workspace;
+        return {
+          value:
+            workspaceResource?.status?.namespace?.name ??
+            `workspace-${workspace?.name}`,
+          label: workspaceResource?.spec?.prettyName ?? workspace?.name ?? '',
+        };
+      })
+      .filter(option => option.label && option.value);
+  }, [
+    allWorkspacesData?.workspaces?.items,
+    imageCreationPermissions.isClusterAdmin,
+    tenantData?.tenant?.spec?.workspaces,
+  ]);
+
+  const createImage = async (selection: ImageDestinationSelection) => {
+    if (selection.destination === 'public-registry') {
+      notify(
+        'success',
+        `image/${instance.id}/${selection.imageName}/${selection.destination}`,
+        makeImageNotificationContent(
+          selection.imageName,
+          'The image will be published to the public registry shortly.',
+        ),
+      );
+      setImageModalOpen(false);
+      return;
+    }
+
+    const destinationNamespace =
+      selection.destination === 'this-workspace'
+        ? currentWorkspaceNamespace
+        : selection.workspace === 'personal'
+          ? instance.tenantNamespace
+          : selection.workspace;
+    const environmentName = instance.environments?.[0]?.name;
+
+    if (!destinationNamespace || !environmentName) return;
+
+    await createWorkspaceImage({
+      variables: {
+        destinationNamespace,
+        sourceInstanceName: instance.name,
+        sourceInstanceNamespace: instance.tenantNamespace,
+        environmentName,
+        imageName: selection.imageName,
+        description: selection.description,
+      },
+    });
+
+    const targetWorkspaceLabel =
+      selection.workspace === 'personal'
+        ? 'your Personal Workspace'
+        : otherWorkspaceOptions.find(
+            option => option.value === selection.workspace,
+          )?.label;
+    const notification =
+      selection.destination === 'this-workspace'
+        ? 'Your new image will be available under “Images” in this workspace.'
+        : `Your new image will be available under “Images” in ${
+            targetWorkspaceLabel ?? 'the selected workspace'
+          }.`;
+
+    notify(
+      'success',
+      `image/${instance.id}/${selection.imageName}/${selection.destination}`,
+      makeImageNotificationContent(selection.imageName, notification),
+    );
+    setImageModalOpen(false);
+  };
 
   return (
     <>
@@ -400,7 +529,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             ? [instance.environments[0].name]
             : []),
         ]}
-        currentWorkspaceName={instance.workspaceName || 'personal'}
+        currentWorkspaceName={currentWorkspaceNamespace}
         isPersonalWorkspace={imageCreationPermissions.isPersonalWorkspace}
         personalWorkspaceAvailable={
           imageCreationPermissions.personalWorkspaceAvailable
@@ -412,32 +541,13 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
           imageCreationPermissions.canPublishToPublicRegistry
         }
         canCreateImage={imageCreationAvailability.canCreate}
-        otherWorkspaceOptions={[
-          { value: 'workspaceX', label: 'workspaceX' },
-          { value: 'workspaceY', label: 'workspaceY' },
-          { value: 'workspaceZ', label: 'workspaceZ' },
-        ]}
+        creating={creatingWorkspaceImage}
+        loadingWorkspaces={loadingAllWorkspaces}
+        otherWorkspaceOptions={otherWorkspaceOptions}
         onCancel={() => setImageModalOpen(false)}
-        onCreate={(selection: ImageDestinationSelection) => {
-          const notification = {
-            'this-workspace':
-              'Your new image will be available under “Images” in this workspace.',
-            'another-workspace': `Your new image will be available under “Images” in ${
-              selection.workspace === 'personal'
-                ? 'your Personal Workspace'
-                : selection.workspace
-            }.`,
-            'public-registry':
-              'The image will be published to the public registry shortly.',
-          }[selection.destination];
-
-          notify(
-            'success',
-            `image/${instance.id}/${selection.imageName}/${selection.destination}`,
-            makeImageNotificationContent(selection.imageName, notification),
-          );
-          setImageModalOpen(false);
-        }}
+        onCreate={selection =>
+          void createImage(selection).catch(() => undefined)
+        }
       />
     </>
   );
