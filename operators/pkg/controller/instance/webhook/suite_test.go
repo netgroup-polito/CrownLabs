@@ -21,6 +21,7 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	corev1 "k8s.io/api/core/v1"
 )
 
 var (
@@ -44,4 +45,5 @@ var _ = BeforeSuite(func() {
 	scheme = runtime.NewScheme()
 	Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
+	Expect(corev1.AddToScheme(scheme)).To(Succeed())
 })

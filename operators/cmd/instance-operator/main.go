@@ -39,7 +39,6 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/instsnapctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
@@ -201,14 +200,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&instsnapctrl.InstanceSnapshotReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		EventsRecorder: mgr.GetEventRecorderFor("InstanceSnapshot"),
-	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", "InstanceSnapshot")
-		os.Exit(1)
-	}
 
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)

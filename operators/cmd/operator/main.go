@@ -58,6 +58,7 @@ func main() {
 	var enableLeaderElection bool
 	var tenantNamespaceCommonLabelsStr string
 	var targetLabelStr string
+	var snapshotPublicNamespace string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -73,11 +74,13 @@ func main() {
 		"Maximum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
 			"Default is 7 days.")
+	flag.StringVar(&snapshotPublicNamespace, "snapshot-public-namespace", "cldprog-5-block-vms-tests", "The namespace containing public snapshots used for LocalVMs.")
 
 	// Enabling modules
 	var enableTenant bool
 	var enableWorkspace bool
 	var enableInstance bool
+	var enableInstanceSnapshot bool
 	var enableSharedVolume bool
 	var enablePmp bool
 	var enableKeycloak bool
@@ -85,6 +88,7 @@ func main() {
 	flag.BoolVar(&enableTenant, "enable-tenant", false, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", false, "Enable the workspace controller.")
 	flag.BoolVar(&enableInstance, "enable-instance", false, "Enable the instance controller.")
+	flag.BoolVar(&enableInstanceSnapshot, "enable-instancesnapshot", false, "Enable the instancesnapshot controller.")
 	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", false, "Enable the sharedvolume controller.")
 	flag.BoolVar(&enablePmp, "enable-pmp", false, "Enable the PVC mirror provisioner.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", false, "Enable the Keycloak integration.")
@@ -159,9 +163,17 @@ func main() {
 
 	if enableInstance {
 		log.Info("Starting the instance webhook")
-		err := setupInstance(mgr)
+		err := setupInstance(mgr, snapshotPublicNamespace)
 		if err != nil {
 			klog.Fatal(err, "Unable to create instance webhook")
+		}
+	}
+
+	if enableInstanceSnapshot {
+		log.Info("Starting the instancesnapshot controller")
+		err := setupInstanceSnapshot(mgr, tenantMaxConcurrentReconciles)
+		if err != nil {
+			klog.Fatal(err, "Unable to create instancesnapshot controller")
 		}
 	}
 

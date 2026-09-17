@@ -14,6 +14,7 @@ configurations:
     keycloak: true
     webhooks: false
     imageList: false
+    instancesnapshot: true
 
   # Static labels added to tenant namespaces, after the chart prepends targetLabel.
   tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
@@ -34,6 +35,9 @@ configurations:
   # If true, the reconciliation will wait for the user to be verified in Keycloak before creating resources.
   # If false, resources will be created immediately after the Tenant is created.
   waitUserVerification: true
+
+  # The namespace containing public snapshots used for LocalVMs.
+  snapshotPublicNamespace: "cldprog-5-block-vms-tests"
 
   maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox

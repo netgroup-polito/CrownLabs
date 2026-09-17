@@ -111,6 +111,7 @@ operator:
       keycloak: true
       webhooks: true
       imageList: false
+      instancesnapshot: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -118,6 +119,7 @@ operator:
       clientSecret: my-awesome-secret
       rolesClientId: client-api-server
     maxConcurrentReconciles: 1
+    snapshotPublicNamespace: "cldprog-5-block-vms-tests"
     tenantNamespaceKeepAlive: 168h
     imageList:
       updateInterval: 600
@@ -241,7 +243,6 @@ instance-operator:
     generic:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
       instancesAuthUrl: https://crownlabs.example.com/auth
-      snapshotPublicNamespace: "cldprog-5-block-vms-tests"
     containerEnvironmentOptions:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader
