@@ -29,6 +29,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
 
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
@@ -49,6 +52,9 @@ func init() {
 
 	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
 	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
+
+	utilruntime.Must(virtv1.AddToScheme(rscheme))
+	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
 }
 
 func main() {
