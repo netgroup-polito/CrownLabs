@@ -77,7 +77,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	defer func(original *clv1alpha2.InstanceSnapshot) {
 		if !reflect.DeepEqual(original.Status, snapshot.Status) {
-			if err := r.Status().Update(ctx, &snapshot); err != nil {
+			if err := r.Status().Patch(ctx, &snapshot, client.MergeFrom(original)); err != nil {
 				log.Error(err, "failed to update snapshot status")
 			}
 		}
@@ -236,8 +236,9 @@ func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snaps
 
 	// Auto-populate tenantRef from the source Instance if not already set.
 	if snapshot.Spec.Tenant.Name == "" {
+		original := snapshot.DeepCopy()
 		snapshot.Spec.Tenant = instance.Spec.Tenant
-		if err := r.Update(ctx, snapshot); err != nil {
+		if err := r.Patch(ctx, snapshot, client.MergeFrom(original)); err != nil {
 			return err
 		}
 	}
