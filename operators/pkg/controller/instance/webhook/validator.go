@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"strings"
 
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -223,7 +223,8 @@ func (iv *InstanceValidator) validateLocalVMPVCAccess(ctx context.Context, insta
 	}
 
 	// Check each LocalVM environment
-	for _, env := range instanceTemplate.Spec.EnvironmentList {
+	for i := range instanceTemplate.Spec.EnvironmentList {
+		env := &instanceTemplate.Spec.EnvironmentList[i]
 		if env.EnvironmentType == clv1alpha2.ClassLocalVM {
 			parts := strings.Split(env.Image, "/")
 			if len(parts) != 2 || parts[0] == "" || parts[1] == "" {

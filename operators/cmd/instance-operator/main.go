@@ -200,7 +200,6 @@ func main() {
 		os.Exit(1)
 	}
 
-
 	// Add readiness probe
 	err = mgr.AddReadyzCheck("ready-ping", healthz.Ping)
 	if err != nil {

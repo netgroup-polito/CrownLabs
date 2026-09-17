@@ -16,6 +16,7 @@ package main
 
 import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instsnapctrl"
 )
 

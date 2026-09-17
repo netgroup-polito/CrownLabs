@@ -301,9 +301,9 @@ var _ = Describe("InstanceValidator", func() {
 
 	Context("LocalVM PVC Access Validation", func() {
 		var (
-			tenant            *clv1alpha2.Tenant
-			localVMTemplate   *clv1alpha2.Template
-			instance          *clv1alpha2.Instance
+			tenant          *clv1alpha2.Tenant
+			localVMTemplate *clv1alpha2.Template
+			instance        *clv1alpha2.Instance
 		)
 
 		BeforeEach(func() {
@@ -365,10 +365,10 @@ var _ = Describe("InstanceValidator", func() {
 
 		It("should allow LocalVM creation using PVC from the same tenant's personal namespace", func() {
 			localVMTemplate.Spec.EnvironmentList[0].Image = testTenantNamespace + "/my-pvc"
-			
+
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate).Build()
 			validator := &webhook.InstanceValidator{Client: fakeClient, PublicNamespace: "cldprog-5-block-vms-tests"}
-			
+
 			warnings, err := validator.ValidateCreate(ctx, instance)
 			Expect(err).To(BeNil())
 			Expect(warnings).To(BeEmpty())
@@ -377,10 +377,10 @@ var _ = Describe("InstanceValidator", func() {
 		It("should deny LocalVM creation using PVC from another tenant's personal namespace", func() {
 			otherTenantNamespace := "tenant-other"
 			localVMTemplate.Spec.EnvironmentList[0].Image = otherTenantNamespace + "/my-pvc"
-			
+
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate).Build()
 			validator := &webhook.InstanceValidator{Client: fakeClient, PublicNamespace: "cldprog-5-block-vms-tests"}
-			
+
 			warnings, err := validator.ValidateCreate(ctx, instance)
 			Expect(err).ToNot(BeNil())
 			Expect(err.Error()).To(ContainSubstring("uses a PVC from an unauthorized namespace"))
@@ -390,10 +390,10 @@ var _ = Describe("InstanceValidator", func() {
 		It("should allow LocalVM creation using PVC from an allowed workspace namespace", func() {
 			workspaceNamespace := "workspace-my-shared-ws"
 			localVMTemplate.Spec.EnvironmentList[0].Image = workspaceNamespace + "/my-pvc"
-			
+
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate).Build()
 			validator := &webhook.InstanceValidator{Client: fakeClient, PublicNamespace: "cldprog-5-block-vms-tests"}
-			
+
 			warnings, err := validator.ValidateCreate(ctx, instance)
 			Expect(err).To(BeNil())
 			Expect(warnings).To(BeEmpty())
@@ -402,10 +402,10 @@ var _ = Describe("InstanceValidator", func() {
 		It("should allow LocalVM creation using PVC from the public namespace", func() {
 			publicNamespace := "cldprog-5-block-vms-tests"
 			localVMTemplate.Spec.EnvironmentList[0].Image = publicNamespace + "/my-pvc"
-			
+
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate).Build()
 			validator := &webhook.InstanceValidator{Client: fakeClient, PublicNamespace: "cldprog-5-block-vms-tests"}
-			
+
 			warnings, err := validator.ValidateCreate(ctx, instance)
 			Expect(err).To(BeNil())
 			Expect(warnings).To(BeEmpty())
@@ -416,7 +416,7 @@ var _ = Describe("InstanceValidator", func() {
 			otherTenantNamespace := "tenant-other"
 			localVMTemplate.Spec.EnvironmentList[0].Image = otherTenantNamespace + "/my-pvc"
 			localVMTemplate.Spec.WorkspaceRef.Name = testWorkspace
-			
+
 			ws := &clv1alpha1.Workspace{
 				ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
 				Spec: clv1alpha1.WorkspaceSpec{
@@ -429,10 +429,10 @@ var _ = Describe("InstanceValidator", func() {
 					},
 				},
 			}
-			
+
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, localVMTemplate).Build()
 			validator := &webhook.InstanceValidator{Client: fakeClient, PublicNamespace: "cldprog-5-block-vms-tests"}
-			
+
 			warnings, err := validator.ValidateCreate(ctx, instance)
 			Expect(err).To(BeNil())
 			Expect(warnings).To(BeEmpty())
