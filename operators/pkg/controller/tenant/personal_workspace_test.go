@@ -51,11 +51,11 @@ var _ = Describe("Personal workspace handling", func() {
 			})
 			It("Should create the manage templates role binding for the tenant", func() {
 				rb := &rbacv1.RoleBinding{}
-				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeTrue(), timeout, interval)
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-workspace-manager", Namespace: tnPersonalNamespace}, rb, BeTrue(), timeout, interval)
 
 				Expect(rb.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
 				Expect(rb.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", tenantReconciler.TargetLabel.GetValue()))
-				Expect(rb.RoleRef.Name).To(Equal("crownlabs-manage-templates"))
+				Expect(rb.RoleRef.Name).To(Equal("crownlabs-workspace-manager"))
 				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
 				Expect(len(rb.Subjects)).To(Equal(1))
 				Expect(rb.Subjects[0].Kind).To(Equal("User"))
@@ -70,7 +70,7 @@ var _ = Describe("Personal workspace handling", func() {
 				BeforeEach(func() {
 					builder = *builder.WithInterceptorFuncs(interceptor.Funcs{
 						Create: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
-							if rb, ok := obj.(*rbacv1.RoleBinding); ok && rb.Name == "crownlabs-manage-templates" && rb.Namespace == tnPersonalNamespace {
+							if rb, ok := obj.(*rbacv1.RoleBinding); ok && rb.Name == "crownlabs-workspace-manager" && rb.Namespace == tnPersonalNamespace {
 								return errors.New("error creating role binding")
 							}
 							return client.Create(ctx, obj, opts...)
@@ -90,7 +90,7 @@ var _ = Describe("Personal workspace handling", func() {
 		When("Personal workspace is disabled", func() {
 			It("Should not have the manage templates role binding", func() {
 				rb := &rbacv1.RoleBinding{}
-				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-workspace-manager", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
 				updatedTenant := &clv1alpha2.Tenant{}
 				err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 				Expect(err).ToNot(HaveOccurred())
@@ -101,7 +101,7 @@ var _ = Describe("Personal workspace handling", func() {
 				BeforeEach(func() {
 					builder = *builder.WithInterceptorFuncs(interceptor.Funcs{
 						Delete: func(ctx context.Context, client client.WithWatch, obj client.Object, opts ...client.DeleteOption) error {
-							if rb, ok := obj.(*rbacv1.RoleBinding); ok && rb.Name == "crownlabs-manage-templates" && rb.Namespace == tnPersonalNamespace {
+							if rb, ok := obj.(*rbacv1.RoleBinding); ok && rb.Name == "crownlabs-workspace-manager" && rb.Namespace == tnPersonalNamespace {
 								return errors.New("error deleting role binding")
 							}
 							return client.Delete(ctx, obj, opts...)
@@ -129,7 +129,7 @@ var _ = Describe("Personal workspace handling", func() {
 		When("Personal workspace is enabled", func() {
 			It("Should not have the manage templates role binding", func() {
 				rb := &rbacv1.RoleBinding{}
-				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-workspace-manager", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
 				updatedTenant := &clv1alpha2.Tenant{}
 				err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 				Expect(err).ToNot(HaveOccurred())
@@ -140,7 +140,7 @@ var _ = Describe("Personal workspace handling", func() {
 		When("Personal workspace is disabled", func() {
 			It("Should not have the manage templates role binding", func() {
 				rb := &rbacv1.RoleBinding{}
-				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-manage-templates", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
+				DoesEventuallyExists(ctx, cl, client.ObjectKey{Name: "crownlabs-workspace-manager", Namespace: tnPersonalNamespace}, rb, BeFalse(), timeout, interval)
 				updatedTenant := &clv1alpha2.Tenant{}
 				err := cl.Get(ctx, types.NamespacedName{Name: tnResource.Name}, updatedTenant)
 				Expect(err).ToNot(HaveOccurred())
