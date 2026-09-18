@@ -38,6 +38,7 @@ import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM,
   VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX,
+  VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION,
   VITE_APP_MYDRIVE_WORKSPACE_NAME,
 } from '../../../../env';
 import { TenantContext } from '../../../../contexts/TenantContext';
@@ -293,25 +294,14 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   ]);
 
   const createImage = async (selection: ImageDestinationSelection) => {
-    if (selection.destination === 'public-registry') {
-      notify(
-        'success',
-        `image/${instance.id}/${selection.imageName}/${selection.destination}`,
-        makeImageNotificationContent(
-          selection.imageName,
-          'The image will be published to the public registry shortly.',
-        ),
-      );
-      setImageModalOpen(false);
-      return;
-    }
-
     const destinationNamespace =
-      selection.destination === 'this-workspace'
-        ? currentWorkspaceNamespace
-        : selection.workspace === 'personal'
-          ? instance.tenantNamespace
-          : selection.workspace;
+      selection.destination === 'public-registry'
+        ? VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION
+        : selection.destination === 'this-workspace'
+          ? currentWorkspaceNamespace
+          : selection.workspace === 'personal'
+            ? instance.tenantNamespace
+            : selection.workspace;
     const environmentName = instance.environments?.[0]?.name;
 
     if (!destinationNamespace || !environmentName) return;
@@ -334,11 +324,13 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             option => option.value === selection.workspace,
           )?.label;
     const notification =
-      selection.destination === 'this-workspace'
-        ? 'Your new image will be available under “Images” in this workspace.'
-        : `Your new image will be available under “Images” in ${
-            targetWorkspaceLabel ?? 'the selected workspace'
-          }.`;
+      selection.destination === 'public-registry'
+        ? 'The image will be published to the public registry shortly.'
+        : selection.destination === 'this-workspace'
+          ? 'Your new image will be available under “Images” in this workspace.'
+          : `Your new image will be available under “Images” in ${
+              targetWorkspaceLabel ?? 'the selected workspace'
+            }.`;
 
     notify(
       'success',

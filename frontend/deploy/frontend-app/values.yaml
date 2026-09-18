@@ -30,6 +30,7 @@ configuration:
     standalone: crownlabs-standalone
     containerdisks: crownlabs-containerdisks
   imageCreationWarning: "Before creating an image, reset cloud-init and complete any required manual configuration inside the VM."
+  publicRegistryNameDestination: crownlabs-public-registry
   customResources:
     nvidia.com/gpu: "NVIDIA GPU"
     amd.com/gpu: "AMD GPU"

@@ -1,7 +1,13 @@
-import { DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import {
+  CloseCircleOutlined,
+  DeleteOutlined,
+  InfoCircleOutlined,
+  LoadingOutlined,
+} from '@ant-design/icons';
 import { Badge, Button, Drawer, Empty, Table, Tooltip } from 'antd';
 import { useContext, useEffect, useMemo, useState, type FC } from 'react';
 import {
+  Phase4,
   type UpdatedWorkspaceImagesSubscription,
   useDeleteWorkspaceImageMutation,
   useWorkspaceImagesQuery,
@@ -20,6 +26,7 @@ type WorkspaceImage = {
   description: string;
   size: string;
   createdAt: string;
+  phase?: Phase4;
 };
 
 export interface ImagesDrawerProps {
@@ -102,6 +109,7 @@ const ImagesDrawer: FC<ImagesDrawerProps> = ({ workspaceNamespace }) => {
             ? String(image.status.artifact.volumeSize)
             : '—',
           createdAt: formatCreationDate(image?.metadata?.creationTimestamp),
+          phase: image?.status?.phase,
         }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     [data?.imageList?.images],
@@ -149,6 +157,24 @@ const ImagesDrawer: FC<ImagesDrawerProps> = ({ workspaceNamespace }) => {
               <InfoCircleOutlined />
             </span>
           </Tooltip>
+          {image.phase === Phase4.Completed ? (
+            <span className="success-color-fg font-medium">ready</span>
+          ) : image.phase === Phase4.Failed ? (
+            <Tooltip title="Image creation failed">
+              <CloseCircleOutlined
+                className="danger-color-fg"
+                aria-label="Image creation failed"
+              />
+            </Tooltip>
+          ) : (
+            <Tooltip title="Image creation in progress">
+              <LoadingOutlined
+                className="warning-color-fg"
+                aria-label="Image creation in progress"
+                spin
+              />
+            </Tooltip>
+          )}
         </span>
       ),
     },

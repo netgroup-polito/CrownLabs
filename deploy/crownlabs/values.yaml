@@ -52,6 +52,7 @@ frontend-app:
     imagelist:
       standalone: crownlabs-standalone
       containerdisks: crownlabs-standalone
+    publicRegistryNameDestination: crownlabs-public-registry
 
     defaultTimeouts:
       cleanup:
