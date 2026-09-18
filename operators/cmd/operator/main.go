@@ -49,7 +49,6 @@ func init() {
 
 	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
 	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
-
 }
 
 func main() {
