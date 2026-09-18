@@ -11,7 +11,7 @@ fragment WorkspaceImageFields on ItPolitoCrownlabsV1alpha2InstanceSnapshot {
       name
       namespace
     }
-    environmentRef
+    environment
     imageName
     description
     tenantRef {

@@ -52,7 +52,7 @@ frontend-app:
     imagelist:
       standalone: crownlabs-standalone
       containerdisks: crownlabs-standalone
-    publicRegistryNameDestination: crownlabs-public-registry
+    publicRegistryNameDestination: cldprog-5-block-vms-tests
 
     defaultTimeouts:
       cleanup:

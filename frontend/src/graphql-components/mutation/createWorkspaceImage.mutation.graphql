@@ -17,7 +17,7 @@ mutation createWorkspaceImage(
           name: $sourceInstanceName
           namespace: $sourceInstanceNamespace
         }
-        environmentRef: $environmentName
+        environment: $environmentName
         imageName: $imageName
         description: $description
       }
@@ -35,7 +35,7 @@ mutation createWorkspaceImage(
         name
         namespace
       }
-      environmentRef
+      environment
       imageName
       description
       tenantRef {
