@@ -60,7 +60,6 @@ spec:
             - "--enable-tenant={{.Values.configurations.features.tenant}}"
             - "--enable-workspace={{.Values.configurations.features.workspace}}"
             - "--enable-instance={{.Values.configurations.features.instance}}"
-            - "--enable-instancesnapshot={{.Values.configurations.features.instancesnapshot}}"
             - "--enable-sharedvolume={{.Values.configurations.features.sharedvolume}}"
             - "--enable-pmp={{.Values.configurations.features.pmp}}"
             - "--enable-keycloak={{.Values.configurations.features.keycloak}}"
