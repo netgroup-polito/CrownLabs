@@ -169,7 +169,6 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.RequeueAfter).To(BeZero())
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		// Verify the snapshot was marked as Failed
@@ -206,7 +205,6 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.RequeueAfter).To(BeZero())
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		// Verify the snapshot was marked as Failed
@@ -243,7 +241,6 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.RequeueAfter).To(BeZero())
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		// Verify the snapshot was marked as Failed
@@ -281,7 +278,6 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.RequeueAfter).To(BeFalse())
 		Expect(result).To(Equal(ctrl.Result{}))
 
 		// Verify the snapshot was NOT marked as Failed — it should proceed past the template check.
