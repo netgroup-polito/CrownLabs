@@ -197,7 +197,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			Name:      dv.Name,
 			Namespace: dv.Namespace,
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, nil
 	} else if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -224,7 +224,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseProcessing
 	}
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil
 }
 func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snapshot *clv1alpha2.InstanceSnapshot, instance *clv1alpha2.Instance, dv *cdiv1beta1.DataVolume) error {
 	if snapshot.Spec.ImageName != "" {
@@ -267,6 +267,7 @@ func (r *InstanceSnapshotReconciler) cleanupDataVolume(ctx context.Context, snap
 func (r *InstanceSnapshotReconciler) SetupWithManager(mgr ctrl.Manager, _ int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.InstanceSnapshot{}).
+		Owns(&cdiv1beta1.DataVolume{}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceSnapshot")).
 		Complete(r)
 }
