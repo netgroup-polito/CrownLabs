@@ -100,7 +100,7 @@ func newTemplate(envCount int) *clv1alpha2.Template {
 			Image:           "test-image",
 			EnvironmentType: clv1alpha2.ClassVM,
 			Persistent:      true,
-			Resources: clv1alpha2.EnvironmentResources{},
+			Resources:       clv1alpha2.EnvironmentResources{},
 		}
 	}
 	return &clv1alpha2.Template{
@@ -169,7 +169,7 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.Requeue).To(BeFalse())
+		Expect(result.RequeueAfter).To(BeZero())
 
 		// Verify the snapshot was marked as Failed
 		var updatedSnapshot clv1alpha2.InstanceSnapshot
@@ -205,7 +205,7 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.Requeue).To(BeFalse())
+		Expect(result.RequeueAfter).To(BeZero())
 
 		// Verify the snapshot was marked as Failed
 		var updatedSnapshot clv1alpha2.InstanceSnapshot
@@ -241,7 +241,7 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.Requeue).To(BeFalse())
+		Expect(result.RequeueAfter).To(BeZero())
 
 		// Verify the snapshot was marked as Failed
 		var updatedSnapshot clv1alpha2.InstanceSnapshot
@@ -290,4 +290,3 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		Expect(updatedSnapshot.Status.Phase).ToNot(Equal(clv1alpha2.SnapshotPhaseFailed))
 	})
 })
-

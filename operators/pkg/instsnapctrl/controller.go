@@ -44,6 +44,8 @@ type InstanceSnapshotReconciler struct {
 }
 
 // Reconcile reconciles the state of an InstanceSnapshot resource.
+//
+//nolint:gocyclo // This method coordinates the snapshot state machine and its dependent resources.
 func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "instancesnapshot", req.NamespacedName)
 
