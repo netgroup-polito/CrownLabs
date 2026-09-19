@@ -35,6 +35,9 @@ configurations:
   # If false, resources will be created immediately after the Tenant is created.
   waitUserVerification: true
 
+  # The namespace containing public snapshots used for LocalVMs.
+  snapshotPublicNamespace: "cldprog-5-block-vms-tests"
+
   maxConcurrentReconciles: 1
   sandboxClusterRole: crownlabs-sandbox
   tenantNamespaceKeepAlive: 168h

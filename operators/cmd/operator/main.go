@@ -58,6 +58,7 @@ func main() {
 	var enableLeaderElection bool
 	var tenantNamespaceCommonLabelsStr string
 	var targetLabelStr string
+	var snapshotPublicNamespace string
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	flag.StringVar(&healthProbeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "enable-leader-election", false,
@@ -73,6 +74,7 @@ func main() {
 		"Maximum duration to wait before requeuing the reconciliation. "+
 			"Set to 0 to disable requeuing. "+
 			"Default is 7 days.")
+	flag.StringVar(&snapshotPublicNamespace, "snapshot-public-namespace", "cldprog-5-block-vms-tests", "The namespace containing public snapshots used for LocalVMs.")
 
 	// Enabling modules
 	var enableTenant bool
@@ -159,7 +161,7 @@ func main() {
 
 	if enableInstance {
 		log.Info("Starting the instance webhook")
-		err := setupInstance(mgr)
+		err := setupInstance(mgr, snapshotPublicNamespace)
 		if err != nil {
 			klog.Fatal(err, "Unable to create instance webhook")
 		}

@@ -28,10 +28,10 @@ const (
 )
 
 // setupInstance configures the Instance controller.
-func setupInstance(mgr manager.Manager) error {
+func setupInstance(mgr manager.Manager, publicNamespace string) error {
 	// Setup the webhook if enabled
 	if enableWebhooks {
-		if err := setupInstanceWebhook(mgr); err != nil {
+		if err := setupInstanceWebhook(mgr, publicNamespace); err != nil {
 			return err
 		}
 	}
@@ -42,11 +42,13 @@ func setupInstance(mgr manager.Manager) error {
 // setupInstanceWebhook configures the Webhook that validates the resources available for the Tenant in the Workspace.
 func setupInstanceWebhook(
 	mgr ctrl.Manager,
+	publicNamespace string,
 ) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		WithValidator(&instancewebhook.InstanceValidator{
-			Client: mgr.GetClient(),
+			Client:          mgr.GetClient(),
+			PublicNamespace: publicNamespace,
 		}).
 		WithValidatorCustomPath(InstanceValidatorWebhookPath).
 		Complete()

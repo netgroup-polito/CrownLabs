@@ -18,8 +18,10 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,7 +40,8 @@ const (
 // InstanceValidator implements a validating webhook for Instance resources.
 type InstanceValidator struct {
 	admission.CustomValidator
-	Client client.Client
+	Client          client.Client
+	PublicNamespace string
 }
 
 // accumulateEnvResources aggregates the resource footprints from a list of environments into the running totals.
@@ -182,6 +185,62 @@ func validateQuota(ctx context.Context, instance *clv1alpha2.Instance, cl client
 	return warnings, nil
 }
 
+// validateLocalVMPVCAccess checks whether the instance has access to the PVCs referenced by ClassLocalVM environments.
+func (iv *InstanceValidator) validateLocalVMPVCAccess(ctx context.Context, instance *clv1alpha2.Instance, cl client.Client) (admission.Warnings, error) {
+	var warnings admission.Warnings
+
+	// Get the instance's template
+	instanceTemplate := &clv1alpha2.Template{}
+	if err := cl.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), instanceTemplate); err != nil {
+		return warnings, fmt.Errorf("failed to get instance template: %w", err)
+	}
+
+	// Bypass the check if the template belongs to a shared workspace namespace.
+	if instanceTemplate.Spec.WorkspaceRef.Name != personalWorkspaceName {
+		return warnings, nil
+	}
+
+	// Fetch the Tenant object to determine allowed namespaces
+	tenant := &clv1alpha2.Tenant{}
+	if err := cl.Get(ctx, types.NamespacedName{Name: instance.Spec.Tenant.Name}, tenant); err != nil {
+		return warnings, fmt.Errorf("failed to get tenant %s: %w", instance.Spec.Tenant.Name, err)
+	}
+
+	allowedNamespaces := make(map[string]bool)
+
+	// 1. Personal namespace
+	allowedNamespaces[forge.GetTenantNamespaceName(tenant)] = true
+
+	// 2. Workspace namespaces the tenant has access to
+	for _, ws := range tenant.Spec.Workspaces {
+		wsObj := &clv1alpha1.Workspace{ObjectMeta: metav1.ObjectMeta{Name: ws.Name}}
+		allowedNamespaces[forge.GetWorkspaceNamespaceName(wsObj)] = true
+	}
+
+	// 3. Public namespace
+	if iv.PublicNamespace != "" {
+		allowedNamespaces[iv.PublicNamespace] = true
+	}
+
+	// Check each LocalVM environment
+	for i := range instanceTemplate.Spec.EnvironmentList {
+		env := &instanceTemplate.Spec.EnvironmentList[i]
+		if env.EnvironmentType == clv1alpha2.ClassLocalVM {
+			parts := strings.Split(env.Image, "/")
+			if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+				return warnings, fmt.Errorf("invalid LocalVM image %q: expected namespace/pvc-name", env.Image)
+			}
+			pvcNamespace := parts[0]
+
+			if !allowedNamespaces[pvcNamespace] {
+				return warnings, fmt.Errorf("LocalVM environment %q uses a PVC from an unauthorized namespace %q", env.Name, pvcNamespace)
+			}
+		}
+	}
+
+	return warnings, nil
+}
+
 // ValidateCreate validates a new instance creation request.
 func (iv *InstanceValidator) ValidateCreate(
 	ctx context.Context,
@@ -195,7 +254,19 @@ func (iv *InstanceValidator) ValidateCreate(
 		return warnings, fmt.Errorf("expected Instance resource but got %T", obj)
 	}
 
-	return validateQuota(ctx, instance, iv.Client)
+	quotaWarnings, err := validateQuota(ctx, instance, iv.Client)
+	if err != nil {
+		return quotaWarnings, err
+	}
+	warnings = append(warnings, quotaWarnings...)
+
+	pvcWarnings, err := iv.validateLocalVMPVCAccess(ctx, instance, iv.Client)
+	if err != nil {
+		return warnings, err
+	}
+	warnings = append(warnings, pvcWarnings...)
+
+	return warnings, nil
 }
 
 // ValidateUpdate checks if a paused instance can be started again.
@@ -221,5 +292,17 @@ func (iv *InstanceValidator) ValidateUpdate(
 		return warnings, nil
 	}
 
-	return validateQuota(ctx, newInstance, iv.Client)
+	quotaWarnings, err := validateQuota(ctx, newInstance, iv.Client)
+	if err != nil {
+		return quotaWarnings, err
+	}
+	warnings = append(warnings, quotaWarnings...)
+
+	pvcWarnings, err := iv.validateLocalVMPVCAccess(ctx, newInstance, iv.Client)
+	if err != nil {
+		return warnings, err
+	}
+	warnings = append(warnings, pvcWarnings...)
+
+	return warnings, nil
 }

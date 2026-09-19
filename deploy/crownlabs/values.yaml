@@ -111,6 +111,7 @@ operator:
       keycloak: true
       webhooks: true
       imageList: false
+      instancesnapshot: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -118,6 +119,7 @@ operator:
       clientSecret: my-awesome-secret
       rolesClientId: client-api-server
     maxConcurrentReconciles: 1
+    snapshotPublicNamespace: "cldprog-5-block-vms-tests"
     tenantNamespaceKeepAlive: 168h
     imageList:
       updateInterval: 600
@@ -245,13 +247,6 @@ instance-operator:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader
       contentUploaderImage: crownlabs/content-uploader
-    containerVmSnapshots:
-      kanikoImage: gcr.io/kaniko-project/executor
-      exportImage: "crownlabs/img-exporter"
-      exportImageTag: ""
-    privateContainerRegistry:
-      url: registry.crownlabs.example.com
-      secretName: registry-credentials
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
 
