@@ -107,6 +107,34 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
+	// Fetch the Template associated with the source Instance to verify it is single-env.
+	var template clv1alpha2.Template
+	templateNN := types.NamespacedName{
+		Namespace: instance.Spec.Template.Namespace,
+		Name:      instance.Spec.Template.Name,
+	}
+	if err := r.Get(ctx, templateNN, &template); err != nil {
+		log.Error(err, "failed to get source instance template", "template", templateNN)
+		if kerrors.IsNotFound(err) {
+			snapshot.Status.Phase = clv1alpha2.SnapshotPhaseFailed
+			r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeWarning, "TemplateNotFound",
+				"Template %s for source Instance not found", templateNN.String())
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	// Deny snapshot on templates that do not have exactly one environment.
+	if len(template.Spec.EnvironmentList) != 1 {
+		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseFailed
+		r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeWarning, "MultiEnvTemplateNotAllowed",
+			"Snapshots are only supported on single-environment templates (template %s has %d environments)",
+			templateNN.String(), len(template.Spec.EnvironmentList))
+		log.Info("snapshot denied: template does not have exactly one environment",
+			"template", templateNN, "envCount", len(template.Spec.EnvironmentList))
+		return ctrl.Result{}, nil
+	}
+
 	if instance.Spec.Running {
 		err := fmt.Errorf("instance %s is running", instanceNN.String())
 		log.Error(err, "cannot snapshot a running instance")
