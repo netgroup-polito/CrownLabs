@@ -278,7 +278,7 @@ var _ = Describe("InstanceSnapshot Controller - Multi-Env Template Validation", 
 		})
 
 		Expect(err).ToNot(HaveOccurred())
-		Expect(result.Requeue).To(BeFalse())
+		Expect(result.RequeueAfter).To(BeFalse())
 
 		// Verify the snapshot was NOT marked as Failed — it should proceed past the template check.
 		// With a single-env template, the reconciler should continue to create the DataVolume clone.
