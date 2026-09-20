@@ -185,6 +185,62 @@ var _ = Describe("The InstanceSnapshot controller", func() {
 		})
 	})
 
+	Describe("Resolving the resources of an instance whose name contains a dot", func() {
+		// The instance controller replaces dots with dashes when naming the resources of an
+		// environment: the instance "foo.bar" owns "foo-bar-<environment>", not "foo.bar-<environment>".
+		const (
+			dottedInstanceName = "foo.bar"
+			canonicalEnvName   = "foo-bar-" + environment
+		)
+
+		dottedSnapshot := func() *clv1alpha2.InstanceSnapshot {
+			snap := snapshot()
+			snap.Spec.Instance = clv1alpha2.GenericRef{Name: dottedInstanceName, Namespace: tenantNamespace}
+			return snap
+		}
+
+		dottedInstance := func() *clv1alpha2.Instance {
+			inst := stoppedInstance()
+			inst.Name = dottedInstanceName
+			return inst
+		}
+
+		It("Should clone the disk the instance controller actually created", func() {
+			cl := reconcile(dottedSnapshot(), dottedInstance(), singleEnvTemplate(),
+				persistentVolumeClaim(canonicalEnvName))
+
+			var dv cdiv1beta1.DataVolume
+			Expect(cl.Get(context.Background(),
+				types.NamespacedName{Namespace: tenantNamespace, Name: artifactName}, &dv)).To(Succeed())
+			Expect(dv.Spec.Source.PVC.Name).To(Equal(canonicalEnvName))
+		})
+
+		It("Should still see the VMI of an instance being shut down, and refuse to snapshot it", func() {
+			// The VMI has not terminated yet: cloning now would copy a disk still being written to.
+			vmi := &virtv1.VirtualMachineInstance{
+				ObjectMeta: metav1.ObjectMeta{Name: canonicalEnvName, Namespace: tenantNamespace},
+			}
+			cl := fake.NewClientBuilder().WithScheme(scheme).
+				WithObjects(dottedSnapshot(), dottedInstance(), singleEnvTemplate(), vmi,
+					persistentVolumeClaim(canonicalEnvName)).
+				WithStatusSubresource(&clv1alpha2.InstanceSnapshot{}).Build()
+			reconciler := &instsnapctrl.InstanceSnapshotReconciler{
+				Client:         cl,
+				Scheme:         scheme,
+				EventsRecorder: record.NewFakeRecorder(10),
+			}
+
+			_, err := reconciler.Reconcile(context.Background(), ctrl.Request{
+				NamespacedName: types.NamespacedName{Namespace: tenantNamespace, Name: snapshotName},
+			})
+			Expect(err).To(MatchError(ContainSubstring("is still running")))
+
+			err = cl.Get(context.Background(),
+				types.NamespacedName{Namespace: tenantNamespace, Name: artifactName}, &cdiv1beta1.DataVolume{})
+			Expect(kerrors.IsNotFound(err)).To(BeTrue())
+		})
+	})
+
 	Describe("Completing the snapshot", func() {
 		// The clone is over: the artifact PVC exists, and the snapshot must be usable as a VM image.
 		var succeededDataVolume *cdiv1beta1.DataVolume

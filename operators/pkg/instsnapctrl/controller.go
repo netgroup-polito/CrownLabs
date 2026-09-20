@@ -144,14 +144,13 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{Requeue: true}, err
 	}
 
+	// Applying the same naming convention used by the instance controller to find the PVC of the instance.
+	environmentNN := forge.NamespacedNameWithSuffix(&instance, snapshot.Spec.Environment)
+
 	var vmi virtv1.VirtualMachineInstance
-	vmiNN := types.NamespacedName{
-		Namespace: instance.Namespace,
-		Name:      fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment),
-	}
-	err := r.Get(ctx, vmiNN, &vmi)
+	err := r.Get(ctx, environmentNN, &vmi)
 	if err == nil {
-		err := fmt.Errorf("VMI %s is still running", vmiNN.String())
+		err := fmt.Errorf("VMI %s is still running", environmentNN.String())
 		log.Error(err, "cannot snapshot while VMI exists")
 		return ctrl.Result{Requeue: true}, err
 	} else if !kerrors.IsNotFound(err) {
@@ -168,14 +167,9 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	err = r.Get(ctx, dvNN, &dv)
 	if err != nil && kerrors.IsNotFound(err) {
 		// Fetch the source PVC to get its specifications
-		pvcName := fmt.Sprintf("%s-%s", instance.Name, snapshot.Spec.Environment)
 		var sourcePVC corev1.PersistentVolumeClaim
-		pvcNN := types.NamespacedName{
-			Namespace: instance.Namespace,
-			Name:      pvcName,
-		}
-		if err := r.Get(ctx, pvcNN, &sourcePVC); err != nil {
-			log.Error(err, "failed to get source PVC", "pvc", pvcNN)
+		if err := r.Get(ctx, environmentNN, &sourcePVC); err != nil {
+			log.Error(err, "failed to get source PVC", "pvc", environmentNN)
 			return ctrl.Result{}, err
 		}
 
@@ -194,8 +188,8 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			Spec: cdiv1beta1.DataVolumeSpec{
 				Source: &cdiv1beta1.DataVolumeSource{
 					PVC: &cdiv1beta1.DataVolumeSourcePVC{
-						Namespace: instance.Namespace,
-						Name:      pvcName,
+						Namespace: environmentNN.Namespace,
+						Name:      environmentNN.Name,
 					},
 				},
 				PVC: &corev1.PersistentVolumeClaimSpec{
@@ -231,6 +225,16 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		return ctrl.Result{}, err
+	}
+
+	// The DataVolume already exists, but this snapshot may not be the one that created it: adopting
+	// it would publish, and on deletion destroy, a volume belonging to somebody else.
+	if !metav1.IsControlledBy(&dv, &snapshot) {
+		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseFailed
+		r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeWarning, "ArtifactNotOwned",
+			"DataVolume %s already exists and is not controlled by this snapshot", dvNN.String())
+		log.Info("snapshot denied: the target DataVolume is not owned by this snapshot", "datavolume", dvNN)
+		return ctrl.Result{}, nil
 	}
 
 	// Check DataVolume status
