@@ -13,6 +13,7 @@ configurations:
     mirrorStorageClass: pvc-mirror
     # gatewayApiMode: false # defaults to global.gateway.gatewayApiMode
     # gatewayApiRefsValues: "crownlabs-production/crownlabs-main" # defaults to .Release.Namespace/global.gateway.name
+    enableInstanceSnapshot: true
   containerEnvironmentOptions:
     tag: ""
     contentToolsImg: crownlabs/content-tools

@@ -45,6 +45,8 @@ type InstanceSnapshotReconciler struct {
 }
 
 // Reconcile reconciles the state of an InstanceSnapshot resource.
+//
+//nolint:gocyclo // This method coordinates the snapshot state machine and its dependent resources.
 func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
 	log := ctrl.LoggerFrom(ctx, "instancesnapshot", req.NamespacedName)
 
@@ -78,7 +80,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	defer func(original *clv1alpha2.InstanceSnapshot) {
 		if !reflect.DeepEqual(original.Status, snapshot.Status) {
-			if err := r.Status().Update(ctx, &snapshot); err != nil {
+			if err := r.Status().Patch(ctx, &snapshot, client.MergeFrom(original)); err != nil {
 				log.Error(err, "failed to update snapshot status")
 			}
 		}
@@ -106,6 +108,34 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			return ctrl.Result{}, nil
 		}
 		return ctrl.Result{}, err
+	}
+
+	// Fetch the Template associated with the source Instance to verify it is single-env.
+	var template clv1alpha2.Template
+	templateNN := types.NamespacedName{
+		Namespace: instance.Spec.Template.Namespace,
+		Name:      instance.Spec.Template.Name,
+	}
+	if err := r.Get(ctx, templateNN, &template); err != nil {
+		log.Error(err, "failed to get source instance template", "template", templateNN)
+		if kerrors.IsNotFound(err) {
+			snapshot.Status.Phase = clv1alpha2.SnapshotPhaseFailed
+			r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeWarning, "TemplateNotFound",
+				"Template %s for source Instance not found", templateNN.String())
+			return ctrl.Result{}, nil
+		}
+		return ctrl.Result{}, err
+	}
+
+	// Deny snapshot on templates that do not have exactly one environment.
+	if len(template.Spec.EnvironmentList) != 1 {
+		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseFailed
+		r.EventsRecorder.Eventf(&snapshot, corev1.EventTypeWarning, "MultiEnvTemplateNotAllowed",
+			"Snapshots are only supported on single-environment templates (template %s has %d environments)",
+			templateNN.String(), len(template.Spec.EnvironmentList))
+		log.Info("snapshot denied: template does not have exactly one environment",
+			"template", templateNN, "envCount", len(template.Spec.EnvironmentList))
+		return ctrl.Result{}, nil
 	}
 
 	if instance.Spec.Running {
@@ -198,7 +228,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			Name:      dv.Name,
 			Namespace: dv.Namespace,
 		}
-		return ctrl.Result{Requeue: true}, nil
+		return ctrl.Result{}, nil
 	} else if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -229,7 +259,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseProcessing
 	}
 
-	return ctrl.Result{Requeue: true}, nil
+	return ctrl.Result{}, nil
 }
 func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snapshot *clv1alpha2.InstanceSnapshot, instance *clv1alpha2.Instance, dv *cdiv1beta1.DataVolume) error {
 	if snapshot.Spec.ImageName != "" {
@@ -241,8 +271,9 @@ func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snaps
 
 	// Auto-populate tenantRef from the source Instance if not already set.
 	if snapshot.Spec.Tenant.Name == "" {
+		original := snapshot.DeepCopy()
 		snapshot.Spec.Tenant = instance.Spec.Tenant
-		if err := r.Update(ctx, snapshot); err != nil {
+		if err := r.Patch(ctx, snapshot, client.MergeFrom(original)); err != nil {
 			return err
 		}
 	}
@@ -278,6 +309,7 @@ func (r *InstanceSnapshotReconciler) cleanupDataVolume(ctx context.Context, snap
 func (r *InstanceSnapshotReconciler) SetupWithManager(mgr ctrl.Manager, _ int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.InstanceSnapshot{}).
+		Owns(&cdiv1beta1.DataVolume{}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceSnapshot")).
 		Complete(r)
 }

@@ -46,9 +46,7 @@ func setupInstance(mgr manager.Manager) error {
 }
 
 // setupInstanceWebhook configures the Webhook that validates the resources available for the Tenant in the Workspace.
-func setupInstanceWebhook(
-	mgr ctrl.Manager,
-) error {
+func setupInstanceWebhook(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		WithValidator(&instancewebhook.InstanceValidator{

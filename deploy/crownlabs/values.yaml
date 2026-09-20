@@ -119,6 +119,7 @@ operator:
       keycloak: true
       webhooks: true
       imageList: false
+      instancesnapshot: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs

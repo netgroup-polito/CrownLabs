@@ -43,6 +43,7 @@ spec:
             - '--container-env-sidecars-tag={{ include "instance-operator.containerEnvironmentSidecarsTag" . }}'
             - '--container-env-content-tools-img={{ .Values.configurations.containerEnvironmentOptions.contentToolsImg }}'
             - '--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}'
+            - '--enable-instancesnapshot={{ .Values.configurations.generic.enableInstanceSnapshot }}'
             - '--webbastion-master-key-path=/webbastion-key/{{ .Values.webssh.masterKey.keyName }}.pub'
             - '--public-exposure-ip-pool={{ .Values.configurations.publicExposure.ipPool | join "," }}'
             - '--public-exposure-common-annotations={{ .Values.configurations.publicExposure.commonAnnotations | join "," }}'

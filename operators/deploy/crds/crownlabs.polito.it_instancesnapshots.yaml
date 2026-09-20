@@ -56,7 +56,7 @@ spec:
                   of the snapshot.
                 maxLength: 512
                 type: string
-              environmentRef:
+              environment:
                 description: Environment represents the name of the environment to
                   be snapshotted.
                 pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
@@ -99,7 +99,7 @@ spec:
                 - name
                 type: object
             required:
-            - environmentRef
+            - environment
             - instanceRef
             type: object
           status:

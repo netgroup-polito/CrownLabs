@@ -323,5 +323,15 @@ func (iv *InstanceValidator) ValidateUpdate(
 		return warnings, nil
 	}
 
-	return validateQuota(ctx, newInstance, iv.Client)
+	quotaWarnings, err := validateQuota(ctx, newInstance, iv.Client)
+	if err != nil {
+		return quotaWarnings, err
+	}
+	warnings = append(warnings, quotaWarnings...)
+
+	if err := iv.validateVolumeSources(ctx, newInstance); err != nil {
+		return warnings, err
+	}
+
+	return warnings, nil
 }

@@ -20,9 +20,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	admissionv1 "k8s.io/api/admission/v1"
+	authenticationv1 "k8s.io/api/authentication/v1"
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
@@ -294,5 +298,181 @@ var _ = Describe("InstanceValidator", func() {
 		Expect(err).ToNot(BeNil())
 		Expect(err.Error()).To(ContainSubstring("failed to get instance template"))
 		Expect(warnings).To(BeEmpty())
+	})
+
+	Context("LocalVM PVC Access Validation", func() {
+		const publicSnapshotNamespace = "cldprog-5-block-vms-tests"
+
+		var (
+			tenant          *clv1alpha2.Tenant
+			localVMTemplate *clv1alpha2.Template
+			instance        *clv1alpha2.Instance
+		)
+
+		// publishedPVC returns a volume marked by the snapshot controller as an artifact: outside the
+		// public catalog, only such volumes may be booted.
+		publishedPVC := func(namespace, name string) *corev1.PersistentVolumeClaim {
+			return &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: namespace,
+				Labels:    map[string]string{forge.LabelSnapshotArtifactKey: forge.LabelSnapshotArtifactValue},
+			}}
+		}
+
+		BeforeEach(func() {
+			req := admission.Request{
+				AdmissionRequest: admissionv1.AdmissionRequest{
+					UserInfo: authenticationv1.UserInfo{
+						Username: testTenant,
+					},
+				},
+			}
+			ctx = admission.NewContextWithRequest(ctx, req)
+
+			tenant = &clv1alpha2.Tenant{
+				ObjectMeta: metav1.ObjectMeta{Name: testTenant},
+				Spec: clv1alpha2.TenantSpec{
+					PersonalWorkspace: &apicommon.WorkspaceResourceQuota{
+						Instances: 10,
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    10,
+							Memory: resource.MustParse("20Gi"),
+						},
+					},
+					Workspaces: []clv1alpha2.TenantWorkspaceEntry{
+						{Name: "my-shared-ws", Role: clv1alpha2.User},
+					},
+				},
+			}
+
+			localVMTemplate = &clv1alpha2.Template{
+				ObjectMeta: metav1.ObjectMeta{Name: "personal-template", Namespace: testTenantNamespace},
+				Spec: clv1alpha2.TemplateSpec{
+					EnvironmentList: []clv1alpha2.Environment{{
+						Name:            "localvm-env",
+						EnvironmentType: clv1alpha2.ClassLocalVM,
+						Resources: clv1alpha2.EnvironmentResources{
+							ResourceSpec: apicommon.ResourceSpec{
+								CPU:    2,
+								Memory: resource.MustParse("2Gi"),
+							},
+						},
+					}},
+					WorkspaceRef: clv1alpha2.GenericRef{Name: "personal"},
+				},
+			}
+
+			instance = &clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testNewInstance,
+					Namespace: testTenantNamespace,
+					Labels:    map[string]string{forge.LabelWorkspaceKey: "personal"},
+				},
+				Spec: clv1alpha2.InstanceSpec{
+					Template: clv1alpha2.GenericRef{Name: "personal-template", Namespace: testTenantNamespace},
+					Tenant:   clv1alpha2.GenericRef{Name: testTenant},
+					Running:  true,
+				},
+			}
+		})
+
+		It("should allow LocalVM creation using PVC from the same tenant's personal namespace", func() {
+			localVMTemplate.Spec.EnvironmentList[0].Image = testTenantNamespace + "/my-pvc"
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).
+				WithObjects(tenant, localVMTemplate, publishedPVC(testTenantNamespace, "my-pvc")).Build()
+			validator := &webhook.InstanceValidator{
+				Client:                  fakeClient,
+				APIReader:               fakeClient,
+				PublicSnapshotNamespace: publicSnapshotNamespace,
+			}
+
+			warnings, err := validator.ValidateCreate(ctx, instance)
+			Expect(err).To(BeNil())
+			Expect(warnings).To(BeEmpty())
+		})
+
+		It("should deny LocalVM creation using PVC from another tenant's personal namespace", func() {
+			otherTenantNamespace := "tenant-other"
+			localVMTemplate.Spec.EnvironmentList[0].Image = otherTenantNamespace + "/my-pvc"
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate).Build()
+			validator := &webhook.InstanceValidator{
+				Client:                  fakeClient,
+				APIReader:               fakeClient,
+				PublicSnapshotNamespace: publicSnapshotNamespace,
+			}
+
+			warnings, err := validator.ValidateCreate(ctx, instance)
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(ContainSubstring("cannot use volume"))
+			Expect(warnings).To(BeEmpty())
+		})
+
+		It("should allow LocalVM creation using PVC from an allowed workspace namespace", func() {
+			workspaceNamespace := "workspace-my-shared-ws"
+			localVMTemplate.Spec.EnvironmentList[0].Image = workspaceNamespace + "/my-pvc"
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).
+				WithObjects(tenant, localVMTemplate, publishedPVC(workspaceNamespace, "my-pvc")).Build()
+			validator := &webhook.InstanceValidator{
+				Client:                  fakeClient,
+				APIReader:               fakeClient,
+				PublicSnapshotNamespace: publicSnapshotNamespace,
+			}
+
+			warnings, err := validator.ValidateCreate(ctx, instance)
+			Expect(err).To(BeNil())
+			Expect(warnings).To(BeEmpty())
+		})
+
+		It("should allow LocalVM creation using PVC from the public namespace", func() {
+			// Volumes in the public catalog are readable by everybody, and need no artifact label.
+			localVMTemplate.Spec.EnvironmentList[0].Image = publicSnapshotNamespace + "/my-pvc"
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate).Build()
+			validator := &webhook.InstanceValidator{
+				Client:                  fakeClient,
+				APIReader:               fakeClient,
+				PublicSnapshotNamespace: publicSnapshotNamespace,
+			}
+
+			warnings, err := validator.ValidateCreate(ctx, instance)
+			Expect(err).To(BeNil())
+			Expect(warnings).To(BeEmpty())
+		})
+
+		It("should check PVCs also for templates in shared workspaces", func() {
+			// Template points to another tenant's PVC: belonging to a shared workspace does not make
+			// that volume readable, so the request is rejected here as well.
+			otherTenantNamespace := "tenant-other"
+			localVMTemplate.Spec.EnvironmentList[0].Image = otherTenantNamespace + "/my-pvc"
+			localVMTemplate.Spec.WorkspaceRef.Name = testWorkspace
+
+			ws := &clv1alpha1.Workspace{
+				ObjectMeta: metav1.ObjectMeta{Name: testWorkspace},
+				Spec: clv1alpha1.WorkspaceSpec{
+					Quota: apicommon.WorkspaceResourceQuota{
+						Instances: 10,
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    10,
+							Memory: resource.MustParse("20Gi"),
+						},
+					},
+				},
+			}
+
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(ws, tenant, localVMTemplate).Build()
+			validator := &webhook.InstanceValidator{
+				Client:                  fakeClient,
+				APIReader:               fakeClient,
+				PublicSnapshotNamespace: publicSnapshotNamespace,
+			}
+
+			warnings, err := validator.ValidateCreate(ctx, instance)
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(ContainSubstring("cannot use volume"))
+			Expect(warnings).To(BeEmpty())
+		})
 	})
 })

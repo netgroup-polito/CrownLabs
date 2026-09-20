@@ -35,7 +35,9 @@ const (
 )
 
 func init() {
-	flag.StringVar(&snapshotPublicNamespace, "snapshot-public-namespace", "",
+	// TODO: this default points at the namespace used while developing the feature: it must be
+	// replaced with the production catalog namespace before merging.
+	flag.StringVar(&snapshotPublicNamespace, "snapshot-public-namespace", "cldprog-5-block-vms-tests",
 		"The namespace hosting the public snapshot catalog, whose volumes every tenant is entitled to read")
 	flag.StringVar(&snapshotWebhookBypassGroups, "snapshot-webhook-bypass-groups", "system:masters",
 		"The list of groups which can skip the snapshot scope checks, comma separated values")

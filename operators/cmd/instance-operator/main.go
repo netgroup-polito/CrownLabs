@@ -76,6 +76,7 @@ func main() {
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run for the Instance controller")
+	enableInstanceSnapshot := flag.Bool("enable-instancesnapshot", true, "Enable the instancesnapshot controller.")
 
 	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
@@ -201,13 +202,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = (&instsnapctrl.InstanceSnapshotReconciler{
-		Client:         mgr.GetClient(),
-		Scheme:         mgr.GetScheme(),
-		EventsRecorder: mgr.GetEventRecorderFor("InstanceSnapshot"),
-	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
-		log.Error(err, "unable to create controller", "controller", "InstanceSnapshot")
-		os.Exit(1)
+	if *enableInstanceSnapshot {
+		if err = (&instsnapctrl.InstanceSnapshotReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			EventsRecorder: mgr.GetEventRecorderFor("InstanceSnapshot"),
+		}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
+			log.Error(err, "unable to create controller", "controller", "InstanceSnapshot")
+			os.Exit(1)
+		}
 	}
 
 	// Add readiness probe

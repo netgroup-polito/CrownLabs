@@ -26,7 +26,7 @@ type InstanceSnapshotSpec struct {
 
 	// Environment represents the name of the environment to be snapshotted.
 	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
-	Environment string `json:"environmentRef"`
+	Environment string `json:"environment"`
 
 	// ImageName is an optional user-defined name for the snapshot image.
 	// +optional
