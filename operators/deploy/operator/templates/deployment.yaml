@@ -44,6 +44,8 @@ spec:
             - "--wait-user-verification={{ .Values.configurations.waitUserVerification }}"
             - "--tenant-ns-keep-alive={{ .Values.configurations.tenantNamespaceKeepAlive }}"
             - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
+            - "--snapshot-public-namespace={{ .Values.configurations.snapshotPublicNamespace }}"
+            - "--snapshot-webhook-bypass-groups={{ .Values.webhook.deployment.snapshotWebhookBypassGroups }}"
             - "--base-workspaces={{ .Values.webhook.deployment.baseWorkspaces }}"
             - "--sandbox-cluster-role={{ .Values.configurations.sandboxClusterRole }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"

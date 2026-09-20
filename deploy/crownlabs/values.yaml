@@ -33,6 +33,12 @@ global:
 
 createClusterRoles: true
 
+# Subjects allowed to publish snapshots into the public catalog (operator.configurations.snapshotPublicNamespace).
+# Cluster administrators can always do it; leave empty to grant nobody else. Example:
+#   - kind: Group
+#     name: kubernetes:workspace-cloudprog:manager
+snapshotPublishers: []
+
 frontend-app:
   replicaCount: 1
   image:
@@ -102,6 +108,8 @@ operator:
   configurations:
     tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
     targetLabel: crownlabs.polito.it/operator-selector=production
+    # Namespace hosting the public snapshot catalog. Volumes stored here can be read by every tenant.
+    snapshotPublicNamespace: "cldprog-5-block-vms-tests"
     features:
       tenant: true
       workspace: true
@@ -241,7 +249,6 @@ instance-operator:
     generic:
       whitelistLabels: crownlabs.polito.it/operator-selector=production
       instancesAuthUrl: https://crownlabs.example.com/auth
-      snapshotPublicNamespace: "cldprog-5-block-vms-tests"
     containerEnvironmentOptions:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader

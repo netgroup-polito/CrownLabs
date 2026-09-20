@@ -33,6 +33,7 @@ import (
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -156,7 +157,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 				Name:      dvNN.Name,
 				Namespace: dvNN.Namespace,
 				Labels: map[string]string{
-					"crownlabs.polito.it/snapshot-artifact": "true",
+					forge.LabelSnapshotArtifactKey: forge.LabelSnapshotArtifactValue,
 				},
 				Annotations: map[string]string{},
 			},
@@ -205,6 +206,10 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	// Check DataVolume status
 	switch dv.Status.Phase {
 	case cdiv1beta1.Succeeded:
+		if err := r.labelArtifactPVC(ctx, &dv); err != nil {
+			log.Error(err, "failed to mark snapshot artifact PVC", "pvc", dvNN)
+			return ctrl.Result{}, err
+		}
 		snapshot.Status.Phase = clv1alpha2.SnapshotPhaseCompleted
 		snapshot.Status.Artifact.DataVolumeRef = clv1alpha2.GenericRef{
 			Name:      dv.Name,
@@ -248,18 +253,25 @@ func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snaps
 }
 
 func (r *InstanceSnapshotReconciler) cleanupDataVolume(ctx context.Context, snapshot *clv1alpha2.InstanceSnapshot) error {
-	if snapshot.Status.Artifact.DataVolumeRef.Name != "" {
-		dv := &cdiv1beta1.DataVolume{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      snapshot.Status.Artifact.DataVolumeRef.Name,
-				Namespace: snapshot.Status.Artifact.DataVolumeRef.Namespace,
-			},
-		}
-		if err := r.Delete(ctx, dv); err != nil && !kerrors.IsNotFound(err) {
-			return err
-		}
+	ref := snapshot.Status.Artifact.DataVolumeRef
+	if ref.Name == "" {
+		return nil
 	}
-	return nil
+
+	// Only a DataVolume controlled by this very snapshot may be deleted: otherwise a tampered reference would
+	// make the operator, which holds cluster-wide permissions, delete the disk of somebody else's VM.
+	var dv cdiv1beta1.DataVolume
+	if err := r.Get(ctx, types.NamespacedName{Namespace: ref.Namespace, Name: ref.Name}, &dv); err != nil {
+		return client.IgnoreNotFound(err)
+	}
+
+	if !metav1.IsControlledBy(&dv, snapshot) {
+		r.EventsRecorder.Eventf(snapshot, corev1.EventTypeWarning, "ArtifactNotOwned",
+			"DataVolume %s/%s is not controlled by this snapshot: leaving it untouched", ref.Namespace, ref.Name)
+		return nil
+	}
+
+	return client.IgnoreNotFound(r.Delete(ctx, &dv))
 }
 
 // SetupWithManager registers the controller with the manager.
@@ -268,4 +280,22 @@ func (r *InstanceSnapshotReconciler) SetupWithManager(mgr ctrl.Manager, _ int) e
 		For(&clv1alpha2.InstanceSnapshot{}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "InstanceSnapshot")).
 		Complete(r)
+}
+
+func (r *InstanceSnapshotReconciler) labelArtifactPVC(ctx context.Context, dv *cdiv1beta1.DataVolume) error {
+	var pvc corev1.PersistentVolumeClaim
+	if err := r.Get(ctx, types.NamespacedName{Namespace: dv.Namespace, Name: dv.Name}, &pvc); err != nil {
+		return err
+	}
+
+	if pvc.Labels[forge.LabelSnapshotArtifactKey] == forge.LabelSnapshotArtifactValue {
+		return nil
+	}
+
+	if pvc.Labels == nil {
+		pvc.Labels = map[string]string{}
+	}
+	pvc.Labels[forge.LabelSnapshotArtifactKey] = forge.LabelSnapshotArtifactValue
+
+	return r.Update(ctx, &pvc)
 }

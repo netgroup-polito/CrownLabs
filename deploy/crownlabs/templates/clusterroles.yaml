@@ -12,8 +12,6 @@ rules:
     resources:
       - instances
       - instances/status
-      - instancesnapshots
-      - instancesnapshots/status
     verbs:
       - get
       - list
@@ -47,7 +45,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: crownlabs-view-instancesnapshots
+  name: crownlabs-view-instance-snapshots
   labels:
     rbac.authorization.k8s.io/aggregate-to-view: "true"
     {{- include "crownlabs.labels" . | nindent 4 }}
@@ -66,7 +64,7 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: crownlabs-manage-instancesnapshots
+  name: crownlabs-manage-instance-snapshots
   labels:
     rbac.authorization.k8s.io/aggregate-to-admin: "true"
     crownlabs.polito.it/aggregate-to-workspace-manager: "true"

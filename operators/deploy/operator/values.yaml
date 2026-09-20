@@ -28,6 +28,8 @@ configurations:
     # compatibilityMode: set to true for compatibility with older Keycloak versions
     compatibilityMode: false
   mydrivePVCsSize: 1Gi
+  # Namespace hosting the public snapshot catalog. Volumes stored here can be read by every tenant.
+  snapshotPublicNamespace: ""
   mydrivePVCsStorageClassName: rook-nfs
   mydrivePVCsNamespace: mydrive-pvcs
 
@@ -113,6 +115,7 @@ webhook:
   deployment:
     certsMount: /tmp/k8s-webhook-server/serving-certs/
     webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+    snapshotWebhookBypassGroups: system:masters
     baseWorkspaces: utilities
   enableMutating: false
   enableValidating: false

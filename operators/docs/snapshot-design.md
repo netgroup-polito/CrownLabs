@@ -23,7 +23,7 @@ The snapshot feature must save the persistent root disk and enough immutable met
   - public snapshot namespace (configured via Helm).
 - Freeze the source and destination metadata at creation time. After creation, the snapshot `spec` should be immutable.
 - Support a fast restore path by creating a target `DataVolume` from the snapshot PVC via CDI smart cloning. Snapshots are primarily **reusable template bases**, not user backups.
-- Enforce authorization based on the actor creating the snapshot: normal user, workspace manager, cluster admin.
+- Restrict the volumes a tenant can read through the feature, namely the source of a snapshot and the volume a `LocalVM` environment boots from, to the namespaces the tenant is entitled to (see [Authorization](#authorization)).
 - Count snapshot storage against tenant/workspace resource quotas. This applies to the number of snapshots (via `count/instancesnapshots.crownlabs.polito.it` Kubernetes ResourceQuota). Storage size is also quota-enforced through standard PVC storage quotas, since the snapshot artifact is a regular PVC.
 
 ## Non-goals
@@ -140,23 +140,33 @@ This works with current instance-controller behavior because `instctrl` explicit
 
 *Note on `instctrl` compatibility*: Currently, `instctrl` unconditionally clears the `DataVolume` owner references (`dv.OwnerReferences = nil`) during reconciliation. This is a temporary workaround that must be refactored before implementing the restore flow. `instctrl` should be updated to safely adopt a pre-existing `DataVolume` (e.g., using `controllerutil.SetControllerReference` without blindly clearing existing owners), ensuring it works seamlessly with `DataVolume`s pre-created by the restore controller.
 
-## Authorization proposal
+## Authorization
 
-Kubernetes RBAC alone is not enough, because the policy depends on the source Instance owner, workspace membership, and destination scope. Use normal RBAC as the coarse permission layer, then enforce contextual rules in the validating webhook.
+RBAC alone cannot protect the volumes this feature reads. The clones are carried out by the operators with their own service accounts, which hold cluster-wide permissions on `cdi.kubevirt.io/datavolumes/source`: once an object is admitted, the identity of whoever requested it is lost, and neither RBAC nor CDI can tell on whose behalf the clone runs. The checks are therefore split between RBAC and the validating webhooks, depending on where each namespace comes from.
 
-| Actor | Private destination | Workspace destination | Public destination |
-| --- | --- | --- | --- |
-| Normal user | Allowed only for own Instance and own private namespace | Denied | Denied |
-| Workspace manager | Allowed for any Instance belonging to a managed workspace, including into the student's own private namespace | Allowed for Instances belonging to a managed workspace | Denied |
-| Cluster admin | Allowed | Allowed | Allowed |
+**Destination.** A snapshot lands in the namespace the `InstanceSnapshot` is created in. Creating an object in a namespace is exactly what RBAC gates, so the destination is left to it:
 
-Workspace manager identity can use existing Keycloak/Kubernetes groups shaped as `kubernetes:workspace-<workspace>:manager`. Normal user identity can be matched against `Instance.spec.tenant.crownlabs.polito.it/TenantRef.name` and the tenant namespace.
+- tenants can publish into their own namespace;
+- workspace managers can publish into the namespaces of the workspaces they manage, through `crownlabs-workspace-manager`;
+- the public catalog is writable only by cluster administrators and by the subjects listed in the `snapshotPublishers` Helm value.
 
-The destination namespace should be derived, not trusted from user input:
+**Sources.** The namespaces an object *points at* are plain strings in its spec, which RBAC never evaluates. They are checked by the validating webhooks, the last place where the identity of the requester is still available. A tenant can read from:
 
-- `Private`: `tenant-<tenant>`, matching `forge.GetTenantNamespaceName`.
-- `Workspace`: `workspace-<workspace>`, matching `forge.GetWorkspaceNamespaceName`.
-- `Public`: configured through a Helm value, for example `snapshotPublicNamespace`.
+| Namespace | Readable |
+| --- | --- |
+| Its own namespace (`tenant-<tenant>`) | Yes |
+| The namespace of a workspace it is enrolled in, as user or manager (`workspace-<workspace>`) | Yes |
+| The public snapshot catalog (`operator.configurations.snapshotPublicNamespace`) | Yes |
+| Any other namespace, including those of other tenants and of workspaces it is only a candidate of | No |
+
+The rule is implemented once, in `forge.TenantCanReadNamespace`, and enforced in two places:
+
+- the `InstanceSnapshot` webhook requires `spec.instanceRef.namespace` to be set and readable. On update, the check runs again only when `spec.instanceRef` changes, so that the snapshot controller can keep updating the object with its own service account;
+- the `Instance` webhook requires, for every `LocalVM` environment of the template, the namespace of the source PVC to be readable. Outside the public catalog, the PVC must also carry the `crownlabs.polito.it/snapshot-artifact=true` label, which the snapshot controller sets once the clone completes: being able to read a namespace does not entitle a tenant to every volume in it, since tenant and workspace namespaces also host live VM disks and shared volumes.
+
+Workspace managers have no additional reading rights: they cannot snapshot the instances of the tenants enrolled in the workspaces they manage. The groups listed in `operator.webhook.deployment.snapshotWebhookBypassGroups`, by default only `system:masters`, skip these checks.
+
+Namespaces are always derived forward from the authenticated `Tenant` through the `forge` helpers, and never parsed back from their name: `GetTenantNamespaceName` replaces dots with dashes, so `john.doe` and `john-doe` share the same namespace and the reverse mapping is ambiguous.
 
 ## RBAC changes
 
@@ -170,11 +180,10 @@ The instance operator service account needs permissions for:
 
 Note: Neither `snapshot.storage.k8s.io` nor `snapshot.kubevirt.io` permissions are needed because the design uses CDI `DataVolume` clones instead of CSI `VolumeSnapshot`s or KubeVirt `VirtualMachineSnapshot`s.
 
-User-facing ClusterRoles should also be updated or split:
+User-facing permissions come from two dedicated ClusterRoles, aggregated like the other CrownLabs ones:
 
-- extend `crownlabs-manage-instances` with `instancesnapshots` create/get/list/watch/delete where appropriate;
-- add a view-only role for consuming public/workspace snapshots if the frontend needs browse-only access;
-- keep `instancesnapshots/status` reserved to controllers.
+- `crownlabs-view-instance-snapshots`, aggregated to `view`;
+- `crownlabs-manage-instance-snapshots`, aggregated to `admin` and to `crownlabs-workspace-manager`. In the public catalog it is also bound to the subjects listed in the `snapshotPublishers` Helm value.
 
 ## Consistency policy
 
@@ -251,7 +260,7 @@ It must also emit Kubernetes `Events` on the `InstanceSnapshot` object for key l
 ## Test plan
 
 - Unit tests for source metadata resolution.
-- Unit tests for the authorization matrix (including workspace manager → student private namespace).
+- Unit tests for the authorization rule (`forge.TenantCanReadNamespace`) and for both validating webhooks.
 - Unit tests for immutable `spec` validation.
 - Unit tests for VM-running rejection at admission.
 - Controller tests for each lifecycle phase (same-namespace and cross-namespace flows) by faking CDI statuses.
@@ -267,7 +276,7 @@ The following questions were resolved during design review and their answers are
 2. **Offline-only**: the VM must be powered off before snapshotting. If the VM is running, the webhook rejects the request and notifies the user. No online snapshot support in v1. *(integrated into Non-goals, Consistency policy, and Lifecycle)*
 3. **Cross-namespace copy**: yes, copy the data into the destination namespace to decouple from the source tenant lifecycle.
 4. **Quota enforcement**: yes, snapshot storage counts against tenant/workspace quotas. *(integrated into Goals and Implementation plan)*
-5. **Workspace manager → student private namespace**: allowed. Any user with workspace manager privileges can snapshot a student's Instance, including into the student's private namespace. *(integrated into Authorization)*
+5. **Workspace manager → student private namespace**: denied. Workspace managers have no additional reading rights, so they cannot snapshot a student's Instance. *(integrated into Authorization)*
 6. **Template bases, not backups**: snapshots are primarily reusable template bases. The restore flow creates new Instances from snapshot artifacts rather than restoring in-place. *(integrated into Goals and Non-goals)*
 7. **PVC clone only (no VolumeSnapshot)**: the final artifact is a CDI `DataVolume` (PVC). CSI `VolumeSnapshot` is not used; the design relies on CDI smart cloning (PVC-to-PVC) for both the snapshot and restore flows. The storage cost trade-off (full PVC allocation vs. COW snapshot) is accepted for simplicity and independence from the source VM lifecycle. *(integrated into Main design choice and Non-goals)*
 8. **No KubeVirt VirtualMachineSnapshot**: since the VM is guaranteed to be off, the source PVC is idle and can be cloned directly via CDI. KubeVirt's snapshot API adds no value in this scenario and is not used. *(integrated into Main design choice, Lifecycle, and RBAC)*

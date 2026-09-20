@@ -25,9 +25,15 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
+// WorkspaceNamespaceName returns the name of the namespace hosting the resources of the workspace
+// with the given name.
+func WorkspaceNamespaceName(wsName string) string {
+	return fmt.Sprintf("workspace-%s", wsName)
+}
+
 // GetWorkspaceNamespaceName returns the name of the namespace for a workspace.
 func GetWorkspaceNamespaceName(ws *clv1alpha1.Workspace) string {
-	return fmt.Sprintf("workspace-%s", ws.Name)
+	return WorkspaceNamespaceName(ws.Name)
 }
 
 // ConfigureWorkspaceNamespace configures a namespace for a workspace.
