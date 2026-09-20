@@ -129,7 +129,16 @@ var _ = Describe("InstanceSnapshotValidator", func() {
 		It("Should reject repointing the source at somebody else's instance", func() {
 			_, err := validator.ValidateUpdate(requestFrom(testTenant),
 				snapshotOf(testTenantNamespace), snapshotOf(testOtherTenantNamespace))
-			Expect(err).To(MatchError(ContainSubstring("cannot snapshot instance")))
+			Expect(err).To(MatchError("InstanceSnapshot spec is immutable"))
+		})
+
+		It("Should reject changing snapshot metadata", func() {
+			oldSnapshot := snapshotOf(testTenantNamespace)
+			newSnapshot := oldSnapshot.DeepCopy()
+			newSnapshot.Spec.Description = "changed after creation"
+
+			_, err := validator.ValidateUpdate(requestFrom(testTenant), oldSnapshot, newSnapshot)
+			Expect(err).To(MatchError("InstanceSnapshot spec is immutable"))
 		})
 	})
 })

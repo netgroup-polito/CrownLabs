@@ -18,6 +18,7 @@ package webhook
 import (
 	"context"
 	"fmt"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -59,10 +60,10 @@ func (isv *InstanceSnapshotValidator) ValidateCreate(
 	return nil, isv.validateSource(ctx, snapshot)
 }
 
-// ValidateUpdate re-validates the scope whenever the source reference changes, catching an already
-// admitted snapshot being repointed at somebody else's instance before the controller reads it.
+// ValidateUpdate rejects every spec change after creation. Snapshot metadata and source references
+// are consumed when the DataVolume is created and must remain consistent with the artifact.
 func (isv *InstanceSnapshotValidator) ValidateUpdate(
-	ctx context.Context,
+	_ context.Context,
 	oldObj, newObj runtime.Object,
 ) (admission.Warnings, error) {
 	oldSnapshot, ok := oldObj.(*clv1alpha2.InstanceSnapshot)
@@ -75,11 +76,11 @@ func (isv *InstanceSnapshotValidator) ValidateUpdate(
 		return nil, fmt.Errorf("expected InstanceSnapshot resource but got %T", newObj)
 	}
 
-	if oldSnapshot.Spec.Instance == newSnapshot.Spec.Instance {
-		return nil, nil
+	if !reflect.DeepEqual(oldSnapshot.Spec, newSnapshot.Spec) {
+		return nil, fmt.Errorf("InstanceSnapshot spec is immutable")
 	}
 
-	return nil, isv.validateSource(ctx, newSnapshot)
+	return nil, nil
 }
 
 // validateSource checks that the actor is entitled to read the disk of the referenced instance.

@@ -205,10 +205,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			},
 		}
 
-		if err := r.populateMetadata(ctx, &snapshot, &instance, &dv); err != nil {
-			log.Error(err, "failed to populate snapshot metadata")
-			return ctrl.Result{}, err
-		}
+		r.populateMetadata(&snapshot, &instance, &dv)
 
 		if err := ctrlutil.SetControllerReference(&snapshot, &dv, r.Scheme); err != nil {
 			return ctrl.Result{}, err
@@ -265,7 +262,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 
 	return ctrl.Result{}, nil
 }
-func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snapshot *clv1alpha2.InstanceSnapshot, instance *clv1alpha2.Instance, dv *cdiv1beta1.DataVolume) error {
+func (r *InstanceSnapshotReconciler) populateMetadata(snapshot *clv1alpha2.InstanceSnapshot, instance *clv1alpha2.Instance, dv *cdiv1beta1.DataVolume) {
 	if snapshot.Spec.ImageName != "" {
 		dv.Annotations["crownlabs.polito.it/image-name"] = snapshot.Spec.ImageName
 	}
@@ -273,18 +270,13 @@ func (r *InstanceSnapshotReconciler) populateMetadata(ctx context.Context, snaps
 		dv.Annotations["crownlabs.polito.it/snapshot-description"] = snapshot.Spec.Description
 	}
 
-	// Auto-populate tenantRef from the source Instance if not already set.
-	if snapshot.Spec.Tenant.Name == "" {
-		original := snapshot.DeepCopy()
-		snapshot.Spec.Tenant = instance.Spec.Tenant
-		if err := r.Patch(ctx, snapshot, client.MergeFrom(original)); err != nil {
-			return err
-		}
+	tenant := snapshot.Spec.Tenant
+	if tenant.Name == "" {
+		tenant = instance.Spec.Tenant
 	}
-	if snapshot.Spec.Tenant.Name != "" {
-		dv.Annotations["crownlabs.polito.it/snapshot-tenant"] = snapshot.Spec.Tenant.Name
+	if tenant.Name != "" {
+		dv.Annotations["crownlabs.polito.it/snapshot-tenant"] = tenant.Name
 	}
-	return nil
 }
 
 func (r *InstanceSnapshotReconciler) cleanupDataVolume(ctx context.Context, snapshot *clv1alpha2.InstanceSnapshot) error {

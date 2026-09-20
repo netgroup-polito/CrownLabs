@@ -40,7 +40,7 @@ type InstanceSnapshotSpec struct {
 	Description string `json:"description,omitempty"`
 
 	// Tenant is the reference to the Tenant who created the snapshot.
-	// If not specified, it is automatically populated from the source Instance.
+	// If omitted, the source Instance tenant is used only for artifact metadata.
 	// +optional
 	Tenant GenericRef `json:"tenantRef,omitempty"`
 }
