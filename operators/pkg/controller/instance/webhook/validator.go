@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -241,6 +242,13 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 		}
 
 		if !forge.TenantCanReadNamespace(tenant, source.Namespace, iv.PublicSnapshotNamespace) {
+			logger := ctrl.LoggerFrom(ctx)
+			logger.Info("Unauthorized PVC access attempt",
+				"tenant", tenant.Name,
+				"instance", instance.Name,
+				"environment", env.Name,
+				"pvcNamespace", source.Namespace,
+				"pvcName", source.Name)
 			return fmt.Errorf("environment %q cannot use volume %q from namespace %q: the source must belong to "+
 				"your own tenant, to a workspace you are subscribed to, or to the public snapshot catalog",
 				env.Name, source.Name, source.Namespace)

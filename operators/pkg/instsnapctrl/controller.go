@@ -219,6 +219,7 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			Name:      dv.Name,
 			Namespace: dv.Namespace,
 		}
+		snapshot.Status.Artifact.VolumeSize = storageQuantity
 		return ctrl.Result{}, nil
 	} else if err != nil {
 		return ctrl.Result{}, err
