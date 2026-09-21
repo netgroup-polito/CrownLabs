@@ -102,6 +102,9 @@ spec:
             - environment
             - instanceRef
             type: object
+            x-kubernetes-validations:
+            - message: InstanceSnapshot spec is immutable
+              rule: self == oldSelf
           status:
             description: InstanceSnapshotStatus defines the observed state of InstanceSnapshot.
             properties:
