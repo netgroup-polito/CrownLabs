@@ -59,8 +59,11 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	finalizerName := "instancesnapshot.crownlabs.polito.it/finalizer"
 	if snapshot.DeletionTimestamp.IsZero() {
 		if !ctrlutil.ContainsFinalizer(&snapshot, finalizerName) {
+			// Patch metadata only: a full Update can change omitted or empty spec fields
+			// during JSON serialization and violate the spec's immutability validation.
+			original := snapshot.DeepCopy()
 			ctrlutil.AddFinalizer(&snapshot, finalizerName)
-			if err := r.Update(ctx, &snapshot); err != nil {
+			if err := r.Patch(ctx, &snapshot, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -70,8 +73,9 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 			if err := r.cleanupDataVolume(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, err
 			}
+			original := snapshot.DeepCopy()
 			ctrlutil.RemoveFinalizer(&snapshot, finalizerName)
-			if err := r.Update(ctx, &snapshot); err != nil {
+			if err := r.Patch(ctx, &snapshot, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
@@ -157,10 +161,10 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 		return ctrl.Result{}, err
 	}
 
-	// We are ready to create the DataVolume clone
+	// The DataVolume and its PVC share the snapshot's name and namespace.
 	dvNN := types.NamespacedName{
 		Namespace: snapshot.Namespace,
-		Name:      fmt.Sprintf("%s-%s", snapshot.Name, string(snapshot.UID)[:5]),
+		Name:      snapshot.Name,
 	}
 
 	var dv cdiv1beta1.DataVolume

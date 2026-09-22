@@ -55,9 +55,8 @@ var _ = Describe("The InstanceSnapshot controller", func() {
 		environment     = "env1"
 		finalizer       = "instancesnapshot.crownlabs.polito.it/finalizer"
 
-		// The controller names the artifact after the snapshot and the first characters of its UID,
-		// and the resulting PVC shares the DataVolume name.
-		artifactName = snapshotName + "-snaps"
+		// The DataVolume and its PVC share the snapshot's name.
+		artifactName = snapshotName
 		// The source disk of the instance being snapshotted.
 		sourcePVCName = instanceName + "-" + environment
 	)
