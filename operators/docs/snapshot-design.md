@@ -150,7 +150,9 @@ RBAC alone cannot protect the volumes this feature reads. The clones are carried
 - workspace managers can publish into the namespaces of the workspaces they manage, through `crownlabs-workspace-manager`;
 - the public catalog is writable only by cluster administrators and by the subjects listed in the `snapshotPublishers` Helm value.
 
-**Sources.** The namespaces an object *points at* are plain strings in its spec, which RBAC never evaluates. They are checked by the validating webhooks, the last place where the identity of the requester is still available. A tenant can read from:
+**Sources.** The namespaces an object *points at* are plain strings in its spec, which RBAC never evaluates. They are checked by the validating webhooks, the last place where the identity of the requester is still available. The two operations are gated differently, because they carry different risk.
+
+*Creating a snapshot* (`InstanceSnapshot` webhook). The source is `spec.instanceRef.namespace`, which must be set explicitly (no silent defaulting) and be readable by the requester:
 
 | Namespace | Readable |
 | --- | --- |
@@ -159,10 +161,14 @@ RBAC alone cannot protect the volumes this feature reads. The clones are carried
 | The public snapshot catalog (`operator.configurations.snapshotPublicNamespace`) | Yes |
 | Any other namespace, including those of other tenants and of workspaces it is only a candidate of | No |
 
-The rule is implemented once, in `forge.TenantCanReadNamespace`, and enforced in two places:
+This is `forge.TenantCanReadNamespace`. On update the source is re-checked only when `spec.instanceRef` changes, so that the snapshot controller can keep updating the object with its own service account. Being allowed to snapshot a workspace instance into a namespace one can write to is precisely how a workspace namespace is populated with bootable images.
 
-- the `InstanceSnapshot` webhook requires `spec.instanceRef.namespace` to be set and readable. On update, the check runs again only when `spec.instanceRef` changes, so that the snapshot controller can keep updating the object with its own service account;
-- the `Instance` webhook requires, for every `LocalVM` environment of the template, the namespace of the source PVC to be readable. Outside the public catalog, the PVC must also carry the `crownlabs.polito.it/snapshot-artifact=true` label, which the snapshot controller sets once the clone completes: being able to read a namespace does not entitle a tenant to every volume in it, since tenant and workspace namespaces also host live VM disks and shared volumes.
+*Booting a `LocalVM`* (`Instance` webhook). A starting VM clones its root disk from the source PVC named in the template: for every `LocalVM` environment, the source namespace must be either
+
+- the public snapshot catalog, or
+- the very namespace the instance is being created in (its destination).
+
+No cross-namespace boot is allowed. To make a workspace image bootable it is published: into the public catalog, or into the workspace namespace itself, from which instances created in that same namespace can start (source equals destination). Outside the public catalog the source PVC must also carry the `crownlabs.polito.it/snapshot-artifact=true` label, which the snapshot controller sets once the clone completes: reaching a namespace does not entitle a tenant to every volume in it, since tenant and workspace namespaces also host live VM disks and shared volumes.
 
 Workspace managers have no additional reading rights: they cannot snapshot the instances of the tenants enrolled in the workspaces they manage. The groups listed in `operator.webhook.deployment.snapshotWebhookBypassGroups`, by default only `system:masters`, skip these checks.
 

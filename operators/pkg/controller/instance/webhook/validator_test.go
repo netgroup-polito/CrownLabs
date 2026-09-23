@@ -409,7 +409,7 @@ var _ = Describe("InstanceValidator", func() {
 			Expect(warnings).To(BeEmpty())
 		})
 
-		It("should allow LocalVM creation using PVC from an allowed workspace namespace", func() {
+		It("should deny LocalVM creation using PVC from a workspace namespace (only own ns or public)", func() {
 			workspaceNamespace := "workspace-my-shared-ws"
 			localVMTemplate.Spec.EnvironmentList[0].Image = workspaceNamespace + "/my-pvc"
 
@@ -422,7 +422,8 @@ var _ = Describe("InstanceValidator", func() {
 			}
 
 			warnings, err := validator.ValidateCreate(ctx, instance)
-			Expect(err).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err.Error()).To(ContainSubstring("cannot use volume"))
 			Expect(warnings).To(BeEmpty())
 		})
 

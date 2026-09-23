@@ -224,11 +224,6 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 		return nil
 	}
 
-	tenant := &clv1alpha2.Tenant{}
-	if err := iv.Client.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
-		return fmt.Errorf("failed to get tenant %s: %w", req.UserInfo.Username, err)
-	}
-
 	for i := range template.Spec.EnvironmentList {
 		env := &template.Spec.EnvironmentList[i]
 		if env.EnvironmentType != clv1alpha2.ClassLocalVM {
@@ -240,10 +235,12 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 			return err
 		}
 
-		if !forge.TenantCanReadNamespace(tenant, source.Namespace, iv.PublicSnapshotNamespace) {
-			return fmt.Errorf("environment %q cannot use volume %q from namespace %q: the source must belong to "+
-				"your own tenant, to a workspace you are subscribed to, or to the public snapshot catalog",
-				env.Name, source.Name, source.Namespace)
+		// A LocalVM may only boot from the public snapshot catalog or from a snapshot living in the very
+		// namespace where the instance is being created: no cross-namespace boot is allowed.
+		if source.Namespace != iv.PublicSnapshotNamespace && source.Namespace != instance.Namespace {
+			return fmt.Errorf("environment %q cannot use volume %q from namespace %q: a LocalVM may only start "+
+				"from the public snapshot catalog or from a snapshot in its own namespace %q",
+				env.Name, source.Name, source.Namespace, instance.Namespace)
 		}
 
 		// Reaching a namespace does not imply being entitled to every volume inside it.
