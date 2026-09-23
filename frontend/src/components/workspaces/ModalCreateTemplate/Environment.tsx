@@ -9,7 +9,7 @@ import {
   InputNumber,
   Space,
   Cascader,
-  ConfigProvider
+  ConfigProvider,
 } from 'antd';
 import { useEffect, useState, type FC } from 'react';
 import { EnvironmentType } from '../../../generated-types';
@@ -27,10 +27,15 @@ const environmentTypeOptions = [
   //{ value: EnvironmentType.Container, label: 'Container' },
 ];
 
-
 const getImageNamesCascader = (images: Image[]) => {
-
-  const imageMap: Record<string, { value: string; label: string; children: { value: string; label: string }[] }> = {};
+  const imageMap: Record<
+    string,
+    {
+      value: string;
+      label: string;
+      children: { value: string; label: string }[];
+    }
+  > = {};
 
   images.forEach(img => {
     const baseName = getImageNameNoVer(img.name);
@@ -50,9 +55,10 @@ const getImageNamesCascader = (images: Image[]) => {
     });
   });
 
-  const options = Object.values(imageMap).sort((a, b) => a.label.localeCompare(b.label));
+  const options = Object.values(imageMap).sort((a, b) =>
+    a.label.localeCompare(b.label),
+  );
   return options;
-
 };
 
 const getAvailableImagesForEnvironment = (
@@ -97,8 +103,8 @@ export const Environment: FC<EnvironmentProps> = ({
   const propInputField = {
     labelCol: { span: 24 },
     wrapperCol: { span: 24 },
-    className: "mb-0",
-  }
+    className: 'mb-0',
+  };
 
   // Custom validator for unique environment names
   const validateUniqueName = (currIndex: number) => {
@@ -151,14 +157,19 @@ export const Environment: FC<EnvironmentProps> = ({
     const found = versionsForName.find(imgName => imgName === cleanImage);
     if (found) return;
 
-    const dockerImageRegex = /^(?:(?=[^/]{1,253})(?!-)[a-zA-Z0-9.-]+(?<!-)(?::[0-9]+)?\/)?(?:(?=[^/]{1,253})(?!-)[a-zA-Z0-9._-]+(?<!-)\/)*(?=[^_.:/]{1,253})[a-zA-Z0-9._-]+(?::(?=[^.:/]{1,128})[a-zA-Z0-9._-]+)?$/;
+    const dockerImageRegex =
+      /^(?:(?=[^/]{1,253})(?!-)[a-zA-Z0-9.-]+(?<!-)(?::[0-9]+)?\/)?(?:(?=[^/]{1,253})(?!-)[a-zA-Z0-9._-]+(?<!-)\/)*(?=[^_.:/]{1,253})[a-zA-Z0-9._-]+(?::(?=[^.:/]{1,128})[a-zA-Z0-9._-]+)?$/;
 
     if (dockerImageRegex.test(cleanImage)) {
       return;
     }
-    throw new Error(`Image "${cleanImage}" is not found from local registry and is not a valid registry URL`);
+    throw new Error(
+      `Image "${cleanImage}" is not found from local registry and is not a valid registry URL`,
+    );
   };
-  const [imagesSearchOptions, setImagesSearchOptions] = useState<DefaultOptionType[]>([]);
+  const [imagesSearchOptions, setImagesSearchOptions] = useState<
+    DefaultOptionType[]
+  >([]);
 
   const handleSearch = (value: string) => {
     if (!value) {
@@ -167,7 +178,7 @@ export const Environment: FC<EnvironmentProps> = ({
     }
 
     const matchExists = currentAvailableImages.some(img =>
-      img.name.toLowerCase().includes(value.toLowerCase())
+      img.name.toLowerCase().includes(value.toLowerCase()),
     );
 
     if (!matchExists) {
@@ -177,12 +188,14 @@ export const Environment: FC<EnvironmentProps> = ({
         children: [{ value: '', label: '' }],
       };
 
-      setImagesSearchOptions([customOption, ...getImageNamesCascader(currentAvailableImages)]);
+      setImagesSearchOptions([
+        customOption,
+        ...getImageNamesCascader(currentAvailableImages),
+      ]);
     } else {
       setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
     }
   };
-
 
   const currentEnvironmentType = getEnvironmentType(name);
   const currentAvailableImages = getAvailableImagesForEnvironment(
@@ -190,11 +203,14 @@ export const Environment: FC<EnvironmentProps> = ({
     availableImagesVM,
     availableImagesContainer,
   );
-  const currentImageValue = Form.useWatch<string | undefined>(['environments', name, 'image']);
+  const currentImageValue = Form.useWatch<string | undefined>([
+    'environments',
+    name,
+    'image',
+  ]);
 
   useEffect(() => {
     setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
-
   }, [currentAvailableImages]);
 
   const isVM = (currIndex: number) => {
@@ -213,7 +229,7 @@ export const Environment: FC<EnvironmentProps> = ({
     return (
       environments[currIndex].environmentType === EnvironmentType.Standalone
     );
-  }
+  };
 
   const isPersistent = (currIndex: number) => {
     if (!environments) return false;
@@ -395,11 +411,11 @@ export const Environment: FC<EnvironmentProps> = ({
       <span>
         Type
         <Tooltip title={text}>
-          {!isVM(currIndex) && (<InfoCircleOutlined style={{ marginLeft: 4 }}/>)}
+          {!isVM(currIndex) && <InfoCircleOutlined style={{ marginLeft: 4 }} />}
         </Tooltip>
       </span>
     );
-  }
+  };
 
   return (
     <>
@@ -413,7 +429,8 @@ export const Environment: FC<EnvironmentProps> = ({
           { required: true, message: 'Environment name is required' },
           {
             pattern: /^[a-z\d][a-z\d-]{2,10}[a-z\d]$/,
-            message: 'Name must be 4-12 characters: lowercase letters, digits, hyphens (no hyphens at start/end)'
+            message:
+              'Name must be 4-12 characters: lowercase letters, digits, hyphens (no hyphens at start/end)',
           },
           { validator: validateUniqueName(name) },
         ]}
@@ -455,7 +472,7 @@ export const Environment: FC<EnvironmentProps> = ({
           theme={{
             components: {
               Cascader: {
-                dropdownHeight: "auto",
+                dropdownHeight: 'auto',
               },
             },
           }}
@@ -465,8 +482,13 @@ export const Environment: FC<EnvironmentProps> = ({
             label="Image"
             extra={
               currentImageValue &&
-                !isInImageList(currentImageValue, getEnvironmentType(name), availableImagesVM, availableImagesContainer)
-                ? "Custom image detected, be sure it exists"
+              !isInImageList(
+                currentImageValue,
+                getEnvironmentType(name),
+                availableImagesVM,
+                availableImagesContainer,
+              )
+                ? 'Custom image detected, be sure it exists'
                 : undefined
             }
             name={[name, 'image']}
@@ -483,11 +505,17 @@ export const Environment: FC<EnvironmentProps> = ({
             ]}
             validateDebounce={500}
             {...formItemLayout}
-
-            getValueProps={(value) => {
+            getValueProps={value => {
               if (!value) return { value: [] };
 
-              if (!isInImageList(value, getEnvironmentType(name), availableImagesVM, availableImagesContainer)) {
+              if (
+                !isInImageList(
+                  value,
+                  getEnvironmentType(name),
+                  availableImagesVM,
+                  availableImagesContainer,
+                )
+              ) {
                 return { value: [value] };
               }
 
@@ -495,7 +523,6 @@ export const Environment: FC<EnvironmentProps> = ({
               if (index === -1) return { value: [value] };
               return { value: [value.slice(0, index), value.slice(index + 1)] };
             }}
-
             getValueFromEvent={(value: string[]) => {
               if (!value || value.length === 0) return '';
 
@@ -506,7 +533,9 @@ export const Environment: FC<EnvironmentProps> = ({
 
               // Case 2 and 3: Custom/external image (we take the first element and remove the trailing ":" if present)
               const rawImage = value[0];
-              return typeof rawImage === 'string' ? rawImage.trim().replace(/:$/, '') : rawImage;
+              return typeof rawImage === 'string'
+                ? rawImage.trim().replace(/:$/, '')
+                : rawImage;
             }}
           >
             <Cascader
@@ -516,18 +545,23 @@ export const Environment: FC<EnvironmentProps> = ({
               onSearch={handleSearch}
               showSearch={{
                 filter: (inputValue, path) =>
-                  path.some(option => (option.label as string).toLowerCase().indexOf(inputValue.toLowerCase()) > -1),
+                  path.some(
+                    option =>
+                      (option.label as string)
+                        .toLowerCase()
+                        .indexOf(inputValue.toLowerCase()) > -1,
+                  ),
                 render: () => {
-                  return (
-                    <div>
-                      Click here to use custom image
-                    </div>
-                  );
-                }
+                  return <div>Click here to use custom image</div>;
+                },
               }}
-              getPopupContainer={trigger => trigger.parentElement || document.body}
+              getPopupContainer={trigger =>
+                trigger.parentElement || document.body
+              }
               onChange={() => {
-                setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
+                setImagesSearchOptions(
+                  getImageNamesCascader(currentAvailableImages),
+                );
               }}
             />
           </Form.Item>
@@ -548,7 +582,6 @@ export const Environment: FC<EnvironmentProps> = ({
                 message: 'Enter an external image',
               },
             ]}
-
             extra={getExternalImageExample(name)}
           >
             <Input
@@ -563,7 +596,11 @@ export const Environment: FC<EnvironmentProps> = ({
         </>
       )}
 
-      <Flex vertical={!isVM(name)} {...isVM(name) && { justify: "space-evenly" }} className='ml-6 gap-2'>
+      <Flex
+        vertical={!isVM(name)}
+        {...(isVM(name) && { justify: 'space-evenly' })}
+        className="ml-6 gap-2"
+      >
         {/* GUI Toggle - hidden for Standalone as it's always enabled */}
         {getEnvironmentType(name) !== EnvironmentType.Standalone && (
           <Form.Item label="GUI" className="mb-0">
@@ -574,9 +611,7 @@ export const Environment: FC<EnvironmentProps> = ({
                 valuePropName="checked"
                 className="mb-0"
               >
-                <Checkbox
-                  disabled={!isVM(name)}
-                />
+                <Checkbox disabled={!isVM(name)} />
               </Form.Item>
 
               <div className="ant-form-item-extra text-xs">
@@ -597,8 +632,12 @@ export const Environment: FC<EnvironmentProps> = ({
                 className="mb-0"
               >
                 <Checkbox
-                  disabled={getEnvironmentType(name) === EnvironmentType.CloudVm}
-                  onChange={value => handlePersistentChange(value.target.checked)}
+                  disabled={
+                    getEnvironmentType(name) === EnvironmentType.CloudVm
+                  }
+                  onChange={value =>
+                    handlePersistentChange(value.target.checked)
+                  }
                 />
               </Form.Item>
             </div>
@@ -626,17 +665,24 @@ export const Environment: FC<EnvironmentProps> = ({
       )} */}
       </Flex>
 
-      <Space direction="horizontal" className='ml-2 mb-4'  >
+      <Space direction="horizontal" className="ml-2 mb-4">
         {/* CPU Input */}
         <Form.Item
           {...restField}
-          label={<>CPU <Tooltip title="Number of virtual CPUs allocated to the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
+          label={
+            <>
+              CPU{' '}
+              <Tooltip title="Number of virtual CPUs allocated to the environment">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </>
+          }
           name={[name, 'cpu']}
           {...propInputField}
         >
           <InputNumber
             step={1}
-            style={{ width: "120px", textAlignLast: "center" }}
+            style={{ width: '120px', textAlignLast: 'center' }}
             min={resources.cpu.min}
             max={resources.cpu.max}
             onChange={value => handleResourceChange(name, 'cpu', value)}
@@ -644,48 +690,78 @@ export const Environment: FC<EnvironmentProps> = ({
           />
         </Form.Item>
 
-
         {/* RAM Input */}
         <Form.Item
           {...restField}
           name={[name, 'ram']}
-          label={<>RAM <Tooltip title="Amount of RAM allocated to the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
+          label={
+            <>
+              RAM{' '}
+              <Tooltip title="Amount of RAM allocated to the environment">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </>
+          }
           {...propInputField}
         >
           <InputNumber
-            style={{ width: "120px", textAlignLast: "center" }}
+            style={{ width: '120px', textAlignLast: 'center' }}
             min={resources.ram.min}
             max={resources.ram.max}
             step={0.25}
             onChange={value => handleResourceChange(name, 'ram', value)}
             addonAfter="GiB"
-
           />
         </Form.Item>
 
         {/* Disk */}
-        {/* TODO: The minimum disk size should be dynamically set based on the VM image metadata. Right now, if instance is a VM, min 10; otherwise minimum 1 */}
-        <Form.Item {...restField} name={[name, 'disk']}
-          label={<>Disk <Tooltip title="Amount of disk space allocated to the environment, if persistent"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
-          {...propInputField} >
+        <Form.Item
+          {...restField}
+          name={[name, 'disk']}
+          label={
+            <>
+              Disk{' '}
+              <Tooltip title="Amount of disk space allocated to the environment, if persistent">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </>
+          }
+          {...propInputField}
+        >
           <InputNumber
             step={1}
-            style={{ width: "120px", textAlignLast: "center" }}
+            style={{ width: '120px', textAlignLast: 'center' }}
             addonAfter="GiB"
             disabled={!isPersistent(name)}
             max={resources.disk.max}
-            min={getEnvironmentType(name) === EnvironmentType.VirtualMachine ? isPersistent(name) ? resources.disk.min : 0 : 0}
+            min={
+              getEnvironmentType(name) === EnvironmentType.VirtualMachine
+                ? isPersistent(name)
+                  ? resources.disk.min
+                  : 0
+                : 0
+            }
           />
         </Form.Item>
 
         {/* Reserved CPU Percentage */}
-        <Form.Item {...restField} name={[name, 'reservedCpu']}
-          label={<>Reserved CPU <Tooltip title="Percentage of CPU reserved for the environment"><InfoCircleOutlined className='ml-1' /></Tooltip></>}
-          {...propInputField} >
+        <Form.Item
+          {...restField}
+          name={[name, 'reservedCpu']}
+          label={
+            <>
+              Reserved CPU{' '}
+              <Tooltip title="Percentage of CPU reserved for the environment">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </>
+          }
+          {...propInputField}
+        >
           <InputNumber
             onChange={value => handleResourceChange(name, 'reservedCpu', value)}
             step={1}
-            style={{ width: "120px", textAlignLast: "center" }}
+            style={{ width: '120px', textAlignLast: 'center' }}
             addonAfter="%"
             max={100}
             min={1}
@@ -693,6 +769,54 @@ export const Environment: FC<EnvironmentProps> = ({
         </Form.Item>
       </Space>
 
+      {/* Extended Resources Row Layout */}
+      <Space direction="horizontal" className="ml-2 mb-4">
+        {/* NVIDIA GPU Quantity Selector */}
+        <Form.Item
+          {...restField}
+          name={[name, 'otherResources', 'nvidiaComGpu']}
+          label={
+            <>
+              NVIDIA GPU{' '}
+              <Tooltip title="Number of dedicated NVIDIA GPUs to assign to this environment">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </>
+          }
+          {...propInputField}
+        >
+          <InputNumber
+            step={1}
+            style={{ width: '120px', textAlignLast: 'center' }}
+            min={0}
+            max={4}
+            addonAfter="#"
+          />
+        </Form.Item>
+
+        {/* AMD GPU Quantity Selector */}
+        <Form.Item
+          {...restField}
+          name={[name, 'otherResources', 'amdComGpu']}
+          label={
+            <>
+              AMD GPU{' '}
+              <Tooltip title="Number of dedicated AMD GPUs to assign to this environment">
+                <InfoCircleOutlined className="ml-1" />
+              </Tooltip>
+            </>
+          }
+          {...propInputField}
+        >
+          <InputNumber
+            step={1}
+            style={{ width: '120px', textAlignLast: 'center' }}
+            min={0}
+            max={4}
+            addonAfter="#"
+          />
+        </Form.Item>
+      </Space>
 
       {!isPersonal && (
         <SharedVolumeList parentFormName={name} sharedVolumes={sharedVolumes} />

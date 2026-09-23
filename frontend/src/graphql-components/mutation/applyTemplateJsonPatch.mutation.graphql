@@ -27,13 +27,14 @@ mutation applyTemplateJsonPatch(
           contentPath
           startupArgs
           enforceWorkdir
-
         }
         environmentType
         resources {
           cpu
           disk
           memory
+          reservedCPUPercentage
+          otherResources
         }
         sharedVolumeMounts {
           sharedVolume {

@@ -1,0 +1,20 @@
+{{- if and .Values.global.gateway.gatewayApiMode (.Values.global.gateway.securityPolicy.enabled | default true) }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "crownlabs.fullname" . }}-secpol-dummy-backend
+  namespace: {{ .Release.Namespace }}
+  annotations:
+    # Ignore kube-score check for this dummy service intentionally without target pods
+    # serving as a placeholder backend for authentication callbacks
+    kube-score/ignore: service-targets-pod
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+spec:
+  selector:
+    crownlabs.polito.it/dummy-backend: "true"
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+{{- end }}

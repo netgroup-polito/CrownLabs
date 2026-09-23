@@ -33,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -120,10 +121,12 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 			EnvironmentType: clv1alpha2.ClassVM,
 			Image:           image,
 			Resources: clv1alpha2.EnvironmentResources{
-				CPU:                   cpu,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU:    cpu,
+					Memory: resource.MustParse(memory),
+					Disk:   resource.MustParse(disk),
+				},
 				ReservedCPUPercentage: cpuReserved,
-				Memory:                resource.MustParse(memory),
-				Disk:                  resource.MustParse(disk),
 			},
 		}
 		template = clv1alpha2.Template{
@@ -392,6 +395,47 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
 					Expect(dv.Spec).To(Equal(existingDV.Spec))
 					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+				})
+			})
+
+			When("the DataVolume is already controlled by a VirtualMachine", func() {
+				BeforeEach(func() {
+					existingDV := cdiv1beta1.DataVolume{
+						ObjectMeta: forge.NamespacedNameToObjectMeta(objectNameEnv),
+						Spec: cdiv1beta1.DataVolumeSpec{
+							PVC: &corev1.PersistentVolumeClaimSpec{
+								AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadOnlyMany},
+							},
+						},
+					}
+					existingDV.SetCreationTimestamp(metav1.NewTime(time.Now()))
+					existingDV.SetOwnerReferences([]metav1.OwnerReference{{
+						APIVersion:         virtv1.GroupVersion.String(),
+						Kind:               "VirtualMachine",
+						Name:               objectNameEnv.Name,
+						UID:                types.UID("vm-owner"),
+						BlockOwnerDeletion: ptr.To(true),
+						Controller:         ptr.To(true),
+					}})
+					clientBuilder.WithObjects(&existingDV)
+				})
+
+				It("Should replace the VirtualMachine controller owner with the Instance owner", func() {
+					var dv cdiv1beta1.DataVolume
+
+					Expect(err).ToNot(HaveOccurred())
+					Expect(reconciler.Get(ctx, objectNameEnv, &dv)).To(Succeed())
+
+					Expect(dv.GetOwnerReferences()).To(ContainElement(ownerRef))
+
+					Expect(dv.GetOwnerReferences()).ToNot(ContainElement(metav1.OwnerReference{
+						APIVersion:         virtv1.GroupVersion.String(),
+						Kind:               "VirtualMachine",
+						Name:               objectNameEnv.Name,
+						UID:                types.UID("vm-owner"),
+						BlockOwnerDeletion: ptr.To(true),
+						Controller:         ptr.To(true),
+					}))
 				})
 			})
 

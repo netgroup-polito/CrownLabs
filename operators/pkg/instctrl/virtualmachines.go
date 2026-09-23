@@ -82,10 +82,11 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 			// Forge the DataVolume specifications only at creation time, as changing them later may be either rejected by the webhook or cause data loss.
 			dv.Spec = forgedDV
 		}
-		// Set the owner reference to the instance, to ensure the correct garbage collection of the DataVolume when the instance is deleted.
+		// Remove the owner, this line SHOULD BE removed after the deployment in production
+		dv.OwnerReferences = nil
+
 		return ctrl.SetControllerReference(instance, &dv, r.Scheme)
 	})
-
 	if errDV != nil {
 		log.Error(errDV, "failed to enforce datavolume", "datavolume", klog.KObj(&dv))
 		return errDV
@@ -110,6 +111,10 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
 		if vm.CreationTimestamp.IsZero() {
 			vm.Spec = forge.VirtualMachineSpec(instance, template, environment, mountInfos)
+		}
+		// If DataVolumeTemplates are present, they are removed from the VM specifications, as they are not needed anymore. In fact, the DataVolume is already created and managed by the controller.
+		if len(vm.Spec.DataVolumeTemplates) > 0 {
+			vm.Spec.DataVolumeTemplates = nil
 		}
 		// Afterwards, the only modification to the specifications is performed to configure the running flag.
 		vm.Spec.Running = ptr.To(instance.Spec.Running)

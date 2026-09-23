@@ -13,6 +13,10 @@ SHELL = /usr/bin/env bash -o pipefail
 .SHELLFLAGS = -ec
 
 DOMAIN="crownlabs.polito.it"
+METRICS_ADDR ?= :18080
+HEALTH_PROBE_ADDR ?= :18081
+TENANT_WEBHOOK_PORT ?= :18082
+MYDRIVE_STORAGE_CLASS ?= rook-nfs
 
 .PHONY: all
 all: gen
@@ -93,7 +97,9 @@ run-instance: generate ## Run the instance operator locally
 				--container-env-sidecars-tag=v0.14.5\
 				--public-exposure-ip-pool="172.18.0.240-172.18.0.248,172.18.0.249,172.18.0.250/30"\
 				--public-exposure-common-annotations="metallb.universe.tf/allow-shared-ip=pe"\
-				--public-exposure-loadbalancer-ips-key="metallb.universe.tf/loadBalancerIPs"
+				--public-exposure-loadbalancer-ips-key="metallb.universe.tf/loadBalancerIPs"\
+				--gateway-api-mode=true\
+				--gateway-api-refs-values="my-ns/my-gateway"
 
 .PHONY: run-instance-automation
 run-instance-automation: generate ## Run the instance automation controller locally
@@ -122,6 +128,9 @@ run-instance-automation-local: install-local samples-res-local run-instance-auto
 run-operator: generate ## Run the main operator locally
 	go run cmd/operator/*.go\
 				--target-label=crownlabs.polito.it/operator-selector=local\
+				--metrics-addr=$(METRICS_ADDR)\
+				--health-probe-bind-address=$(HEALTH_PROBE_ADDR)\
+				--tenant-webhook-port=$(TENANT_WEBHOOK_PORT)\
 				--keycloak-url=$(KEYCLOAK_URL)\
 				--keycloak-realm=$(KEYCLOAK_REALM)\
 				--keycloak-client-id=$(KEYCLOAK_CLIENT_ID)\
@@ -131,10 +140,23 @@ run-operator: generate ## Run the main operator locally
 				--enable-workspace=true\
 				--enable-instance=true\
 				--enable-sharedvolume=true\
-				--enable-pmp=true\
+				--enable-pmp=false\
 				--enable-keycloak=true\
 				--enable-webhooks=false\
-				--enable-image-list=true
+				--enable-imagelist=true\
+				--mydrive-pvcs-storage-class-name=$(MYDRIVE_STORAGE_CLASS)
+
+# The double target below is used to set Keycloak defaults for the dev-local
+# Keycloak setup (see ../dev-local/keycloak/README.md) without touching
+# run-operator's own defaults. KEYCLOAK_CLIENT_SECRET has no default: it is
+# per-realm-install and must still be passed explicitly, e.g.:
+#   make run-operator-local KEYCLOAK_CLIENT_SECRET="$SECRET"
+.PHONY: run-operator-local
+run-operator-local: KEYCLOAK_URL=https://keycloak.crownlabs.local
+run-operator-local: KEYCLOAK_REALM=crownlabs
+run-operator-local: KEYCLOAK_CLIENT_ID=operator-local
+run-operator-local: KEYCLOAK_TARGET_CLIENT=operator-local
+run-operator-local: install-local samples-res-local run-operator ## Prepare, then run the main operator locally against the dev-local Keycloak (requires KEYCLOAK_CLIENT_SECRET).
 
 .PHONY: install-local
 install-local: manifests ## Install CrownLabs & support CRDs.

@@ -36,6 +36,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	clctx "github.com/netgroup-polito/CrownLabs/operators/pkg/clcontext"
@@ -49,23 +50,16 @@ type InstanceReconciler struct {
 	Scheme                    *runtime.Scheme
 	EventsRecorder            record.EventRecorder
 	NamespaceWhitelist        metav1.LabelSelector
-	ServiceUrls               ServiceUrls
+	ExpositionConfig          forge.ExpositionConfig
 	ContainerEnvOpts          forge.ContainerEnvOpts
 	WebSSHMasterPublicKey     []byte
 	PublicExposureOpts        forge.PublicExposureOpts
 	MirrorPVCStorageClassName string
-	EnableAuthentication      bool
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
 	// in order to lead to a controlled failure in case the Reconcile panics.
 	ReconcileDeferHook func()
-}
-
-// ServiceUrls holds URL parameters for the instance reconciler.
-type ServiceUrls struct {
-	WebsiteBaseURL   string
-	InstancesAuthURL string
 }
 
 // calculateInstancePhase calculate the overall phase of the Instance based on the phases of its environments.
@@ -246,7 +240,13 @@ func (r *InstanceReconciler) Reconcile(ctx context.Context, req ctrl.Request) (r
 	}
 
 	// Iterate over and enforce the instance environments.
-	if err := r.enforceEnvironments(ctx); err != nil {
+	if err = r.enforceEnvironments(ctx); err != nil {
+		// If it's a quota error, requeue and return nil to prevent CreationLoopBackoff
+		if utils.IsResourceQuotaExceeded(err) {
+			log.Info("resource quota exceeded during environment enforcement, requeuing", "error", err.Error())
+			r.EventsRecorder.Eventf(&instance, corev1.EventTypeWarning, EvEnvironmentErr, "Resource quota exceeded, retrying automatically")
+			return ctrl.Result{RequeueAfter: 1 * time.Minute}, nil
+		}
 		log.Error(err, "failed to enforce instance environments")
 		return ctrl.Result{}, err
 	}
@@ -292,49 +292,67 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		innCtx, _ := clctx.EnvironmentInto(ctx, tmplEnv)
 		innCtx = clctx.EnvironmentIndexInto(innCtx, i)
 
-		if err := r.EnforceShVolMirrorPVCs(innCtx); err != nil {
-			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
-			return err
-		}
-
-		mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(innCtx, r.Client)
-		if err != nil {
-			r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
-			return err
-		}
-		innCtx = clctx.VolumeMountInfosInto(innCtx, mountInfos)
-
-		switch tmplEnv.EnvironmentType {
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
-			if err := r.EnforceVMEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
-				return err
+		// Run the single environment reconciliation
+		if err := r.enforceSingleEnvironment(innCtx, tmplEnv); err != nil {
+			// Check if the synchronous error is due to resource quota exhaustion
+			if utils.IsResourceQuotaExceeded(err) {
+				instance.Status.Environments[i].Phase = clv1alpha2.EnvironmentPhaseResourceQuotaExceeded
 			}
+			return err
+		}
+
+		// Calculate GUI requirements
+		switch tmplEnv.EnvironmentType {
+		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+			urlNeeded = true
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
 			if tmplEnv.GuiEnabled {
 				urlNeeded = true
 			}
-
-		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-			if err := r.EnforceContainerEnvironment(innCtx); err != nil {
-				r.EventsRecorder.Eventf(instance, corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
-				return err
-			}
-			urlNeeded = true
 		}
-
-		r.setInitialReadyTimeIfNecessary(innCtx)
 	}
 	if urlNeeded {
 		// Enforce the ingress to access the GUI
 		// Use the configured website base URL
-		host := r.ServiceUrls.WebsiteBaseURL
+		host := r.ExpositionConfig.WebsiteBaseURL
 
 		// Define url of the instance. This will be the root for the urls of the single environments
-		instance.Status.URL = forge.IngressGuiStatusInstanceURL(host, instance)
+		instance.Status.URL = forge.ExpositionGuiStatusInstanceURL(host, instance)
 	} else {
 		instance.Status.URL = ""
 	}
 
+	return nil
+}
+
+// enforceSingleEnvironment executes the reconciliation steps for a single environment.
+func (r *InstanceReconciler) enforceSingleEnvironment(ctx context.Context, tmplEnv *clv1alpha2.Environment) error {
+	if err := r.EnforceShVolMirrorPVCs(ctx); err != nil {
+		r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, "Failed to enforce mirror SharedVolumes")
+		return err
+	}
+
+	mountInfos, msg, err := forge.PVCMountInfosFromEnvironment(ctx, r.Client)
+	if err != nil {
+		r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, msg, tmplEnv.Name)
+		return err
+	}
+	ctx = clctx.VolumeMountInfosInto(ctx, mountInfos)
+
+	switch tmplEnv.EnvironmentType {
+	case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
+		if err := r.EnforceVMEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
+		if err := r.EnforceContainerEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	}
+
+	r.setInitialReadyTimeIfNecessary(ctx)
 	return nil
 }
 
@@ -372,17 +390,22 @@ func (r *InstanceReconciler) setInitialReadyTimeIfNecessary(ctx context.Context)
 func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	mgr.GetLogger().Info("setup manager")
 
-	return ctrl.NewControllerManagedBy(mgr).
+	bld := ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.Instance{}).
 		Owns(&appsv1.Deployment{}).
 		Owns(&virtv1.VirtualMachine{}).
 		Owns(&corev1.PersistentVolumeClaim{}).
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
-		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance)).
-		WithOptions(controller.Options{
-			MaxConcurrentReconciles: concurrency,
-		}).
+		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
+
+	if r.ExpositionConfig.GatewayAPIMode {
+		bld = bld.Owns(&gatewayv1.HTTPRoute{})
+	}
+
+	return bld.WithOptions(controller.Options{
+		MaxConcurrentReconciles: concurrency,
+	}).
 		WithLogConstructor(utils.LogConstructor(mgr.GetLogger(), "Instance")).
 		Complete(r)
 }

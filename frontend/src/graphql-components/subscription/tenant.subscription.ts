@@ -14,6 +14,8 @@ export default gql`
             cpu
             instances
             memory
+            disk
+            otherResources
           }
           workspaces {
             role
@@ -26,6 +28,8 @@ export default gql`
                     cpu
                     instances
                     memory
+                    disk
+                    otherResources
                   }
                 }
                 status {
@@ -40,6 +44,8 @@ export default gql`
         }
         metadata {
           name
+          creationTimestamp
+          labels
         }
         status {
           personalNamespace {

@@ -1,7 +1,11 @@
 import { type FC, useContext, useState, useCallback, useMemo } from 'react';
 import { Modal, Typography } from 'antd';
 import { Button } from 'antd';
-import { type Instance, WorkspaceRole } from '../../../../utils';
+import {
+  formatRelativeDate,
+  type Instance,
+  WorkspaceRole,
+} from '../../../../utils';
 import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
 import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
@@ -31,7 +35,11 @@ const EMPTY_QUOTA: IQuota = {
 };
 
 // Returns a human readable string of the time elapsed between now and timeStr
-const formatElapsedTime = (now: Date, timeStr?: string, fallback = 'unknown') => {
+const formatElapsedTime = (
+  now: Date,
+  timeStr?: string,
+  fallback = 'unknown',
+) => {
   if (!timeStr) return fallback;
   const time = new Date(timeStr);
   if (isNaN(time.getTime())) return fallback;
@@ -62,10 +70,9 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
   viewMode,
 }) => {
   const { availableQuota } = useContext(OwnedInstancesContext);
-  
-  const workspaceAvailableQuota: IQuota = availableQuota?.[
-    instance.workspaceName || ''
-  ] || EMPTY_QUOTA;
+
+  const workspaceAvailableQuota: IQuota =
+    availableQuota?.[instance.workspaceName || ''] || EMPTY_QUOTA;
 
   // Use the value from the template (mapped via GraphQL)
   const allowPublic = instance.allowPublicExposure;
@@ -74,21 +81,33 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
 
   const [sshModal, setSshModal] = useState(false);
   const [showExposureModal, setShowExposureModal] = useState(false);
-  
-  const onEnablePublicExposure = useCallback(() => setShowExposureModal(true), []);
+
+  const onEnablePublicExposure = useCallback(
+    () => setShowExposureModal(true),
+    [],
+  );
   const closeSshModal = useCallback(() => setSshModal(false), []);
   const closeExposureModal = useCallback(() => setShowExposureModal(false), []);
 
-  const timeValue = useMemo(() => formatElapsedTime(now, instance.timeStamp, 'unknown'), [now, instance.timeStamp]);
-  const lastAccessValue = useMemo(() => formatElapsedTime(now, instance.lastActivity, '-'), [now, instance.lastActivity]);
+  const timeValue = useMemo(
+    () => formatElapsedTime(now, instance.timeStamp, 'unknown'),
+    [now, instance.timeStamp],
+  );
+  const lastAccessValue = useMemo(
+    () => formatRelativeDate(instance.lastActivity, now),
+    [instance.lastActivity, now],
+  );
 
-  const fieldsDropdown = useMemo(() => ({
-    instance,
-    setSshModal,
-    fileManager,
-    extended,
-    ...(allowPublic ? { onEnablePublicExposure } : {}),
-  }), [instance, fileManager, extended, allowPublic, onEnablePublicExposure]);
+  const fieldsDropdown = useMemo(
+    () => ({
+      instance,
+      setSshModal,
+      fileManager,
+      extended,
+      ...(allowPublic ? { onEnablePublicExposure } : {}),
+    }),
+    [instance, fileManager, extended, allowPublic, onEnablePublicExposure],
+  );
 
   return (
     <>

@@ -38,7 +38,7 @@ webhooks:
   failurePolicy: Fail
   admissionReviewVersions:
   - v1
-  objectSelector:
+  namespaceSelector:
     matchLabels:
       {{ (split "=" .Values.configurations.targetLabel)._0 }}: {{ (split "=" .Values.configurations.targetLabel)._1 }}
   rules:

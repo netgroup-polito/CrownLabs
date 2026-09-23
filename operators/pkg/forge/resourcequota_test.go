@@ -38,8 +38,11 @@ var _ = Describe("Resource quota spec forging", func() {
 				tenant = clv1alpha2.Tenant{
 					Spec: clv1alpha2.TenantSpec{
 						PersonalWorkspace: &apicommon.WorkspaceResourceQuota{
-							CPU:       *resource.NewQuantity(25, resource.DecimalSI),
-							Memory:    *resource.NewScaledQuantity(50, resource.Giga),
+							ResourceSpec: apicommon.ResourceSpec{
+								CPU:            25,
+								Memory:         *resource.NewScaledQuantity(50, resource.Giga),
+								OtherResources: map[string]resource.Quantity{},
+							},
 							Instances: 6,
 						},
 					},
@@ -65,14 +68,24 @@ var _ = Describe("Resource quota spec forging", func() {
 				var sampleWorkspace1, sampleWorkspace2 clv1alpha1.Workspace
 				// sample resource quota spec for each workspace.
 				quota1 := apicommon.WorkspaceResourceQuota{
-					CPU:       *resource.NewQuantity(10, resource.DecimalSI),
-					Memory:    *resource.NewScaledQuantity(15, resource.Giga),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    10,
+						Memory: *resource.NewScaledQuantity(15, resource.Giga),
+						OtherResources: map[string]resource.Quantity{
+							"nvidia.com/gpu": *resource.NewQuantity(1, resource.DecimalSI),
+						},
+					},
 					Instances: 2,
 				}
 
 				quota2 := apicommon.WorkspaceResourceQuota{
-					CPU:       *resource.NewQuantity(20, resource.DecimalSI),
-					Memory:    *resource.NewScaledQuantity(25, resource.Giga),
+					ResourceSpec: apicommon.ResourceSpec{
+						CPU:    20,
+						Memory: *resource.NewScaledQuantity(25, resource.Giga),
+						OtherResources: map[string]resource.Quantity{
+							"nvidia.com/gpu": *resource.NewQuantity(2, resource.DecimalSI),
+						},
+					},
 					Instances: 3,
 				}
 				sampleWorkspace1.Spec.Quota = quota1
@@ -89,7 +102,7 @@ var _ = Describe("Resource quota spec forging", func() {
 
 			When("Forging resource quota", func() {
 				It("Should have total amount of CPU equal to the defined cap, because the sum for each workspace exceedes it", func() {
-					Expect(resultQuota.CPU).To(Equal(*resource.NewQuantity(25, resource.DecimalSI)))
+					Expect(resultQuota.CPU).To(Equal(int64(25)))
 				})
 
 				It("Should have total amount of memory equal to the sum for each workspace", func() {
@@ -98,6 +111,10 @@ var _ = Describe("Resource quota spec forging", func() {
 
 				It("Should have total number of instances equal to the sum for each workspace", func() {
 					Expect(resultQuota.Instances).To(Equal(int64(5)))
+				})
+
+				It("Should merge the extended resource quotas", func() {
+					Expect(resultQuota.OtherResources).To(HaveKeyWithValue("nvidia.com/gpu", *resource.NewQuantity(3, resource.DecimalSI)))
 				})
 			})
 		})
@@ -113,8 +130,13 @@ var _ = Describe("Resource quota spec forging", func() {
 			tenant = clv1alpha2.Tenant{
 				Spec: clv1alpha2.TenantSpec{
 					PersonalWorkspace: &apicommon.WorkspaceResourceQuota{
-						CPU:       *resource.NewQuantity(15, resource.DecimalSI),
-						Memory:    *resource.NewScaledQuantity(20, resource.Giga),
+						ResourceSpec: apicommon.ResourceSpec{
+							CPU:    15,
+							Memory: *resource.NewScaledQuantity(20, resource.Giga),
+							OtherResources: map[string]resource.Quantity{
+								"nvidia.com/gpu": *resource.NewQuantity(1, resource.DecimalSI),
+							},
+						},
 						Instances: 3,
 					},
 				},
@@ -127,8 +149,9 @@ var _ = Describe("Resource quota spec forging", func() {
 
 		When("Forging the resource quota specifications", func() {
 			It("Should have total amount of CPU requests and limits equal to the ones associated with the Tenant", func() {
-				Expect(spec[corev1.ResourceLimitsCPU]).To(Equal(tenant.Spec.PersonalWorkspace.CPU))
-				Expect(spec[corev1.ResourceRequestsCPU]).To(Equal(tenant.Spec.PersonalWorkspace.CPU))
+				expectedCPU := *resource.NewQuantity(tenant.Spec.PersonalWorkspace.CPU, resource.DecimalSI)
+				Expect(spec[corev1.ResourceLimitsCPU]).To(Equal(expectedCPU))
+				Expect(spec[corev1.ResourceRequestsCPU]).To(Equal(expectedCPU))
 			})
 
 			It("Should have total amount of memory requests and limits equal to the ones associated with the Tenant", func() {
@@ -138,6 +161,10 @@ var _ = Describe("Resource quota spec forging", func() {
 
 			It("Should have total number of instances equal to the one associated with the Tenant", func() {
 				Expect(spec[forge.InstancesCountKey]).To(Equal(*resource.NewQuantity(tenant.Spec.PersonalWorkspace.Instances, resource.DecimalSI)))
+			})
+
+			It("Should expose the extended resources in the quota spec", func() {
+				Expect(spec[corev1.ResourceName("nvidia.com/gpu")]).To(Equal(*resource.NewQuantity(1, resource.DecimalSI)))
 			})
 		})
 	})

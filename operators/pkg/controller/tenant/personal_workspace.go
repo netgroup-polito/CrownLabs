@@ -37,11 +37,11 @@ func (r *Reconciler) handlePersonalWorkspace(ctx context.Context, tn *clv1alpha2
 		log.Info("Tenant namespace does not exist, skipping personal workspace handling")
 		return nil
 	}
-	manageTemplatesRB := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: forge.ManageTemplatesRoleName, Namespace: tn.Status.PersonalNamespace.Name}}
+	managerRB := rbacv1.RoleBinding{ObjectMeta: metav1.ObjectMeta{Name: forge.WorkspaceManagerRoleName, Namespace: tn.Status.PersonalNamespace.Name}}
 	if tn.Spec.PersonalWorkspace != nil {
-		forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tn, &manageTemplatesRB, forge.UpdateTenantResourceCommonLabels(manageTemplatesRB.Labels, r.TargetLabel))
-		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &manageTemplatesRB, func() error {
-			return ctrl.SetControllerReference(tn, &manageTemplatesRB, r.Scheme)
+		forge.ConfigurePersonalWorkspaceManagerBinding(tn, &managerRB, forge.UpdateTenantResourceCommonLabels(managerRB.Labels, r.TargetLabel))
+		res, err := ctrl.CreateOrUpdate(ctx, r.Client, &managerRB, func() error {
+			return ctrl.SetControllerReference(tn, &managerRB, r.Scheme)
 		})
 		if err != nil {
 			tn.Status.FailingWorkspaces = append(tn.Status.FailingWorkspaces, "personal-workspace")
@@ -52,10 +52,11 @@ func (r *Reconciler) handlePersonalWorkspace(ctx context.Context, tn *clv1alpha2
 		log.Info(fmt.Sprintf("Personal Workspace role binding %s", res))
 	} else {
 		tn.Status.PersonalWorkspaceCreated = false
-		if err := utils.EnforceObjectAbsence(ctx, r.Client, &manageTemplatesRB, "personal workspace role binding"); err != nil {
+		if err := utils.EnforceObjectAbsence(ctx, r.Client, &managerRB, "personal workspace role binding"); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 

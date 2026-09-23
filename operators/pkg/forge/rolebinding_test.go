@@ -111,7 +111,7 @@ var _ = Describe("RoleBinding forging", func() {
 		})
 	})
 
-	Describe("The forge.ConfigureWorkspaceManagerManageTemplatesBinding function", func() {
+	Describe("The forge.ConfigureWorkspaceManagerAggregatedBinding function", func() {
 		var (
 			rb *rbacv1.RoleBinding
 		)
@@ -119,7 +119,7 @@ var _ = Describe("RoleBinding forging", func() {
 		BeforeEach(func() {
 			rb = &rbacv1.RoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-manage-templates",
+					Name:      "test-workspace-manager",
 					Namespace: "default",
 				},
 			}
@@ -127,7 +127,7 @@ var _ = Describe("RoleBinding forging", func() {
 
 		Context("When the RoleBinding has no labels", func() {
 			It("Should set the correct labels, RoleRef and Subject", func() {
-				forge.ConfigureWorkspaceManagerManageTemplatesBinding(workspace, rb, labels)
+				forge.ConfigureWorkspaceManagerAggregatedBinding(workspace, rb, labels)
 
 				// Check labels
 				for k, v := range labels {
@@ -136,7 +136,7 @@ var _ = Describe("RoleBinding forging", func() {
 
 				// Check RoleRef
 				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-				Expect(rb.RoleRef.Name).To(Equal(forge.ManageTemplatesRoleName))
+				Expect(rb.RoleRef.Name).To(Equal(forge.WorkspaceManagerRoleName))
 				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 
 				// Check Subject
@@ -155,7 +155,7 @@ var _ = Describe("RoleBinding forging", func() {
 			})
 
 			It("Should keep existing labels and add new ones", func() {
-				forge.ConfigureWorkspaceManagerManageTemplatesBinding(workspace, rb, labels)
+				forge.ConfigureWorkspaceManagerAggregatedBinding(workspace, rb, labels)
 
 				Expect(rb.Labels).To(HaveKeyWithValue("existing", "label"))
 				for k, v := range labels {
@@ -165,66 +165,12 @@ var _ = Describe("RoleBinding forging", func() {
 		})
 	})
 
-	Describe("The forge.ConfigureWorkspaceManagerManageSharedVolumesBinding function", func() {
-		var (
-			rb *rbacv1.RoleBinding
-		)
-
-		BeforeEach(func() {
-			rb = &rbacv1.RoleBinding{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-manage-sharedvolumes",
-					Namespace: "default",
-				},
-			}
-		})
-
-		Context("When the RoleBinding has no labels", func() {
-			It("Should set the correct labels, RoleRef and Subject", func() {
-				forge.ConfigureWorkspaceManagerManageSharedVolumesBinding(workspace, rb, labels)
-
-				// Check labels
-				for k, v := range labels {
-					Expect(rb.Labels).To(HaveKeyWithValue(k, v))
-				}
-
-				// Check RoleRef
-				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-				Expect(rb.RoleRef.Name).To(Equal(forge.ManageSharedVolumesRoleName))
-				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
-
-				// Check Subject
-				Expect(rb.Subjects).To(HaveLen(1))
-				Expect(rb.Subjects[0].Kind).To(Equal("Group"))
-				Expect(rb.Subjects[0].Name).To(Equal("kubernetes:workspace-test-workspace:manager"))
-				Expect(rb.Subjects[0].APIGroup).To(Equal("rbac.authorization.k8s.io"))
-			})
-		})
-
-		Context("When the RoleBinding already has labels", func() {
-			BeforeEach(func() {
-				rb.Labels = map[string]string{
-					"existing": "label",
-				}
-			})
-
-			It("Should keep existing labels and add new ones", func() {
-				forge.ConfigureWorkspaceManagerManageSharedVolumesBinding(workspace, rb, labels)
-
-				Expect(rb.Labels).To(HaveKeyWithValue("existing", "label"))
-				for k, v := range labels {
-					Expect(rb.Labels).To(HaveKeyWithValue(k, v))
-				}
-			})
-		})
-	})
-
-	Describe("The forge.ConfigurePersonalWorkspaceManageTemplatesBinding function", func() {
+	Describe("The forge.ConfigurePersonalWorkspaceManagerBinding function", func() {
 		var rb *rbacv1.RoleBinding
 		BeforeEach(func() {
 			rb = &rbacv1.RoleBinding{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-manage-templates",
+					Name:      "test-workspace-manager",
 					Namespace: "default",
 				},
 			}
@@ -232,7 +178,7 @@ var _ = Describe("RoleBinding forging", func() {
 
 		Context("When the RoleBinding has no labels", func() {
 			It("Should set the correct labels, RoleRef and Subject", func() {
-				forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tenant, rb, labels)
+				forge.ConfigurePersonalWorkspaceManagerBinding(tenant, rb, labels)
 
 				// Check labels
 				for k, v := range labels {
@@ -242,7 +188,7 @@ var _ = Describe("RoleBinding forging", func() {
 				Expect(rb.Namespace).To(Equal("tenant-" + tenant.Name))
 				// Check RoleRef
 				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-				Expect(rb.RoleRef.Name).To(Equal(forge.ManageTemplatesRoleName))
+				Expect(rb.RoleRef.Name).To(Equal(forge.WorkspaceManagerRoleName))
 				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 
 				// Check Subject
@@ -261,7 +207,7 @@ var _ = Describe("RoleBinding forging", func() {
 			})
 
 			It("Should keep existing labels, add new ones, and set correct Namespace, RoleRef and Subject ", func() {
-				forge.ConfigurePersonalWorkspaceManageTemplatesBinding(tenant, rb, labels)
+				forge.ConfigurePersonalWorkspaceManagerBinding(tenant, rb, labels)
 
 				Expect(rb.Labels).To(HaveKeyWithValue("existing", "label"))
 				for k, v := range labels {
@@ -271,7 +217,7 @@ var _ = Describe("RoleBinding forging", func() {
 				Expect(rb.Namespace).To(Equal("tenant-" + tenant.Name))
 				// Check RoleRef
 				Expect(rb.RoleRef.Kind).To(Equal("ClusterRole"))
-				Expect(rb.RoleRef.Name).To(Equal(forge.ManageTemplatesRoleName))
+				Expect(rb.RoleRef.Name).To(Equal(forge.WorkspaceManagerRoleName))
 				Expect(rb.RoleRef.APIGroup).To(Equal("rbac.authorization.k8s.io"))
 
 				// Check Subject

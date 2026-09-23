@@ -15,9 +15,6 @@
 package forge
 
 import (
-	"fmt"
-	"strings"
-
 	netv1 "k8s.io/api/networking/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -25,15 +22,15 @@ import (
 
 const (
 	// IngressInstancePrefix -> the prefix prepended to the path of any ingresses targeting the instance or its subresources.
-	IngressInstancePrefix = "/instance"
+	// IngressInstancePrefix = "/instance".
 
 	// IngressDefaultCertificateName -> the name of the secret containing the crownlabs certificate.
 	IngressDefaultCertificateName = "crownlabs-ingress-secret"
 
-	// StandaloneRewriteEndpoint -> endpoint of the standalone application.
-	StandaloneRewriteEndpoint = "/$2"
-	// GUIRewriteEndpoint -> used to clean the path of the ingress targeting the environment GUI.
-	GUIRewriteEndpoint = "/$1"
+	// StandaloneRewriteEndpointIngress -> endpoint of the standalone application.
+	StandaloneRewriteEndpointIngress = "/$2"
+	// GUIRewriteEndpointIngress -> used to clean the path of the ingress targeting the environment GUI.
+	GUIRewriteEndpointIngress = "/$1"
 )
 
 // IngressSpec forges the specification of a Kubernetes Ingress resource.
@@ -69,11 +66,11 @@ func IngressGUIAnnotations(environment *clv1alpha2.Environment, annotations map[
 	}
 
 	if environment.EnvironmentType == clv1alpha2.ClassStandalone && environment.RewriteURL {
-		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpoint
+		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = StandaloneRewriteEndpointIngress
 	}
 
 	if environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
-		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = GUIRewriteEndpoint
+		annotations["nginx.ingress.kubernetes.io/rewrite-target"] = GUIRewriteEndpointIngress
 	}
 
 	annotations["nginx.ingress.kubernetes.io/proxy-read-timeout"] = "3600"
@@ -94,38 +91,4 @@ func IngressAuthenticationAnnotations(annotations map[string]string, instancesAu
 	annotations["nginx.ingress.kubernetes.io/auth-signin"] = instancesAuthURL + "/start?rd=$escaped_request_uri"
 
 	return annotations
-}
-
-// IngressGUIPath returns the path of the ingress targeting the environment GUI vnc or Standalone.
-func IngressGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
-	switch environment.EnvironmentType {
-	case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
-		if environment.RewriteURL {
-			return fmt.Sprintf("%v/%v/%v(/|$)(.*)", IngressInstancePrefix, instance.UID, environment.Name)
-		}
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
-	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassVM, clv1alpha2.ClassLocalVM:
-		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", IngressInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
-	}
-	return ""
-}
-
-// IngressGUICleanPath returns the path of the ingress targeting the environment GUI vnc or Standalone, without the url-rewrite's regex.
-func IngressGUICleanPath(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) string {
-	return strings.TrimRight(fmt.Sprintf("%v/%v/%v", IngressInstancePrefix, instance.UID, environment.Name), "/")
-}
-
-// IngressGuiStatusURL returns the path of the ingress targeting the environment.
-func IngressGuiStatusURL(host string, environment *clv1alpha2.Environment, instance *clv1alpha2.Instance) string {
-	return fmt.Sprintf("https://%v%v/%v/%v/", host, IngressInstancePrefix, instance.UID, environment.Name)
-}
-
-// IngressGuiStatusInstanceURL returns the root of the ingress url targeting an environment within the instance.
-func IngressGuiStatusInstanceURL(host string, instance *clv1alpha2.Instance) string {
-	return fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)
-}
-
-// IngressGuiStatusFromRootURL returns the path of the ingress targeting the environment given the root url (url of the instance).
-func IngressGuiStatusFromRootURL(rootURL string, environment *clv1alpha2.Environment) string {
-	return rootURL + fmt.Sprintf("%v/", environment.Name)
 }

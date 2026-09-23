@@ -18,7 +18,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	netv1 "k8s.io/api/networking/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -148,6 +147,60 @@ var _ = Describe("Ingresses", func() {
 			)
 		})
 
+		When("EnvironmentType is different from ClassStandalone", func() {
+			DescribeTable("Correctly populates the annotations set",
+				func(c InstanceGUIAnnotationsCase) {
+					Expect(forge.IngressGUIAnnotations(&c.Environment, c.Annotations)).To(Equal(c.ExpectedOutput))
+				},
+				Entry("When the input annotations map is nil", InstanceGUIAnnotationsCase{
+					Annotations: nil,
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+					}, "3600"),
+				}),
+				Entry("When the input labels map already contains the expected values", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains ClassCloudVM", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassCloudVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains ClassVM", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+				Entry("When the input labels map contains ClassLocalVM", InstanceGUIAnnotationsCase{
+					Annotations: addNginxProxyTimeoutAnnotations(map[string]string{
+						"user/key": "user/value",
+					}, "3600"),
+					Environment: clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassLocalVM},
+					ExpectedOutput: addNginxProxyTimeoutAnnotations(map[string]string{
+						"nginx.ingress.kubernetes.io/rewrite-target": "/$1",
+						"user/key": "user/value",
+					}, "3600"),
+				}),
+			)
+		})
 	})
 
 	Describe("The forge.IngressAuthenticationAnnotations function", func() {
@@ -193,70 +246,5 @@ var _ = Describe("Ingresses", func() {
 				},
 			}),
 		)
-	})
-
-	Describe("The forge.Ingress*Path functions", func() {
-		var (
-			instance    clv1alpha2.Instance
-			path        string
-			statusPath  string
-			environment clv1alpha2.Environment
-		)
-
-		const (
-			instanceName      = "kubernetes-0000"
-			instanceNamespace = "tenant-tester"
-			instanceUID       = "dcc6ead1-0040-451b-ba68-787ebfb68640"
-			environmentName   = "environment-name"
-			host              = "crownlabs.example.com"
-		)
-
-		BeforeEach(func() {
-			instance = clv1alpha2.Instance{
-				ObjectMeta: metav1.ObjectMeta{Name: instanceName, Namespace: instanceNamespace, UID: instanceUID},
-			}
-			environment.Name = environmentName
-		})
-
-		Describe("The forge.IngressGUIPath function", func() {
-			JustBeforeEach(func() {
-				path = forge.IngressGUIPath(&instance, &environment)
-			})
-			When("EnvironmentType is ClassStandalone", func() {
-				BeforeEach(func() {
-					environment.EnvironmentType = clv1alpha2.ClassStandalone
-				})
-				When("Rewrite is true", func() {
-					BeforeEach(func() {
-						environment.RewriteURL = true
-					})
-					Context("The instance has no special configurations", func() {
-						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name + "(/|$)(.*)"))
-						})
-					})
-				})
-				When("Rewrite is false", func() {
-					BeforeEach(func() {
-						environment.RewriteURL = false
-					})
-					Context("The instance has no special configurations", func() {
-						It("Should generate a path based on the instance UID", func() {
-							Expect(path).To(BeIdenticalTo("/instance/" + instanceUID + "/" + environment.Name))
-						})
-					})
-				})
-			})
-
-		})
-
-		Describe("The forge.IngressGuiStatusURL function", func() {
-			JustBeforeEach(func() {
-				statusPath = forge.IngressGuiStatusURL(host, &environment, &instance)
-			})
-			It("Should generate a path based on the instance UID and /app at the end", func() {
-				Expect(statusPath).To(BeIdenticalTo("https://" + host + "/instance/" + instanceUID + "/" + environment.Name + "/"))
-			})
-		})
 	})
 })

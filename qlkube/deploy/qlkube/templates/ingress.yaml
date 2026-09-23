@@ -1,4 +1,4 @@
-{{- if not .Values.global.gatewayApiMode }}
+{{- if not .Values.global.gateway.gatewayApiMode }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:

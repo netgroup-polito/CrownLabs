@@ -51,10 +51,17 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 		ports = append(ports, serviceSpecTCPPort(GUIPortName, GUIPortNumber))
 	}
 
+	// Kubernetes Services require at least one port. Fall back to the metrics
+	// port for environments (e.g. non-GUI containers) that would otherwise have none.
+	if len(ports) == 0 {
+		ports = append(ports, serviceSpecTCPPort(MetricsPortName, MetricsPortNumber))
+	}
+
 	spec := corev1.ServiceSpec{
-		Type:     corev1.ServiceTypeClusterIP,
-		Selector: EnvironmentSelectorLabels(instance, environment),
-		Ports:    ports,
+		Type:      corev1.ServiceTypeClusterIP,
+		Selector:  EnvironmentSelectorLabels(instance, environment),
+		Ports:     ports,
+		ClusterIP: "None",
 	}
 
 	return spec
