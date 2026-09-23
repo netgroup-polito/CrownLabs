@@ -4,6 +4,7 @@ mutation createWorkspaceImage(
   $sourceInstanceNamespace: String!
   $environmentName: String!
   $imageName: String!
+  $tenantName: String!
   $description: String = ""
 ) {
   createdImage: createCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot(
@@ -20,6 +21,7 @@ mutation createWorkspaceImage(
         environment: $environmentName
         imageName: $imageName
         description: $description
+        tenantRef: { name: $tenantName }
       }
     }
   ) {

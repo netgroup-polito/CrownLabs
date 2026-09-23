@@ -95,6 +95,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     });
   const navigate = useNavigate();
   const { data: tenantData, notify } = useContext(TenantContext);
+  const tenantName = tenantData?.tenant?.metadata?.name;
   const { profile } = useContext(AuthContext);
   const { instances: ownedInstances } = useContext(OwnedInstancesContext);
 
@@ -153,13 +154,19 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         supportsImages &&
         imageCreationPermissions.canCreateImages,
       canCreate:
+        Boolean(tenantName) &&
         hasSingleEnvironment &&
         imageCreationPermissions.canCreateImages &&
         supportsImages &&
         Boolean(latestInstance.environments?.[0]?.name) &&
         latestInstance.status === Phase2.Off,
     };
-  }, [imageCreationPermissions.canCreateImages, instance, ownedInstances]);
+  }, [
+    imageCreationPermissions.canCreateImages,
+    instance,
+    ownedInstances,
+    tenantName,
+  ]);
 
   // Check if user has access to utilities workspace
   const hasUtilitiesAccess = Boolean(
@@ -304,7 +311,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
             : selection.workspace;
     const environmentName = instance.environments?.[0]?.name;
 
-    if (!destinationNamespace || !environmentName) return;
+    if (!destinationNamespace || !environmentName || !tenantName) return;
 
     await createWorkspaceImage({
       variables: {
@@ -313,6 +320,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         sourceInstanceNamespace: instance.tenantNamespace,
         environmentName,
         imageName: selection.imageName,
+        tenantName,
         description: selection.description,
       },
     });

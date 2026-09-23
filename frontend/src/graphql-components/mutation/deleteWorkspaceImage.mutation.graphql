@@ -7,20 +7,5 @@ mutation deleteWorkspaceImage(
     name: $imageName
   ) {
     kind
-    status
-    reason
-    message
-    details {
-      name
-      group
-      kind
-      uid
-      retryAfterSeconds
-      causes {
-        field
-        reason
-        message
-      }
-    }
   }
 }
