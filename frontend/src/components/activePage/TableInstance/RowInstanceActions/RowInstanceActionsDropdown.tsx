@@ -5,7 +5,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { Dropdown, Badge, Space } from 'antd';
+import { Dropdown, Badge, Space, Tooltip } from 'antd';
 import { Button } from 'antd';
 import { Link, useNavigate } from 'react-router-dom';
 import {
@@ -350,6 +350,27 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   return (
     <>
+      {extended && imageCreationAvailability.canCreate && (
+        <Tooltip title="Create New Image">
+          <Button
+            className={`hidden ${
+              !sshDisabled || fileManager ? 'xl:block' : 'sm:block'
+            } py-0 border-0`}
+            type="link"
+            shape="circle"
+            size="middle"
+            aria-label="Create New Image"
+            icon={
+              <CameraOutlined
+                className="flex justify-center items-center"
+                style={{ fontSize: '22px', color: '#fff' }}
+              />
+            }
+            disabled={creatingWorkspaceImage}
+            onClick={() => setImageModalOpen(true)}
+          />
+        </Tooltip>
+      )}
       <Dropdown
         trigger={['click']}
         menu={{
