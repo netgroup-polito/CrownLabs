@@ -12,7 +12,10 @@ import {
   Typography,
 } from 'antd';
 import { useEffect, useMemo, useState, type FC } from 'react';
-import { VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING } from '../../../env';
+import {
+  CROWNLABS_IMAGE_CREATION_HELP,
+  VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING,
+} from '../../../env';
 
 const { Text } = Typography;
 const MAX_DESCRIPTION_CHARACTERS = 200;
@@ -299,7 +302,21 @@ export const ImageCreationModal: FC<ImageCreationModalProps> = ({
           showIcon
           message={
             <span style={{ fontSize: token.fontSizeLG }}>
-              {VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING}
+              {VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING.replace(/[.\s]+$/, '')}{' '}
+              (
+              <a
+                href={CROWNLABS_IMAGE_CREATION_HELP}
+                style={{
+                  color: '#fff',
+                  textDecoration: 'underline',
+                  fontStyle: 'italic',
+                }}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                help!
+              </a>
+              )
             </span>
           }
           description={
