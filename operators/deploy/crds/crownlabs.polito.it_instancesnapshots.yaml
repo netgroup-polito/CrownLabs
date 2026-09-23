@@ -85,7 +85,7 @@ spec:
               tenantRef:
                 description: |-
                   Tenant is the reference to the Tenant who created the snapshot.
-                  If not specified, it is automatically populated from the source Instance.
+                  If omitted, the source Instance tenant is used only for artifact metadata.
                 properties:
                   name:
                     description: The name of the resource to be referenced.
@@ -102,6 +102,9 @@ spec:
             - environment
             - instanceRef
             type: object
+            x-kubernetes-validations:
+            - message: InstanceSnapshot spec is immutable
+              rule: self == oldSelf
           status:
             description: InstanceSnapshotStatus defines the observed state of InstanceSnapshot.
             properties:

@@ -40,7 +40,7 @@ type InstanceSnapshotSpec struct {
 	Description string `json:"description,omitempty"`
 
 	// Tenant is the reference to the Tenant who created the snapshot.
-	// If not specified, it is automatically populated from the source Instance.
+	// If omitted, the source Instance tenant is used only for artifact metadata.
 	// +optional
 	Tenant GenericRef `json:"tenantRef,omitempty"`
 }
@@ -93,6 +93,7 @@ type InstanceSnapshot struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="InstanceSnapshot spec is immutable"
 	Spec   InstanceSnapshotSpec   `json:"spec,omitempty"`
 	Status InstanceSnapshotStatus `json:"status,omitempty"`
 }

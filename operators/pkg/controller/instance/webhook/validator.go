@@ -24,6 +24,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -235,14 +236,21 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 			return err
 		}
 
+		tenant := &clv1alpha2.Tenant{}
 		// A LocalVM may only boot from the public snapshot catalog or from a snapshot living in the very
 		// namespace where the instance is being created: no cross-namespace boot is allowed.
 		if source.Namespace != iv.PublicSnapshotNamespace && source.Namespace != instance.Namespace {
+			logger := ctrl.LoggerFrom(ctx)
+			logger.Info("Unauthorized PVC access attempt",
+				"tenant", tenant.Name,
+				"instance", instance.Name,
+				"environment", env.Name,
+				"pvcNamespace", source.Namespace,
+				"pvcName", source.Name)
 			return fmt.Errorf("environment %q cannot use volume %q from namespace %q: a LocalVM may only start "+
 				"from the public snapshot catalog or from a snapshot in its own namespace %q",
 				env.Name, source.Name, source.Namespace, instance.Namespace)
 		}
-
 		// Reaching a namespace does not imply being entitled to every volume inside it.
 		if source.Namespace != iv.PublicSnapshotNamespace {
 			if err := iv.checkSnapshotArtifact(ctx, source, env.Name); err != nil {
