@@ -230,8 +230,13 @@ export const Environment: FC<EnvironmentProps> = ({
     variables: { workspaceNamespace },
     skip:
       currentEnvironmentType !== EnvironmentType.LocalVm || !workspaceNamespace,
-    // Take a fresh snapshot of the list, independent of live drawer updates.
-    fetchPolicy: 'no-cache',
+  /* ImagesDrawer and this picker use the same GraphQL query and workspace
+    namespace. Apollo can therefore reuse its normalized cache when the
+    drawer already loaded this list, avoiding an additional network request.
+    The query still runs when the cache has no entry (for example, when the
+    picker is the first image-related UI opened by the user). Keeping this
+    query local also avoids coupling the modal to the drawer component. */
+    fetchPolicy: 'cache-first',
     onError: apolloErrorCatcher,
   });
   const completedImages = (workspaceImages?.imageList?.images ?? [])
