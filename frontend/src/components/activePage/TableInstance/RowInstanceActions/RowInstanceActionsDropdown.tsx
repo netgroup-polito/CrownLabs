@@ -80,6 +80,18 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const font20px = { fontSize: '20px' };
 
+  const createImageResourceName = (imageName: string) => {
+    const now = new Date();
+    const twoDigits = (value: number) => value.toString().padStart(2, '0');
+    const timestamp = `${now.getFullYear()}${twoDigits(
+      now.getMonth() + 1,
+    )}${twoDigits(now.getDate())}-${twoDigits(now.getHours())}${twoDigits(
+      now.getMinutes(),
+    )}${twoDigits(now.getSeconds())}`;
+
+    return `${imageName}-${timestamp}`;
+  };
+
   const [disabled, setDisabled] = useState(false);
   const [imageModalOpen, setImageModalOpen] = useState(false);
   const { apolloErrorCatcher } = useContext(ErrorContext);
@@ -241,7 +253,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   };
 
   const defaultImageName = `image-of-${instance.name}`
-    .slice(0, 63)
+    .slice(0, 47)
     .replace(/-+$/, '');
 
   const currentWorkspaceNamespace = useMemo(() => {
@@ -320,6 +332,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
         sourceInstanceNamespace: instance.tenantNamespace,
         environmentName,
         imageName: selection.imageName,
+        resourceName: createImageResourceName(selection.imageName),
         tenantName,
         description: selection.description,
       },

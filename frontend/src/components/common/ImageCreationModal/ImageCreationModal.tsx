@@ -19,7 +19,9 @@ import {
 
 const { Text } = Typography;
 const MAX_DESCRIPTION_CHARACTERS = 200;
-const MAX_IMAGE_NAME_CHARACTERS = 63;
+// Kubernetes resource names are limited to 63 characters. Keep 16 characters
+// for the `-YYYYMMDD-HHMMSS` suffix added when creating the snapshot resource.
+const MAX_IMAGE_NAME_CHARACTERS = 47;
 const RFC_1035_LABEL_PATTERN = /^[a-z](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
 
 export type ImageDestination =
@@ -169,7 +171,7 @@ export const ImageCreationModal: FC<ImageCreationModalProps> = ({
   const imageNameError = imageNameIsEmpty
     ? 'Image name is required.'
     : !imageNameIsValid
-      ? 'Use 1–63 lowercase letters, numbers or hyphens. Start with a letter and end with a letter or number.'
+      ? 'Use 1–47 lowercase letters, numbers or hyphens. Start with a letter and end with a letter or number.'
       : undefined;
   const destinationIsAvailable = visibleDestinationOptions.some(
     option => option.value === destination,

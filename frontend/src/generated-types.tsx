@@ -4036,6 +4036,7 @@ export type CreateWorkspaceImageMutationVariables = Exact<{
   sourceInstanceNamespace: Scalars['String']['input'];
   environmentName: Scalars['String']['input'];
   imageName: Scalars['String']['input'];
+  resourceName: Scalars['String']['input'];
   tenantName: Scalars['String']['input'];
   description?: InputMaybe<Scalars['String']['input']>;
 }>;
@@ -4933,10 +4934,10 @@ export type CreateWorkspaceMutationHookResult = ReturnType<typeof useCreateWorks
 export type CreateWorkspaceMutationResult = Apollo.MutationResult<CreateWorkspaceMutation>;
 export type CreateWorkspaceMutationOptions = Apollo.BaseMutationOptions<CreateWorkspaceMutation, CreateWorkspaceMutationVariables>;
 export const CreateWorkspaceImageDocument = gql`
-    mutation createWorkspaceImage($destinationNamespace: String!, $sourceInstanceName: String!, $sourceInstanceNamespace: String!, $environmentName: String!, $imageName: String!, $tenantName: String!, $description: String = "") {
+    mutation createWorkspaceImage($destinationNamespace: String!, $sourceInstanceName: String!, $sourceInstanceNamespace: String!, $environmentName: String!, $imageName: String!, $resourceName: String!, $tenantName: String!, $description: String = "") {
   createdImage: createCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot(
     namespace: $destinationNamespace
-    itPolitoCrownlabsV1alpha2InstanceSnapshotInput: {apiVersion: "crownlabs.polito.it/v1alpha2", kind: "InstanceSnapshot", metadata: {name: $imageName, namespace: $destinationNamespace}, spec: {instanceRef: {name: $sourceInstanceName, namespace: $sourceInstanceNamespace}, environment: $environmentName, imageName: $imageName, description: $description, tenantRef: {name: $tenantName}}}
+    itPolitoCrownlabsV1alpha2InstanceSnapshotInput: {apiVersion: "crownlabs.polito.it/v1alpha2", kind: "InstanceSnapshot", metadata: {name: $resourceName, namespace: $destinationNamespace}, spec: {instanceRef: {name: $sourceInstanceName, namespace: $sourceInstanceNamespace}, environment: $environmentName, imageName: $imageName, description: $description, tenantRef: {name: $tenantName}}}
   ) {
     metadata {
       name
@@ -4995,6 +4996,7 @@ export type CreateWorkspaceImageMutationFn = Apollo.MutationFunction<CreateWorks
  *      sourceInstanceNamespace: // value for 'sourceInstanceNamespace'
  *      environmentName: // value for 'environmentName'
  *      imageName: // value for 'imageName'
+ *      resourceName: // value for 'resourceName'
  *      tenantName: // value for 'tenantName'
  *      description: // value for 'description'
  *   },
