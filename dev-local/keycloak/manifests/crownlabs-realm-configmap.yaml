@@ -1,5 +1,5 @@
 # Generated from a `kc.sh export` of the crownlabs realm — do not hand-edit.
-# See ../README.md, "Regenerating the export", to refresh this file.
+# See regenerating-the-realm-export.md to refresh this file.
 apiVersion: v1
 data:
   crownlabs-realm.json: |-
@@ -50,6 +50,7 @@ data:
       "quickLoginCheckMilliSeconds" : 1000,
       "maxDeltaTimeSeconds" : 43200,
       "failureFactor" : 30,
+      "maxSecondaryAuthFailures" : 0,
       "roles" : {
         "realm" : [ {
           "id" : "a8d8beea-57c7-4f41-ab27-13494b336c59",
@@ -90,7 +91,7 @@ data:
             "composite" : true,
             "composites" : {
               "client" : {
-                "realm-management" : [ "query-clients", "query-users", "view-clients", "create-client", "manage-events", "manage-realm", "manage-authorization", "view-users", "view-authorization", "view-events", "manage-users", "view-identity-providers", "query-groups", "impersonation", "view-realm", "query-realms", "manage-identity-providers", "manage-clients" ]
+                "realm-management" : [ "query-clients", "query-users", "view-clients", "create-client", "manage-events", "manage-authorization", "manage-realm", "view-users", "view-authorization", "view-events", "manage-users", "query-groups", "view-identity-providers", "impersonation", "query-realms", "view-realm", "manage-identity-providers", "manage-clients" ]
               }
             },
             "clientRole" : true,
@@ -318,6 +319,14 @@ data:
             "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
             "attributes" : { }
           }, {
+            "id" : "f82953a1-014b-4b22-8e99-8ee9853382e1",
+            "name" : "workspace-standalone:manager",
+            "description" : "Standalone environments Manager Role",
+            "composite" : false,
+            "clientRole" : true,
+            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
+            "attributes" : { }
+          }, {
             "id" : "c9245b68-9d40-4e95-bb40-b041ed5508bc",
             "name" : "workspace-coffee:user",
             "description" : "Just coffee User Role",
@@ -345,6 +354,14 @@ data:
             "id" : "89287d64-8951-480e-8aac-8649eb270043",
             "name" : "workspace-chill-pepper:user",
             "description" : "A bit spicy User Role",
+            "composite" : false,
+            "clientRole" : true,
+            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
+            "attributes" : { }
+          }, {
+            "id" : "94d5b035-38b5-45b7-9437-4077200d1190",
+            "name" : "workspace-standalone:user",
+            "description" : "Standalone environments User Role",
             "composite" : false,
             "clientRole" : true,
             "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
@@ -501,7 +518,7 @@ data:
         "realmRoles" : [ "default-roles-crownlabs" ],
         "clientRoles" : {
           "k8s" : [ "workspace-tea:user", "workspace-coffee:manager" ],
-          "operator-local" : [ "workspace-coffee:manager", "workspace-tea:user" ]
+          "operator-local" : [ "workspace-coffee:manager", "workspace-standalone:manager", "workspace-tea:user" ]
         },
         "notBefore" : 0,
         "groups" : [ ]
@@ -626,7 +643,8 @@ data:
         "protocol" : "openid-connect",
         "attributes" : {
           "realm_client" : "false",
-          "client.use.lightweight.access.token.enabled" : "true"
+          "client.use.lightweight.access.token.enabled" : "true",
+          "post.logout.redirect.uris" : "+"
         },
         "authenticationFlowBindingOverrides" : { },
         "fullScopeAllowed" : true,
@@ -654,7 +672,8 @@ data:
         "frontchannelLogout" : false,
         "protocol" : "openid-connect",
         "attributes" : {
-          "realm_client" : "true"
+          "realm_client" : "true",
+          "post.logout.redirect.uris" : "+"
         },
         "authenticationFlowBindingOverrides" : { },
         "fullScopeAllowed" : false,
@@ -702,7 +721,7 @@ data:
         "authenticationFlowBindingOverrides" : { },
         "fullScopeAllowed" : true,
         "nodeReRegistrationTimeout" : -1,
-        "defaultClientScopes" : [ "web-origins", "acr", "roles", "profile", "api", "groups", "k8s-audience", "basic", "email" ],
+        "defaultClientScopes" : [ "web-origins", "acr", "roles", "profile", "k8s-audience", "groups", "api", "basic", "email" ],
         "optionalClientScopes" : [ "address", "phone", "organization", "offline_access", "microprofile-jwt" ]
       }, {
         "id" : "766c24f3-d227-4180-baf6-e0895d28ee86",
@@ -736,6 +755,7 @@ data:
           "backchannel.logout.session.required" : "true",
           "oauth2.jwt.authorization.grant.enabled" : "false",
           "standard.token.exchange.enabled" : "false",
+          "post.logout.redirect.uris" : "+",
           "oauth2.device.authorization.grant.enabled" : "false",
           "backchannel.logout.revoke.offline.tokens" : "false",
           "dpop.bound.access.tokens" : "false"
@@ -766,7 +786,8 @@ data:
         "frontchannelLogout" : false,
         "protocol" : "openid-connect",
         "attributes" : {
-          "realm_client" : "true"
+          "realm_client" : "true",
+          "post.logout.redirect.uris" : "+"
         },
         "authenticationFlowBindingOverrides" : { },
         "fullScopeAllowed" : false,
@@ -824,6 +845,31 @@ data:
         "optionalClientScopes" : [ "address", "phone", "organization", "offline_access", "microprofile-jwt" ]
       } ],
       "clientScopes" : [ {
+        "id" : "e1583d53-8c42-4389-b9b9-c4ac1751520c",
+        "name" : "groups",
+        "description" : "Exposes the user's operator-local client roles (workspace-*:role) as a 'groups' claim, consumed by the Kubernetes apiserver's --oidc-groups-claim",
+        "protocol" : "openid-connect",
+        "attributes" : {
+          "include.in.token.scope" : "true",
+          "display.on.consent.screen" : "false"
+        },
+        "protocolMappers" : [ {
+          "id" : "2bec3ce2-d8d5-4de5-a4e1-0f0ad9a9cd36",
+          "name" : "operator-local-client-roles-to-groups",
+          "protocol" : "openid-connect",
+          "protocolMapper" : "oidc-usermodel-client-role-mapper",
+          "consentRequired" : false,
+          "config" : {
+            "multivalued" : "true",
+            "userinfo.token.claim" : "true",
+            "id.token.claim" : "true",
+            "access.token.claim" : "true",
+            "claim.name" : "groups",
+            "jsonType.label" : "String",
+            "usermodel.clientRoleMapping.clientId" : "operator-local"
+          }
+        } ]
+      }, {
         "id" : "19ad672b-19f1-4fb3-9957-3cf5f9d88e0f",
         "name" : "role_list",
         "description" : "SAML role list",
@@ -1079,12 +1125,13 @@ data:
           "protocolMapper" : "oidc-organization-membership-mapper",
           "consentRequired" : false,
           "config" : {
-            "id.token.claim" : "true",
             "introspection.token.claim" : "true",
+            "multivalued" : "true",
+            "userinfo.token.claim" : "true",
+            "id.token.claim" : "true",
             "access.token.claim" : "true",
             "claim.name" : "organization",
-            "jsonType.label" : "String",
-            "multivalued" : "true"
+            "jsonType.label" : "String"
           }
         } ]
       }, {
@@ -1161,6 +1208,7 @@ data:
           "config" : {
             "introspection.token.claim" : "true",
             "multivalued" : "true",
+            "userinfo.token.claim" : "true",
             "user.attribute" : "foo",
             "id.token.claim" : "true",
             "access.token.claim" : "true",
@@ -1341,8 +1389,9 @@ data:
           "consentRequired" : false,
           "config" : {
             "user.session.note" : "client_id",
-            "id.token.claim" : "true",
             "introspection.token.claim" : "true",
+            "userinfo.token.claim" : "true",
+            "id.token.claim" : "true",
             "access.token.claim" : "true",
             "claim.name" : "client_id",
             "jsonType.label" : "String"
@@ -1355,8 +1404,9 @@ data:
           "consentRequired" : false,
           "config" : {
             "user.session.note" : "clientAddress",
-            "id.token.claim" : "true",
             "introspection.token.claim" : "true",
+            "userinfo.token.claim" : "true",
+            "id.token.claim" : "true",
             "access.token.claim" : "true",
             "claim.name" : "clientAddress",
             "jsonType.label" : "String"
@@ -1369,8 +1419,9 @@ data:
           "consentRequired" : false,
           "config" : {
             "user.session.note" : "clientHost",
-            "id.token.claim" : "true",
             "introspection.token.claim" : "true",
+            "userinfo.token.claim" : "true",
+            "id.token.claim" : "true",
             "access.token.claim" : "true",
             "claim.name" : "clientHost",
             "jsonType.label" : "String"
@@ -1403,45 +1454,12 @@ data:
           "consentRequired" : false,
           "config" : {
             "user.session.note" : "AUTH_TIME",
-            "id.token.claim" : "true",
             "introspection.token.claim" : "true",
+            "userinfo.token.claim" : "true",
+            "id.token.claim" : "true",
             "access.token.claim" : "true",
             "claim.name" : "auth_time",
             "jsonType.label" : "long"
-          }
-        } ]
-      }, {
-        "id" : "48e9b599-2319-4685-87bd-6a8d569d01b9",
-        "name" : "api",
-        "description" : "Scope required by CrownLabs frontend login request",
-        "protocol" : "openid-connect",
-        "attributes" : {
-          "include.in.token.scope" : "true",
-          "display.on.consent.screen" : "false"
-        }
-      }, {
-        "id" : "e1583d53-8c42-4389-b9b9-c4ac1751520c",
-        "name" : "groups",
-        "description" : "Exposes the user's operator-local client roles (workspace-*:role) as a 'groups' claim, consumed by the Kubernetes apiserver's --oidc-groups-claim",
-        "protocol" : "openid-connect",
-        "attributes" : {
-          "include.in.token.scope" : "true",
-          "display.on.consent.screen" : "false"
-        },
-        "protocolMappers" : [ {
-          "id" : "2bec3ce2-d8d5-4de5-a4e1-0f0ad9a9cd36",
-          "name" : "operator-local-client-roles-to-groups",
-          "protocol" : "openid-connect",
-          "protocolMapper" : "oidc-usermodel-client-role-mapper",
-          "consentRequired" : false,
-          "config" : {
-            "usermodel.clientRoleMapping.clientId" : "operator-local",
-            "claim.name" : "groups",
-            "jsonType.label" : "String",
-            "multivalued" : "true",
-            "id.token.claim" : "true",
-            "access.token.claim" : "true",
-            "userinfo.token.claim" : "true"
           }
         } ]
       }, {
@@ -1462,9 +1480,19 @@ data:
           "config" : {
             "included.client.audience" : "k8s",
             "id.token.claim" : "false",
-            "access.token.claim" : "true"
+            "access.token.claim" : "true",
+            "userinfo.token.claim" : "false"
           }
         } ]
+      }, {
+        "id" : "48e9b599-2319-4685-87bd-6a8d569d01b9",
+        "name" : "api",
+        "description" : "Scope required by CrownLabs frontend login request",
+        "protocol" : "openid-connect",
+        "attributes" : {
+          "include.in.token.scope" : "true",
+          "display.on.consent.screen" : "false"
+        }
       }, {
         "id" : "d1ba595a-c431-4a18-b5a3-47cc81cb2c30",
         "name" : "offline_access",
@@ -1492,7 +1520,8 @@ data:
           "config" : {
             "id.token.claim" : "true",
             "introspection.token.claim" : "true",
-            "access.token.claim" : "true"
+            "access.token.claim" : "true",
+            "userinfo.token.claim" : "true"
           }
         } ]
       } ],
@@ -1507,7 +1536,23 @@ data:
         "contentSecurityPolicy" : "frame-src 'self'; frame-ancestors 'self'; object-src 'none';",
         "strictTransportSecurity" : "max-age=31536000; includeSubDomains"
       },
-      "smtpServer" : { },
+      "smtpServer" : {
+        "allowutf8" : "",
+        "debug" : "false",
+        "replyToDisplayName" : "",
+        "starttls" : "false",
+        "auth" : "",
+        "writeTimeout" : "10000",
+        "envelopeFrom" : "",
+        "ssl" : "false",
+        "timeout" : "10000",
+        "port" : "1025",
+        "host" : "mailpit-smtp.default.svc.cluster.local",
+        "replyTo" : "",
+        "from" : "keycloak@crownlabs.local",
+        "fromDisplayName" : "",
+        "connectionTimeout" : "10000"
+      },
       "eventsEnabled" : false,
       "eventsListeners" : [ "jboss-logging" ],
       "enabledEventTypes" : [ ],
@@ -1542,7 +1587,7 @@ data:
           "subType" : "authenticated",
           "subComponents" : { },
           "config" : {
-            "allowed-protocol-mapper-types" : [ "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-attribute-mapper", "saml-user-property-mapper", "oidc-address-mapper", "oidc-full-name-mapper", "saml-user-attribute-mapper", "oidc-usermodel-property-mapper", "saml-role-list-mapper" ]
+            "allowed-protocol-mapper-types" : [ "oidc-usermodel-property-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-attribute-mapper", "oidc-address-mapper", "saml-user-attribute-mapper", "saml-user-property-mapper", "saml-role-list-mapper", "oidc-full-name-mapper" ]
           }
         }, {
           "id" : "ec8eece2-8cf0-4bec-a685-6aa5bdd92da7",
@@ -1567,7 +1612,7 @@ data:
           "subType" : "anonymous",
           "subComponents" : { },
           "config" : {
-            "allowed-protocol-mapper-types" : [ "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-usermodel-property-mapper", "oidc-address-mapper", "oidc-usermodel-attribute-mapper", "saml-role-list-mapper", "oidc-full-name-mapper" ]
+            "allowed-protocol-mapper-types" : [ "saml-user-property-mapper", "saml-user-attribute-mapper", "oidc-usermodel-attribute-mapper", "oidc-usermodel-property-mapper", "oidc-address-mapper", "saml-role-list-mapper", "oidc-sha256-pairwise-sub-mapper", "oidc-full-name-mapper" ]
           }
         }, {
           "id" : "2eaffa64-b42e-46e0-a385-6c55ab638226",
@@ -2352,19 +2397,25 @@ data:
       "firstBrokerLoginFlow" : "first broker login",
       "attributes" : {
         "cibaBackchannelTokenDeliveryMode" : "poll",
-        "cibaExpiresIn" : "120",
         "cibaAuthRequestedUserHint" : "login_hint",
-        "oauth2DeviceCodeLifespan" : "600",
+        "clientOfflineSessionMaxLifespan" : "0",
         "oauth2DevicePollingInterval" : "5",
-        "parRequestUriLifespan" : "60",
+        "clientSessionIdleTimeout" : "0",
+        "clientOfflineSessionIdleTimeout" : "0",
         "cibaInterval" : "5",
-        "realmReusableOtpCode" : "false"
+        "realmReusableOtpCode" : "false",
+        "cibaExpiresIn" : "120",
+        "oauth2DeviceCodeLifespan" : "600",
+        "parRequestUriLifespan" : "60",
+        "clientSessionMaxLifespan" : "0",
+        "scimApiEnabled" : "false"
       },
-      "keycloakVersion" : "26.5.6",
+      "keycloakVersion" : "26.6.4",
       "userManagedAccessAllowed" : false,
       "organizationsEnabled" : false,
       "verifiableCredentialsEnabled" : false,
       "adminPermissionsEnabled" : false,
+      "scimApiEnabled" : false,
       "clientProfiles" : {
         "profiles" : [ ]
       },
