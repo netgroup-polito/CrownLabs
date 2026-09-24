@@ -22,6 +22,10 @@ fragment WorkspaceImageFields on ItPolitoCrownlabsV1alpha2InstanceSnapshot {
   status {
     phase
     artifact {
+      dataVolumeRef {
+        name
+        namespace
+      }
       volumeSize
     }
     conditions {

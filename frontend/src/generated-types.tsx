@@ -3907,7 +3907,7 @@ export type WorkspacesListItemInput = {
   role: Role;
 };
 
-export type WorkspaceImageFieldsFragment = { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null } | null, spec?: { __typename?: 'Spec4', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef', name: string, namespace?: string | null }, tenantRef?: { __typename?: 'TenantRef', name: string, namespace?: string | null } | null } | null, status?: { __typename?: 'Status4', phase: Phase4, artifact?: { __typename?: 'Artifact', volumeSize: any } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status5, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null };
+export type WorkspaceImageFieldsFragment = { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null } | null, spec?: { __typename?: 'Spec4', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef', name: string, namespace?: string | null }, tenantRef?: { __typename?: 'TenantRef', name: string, namespace?: string | null } | null } | null, status?: { __typename?: 'Status4', phase: Phase4, artifact?: { __typename?: 'Artifact', volumeSize: any, dataVolumeRef: { __typename?: 'DataVolumeRef', name: string, namespace?: string | null } } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status5, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null };
 
 export type ApplyInstanceMutationVariables = Exact<{
   instanceId: Scalars['String']['input'];
@@ -4167,7 +4167,7 @@ export type WorkspaceImagesQueryVariables = Exact<{
 }>;
 
 
-export type WorkspaceImagesQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshotList', images: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null } | null, spec?: { __typename?: 'Spec4', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef', name: string, namespace?: string | null }, tenantRef?: { __typename?: 'TenantRef', name: string, namespace?: string | null } | null } | null, status?: { __typename?: 'Status4', phase: Phase4, artifact?: { __typename?: 'Artifact', volumeSize: any } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status5, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null } | null> } | null };
+export type WorkspaceImagesQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshotList', images: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null } | null, spec?: { __typename?: 'Spec4', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef', name: string, namespace?: string | null }, tenantRef?: { __typename?: 'TenantRef', name: string, namespace?: string | null } | null } | null, status?: { __typename?: 'Status4', phase: Phase4, artifact?: { __typename?: 'Artifact', volumeSize: any, dataVolumeRef: { __typename?: 'DataVolumeRef', name: string, namespace?: string | null } } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status5, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null } | null> } | null };
 
 export type WorkspaceQuotasQueryVariables = Exact<{
   names?: InputMaybe<Array<Scalars['String']['input']> | Scalars['String']['input']>;
@@ -4218,7 +4218,7 @@ export type UpdatedWorkspaceImagesSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedWorkspaceImagesSubscription = { __typename?: 'Subscription', updatedImage?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshotUpdate', updateType?: UpdateType | null, image?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null } | null, spec?: { __typename?: 'Spec4', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef', name: string, namespace?: string | null }, tenantRef?: { __typename?: 'TenantRef', name: string, namespace?: string | null } | null } | null, status?: { __typename?: 'Status4', phase: Phase4, artifact?: { __typename?: 'Artifact', volumeSize: any } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status5, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null } | null } | null };
+export type UpdatedWorkspaceImagesSubscription = { __typename?: 'Subscription', updatedImage?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshotUpdate', updateType?: UpdateType | null, image?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null } | null, spec?: { __typename?: 'Spec4', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef', name: string, namespace?: string | null }, tenantRef?: { __typename?: 'TenantRef', name: string, namespace?: string | null } | null } | null, status?: { __typename?: 'Status4', phase: Phase4, artifact?: { __typename?: 'Artifact', volumeSize: any, dataVolumeRef: { __typename?: 'DataVolumeRef', name: string, namespace?: string | null } } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status5, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null } | null } | null };
 
 export const WorkspaceImageFieldsFragmentDoc = gql`
     fragment WorkspaceImageFields on ItPolitoCrownlabsV1alpha2InstanceSnapshot {
@@ -4245,6 +4245,10 @@ export const WorkspaceImageFieldsFragmentDoc = gql`
   status {
     phase
     artifact {
+      dataVolumeRef {
+        name
+        namespace
+      }
       volumeSize
     }
     conditions {
