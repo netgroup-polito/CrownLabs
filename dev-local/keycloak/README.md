@@ -2,123 +2,156 @@
 
 This section presents the steps needed to bring up Keycloak locally: the realm, the clients, the scopes, and the base users.
 It also configures the Kubernetes API server to validate the tokens Keycloak issues.
-Without this, every local request through `kubectl proxy` runs silently as cluster-admin, with no real authentication.
-You need an already-existing k3s cluster with [Envoy Gateway](../envoy/README.md) set up before you start.
 
-- [`manifests/`](manifests/): apply everything with a single command, `kubectl apply -f dev-local/keycloak/manifests`. This includes Keycloak, Postgres, its `HTTPRoute`, the realm import, and the `mydrive-pvcs` namespace.
-- [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md): the rationale, verification steps, and troubleshooting table behind the OIDC setup below. Read it if something in this guide does not behave as expected. This README only lists the commands.
+## 0. What is keycloak
 
-## 0. Prerequisites
+_This section explains some basic concepts and terms about keycloak.
+If you are already familiar with keycloak, feel free to skip it._
 
-- The base k3s cluster. See [`../base-k3s/README.md`](../base-k3s/README.md).
-- [Envoy Gateway](../envoy/README.md) set up: the Gateway API CRDs, the controller, the shared `crownlabs` Gateway, and the `*.crownlabs.local` wildcard certificate.
-  Keycloak's own manifest no longer has its own HTTPS listener or NodePort.
-  It is exposed entirely through the `HTTPRoute` in `manifests/keycloak.yaml`, which needs that `Gateway` to already exist.
+Keycloak is an open source identity and access management solution.
+In basic terms, it's what allows you to login once, and then authorizes you to other services &ndash; like browsing the web pages, creating VMs, ...
 
-```bash
-kubectl get nodes
-# Expected: your node (the machine running k3s) is Ready.
-kubectl get gateway crownlabs -n default
-# Expected: PROGRAMMED = True.
-```
+Here is a list of useful terms when working with keycloak:
 
-## 1. Keycloak and the `mydrive-pvcs` namespace
+- **group**: a group of users.
+- **client**: an entity (application or service) that is entitled to request a user's access token.
+  Clients may also be entitled to request keycloak to authenticate the user.
+- **client scope**: describing how a client should interact with keycloak. (For example, should authentication be mandatory, or optional?)
+- **realm**: a set of users, credentials, roles, and groups.
+  When you have non-admin credentials, they belong to a specific realm, and allow you to login only on that realm.
+  The concept of realms allows you to have the same keycloak instance manage multiple separate applications.
+
+## 1. Setting up keycloak
+
+In order to deploy keycloak, we need to define:
+
+- a `Service` to accept incoming HTTP connections (remember that HTTPS is terminated earlier by envoy, so we don't have to worry about certificates here)
+- an `HTTPRoute`, that allows route `keycloak.crownlabs.local` traffic towards the service
+- a discovery `Service`
+- a `StatefulSet` to deploy all the containers required by keycloak
+- a `Deployment` and a `Service` for a deployment, ephemeral PostgreSQL database.
+
+All these components are prepared in the `manifest/keycloak.yaml` configuration file.
+
+However, if we just run that, we would have an empty keycloak.
+That means, it does not have the crownlabs realm, nor it has any user pre-inserted.
+
+For convenience, a basic realm was already prepared and exported.
+It already has the correct realm, with a test user and all required settings for sending verification emails.
+All its data is held as JSON inside the `manifest/crownlabs-real-configmap.yaml`.
+This file should therefore be applied before the previous.
+
+Both files can be applied together using the following command:
 
 ```bash
 kubectl apply -f dev-local/keycloak/manifests
+```
+
+You can check that keycloak has been deployed correctly with the following command:
+
+```bash
 kubectl rollout status statefulset/keycloak
 ```
 
-This single apply covers:
-- Keycloak and Postgres (`manifests/keycloak.yaml`), with `--import-realm` enabled and the
-  realm ConfigMap mounted. Keycloak itself only speaks plain HTTP (in fact, TLS terminates
-  at the Gateway, as described in [`../envoy/README.md`](../envoy/README.md)), so there's
-  no certificate or HTTPS configuration on Keycloak's own side at all.
-- An `HTTPRoute` (in the same file) that routes `keycloak.crownlabs.local` to that Service, through the shared `crownlabs` Gateway.
-- The realm import itself (`manifests/crownlabs-realm-configmap.yaml`): the `crownlabs` realm export, with the `k8s` and `operator-local` clients, the `groups` and `k8s-audience` scopes, and the base users. It is wrapped in a `ConfigMap`, so you apply it declaratively instead of running an easy-to-forget, manual `kubectl create configmap` command.
-- The `mydrive-pvcs` namespace (`manifests/mydrive-pvcs-namespace.yaml`), used by the operator for tenants' personal-drive PVCs.
+## 2. Using keycloak
 
-Keycloak is now reachable at `https://keycloak.crownlabs.local`.
-You do not need `kubectl port-forward` on native Linux.
-See [`../envoy/README.md`](../envoy/README.md) for how this works: one shared Gateway, backed by `ServiceLB` on ports 80 and 443, instead of a separate `NodePort` per service.
+The admin dashboard is now reachable at `https://keycloak.crownlabs.local:8443`.
+Credentials to access it are `admin`/`admin`.
+In the dashboard you can see everything that was imported from the basic CrownLabs-preset realm, with the ability to change it.
+Once you will have a running frontend, you may also try to create a new Tenant, and it will appear among the users in this dashboard.
 
-> **On WSL2**: this has the same underlying limitation as everything else behind the Gateway.
-> See [`../envoy/README.md`](../envoy/README.md) step 5 for the bridge you need (`WSL2_bridge.sh`).
-> **Append `:8443` to every hostname in this guide and in `apiserver-oidc-integration.md` when you use WSL2** (for example, `https://keycloak.crownlabs.local:8443`).
-> This must exactly match the URL the browser actually uses to reach Keycloak, because that URL ends up in the token's `iss` (issuer) claim.
->
-> **Also on WSL2**: Keycloak (with `KC_HOSTNAME_STRICT=false`) infers its own issuer from the request it receives.
-> We tested this: Keycloak always reports the issuer **without** a port, no matter which port the request actually arrived on, because Envoy Gateway does not forward an `X-Forwarded-Port` header.
-> On native Linux, this is fine, since port 443 is the default and there is no bridge involved.
-> On WSL2, it is not fine: the issuer needs to say `:8443` explicitly, or it will not match, byte-for-byte, the `oidc-issuer-url` you configure for the API server in step 2 below. If it does not match, every token gets rejected with an issuer mismatch error.
-> Pin the hostname explicitly after you apply the manifests:
-> ```bash
-> kubectl set env statefulset/keycloak KC_HOSTNAME=https://keycloak.crownlabs.local:8443
-> kubectl rollout status statefulset/keycloak
-> ```
-> This is a live patch. It is not part of `manifests/keycloak.yaml`, which stays environment-agnostic.
-> Re-run this patch if you ever re-apply the base manifest on WSL2. This is the same gotcha as the `Tenant`/`Workspace` patches described in `../operators/README.md`.
+_Note: this is likely the first time you access any HTTPS website served using the self-signed certificate.
+Due to its self-signed nature, the browser will not recognize it.
+You will therefore not reach the page, and have a `ERR_CERT_AUTHORITY_INVALID` error.
+You can safely continue on the website ("Advanced" &rarr; "Proceed").
+This should be remembered by your browser, so when you open other websites signed with the same certificate, you will not get the error anymore._
 
-The self-signed wildcard certificate (issued at the Gateway, see [`../envoy/README.md`](../envoy/README.md)) triggers a browser warning (`ERR_CERT_AUTHORITY_INVALID`) the first time you visit `https://keycloak.crownlabs.local/...`.
-This warning is expected for local development.
-Click through it once ("Advanced" → "Proceed"), and the browser trusts the certificate for the rest of the session.
+On top of the admin account, the imported realm includes a user account (`john.doe`/`johndoe123`, with already verified email, in the `crownlabs` realm).
+At [this link ](https://keycloak.crownlabs.local:8443/realms/crownlabs/account/) you can check that the credentials actually work.
+However, you get an error after login, since the server where you should be redirected to is not present.
+Once the frontend is running, you will be able to use these credentials to login as a normal user in the website.
 
-On first startup, Keycloak automatically imports the realm from the mounted ConfigMap.
-You will see this in the logs: `KC-SERVICES0032: Import JSON RealmRepresentation from file .../crownlabs-realm.json`.
-**If the realm already exists in the database, Keycloak silently skips the import.**
-This is the standard `--import-realm` behavior, meant to avoid losing state across restarts.
-To re-import from scratch, first delete the realm (through the Admin Console, or with `DELETE /admin/realms/crownlabs`), or wipe the Postgres database.
+_Please note that these credentials are known values, deliberately documented for local development.
+For security reasons, do not reuse them in real environments._
 
-Credentials included in the export:
+## 3. Configure the K3s API server for OIDC
 
-| Who | Credentials |
-|---|---|
-| Keycloak admin (`master` realm) | `admin` / `admin` (set through an environment variable, not part of the export) |
-| Test user (`crownlabs` realm) | `john.doe` / `johndoe123`, email verified |
-| `operator-local` client (service account for the operator) | client secret: `operator-local-dev-secret` |
-| `k8s` client (frontend, public) | no secret; redirect URI already set to `http://localhost:3000/*` |
+While using the development environment, the system may have to run some commands on K3s.
+For example, if you start a VM from the frontend, it needs to execute the kubectl command to actually start it inside K3s.
+This operation is internally done via the command `kubectl proxy`.
 
-> These are **known values, deliberately documented for local development**, exactly like `admin`/`admin` in the manifest. Do not reuse them in real environments.
+By default, this command authenticates you by means of your kubeconfig file.
+Since your kubeconfig is also the admin of the K3s cluster, all requests will be executed as admin.
+However, this is not the behavior we have on the real CrownLabs server: for example, a user can only start VMs within the workspaces they are in.
 
-## 2. Configure the k3s API server for OIDC
+To have a more realistic environment, we need to instruct the K3s cluster to use authentication from keycloak instead of the default.
+This is the purpose of this step of the guide.
 
-This step requires root privileges and a k3s restart, so it cannot be folded into the manifests above.
-See [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md) for the full rationale: why each flag is needed, the `groups`/`aud` claim mappers, and so on.
-Here are just the commands:
+Fully explaining the rationale of every action is relatively complex.
+For this reason, the guide only lists the required steps, along with some very basic motivation.
+The full rationale, verification steps and troubleshooting table can be found in the file [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md): please refer to it if something in this guide does not behave as expected.
+
+### 3.1. Considering the root certificate as trusted
+
+In the Envoy guide, we set up a local certification authority for the certificates we need.
+Since we will use the same for the K3s cluster, we need to have our system trust it.
+
+The first thing to do is to extract the root certificate from the CA, and add it to the trusted certificates of our system:
 
 ```bash
 kubectl get secret crownlabs-tls -n default -o jsonpath='{.data.ca\.crt}' | base64 -d | sudo tee /usr/local/share/ca-certificates/crownlabs-ca.crt
 sudo update-ca-certificates
 ```
 
-Write a dedicated drop-in file (this requires root) instead of editing the shared `/etc/rancher/k3s/config.yaml` file directly.
-k3s automatically merges every `*.yaml` file under `/etc/rancher/k3s/config.yaml.d/`, so this new file cannot clobber anything that [`../base-k3s/README.md`](../base-k3s/README.md) or [`../envoy/README.md`](../envoy/README.md) already added there:
+> **SECURITY NOTE**
+>
+> With this command, we added the root certificate as trusted on our system.
+> Should anyone get access to this certificate, they can produce "invalid" certificates that will be trusted by our device.
+> An example could be a replica of our bank website, that seems completely legit, as it is signed by a "trustworthy" authority.
+>
+> While this eventuality is relatively unlikely &ndash; an attacker would need to first get access to our machine &ndash; it must be taken into account.
+>
+> A possible way to reduce the threat is to keep the certificate in the folder only while working on the system.
+> When it is not needed anymore, the certificate can be removed locally from the machine with the following commands:
+>
+> ```bash
+> sudo rm /usr/local/share/ca-certificates/crownlabs-ca.crt
+> sudo update-ca-certificates
+> ```
+>
+> When it is needed again, it can be re-installed using the command described above the security note.
+
+### 3.2. Instructing K3s to trust this certificate
+
+After installing the root certificate, we need to instruct K3s to trust OIDC requests signed by the root certificate itself:
 
 ```bash
 sudo mkdir -p /etc/rancher/k3s/config.yaml.d
 sudo tee /etc/rancher/k3s/config.yaml.d/30-keycloak-oidc.yaml > /dev/null <<'EOF'
 kube-apiserver-arg:
-  - "oidc-issuer-url=https://keycloak.crownlabs.local/realms/crownlabs"
+  - "oidc-issuer-url=https://keycloak.crownlabs.local:8443/realms/crownlabs"
   - "oidc-client-id=k8s"
   - "oidc-username-claim=preferred_username"
   - "oidc-username-prefix=-"
   - "oidc-groups-claim=groups"
   - "oidc-groups-prefix=kubernetes:"
-  - "oidc-ca-file=/etc/rancher/k3s/crownlabs-ca.crt"
 EOF
 ```
 
-> **On WSL2**: use `oidc-issuer-url=https://keycloak.crownlabs.local:8443/realms/crownlabs` instead (the Gateway bridge port from [`../envoy/README.md`](../envoy/README.md) step 5).
-> This must exactly match the URL the browser actually uses to reach Keycloak, because that URL ends up in the token's `iss` (issuer) claim.
+After requesting the changes, we have to restart the K3s cluster to have them apply.
+This can be done with the following commands.
+Please note that any process with an active connection to the K3s cluster will either stop, or need to be restarted (for example, `WSL_bridge`).
 
 ```bash
 sudo systemctl restart k3s
 journalctl -u k3s -f   # Confirm there is no "invalid authentication configuration" error, then press Ctrl+C.
 ```
 
-Restarting k3s restarts the whole control plane.
-The API server is briefly unreachable, and you need to restart any process with an open watch or proxy connection to it (`kubectl proxy`, `kubectl port-forward`, `WSL_bridge`, the operators) afterwards.
-Confirm `kubectl get nodes` reports `Ready` before you move on.
+> Note: it should not be necessary, but in case of errors the following line can be added to the end of the file:
+>
+> ```yaml
+> - "oidc-ca-file=/usr/local/share/ca-certificates/crownlabs-ca.crt"
+> ```
 
 ## Final checks
 
@@ -135,6 +168,7 @@ kubectl get nodes
 ```
 
 Expected end state:
+
 - ✅ Keycloak is up, and reachable through the Gateway.
 - ✅ The `crownlabs` realm is imported, and the `k8s`/`operator-local` clients are configured.
 - ✅ The `mydrive-pvcs` namespace exists.
@@ -145,6 +179,16 @@ Expected end state:
 - [`../operators/README.md`](../operators/README.md): set up base RBAC and run the CrownLabs operator. This needs everything above.
 - For qlkube (which talks directly to the real API server instead of through `kubectl proxy`) and for the frontend's OIDC configuration, see steps 4 to 6 in [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md).
 
-## Regenerating the realm export
+## Exporting the realm
 
-If you manually change something in the local realm (a new client, a new scope, a new user, and so on) and you want to freeze it for future installs, see [`regenerating-the-realm-export.md`](regenerating-the-realm-export.md).
+As previously stated, this setup already has an import of a functional keycloak realm, fully setup for the CrownLabs development.
+Should you modify it (for example, adding a new user), you may want to "freeze" and "save" this new state.
+This can be done following the [`regenerating-the-realm-export.md`](regenerating-the-realm-export.md) guide.
+
+Note that the realm is imported automatically from the ConfigMap _only_ if the same realm does not yet exist on the database.
+This means that the first import works fine, but if you modify the ConfigMap alone, that would not be re-imported (as the realm is already there).
+To re-import the realm from scratch, you have to delete it, with one of the following methods:
+
+- delete the `crownlabs` realm from the admin console
+- wipe the entire Postgres database
+- `DELETE /admin/realms/crownlabs`
