@@ -656,7 +656,7 @@ func (r *InstanceSnapshotImageListRequestor) GetImageList(ctx context.Context) (
 
 	for i := range snapshots.Items {
 		snapshot := &snapshots.Items[i]
-		if snapshot.Status.Phase != clv1alpha2.Completed {
+		if snapshot.Status.Phase != clv1alpha2.SnapshotPhaseCompleted {
 			r.log.V(1).Info("skipping non-completed InstanceSnapshot", "name", snapshot.Name, "namespace", snapshot.Namespace, "phase", snapshot.Status.Phase)
 			continue
 		}

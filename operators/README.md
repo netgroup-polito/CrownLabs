@@ -558,6 +558,43 @@ The Image List Updater is composed of:
 The updater supports multiple registry types through pluggable Requestor implementations:
 - `DockerImageListRequestor`: Docker Registry HTTP API V2
 - `HarborImageListRequestor`: Harbor REST API v2
+- `InstanceSnapshotImageListRequestor`: legacy snapshot images exported to a registry
+- `PublicSnapshotImageListSource`: completed public CDI snapshot artifacts in a configured namespace
+
+### Local snapshot catalogs
+
+The additional `public-snapshots` source follows the CDI snapshot API from [PR #1179](https://github.com/netgroup-polito/CrownLabs/pull/1179), also used by the image management UI in [PR #1200](https://github.com/netgroup-polito/CrownLabs/pull/1200). It reads `status.artifact.dataVolumeRef` from completed snapshots; it does not query export Jobs or container registries. The snapshot CRD and controller are provided by #1179, independently of this updater. The ImageList branch is based on #1179 and uses its typed `InstanceSnapshotList`, `SnapshotArtifact` and `SnapshotPhase` constants directly.
+
+Add a source under `configurations.imageList.registries` (under `operator` in the umbrella chart):
+
+```yaml
+- name: public-local-snapshots
+  type: public-snapshots
+  namespace: cldprog-5-block-vms-tests
+  imageListName: public-local-snapshots
+```
+
+Use the same public namespace configured through `operator.configurations.snapshotPublicNamespace` in #1179 and `frontend-app.configuration.publicRegistryNameDestination` in #1200. ImageLists are cluster-scoped and readable by every authenticated user: do not publish tenant or private workspace catalogs through this source. Workspace image management continues to query namespaced InstanceSnapshots directly.
+
+The frontend in #1200 creates resources named `<image-name>-YYYYMMDD-HHmmss`; the controller in #1179 gives the DataVolume and PVC that same name. The catalog reuses the existing ImageList fields: `registryName` contains the configured public namespace, `name` contains the resource name prefix and `versions` contains its date/time suffixes, newest first. Images are sorted alphabetically. For example, snapshots `ubuntu-lab-20260924-103000` and `ubuntu-lab-20260925-090001` produce:
+
+```yaml
+spec:
+  registryName: cldprog-5-block-vms-tests
+  images:
+    - name: ubuntu-lab
+      versions:
+        - "20260925-090001"
+        - "20260924-103000"
+```
+
+For this catalog, the frontend must build a `LocalVM` environment with `image = registryName + "/" + name + "-" + selectedVersion`, for example `cldprog-5-block-vms-tests/ubuntu-lab-20260925-090001`. The suffix is copied from `metadata.name`, not inferred from `creationTimestamp` or converted to UTC: #1200 currently uses the creator's local time. Only the final suffix is parsed, so image names may contain hyphens and dates. The prefix in the public namespace defines a catalog image, even if snapshots come from different source instances; `spec.imageName` is a display label and cannot override the artifact identity.
+
+The updater validates the suffix as a real date/time and only splits names when `status.artifact.dataVolumeRef.name` matches the snapshot name. Older/custom names or different artifact names remain available with the full artifact name and `versions: []`; consumers then use `registryName + "/" + name`. If an unversioned artifact coexists with dated versions of the same name, an empty-string version identifies that unversioned choice. No creation dates or artifact names are invented, and duplicate choices are removed.
+
+Keep this catalog separate from Docker/Harbor catalogs in the frontend: local versions use a hyphen when reconstructing the PVC name, while registry images retain their existing tag handling. No ImageList CRD, RBAC or chart changes are required: enable the source through the existing configuration after updating the operator binary, using a distinct `imageListName`. For `public-snapshots`, the saved `registryName` is always the configured namespace, regardless of any legacy registry settings, and `projectBaseName` is empty. The public registry picker in #1200 still needs to consume this ImageList; this change is limited to the updater.
+
+Only completed, non-deleting snapshots with a complete artifact reference in the configured namespace are included. An empty source clears stale entries; a failed list request leaves the existing catalog intact. The updater only needs read access to InstanceSnapshots and get/list/watch/create/update access to ImageLists. It does not need snapshot status writes or DataVolume permissions. The existing operator ClusterRole already grants these permissions and is unchanged. The existing Docker, Harbor and legacy `instancesnapshot` sources, tag processing and RBAC remain unchanged; the new source writes a separate ImageList and does not query or replace those catalogs.
 
 ### Architecture and Extensibility
 

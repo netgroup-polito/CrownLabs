@@ -171,14 +171,14 @@ var _ = Describe("InstanceSnapshot ImageList source", func() {
 			Spec: clv1alpha2.InstanceSnapshotSpec{
 				ImageName: "snapshot-image",
 			},
-			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Completed},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.SnapshotPhaseCompleted},
 		}
 		processingSnapshot := &clv1alpha2.InstanceSnapshot{
 			ObjectMeta: metav1.ObjectMeta{Name: "snapshot-b", Namespace: namespace},
 			Spec: clv1alpha2.InstanceSnapshotSpec{
 				ImageName: "ignored-image",
 			},
-			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Processing},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.SnapshotPhaseProcessing},
 		}
 		snapshotJob := buildSnapshotJob(namespace, "snapshot-a", "harbor-core.harbor:80/tenant-a/snapshot-image:20260720t101010")
 
@@ -221,14 +221,14 @@ var _ = Describe("InstanceSnapshot ImageList source", func() {
 			Spec: clv1alpha2.InstanceSnapshotSpec{
 				ImageName: "snapshot-image",
 			},
-			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Completed},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.SnapshotPhaseCompleted},
 		}
 		snapshotB := &clv1alpha2.InstanceSnapshot{
 			ObjectMeta: metav1.ObjectMeta{Name: "snapshot-b", Namespace: namespace},
 			Spec: clv1alpha2.InstanceSnapshotSpec{
 				ImageName: "snapshot-image",
 			},
-			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.Completed},
+			Status: clv1alpha2.InstanceSnapshotStatus{Phase: clv1alpha2.SnapshotPhaseCompleted},
 		}
 
 		fakeClient := fake.NewClientBuilder().

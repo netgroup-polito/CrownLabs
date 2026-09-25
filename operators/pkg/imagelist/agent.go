@@ -151,6 +151,11 @@ func (u *BackgroundUpdater) Update(ctx context.Context) error {
 
 // ProcessSingleRegistryConfig processes a single registry configuration.
 func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) error {
+	if regConfig.Type == "public-snapshots" {
+		_, err := updatePublicSnapshotImageList(ctx, regConfig, k8sClient, log)
+		return err
+	}
+
 	var requestor Requestor
 
 	switch regConfig.Type {
@@ -192,6 +197,10 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 
 // ProcessSingleRegistryConfigWithItems processes a single registry configuration and returns the updated items.
 func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) ([]clv1alpha1.ImageListItem, error) {
+	if regConfig.Type == "public-snapshots" {
+		return updatePublicSnapshotImageList(ctx, regConfig, k8sClient, log)
+	}
+
 	var requestor Requestor
 
 	switch regConfig.Type {
