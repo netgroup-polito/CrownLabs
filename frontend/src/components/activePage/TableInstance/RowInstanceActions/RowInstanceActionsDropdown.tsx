@@ -48,6 +48,7 @@ import {
   type ImageDestinationSelection,
 } from '../../../common/ImageCreationModal';
 import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
+import { ThemeContext } from '../../../../contexts/ThemeContext';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
@@ -109,6 +110,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
   const { data: tenantData, notify } = useContext(TenantContext);
   const tenantName = tenantData?.tenant?.metadata?.name;
   const { profile } = useContext(AuthContext);
+  const { isDarkTheme } = useContext(ThemeContext);
   const { instances: ownedInstances } = useContext(OwnedInstancesContext);
 
   const imageCreationPermissions = useMemo(() => {
@@ -158,20 +160,21 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     const supportsImages =
       latestInstance.persistent &&
       (latestInstance.environmentType === EnvironmentType.VirtualMachine ||
-        latestInstance.environmentType === EnvironmentType.CloudVm);
+        latestInstance.environmentType === EnvironmentType.CloudVm ||
+        latestInstance.environmentType === EnvironmentType.LocalVm);
+
+    const showAction =
+      Boolean(tenantName) &&
+      hasSingleEnvironment &&
+      imageCreationPermissions.canCreateImages &&
+      supportsImages &&
+      Boolean(latestInstance.environments?.[0]?.name);
 
     return {
-      showAction:
-        hasSingleEnvironment &&
-        supportsImages &&
-        imageCreationPermissions.canCreateImages,
-      canCreate:
-        Boolean(tenantName) &&
-        hasSingleEnvironment &&
-        imageCreationPermissions.canCreateImages &&
-        supportsImages &&
-        Boolean(latestInstance.environments?.[0]?.name) &&
-        latestInstance.status === Phase2.Off,
+      // Keep the action visible for an eligible VM while it is running, so the
+      // user gets a clear explanation instead of losing the action entirely.
+      showAction,
+      canCreate: showAction && latestInstance.status === Phase2.Off,
     };
   }, [
     imageCreationPermissions.canCreateImages,
@@ -363,25 +366,38 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   return (
     <>
-      {extended && imageCreationAvailability.canCreate && (
-        <Tooltip title="Create New Image">
-          <Button
-            className={`hidden ${
-              !sshDisabled || fileManager ? 'xl:block' : 'sm:block'
-            } py-0 border-0`}
-            type="link"
-            shape="circle"
-            size="middle"
-            aria-label="Create New Image"
-            icon={
-              <CameraOutlined
-                className="flex justify-center items-center"
-                style={{ fontSize: '22px', color: '#fff' }}
-              />
-            }
-            disabled={creatingWorkspaceImage}
-            onClick={() => setImageModalOpen(true)}
-          />
+      {extended && imageCreationAvailability.showAction && (
+        <Tooltip
+          title={
+            imageCreationAvailability.canCreate
+              ? 'Create New Image'
+              : 'Power Off the instance to create a new image'
+          }
+        >
+          <span>
+            <Button
+              className={`hidden ${
+                !sshDisabled || fileManager ? 'xl:block' : 'sm:block'
+              } py-0 border-0`}
+              type="link"
+              shape="circle"
+              size="middle"
+              aria-label="Create New Image"
+              icon={
+                <CameraOutlined
+                  className="flex justify-center items-center"
+                  style={{
+                    fontSize: '22px',
+                    color: isDarkTheme ? '#fff' : '#000',
+                  }}
+                />
+              }
+              disabled={
+                !imageCreationAvailability.canCreate || creatingWorkspaceImage
+              }
+              onClick={() => setImageModalOpen(true)}
+            />
+          </span>
         </Tooltip>
       )}
       <Dropdown
@@ -493,7 +509,13 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
                   key: 'new-image',
                   icon: <CameraOutlined style={font20px} />,
                   disabled: !imageCreationAvailability.canCreate,
-                  label: 'Create New Image',
+                  label: imageCreationAvailability.canCreate ? (
+                    'Create New Image'
+                  ) : (
+                    <Tooltip title="Power Off the instance to create a new image">
+                      <span>Create New Image</span>
+                    </Tooltip>
+                  ),
                   onClick: () => setImageModalOpen(true),
                   className: `flex items-center ${
                     !imageCreationAvailability.canCreate

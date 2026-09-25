@@ -11,11 +11,12 @@ import {
   theme,
   Typography,
 } from 'antd';
-import { useEffect, useMemo, useState, type FC } from 'react';
+import { useContext, useEffect, useMemo, useState, type FC } from 'react';
 import {
   CROWNLABS_IMAGE_CREATION_HELP,
   VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING,
 } from '../../../env';
+import { ThemeContext } from '../../../contexts/ThemeContext';
 
 const { Text } = Typography;
 const MAX_DESCRIPTION_CHARACTERS = 200;
@@ -99,6 +100,7 @@ export const ImageCreationModal: FC<ImageCreationModalProps> = ({
   onCreate,
 }) => {
   const { token } = theme.useToken();
+  const { isDarkTheme } = useContext(ThemeContext);
   const [imageName, setImageName] = useState(
     initialSelection?.imageName ?? defaultImageName,
   );
@@ -309,7 +311,7 @@ export const ImageCreationModal: FC<ImageCreationModalProps> = ({
               <a
                 href={CROWNLABS_IMAGE_CREATION_HELP}
                 style={{
-                  color: '#fff',
+                  color: isDarkTheme ? '#fff' : '#000',
                   textDecoration: 'underline',
                   fontStyle: 'italic',
                 }}
