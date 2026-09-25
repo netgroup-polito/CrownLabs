@@ -118,7 +118,7 @@ operator:
       pmp: true
       keycloak: true
       webhooks: true
-      imageList: false
+      imageList: true
       instancesnapshot: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
@@ -148,9 +148,8 @@ operator:
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
         - name: snapshots-workspace
-          type: instancesnapshot
+          type: public-snapshots
           namespace: cldprog-5-block-vms-tests
-          registryName: harbor.ng.crownlabs.polito.it
           imageListName: public-snapshots
   webhook:
     deployment:
