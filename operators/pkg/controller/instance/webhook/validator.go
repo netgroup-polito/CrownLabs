@@ -201,8 +201,8 @@ func hasLocalVMEnvironment(template *clv1alpha2.Template) bool {
 	return false
 }
 
-// validateVolumeSources verifies that the actor is entitled to boot every LocalVM volume referenced
-// by the template of the instance. Without this check any tenant could boot a copy of.
+// validateVolumeSources verifies access to every LocalVM source and ensures the target disk
+// is large enough to clone it.
 func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance *clv1alpha2.Instance) error {
 	// The template is resolved through its own reference, so templates living outside the tenant
 	// namespace are covered as well.
@@ -211,7 +211,7 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 		return fmt.Errorf("failed to get instance template: %w", err)
 	}
 
-	// Nothing to authorize unless the template boots from a volume.
+	// Nothing to validate unless the template boots from a volume.
 	if !hasLocalVMEnvironment(template) {
 		return nil
 	}
@@ -221,13 +221,12 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 		return fmt.Errorf("failed to get admission request from context: %w", err)
 	}
 
-	if utils.MatchOneInStringSlices(iv.BypassGroups, req.UserInfo.Groups) {
-		return nil
-	}
-
+	bypassAuthorization := utils.MatchOneInStringSlices(iv.BypassGroups, req.UserInfo.Groups)
 	tenant := &clv1alpha2.Tenant{}
-	if err := iv.Client.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
-		return fmt.Errorf("failed to get tenant %s: %w", req.UserInfo.Username, err)
+	if !bypassAuthorization {
+		if err := iv.Client.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
+			return fmt.Errorf("failed to get tenant %s: %w", req.UserInfo.Username, err)
+		}
 	}
 
 	for i := range template.Spec.EnvironmentList {
@@ -241,7 +240,7 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 			return err
 		}
 
-		if !forge.TenantCanReadNamespace(tenant, source.Namespace, iv.PublicSnapshotNamespace) {
+		if !bypassAuthorization && !forge.TenantCanReadNamespace(tenant, source.Namespace, iv.PublicSnapshotNamespace) {
 			logger := ctrl.LoggerFrom(ctx)
 			logger.Info("Unauthorized PVC access attempt",
 				"tenant", tenant.Name,
@@ -254,35 +253,48 @@ func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance
 				env.Name, source.Name, source.Namespace)
 		}
 
-		// Reaching a namespace does not imply being entitled to every volume inside it.
-		if source.Namespace != iv.PublicSnapshotNamespace {
-			if err := iv.checkSnapshotArtifact(ctx, source, env.Name); err != nil {
-				return err
-			}
+		requireSnapshotArtifact := !bypassAuthorization && source.Namespace != iv.PublicSnapshotNamespace
+		if err := iv.validateSourceVolume(ctx, source, env, requireSnapshotArtifact); err != nil {
+			return err
 		}
 	}
 
 	return nil
 }
 
-// checkSnapshotArtifact verifies that the referenced volume was published by the snapshot
-// controller, and is therefore meant to be consumed.
-func (iv *InstanceValidator) checkSnapshotArtifact(
+// validateSourceVolume checks snapshot publication when required and always checks disk size,
+// including for public images and actors bypassing authorization checks.
+func (iv *InstanceValidator) validateSourceVolume(
 	ctx context.Context,
 	source types.NamespacedName,
-	envName string,
+	env *clv1alpha2.Environment,
+	requireSnapshotArtifact bool,
 ) error {
 	pvc := &corev1.PersistentVolumeClaim{}
 	if err := iv.APIReader.Get(ctx, source, pvc); err != nil {
 		if kerrors.IsNotFound(err) {
-			return fmt.Errorf("environment %q refers to volume %s, which does not exist", envName, source)
+			return fmt.Errorf("environment %q refers to volume %s, which does not exist", env.Name, source)
 		}
-		return fmt.Errorf("environment %q: cannot verify volume %s: %w", envName, source, err)
+		return fmt.Errorf("environment %q: cannot verify volume %s: %w", env.Name, source, err)
 	}
 
-	if pvc.Labels[forge.LabelSnapshotArtifactKey] != forge.LabelSnapshotArtifactValue {
+	// Reaching a namespace does not imply being entitled to every volume inside it.
+	if requireSnapshotArtifact && pvc.Labels[forge.LabelSnapshotArtifactKey] != forge.LabelSnapshotArtifactValue {
 		return fmt.Errorf("environment %q refers to volume %s, which is not a published snapshot: only snapshot "+
-			"artifacts can be booted outside the public catalog", envName, source)
+			"artifacts can be booted outside the public catalog", env.Name, source)
+	}
+
+	// Provisioned capacity can exceed the request; a pending expansion can make the request larger.
+	minimumDisk := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
+	if capacity := pvc.Status.Capacity[corev1.ResourceStorage]; capacity.Cmp(minimumDisk) > 0 {
+		minimumDisk = capacity
+	}
+	if minimumDisk.Sign() <= 0 {
+		return fmt.Errorf("environment %q: cannot determine the disk size of source volume %s", env.Name, source)
+	}
+	if env.Resources.Disk.Cmp(minimumDisk) < 0 {
+		return fmt.Errorf("environment %q requests disk size %s, but source volume %s requires at least %s",
+			env.Name, env.Resources.Disk.String(), source, minimumDisk.String())
 	}
 
 	return nil

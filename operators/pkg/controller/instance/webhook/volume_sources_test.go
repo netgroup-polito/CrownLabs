@@ -22,6 +22,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	authenticationv1 "k8s.io/api/authentication/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
@@ -42,8 +43,18 @@ var _ = Describe("InstanceValidator LocalVM volume sources", func() {
 	)
 
 	// volume returns a PVC in the given namespace, marked as a snapshot artifact when published is set.
-	volume := func(namespace, name string, published bool) *corev1.PersistentVolumeClaim {
-		pvc := &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace}}
+	volume := func(namespace, name string, published bool, requested, capacity string) *corev1.PersistentVolumeClaim {
+		pvc := &corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: namespace},
+			Spec: corev1.PersistentVolumeClaimSpec{
+				Resources: corev1.VolumeResourceRequirements{
+					Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse(requested)},
+				},
+			},
+		}
+		if capacity != "" {
+			pvc.Status.Capacity = corev1.ResourceList{corev1.ResourceStorage: resource.MustParse(capacity)}
+		}
 		if published {
 			pvc.Labels = map[string]string{forge.LabelSnapshotArtifactKey: forge.LabelSnapshotArtifactValue}
 		}
@@ -51,14 +62,23 @@ var _ = Describe("InstanceValidator LocalVM volume sources", func() {
 	}
 
 	type SourceCase struct {
-		Image  string
-		Groups []string
+		Image           string
+		Groups          []string
+		Disk            string
+		SourceRequested string
+		SourceCapacity  string
 		// ExpectedError is empty when the request must be admitted.
 		ExpectedError string
 	}
 
 	DescribeTable("Correctly decides whether the tenant can boot from the referenced volume",
 		func(c SourceCase) {
+			if c.Disk == "" {
+				c.Disk = "10Gi"
+			}
+			if c.SourceRequested == "" {
+				c.SourceRequested = "10Gi"
+			}
 			tenant := &clv1alpha2.Tenant{
 				ObjectMeta: metav1.ObjectMeta{Name: testTenant},
 				Spec: clv1alpha2.TenantSpec{
@@ -78,6 +98,7 @@ var _ = Describe("InstanceValidator LocalVM volume sources", func() {
 					WorkspaceRef: clv1alpha2.GenericRef{Name: testWorkspace},
 				},
 			}
+			tmpl.Spec.EnvironmentList[0].Resources.Disk = resource.MustParse(c.Disk)
 			inst := &clv1alpha2.Instance{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      testNewInstance,
@@ -91,11 +112,11 @@ var _ = Describe("InstanceValidator LocalVM volume sources", func() {
 
 			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(
 				tenant, ws, tmpl,
-				volume(testTenantNamespace, snapshotPVC, true),
-				volume(testTenantNamespace, liveDiskPVC, false),
-				volume(testWorkspaceNamespace, snapshotPVC, true),
-				volume(otherTenantNamespace, snapshotPVC, true),
-				volume(publicNamespace, liveDiskPVC, false),
+				volume(testTenantNamespace, snapshotPVC, true, c.SourceRequested, c.SourceCapacity),
+				volume(testTenantNamespace, liveDiskPVC, false, c.SourceRequested, c.SourceCapacity),
+				volume(testWorkspaceNamespace, snapshotPVC, true, c.SourceRequested, c.SourceCapacity),
+				volume(otherTenantNamespace, snapshotPVC, true, c.SourceRequested, c.SourceCapacity),
+				volume(publicNamespace, liveDiskPVC, false, c.SourceRequested, c.SourceCapacity),
 			).Build()
 
 			validator := &webhook.InstanceValidator{
@@ -111,13 +132,37 @@ var _ = Describe("InstanceValidator LocalVM volume sources", func() {
 				},
 			})
 
-			_, err := validator.ValidateCreate(ctx, inst)
+			// Authorization bypass must not require an administrator to have a Tenant resource.
+			if len(c.Groups) > 0 {
+				Expect(fakeClient.Delete(ctx, tenant)).To(Succeed())
+			}
 
+			By("validating creation, whether initially running or stopped")
+			for _, running := range []bool{false, true} {
+				inst.Spec.Running = running
+				_, err := validator.ValidateCreate(ctx, inst)
+				if c.ExpectedError == "" {
+					Expect(err).NotTo(HaveOccurred())
+				} else {
+					Expect(err).To(MatchError(ContainSubstring(c.ExpectedError)))
+				}
+			}
+
+			By("validating the transition from stopped to running")
+			oldInst := inst.DeepCopy()
+			oldInst.Spec.Running = false
+			_, err := validator.ValidateUpdate(ctx, oldInst, inst)
 			if c.ExpectedError == "" {
 				Expect(err).NotTo(HaveOccurred())
-				return
+			} else {
+				Expect(err).To(MatchError(ContainSubstring(c.ExpectedError)))
 			}
-			Expect(err).To(MatchError(ContainSubstring(c.ExpectedError)))
+
+			By("allowing updates that do not start the instance")
+			_, err = validator.ValidateUpdate(ctx, inst, inst.DeepCopy())
+			Expect(err).NotTo(HaveOccurred())
+			_, err = validator.ValidateUpdate(ctx, inst, oldInst)
+			Expect(err).NotTo(HaveOccurred())
 		},
 		Entry("When booting a published snapshot of the tenant", SourceCase{
 			Image: testTenantNamespace + "/" + snapshotPVC,
@@ -142,6 +187,54 @@ var _ = Describe("InstanceValidator LocalVM volume sources", func() {
 		}),
 		Entry("When the requester belongs to a bypass group", SourceCase{
 			Image: otherTenantNamespace + "/" + snapshotPVC, Groups: []string{bypassGroup},
+		}),
+		Entry("When the requested disk is smaller than the snapshot", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, Disk: "5Gi",
+			ExpectedError: "requests disk size 5Gi, but source volume " + testTenantNamespace + "/" + snapshotPVC + " requires at least 10Gi",
+		}),
+		Entry("When the requested disk is larger than the snapshot", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, Disk: "20Gi",
+		}),
+		Entry("When the requested disk equals the snapshot in different units", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, Disk: "10240Mi",
+		}),
+		Entry("When decimal units make the requested disk smaller", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, Disk: "10G", ExpectedError: "requires at least 10Gi",
+		}),
+		Entry("When the requested disk is zero", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, Disk: "0", ExpectedError: "requires at least 10Gi",
+		}),
+		Entry("When the snapshot capacity exceeds its storage request", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, SourceCapacity: "20Gi", ExpectedError: "requires at least 20Gi",
+		}),
+		Entry("When the requested disk equals the snapshot capacity", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, Disk: "20Gi", SourceCapacity: "20Gi",
+		}),
+		Entry("When the snapshot has a pending expansion", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, SourceRequested: "20Gi", SourceCapacity: "10Gi",
+			ExpectedError: "requires at least 20Gi",
+		}),
+		Entry("When only the snapshot capacity is available", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, SourceRequested: "0", SourceCapacity: "10Gi",
+		}),
+		Entry("When the snapshot size is unknown", SourceCase{
+			Image: testTenantNamespace + "/" + snapshotPVC, SourceRequested: "0", ExpectedError: "cannot determine the disk size",
+		}),
+		Entry("When the disk is too small for a workspace snapshot", SourceCase{
+			Image: testWorkspaceNamespace + "/" + snapshotPVC, Disk: "5Gi", ExpectedError: "requires at least 10Gi",
+		}),
+		Entry("When the disk is too small for a public image", SourceCase{
+			Image: publicNamespace + "/" + liveDiskPVC, Disk: "5Gi", ExpectedError: "requires at least 10Gi",
+		}),
+		Entry("When a public image is missing", SourceCase{
+			Image: publicNamespace + "/missing", ExpectedError: "does not exist",
+		}),
+		Entry("When authorization is bypassed but the disk is too small", SourceCase{
+			Image: otherTenantNamespace + "/" + snapshotPVC, Groups: []string{bypassGroup}, Disk: "5Gi",
+			ExpectedError: "requires at least 10Gi",
+		}),
+		Entry("When authorization is bypassed for an unlabeled volume", SourceCase{
+			Image: testTenantNamespace + "/" + liveDiskPVC, Groups: []string{bypassGroup},
 		}),
 	)
 })

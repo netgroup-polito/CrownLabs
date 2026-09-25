@@ -312,11 +312,18 @@ var _ = Describe("InstanceValidator", func() {
 		// publishedPVC returns a volume marked by the snapshot controller as an artifact: outside the
 		// public catalog, only such volumes may be booted.
 		publishedPVC := func(namespace, name string) *corev1.PersistentVolumeClaim {
-			return &corev1.PersistentVolumeClaim{ObjectMeta: metav1.ObjectMeta{
-				Name:      name,
-				Namespace: namespace,
-				Labels:    map[string]string{forge.LabelSnapshotArtifactKey: forge.LabelSnapshotArtifactValue},
-			}}
+			return &corev1.PersistentVolumeClaim{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      name,
+					Namespace: namespace,
+					Labels:    map[string]string{forge.LabelSnapshotArtifactKey: forge.LabelSnapshotArtifactValue},
+				},
+				Spec: corev1.PersistentVolumeClaimSpec{
+					Resources: corev1.VolumeResourceRequirements{
+						Requests: corev1.ResourceList{corev1.ResourceStorage: resource.MustParse("10Gi")},
+					},
+				},
+			}
 		}
 
 		BeforeEach(func() {
@@ -355,6 +362,7 @@ var _ = Describe("InstanceValidator", func() {
 							ResourceSpec: apicommon.ResourceSpec{
 								CPU:    2,
 								Memory: resource.MustParse("2Gi"),
+								Disk:   resource.MustParse("10Gi"),
 							},
 						},
 					}},
@@ -430,7 +438,9 @@ var _ = Describe("InstanceValidator", func() {
 			// Volumes in the public catalog are readable by everybody, and need no artifact label.
 			localVMTemplate.Spec.EnvironmentList[0].Image = publicSnapshotNamespace + "/my-pvc"
 
-			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate).Build()
+			pvc := publishedPVC(publicSnapshotNamespace, "my-pvc")
+			pvc.Labels = nil
+			fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(tenant, localVMTemplate, pvc).Build()
 			validator := &webhook.InstanceValidator{
 				Client:                  fakeClient,
 				APIReader:               fakeClient,
