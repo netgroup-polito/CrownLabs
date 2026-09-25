@@ -125,8 +125,8 @@ var _ = Describe("InstanceValidator LocalVM volume sources", func() {
 		Entry("When booting a live disk of the tenant", SourceCase{
 			Image: testTenantNamespace + "/" + liveDiskPVC, ExpectedError: "not a published snapshot",
 		}),
-		Entry("When booting a snapshot from a workspace namespace (only own ns or public are allowed)", SourceCase{
-			Image: testWorkspaceNamespace + "/" + snapshotPVC, ExpectedError: "cannot use volume",
+		Entry("When booting a published snapshot of a workspace the tenant is enrolled in", SourceCase{
+			Image: testWorkspaceNamespace + "/" + snapshotPVC,
 		}),
 		Entry("When booting a published snapshot of another tenant", SourceCase{
 			Image: otherTenantNamespace + "/" + snapshotPVC, ExpectedError: "cannot use volume",
