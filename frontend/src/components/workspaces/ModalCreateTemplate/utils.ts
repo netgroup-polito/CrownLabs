@@ -1,6 +1,7 @@
 import {
   VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS,
   VITE_APP_CROWNLABS_IMAGELIST_STANDALONE,
+  VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
 } from '../../../env';
 import { EnvironmentType, type ImagesQuery } from '../../../generated-types';
 import type { Template } from './ModalCreateTemplate';
@@ -103,6 +104,34 @@ export const getImageLists = (data: ImagesQuery): ImageList[] => {
           versions: i!.versions.filter(v => v !== null) as string[],
         })),
     }));
+};
+
+// Public local images are published by the operator as a cluster-scoped
+// ImageList. Unlike workspace images, this list is a catalog: its registryName
+// contains the namespace of the public PVCs and versions identify each image.
+export const getPublicSnapshotImageList = (
+  data: ImagesQuery,
+): ImageList | undefined => {
+  const imageList = data?.imageList?.images?.find(
+    image =>
+      image?.metadata?.name === VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
+  );
+
+  if (!imageList?.spec?.registryName || !imageList.spec.images) return;
+
+  return {
+    name: imageList.metadata?.name ?? '',
+    registryName: imageList.spec.registryName,
+    projectBaseName: imageList.spec.projectBaseName || undefined,
+    images: imageList.spec.images
+      .filter(image => image?.name && image?.versions)
+      .map(image => ({
+        name: image!.name,
+        versions: image!.versions.filter(
+          version => version !== null,
+        ) as string[],
+      })),
+  };
 };
 
 export const useImageLists = (dataImages: ImagesQuery) => {

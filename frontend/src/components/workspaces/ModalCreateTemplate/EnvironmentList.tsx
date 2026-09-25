@@ -4,7 +4,7 @@ import { EnvironmentTabLabel } from './EnvironmentTabLabel';
 import { EnvironmentType } from '../../../generated-types';
 import type { SharedVolume } from '../../../utils';
 import { Environment } from './Environment';
-import type { Resources, TemplateFormEnv, Image } from './types';
+import type { Resources, TemplateFormEnv, Image, ImageList } from './types';
 
 const getDefaultEnvironment = (envCount: number): TemplateFormEnv => {
   const name = `env-${envCount}`;
@@ -33,6 +33,9 @@ interface IEnvironmentLabelProps {
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
+  publicSnapshotImageList?: ImageList;
+  loadingPublicSnapshotImageList: boolean;
+  publicSnapshotImageListError: boolean;
   setInfoNumberTemplate: React.Dispatch<React.SetStateAction<number>>;
 }
 
@@ -43,6 +46,9 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
   resources,
   sharedVolumes,
   isPersonal,
+  publicSnapshotImageList,
+  loadingPublicSnapshotImageList,
+  publicSnapshotImageListError,
   setInfoNumberTemplate,
 }) => {
   const form = Form.useFormInstance();
@@ -137,6 +143,9 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
                     resources={resources}
                     sharedVolumes={sharedVolumes}
                     isPersonal={isPersonal}
+                    publicSnapshotImageList={publicSnapshotImageList}
+                    loadingPublicSnapshotImageList={loadingPublicSnapshotImageList}
+                    publicSnapshotImageListError={publicSnapshotImageListError}
                   />
                 ),
               }))}

@@ -49,6 +49,7 @@ import {
   formItemLayout,
   getDefaultTemplate,
   getImageNameNoVer,
+  getPublicSnapshotImageList,
   internalRegistry,
   useImageLists,
 } from './utils';
@@ -127,7 +128,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
   // Fetch all image lists
-  const { data: dataImages } = useImagesQuery({
+  const {
+    data: dataImages,
+    loading: loadingImageLists,
+    error: imageListsError,
+  } = useImagesQuery({
     variables: {},
     onError: apolloErrorCatcher,
   });
@@ -224,6 +229,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     projectBaseNameVM,
     projectBaseNameContainer,
   } = useImageLists(dataImages ?? ({} as ImagesQuery));
+  const publicSnapshotImageList = getPublicSnapshotImageList(
+    dataImages ?? ({} as ImagesQuery),
+  );
 
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
@@ -951,6 +959,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         workspaceNamespace={workspaceNamespace}
         availableImagesVM={availableImagesVM}
         availableImagesContainer={availableImagesContainer}
+        publicSnapshotImageList={publicSnapshotImageList}
+        loadingPublicSnapshotImageList={loadingImageLists}
+        publicSnapshotImageListError={Boolean(imageListsError)}
         resources={{
           cpu: cpuInterval,
           ram: ramInterval,

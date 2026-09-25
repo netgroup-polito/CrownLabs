@@ -21,7 +21,13 @@ import {
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
-import type { ChildFormItem, Resources, TemplateFormEnv, Image } from './types';
+import type {
+  ChildFormItem,
+  Resources,
+  TemplateFormEnv,
+  Image,
+  ImageList,
+} from './types';
 import { formItemLayout, getImageNameNoVer, isInImageList } from './utils';
 import type { DefaultOptionType } from 'antd/es/cascader';
 
@@ -105,6 +111,9 @@ type EnvironmentProps = {
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
+  publicSnapshotImageList?: ImageList;
+  loadingPublicSnapshotImageList: boolean;
+  publicSnapshotImageListError: boolean;
 } & ChildFormItem;
 
 export const Environment: FC<EnvironmentProps> = ({
@@ -116,6 +125,9 @@ export const Environment: FC<EnvironmentProps> = ({
   resources,
   sharedVolumes,
   isPersonal,
+  publicSnapshotImageList,
+  loadingPublicSnapshotImageList,
+  publicSnapshotImageListError,
 }) => {
   const form = Form.useFormInstance();
 
@@ -230,7 +242,7 @@ export const Environment: FC<EnvironmentProps> = ({
     variables: { workspaceNamespace },
     skip:
       currentEnvironmentType !== EnvironmentType.LocalVm || !workspaceNamespace,
-  /* ImagesDrawer and this picker use the same GraphQL query and workspace
+    /* ImagesDrawer and this picker use the same GraphQL query and workspace
     namespace. Apollo can therefore reuse its normalized cache when the
     drawer already loaded this list, avoiding an additional network request.
     The query still runs when the cache has no entry (for example, when the
@@ -239,26 +251,47 @@ export const Environment: FC<EnvironmentProps> = ({
     fetchPolicy: 'cache-first',
     onError: apolloErrorCatcher,
   });
-  const completedImages = (workspaceImages?.imageList?.images ?? [])
-    .flatMap(image => {
-      const dataVolumeRef = image?.status?.artifact?.dataVolumeRef;
-      const label = image?.spec?.imageName || image?.metadata?.name;
-      if (
-        image?.status?.phase !== Phase4.Completed ||
-        !dataVolumeRef?.name ||
-        !dataVolumeRef.namespace ||
-        !label
-      )
-        return [];
 
-      // CDI gives the PVC the same name and namespace as its DataVolume.
-      return [
-        {
-          value: `${dataVolumeRef.namespace}/${dataVolumeRef.name}`,
-          label,
-        },
-      ];
-    })
+  const completedImageOptions = (images: typeof workspaceImages) =>
+    (images?.imageList?.images ?? [])
+      .flatMap(image => {
+        const dataVolumeRef = image?.status?.artifact?.dataVolumeRef;
+        const label = image?.spec?.imageName || image?.metadata?.name;
+        if (
+          image?.status?.phase !== Phase4.Completed ||
+          !dataVolumeRef?.name ||
+          !dataVolumeRef.namespace ||
+          !label
+        )
+          return [];
+
+        // CDI gives the PVC the same name and namespace as its DataVolume.
+        return [
+          {
+            value: `${dataVolumeRef.namespace}/${dataVolumeRef.name}`,
+            label,
+          },
+        ];
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+  const completedWorkspaceImages = completedImageOptions(workspaceImages);
+  const publicSnapshotImageOptions = (
+    publicSnapshotImageList?.images ?? []
+  )
+    .flatMap(image =>
+      image.versions.length
+        ? image.versions.map(version => ({
+            value: `${publicSnapshotImageList!.registryName}/${image.name}-${version}`,
+            label: `${image.name} (${version})`,
+          }))
+        : [
+            {
+              value: `${publicSnapshotImageList!.registryName}/${image.name}`,
+              label: image.name,
+            },
+          ],
+    )
     .sort((a, b) => a.label.localeCompare(b.label));
   const localImageOptions: DefaultOptionType[] = [
     {
@@ -275,14 +308,27 @@ export const Environment: FC<EnvironmentProps> = ({
                 disabled: true,
               },
             ]
-          : completedImages.length
-            ? completedImages
+          : completedWorkspaceImages.length
+            ? completedWorkspaceImages
             : emptyImageOptions,
     },
     {
       value: 'public-registry',
       label: 'From the Public Registry',
-      children: emptyImageOptions,
+      children:
+        loadingPublicSnapshotImageList || publicSnapshotImageListError
+          ? [
+              {
+                value: 'unavailable',
+                label: loadingPublicSnapshotImageList
+                  ? 'Loading images…'
+                  : 'Unable to load images',
+                disabled: true,
+              },
+            ]
+          : publicSnapshotImageOptions.length
+            ? publicSnapshotImageOptions
+            : emptyImageOptions,
     },
   ];
   const currentAvailableImages = getAvailableImagesForEnvironment(
