@@ -96,7 +96,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentSelectorLabels(&instance, &environment))))
 		})
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
@@ -240,7 +240,25 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
-			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+
+			// Without a pre-installed graphical desktop (GuiEnabled: false), the environment
+			// gets masquerade networking with every port forwarded to the guest except the
+			// native VNC one, so that KubeVirt's native VNC (QEMU) can be reached directly on the pod.
+			expectedIface := virtv1.DefaultMasqueradeNetworkInterface()
+			expectedIface.PortRanges = []virtv1.PortRange{
+				{Protocol: "TCP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+				{Protocol: "TCP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+				{Protocol: "UDP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+				{Protocol: "UDP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+			}
+			Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
+		})
+
+		When("the environment has the GUI enabled", func() {
+			BeforeEach(func() { environment.GuiEnabled = true })
+			It("Should set the bridge network interface", func() {
+				Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+			})
 		})
 	})
 
@@ -408,7 +426,7 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			}),
 			Entry("When the environment has not the GUI enabled", VMReadinessProbeCase{
 				Environment: clv1alpha2.Environment{GuiEnabled: false},
-				Port:        forge.SSHPortNumber,
+				Port:        forge.NativeVNCPortNumber,
 			}),
 		)
 	})

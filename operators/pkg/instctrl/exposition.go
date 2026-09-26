@@ -63,11 +63,6 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 		return nil
 	}
 
-	// No need to create HTTPRoute resources in case of gui-less VMs.
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && !environment.GuiEnabled {
-		return nil
-	}
-
 	// Enforce the HTTPRoute presence
 	httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {
@@ -78,7 +73,14 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 				Path:        forge.ExpositionGUICleanPath(instance, environment),
 				ServiceName: svc.GetName(),
 			}
-			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, forge.GUIPortNumber)
+			// VM-family environments without a pre-installed graphical desktop are routed to
+			// KubeVirt's native VNC port instead of the legacy TigerVNC/noVNC one.
+			var guiPort int32 = forge.GUIPortNumber
+			isVMFamily := environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM
+			if isVMFamily && !environment.GuiEnabled {
+				guiPort = forge.NativeVNCPortNumber
+			}
+			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, guiPort)
 		}
 		httpRoute.SetLabels(forge.EnvironmentObjectLabels(httpRoute.GetLabels(), instance, environment))
 
@@ -129,11 +131,6 @@ func (r *InstanceReconciler) enforceIngressPresence(ctx context.Context) error {
 	}
 	// If service presence couldn't be ensured due to out-of-range index, nothing to do
 	if svc == nil || svc.Spec.ClusterIP == "" {
-		return nil
-	}
-
-	// No need to create ingress resources in case of gui-less VMs
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && !environment.GuiEnabled {
 		return nil
 	}
 

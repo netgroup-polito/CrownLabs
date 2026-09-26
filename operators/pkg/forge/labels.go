@@ -51,6 +51,8 @@ const (
 	LabelNodeSelectorKey = "crownlabs.polito.it/has-node-selector"
 	// LabelEnvironmentKey is the key of the label identifying the environment name.
 	LabelEnvironmentKey = "crownlabs.polito.it/environment"
+	// LabelNativeVNCKey is the key of the label identifying if the instance has native VNC enabled.
+	LabelNativeVNCKey = "crownlabs.polito.it/native-vnc"
 
 	// InstanceTerminationSelectorLabel -> label for Instances which have to be be checked for termination.
 	InstanceTerminationSelectorLabel = "crownlabs.polito.it/watch-for-instance-termination"

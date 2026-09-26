@@ -166,7 +166,9 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 			if vmi.CreationTimestamp.IsZero() {
 				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment, mountInfos)
 			}
-			vmi.SetLabels(forge.EnvironmentObjectLabels(vmi.GetLabels(), instance, environment))
+			labels := forge.EnvironmentObjectLabels(vmi.GetLabels(), instance, environment)
+			vmi.SetLabels(forge.VirtualMachineLabels(environment, labels))
+
 			return ctrl.SetControllerReference(instance, &vmi, r.Scheme)
 		})
 
