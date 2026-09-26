@@ -2,6 +2,50 @@ apiVersion: v1
 entries:
   crownlabs:
   - apiVersion: v2
+    appVersion: v0.16.0
+    created: "2026-09-26T08:09:58.52429562Z"
+    dependencies:
+    - condition: frontend-app.enabled
+      name: frontend-app
+      repository: file://../../frontend/deploy/frontend-app
+      version: 0.1.0
+    - condition: qlkube.enabled
+      name: qlkube
+      repository: file://../../qlkube/deploy/qlkube
+      version: 0.1.0
+    - condition: operator.enabled
+      name: operator
+      repository: file://../../operators/deploy/operator
+      version: 0.1.1
+    - condition: crownmail.enabled
+      name: crownmail
+      repository: file://../../operators/deploy/crownmail
+      version: 0.1.0
+    - condition: instance-operator.enabled
+      name: instance-operator
+      repository: file://../../operators/deploy/instance-operator
+      version: 0.1.2
+    - condition: bastion.enabled
+      name: bastion
+      repository: file://../../operators/deploy/bastion
+      version: 0.1.1
+    - condition: exam-agent.enabled
+      name: exam-agent
+      repository: file://../../operators/deploy/exam-agent
+      version: 0.1.0
+    - condition: policies.enabled
+      name: policies
+      repository: file://../../policies
+      version: 0.1.0
+    description: A Helm chart for CrownLabs
+    digest: 185783903a6c131980e65ba3fe2fa62464e0000cb70bb1140caf92888a8847dd
+    icon: https://crownlabs.polito.it/images/logo.svg
+    name: crownlabs
+    type: application
+    urls:
+    - https://github.com/netgroup-polito/CrownLabs/releases/download/v0.16.0/crownlabs-v0.16.0.tgz
+    version: v0.16.0
+  - apiVersion: v2
     appVersion: v0.15.0
     created: "2026-05-13T16:46:07.939014761Z"
     dependencies:
@@ -361,4 +405,4 @@ entries:
     urls:
     - https://github.com/netgroup-polito/CrownLabs/releases/download/v0.14.2/crownlabs-v0.14.2.tgz
     version: v0.14.2
-generated: "2026-05-13T16:46:07.939079923Z"
+generated: "2026-09-26T08:09:58.524334022Z"
