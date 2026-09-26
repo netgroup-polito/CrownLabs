@@ -52,6 +52,7 @@ frontend-app:
     imagelist:
       standalone: crownlabs-standalone
       containerdisks: crownlabs-standalone
+    publicRegistryNameDestination: cldprog-5-block-vms-tests
 
     defaultTimeouts:
       cleanup:
@@ -82,6 +83,9 @@ qlkube:
             - resource: templates
               version: v1alpha2
               mapping: itPolitoCrownlabsV1alpha2Template
+            - resource: instancesnapshots
+              version: v1alpha2
+              mapping: itPolitoCrownlabsV1alpha2InstanceSnapshot
     wrappers:
       fileName: wrappers.js
       resources:

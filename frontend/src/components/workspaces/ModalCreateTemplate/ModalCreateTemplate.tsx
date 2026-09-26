@@ -49,6 +49,7 @@ import {
   formItemLayout,
   getDefaultTemplate,
   getImageNameNoVer,
+  getPublicSnapshotImageList,
   internalRegistry,
   useImageLists,
 } from './utils';
@@ -127,7 +128,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
   // Fetch all image lists
-  const { data: dataImages } = useImagesQuery({
+  const {
+    data: dataImages,
+    loading: loadingImageLists,
+    error: imageListsError,
+  } = useImagesQuery({
     variables: {},
     onError: apolloErrorCatcher,
   });
@@ -224,9 +229,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     projectBaseNameVM,
     projectBaseNameContainer,
   } = useImageLists(dataImages ?? ({} as ImagesQuery));
+  const publicSnapshotImageList = getPublicSnapshotImageList(
+    dataImages ?? ({} as ImagesQuery),
+  );
 
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
+    if (envType === EnvironmentType.LocalVm) return image;
     if (envType === EnvironmentType.VirtualMachine) {
       const selectedImage = availableImagesVM.find(
         i => getImageNameNoVer(i.name) === image,
@@ -474,9 +483,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     FixedSelection: 'On selected nodes',
   };
   const nodeSelectorTooltips: { [key: string]: string } = {
-    NodeSelectorDisabled: 'Kubernetes will automatically select the best node for your job',
-    SelectAnyNode: 'Kubernetes will run your job on the node(s) selected by the user when the instance is created',
-    FixedSelection: 'Kubernetes will run your job on the node(s) selected by the workspace admin when the template is created',
+    NodeSelectorDisabled:
+      'Kubernetes will automatically select the best node for your job',
+    SelectAnyNode:
+      'Kubernetes will run your job on the node(s) selected by the user when the instance is created',
+    FixedSelection:
+      'Kubernetes will run your job on the node(s) selected by the workspace admin when the template is created',
   };
 
   const [nodeSelectorMode, setNodeSelectorMode] = useState<string>(
@@ -944,8 +956,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const environmentListForm = (
     <>
       <EnvironmentList
+        workspaceNamespace={workspaceNamespace}
         availableImagesVM={availableImagesVM}
         availableImagesContainer={availableImagesContainer}
+        publicSnapshotImageList={publicSnapshotImageList}
+        loadingPublicSnapshotImageList={loadingImageLists}
+        publicSnapshotImageListError={Boolean(imageListsError)}
         resources={{
           cpu: cpuInterval,
           ram: ramInterval,

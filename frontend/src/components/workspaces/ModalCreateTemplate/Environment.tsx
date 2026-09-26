@@ -10,12 +10,24 @@ import {
   Space,
   Cascader,
   ConfigProvider,
+  Empty,
 } from 'antd';
-import { useEffect, useState, type FC } from 'react';
-import { EnvironmentType } from '../../../generated-types';
+import { useContext, useEffect, useState, type FC } from 'react';
+import {
+  EnvironmentType,
+  Phase4,
+  useWorkspaceImagesQuery,
+} from '../../../generated-types';
+import { ErrorContext } from '../../../errorHandling/ErrorContext';
 import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
-import type { ChildFormItem, Resources, TemplateFormEnv, Image } from './types';
+import type {
+  ChildFormItem,
+  Resources,
+  TemplateFormEnv,
+  Image,
+  ImageList,
+} from './types';
 import { formItemLayout, getImageNameNoVer, isInImageList } from './utils';
 import type { DefaultOptionType } from 'antd/es/cascader';
 
@@ -23,8 +35,23 @@ import type { DefaultOptionType } from 'antd/es/cascader';
 const environmentTypeOptions = [
   { value: EnvironmentType.VirtualMachine, label: 'Virtual Machine' },
   { value: EnvironmentType.CloudVm, label: 'Cloud VM' },
+  { value: EnvironmentType.LocalVm, label: 'Local VM' },
   { value: EnvironmentType.Standalone, label: 'Container (Standalone)' },
   //{ value: EnvironmentType.Container, label: 'Container' },
+];
+
+// A disabled empty state keeps the source's side menu expandable.
+const emptyImageOptions: DefaultOptionType[] = [
+  {
+    value: 'empty',
+    label: (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description="No images available"
+      />
+    ),
+    disabled: true,
+  },
 ];
 
 const getImageNamesCascader = (images: Image[]) => {
@@ -78,14 +105,19 @@ const getAvailableImagesForEnvironment = (
 };
 
 type EnvironmentProps = {
+  workspaceNamespace: string;
   availableImagesVM: Image[];
   availableImagesContainer: Image[];
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
+  publicSnapshotImageList?: ImageList;
+  loadingPublicSnapshotImageList: boolean;
+  publicSnapshotImageListError: boolean;
 } & ChildFormItem;
 
 export const Environment: FC<EnvironmentProps> = ({
+  workspaceNamespace,
   parentFormName: name,
   restField,
   availableImagesVM,
@@ -93,6 +125,9 @@ export const Environment: FC<EnvironmentProps> = ({
   resources,
   sharedVolumes,
   isPersonal,
+  publicSnapshotImageList,
+  loadingPublicSnapshotImageList,
+  publicSnapshotImageListError,
 }) => {
   const form = Form.useFormInstance();
 
@@ -198,6 +233,104 @@ export const Environment: FC<EnvironmentProps> = ({
   };
 
   const currentEnvironmentType = getEnvironmentType(name);
+  const { apolloErrorCatcher } = useContext(ErrorContext);
+  const {
+    data: workspaceImages,
+    loading: loadingWorkspaceImages,
+    error: workspaceImagesError,
+  } = useWorkspaceImagesQuery({
+    variables: { workspaceNamespace },
+    skip:
+      currentEnvironmentType !== EnvironmentType.LocalVm || !workspaceNamespace,
+    /* ImagesDrawer and this picker use the same GraphQL query and workspace
+    namespace. Apollo can therefore reuse its normalized cache when the
+    drawer already loaded this list, avoiding an additional network request.
+    The query still runs when the cache has no entry (for example, when the
+    picker is the first image-related UI opened by the user). Keeping this
+    query local also avoids coupling the modal to the drawer component. */
+    fetchPolicy: 'cache-first',
+    onError: apolloErrorCatcher,
+  });
+
+  const completedImageOptions = (images: typeof workspaceImages) =>
+    (images?.imageList?.images ?? [])
+      .flatMap(image => {
+        const dataVolumeRef = image?.status?.artifact?.dataVolumeRef;
+        const label = image?.spec?.imageName || image?.metadata?.name;
+        if (
+          image?.status?.phase !== Phase4.Completed ||
+          !dataVolumeRef?.name ||
+          !dataVolumeRef.namespace ||
+          !label
+        )
+          return [];
+
+        // CDI gives the PVC the same name and namespace as its DataVolume.
+        return [
+          {
+            value: `${dataVolumeRef.namespace}/${dataVolumeRef.name}`,
+            label,
+          },
+        ];
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+  const completedWorkspaceImages = completedImageOptions(workspaceImages);
+  const publicSnapshotImageOptions = (
+    publicSnapshotImageList?.images ?? []
+  )
+    .flatMap(image =>
+      image.versions.length
+        ? image.versions.map(version => ({
+            value: `${publicSnapshotImageList!.registryName}/${image.name}-${version}`,
+            label: `${image.name} (${version})`,
+          }))
+        : [
+            {
+              value: `${publicSnapshotImageList!.registryName}/${image.name}`,
+              label: image.name,
+            },
+          ],
+    )
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const localImageOptions: DefaultOptionType[] = [
+    {
+      value: 'workspace',
+      label: 'From this Workspace',
+      children:
+        loadingWorkspaceImages || workspaceImagesError
+          ? [
+              {
+                value: 'unavailable',
+                label: loadingWorkspaceImages
+                  ? 'Loading images…'
+                  : 'Unable to load images',
+                disabled: true,
+              },
+            ]
+          : completedWorkspaceImages.length
+            ? completedWorkspaceImages
+            : emptyImageOptions,
+    },
+    {
+      value: 'public-registry',
+      label: 'From the Public Registry',
+      children:
+        loadingPublicSnapshotImageList || publicSnapshotImageListError
+          ? [
+              {
+                value: 'unavailable',
+                label: loadingPublicSnapshotImageList
+                  ? 'Loading images…'
+                  : 'Unable to load images',
+                disabled: true,
+              },
+            ]
+          : publicSnapshotImageOptions.length
+            ? publicSnapshotImageOptions
+            : emptyImageOptions,
+    },
+  ];
   const currentAvailableImages = getAvailableImagesForEnvironment(
     currentEnvironmentType,
     availableImagesVM,
@@ -301,6 +434,7 @@ export const Environment: FC<EnvironmentProps> = ({
               break;
 
             case EnvironmentType.CloudVm:
+            case EnvironmentType.LocalVm:
               gui = false;
               rewriteUrl = false;
               persistent = true;
@@ -315,6 +449,11 @@ export const Environment: FC<EnvironmentProps> = ({
           return {
             ...env,
             environmentType: envType,
+            image:
+              envType === EnvironmentType.LocalVm ||
+              env.environmentType === EnvironmentType.LocalVm
+                ? ''
+                : env.image,
             gui: gui,
             rewriteUrl: rewriteUrl,
             persistent: persistent,
@@ -467,7 +606,35 @@ export const Environment: FC<EnvironmentProps> = ({
       </Form.Item>
 
       {/* VM Image Selection - Remove {...fullLayout} */}
-      {isVM(name) || isStandalone(name) ? (
+      {currentEnvironmentType === EnvironmentType.LocalVm ? (
+        <ConfigProvider
+          theme={{ components: { Cascader: { dropdownHeight: 'auto' } } }}
+        >
+          <Form.Item
+            {...restField}
+            label="Image"
+            name={[name, 'image']}
+            rules={[{ required: true, message: 'Select an image' }]}
+            {...formItemLayout}
+            getValueProps={value => ({
+              value: value ? ['workspace', value] : [],
+            })}
+            getValueFromEvent={(value: string[]) =>
+              value?.length === 2 ? value[1] : ''
+            }
+          >
+            <Cascader
+              options={localImageOptions}
+              placeholder="Select image source"
+              expandTrigger="click"
+              changeOnSelect={false}
+              getPopupContainer={trigger =>
+                trigger.parentElement || document.body
+              }
+            />
+          </Form.Item>
+        </ConfigProvider>
+      ) : isVM(name) || isStandalone(name) ? (
         <ConfigProvider
           theme={{
             components: {
@@ -633,7 +800,8 @@ export const Environment: FC<EnvironmentProps> = ({
               >
                 <Checkbox
                   disabled={
-                    getEnvironmentType(name) === EnvironmentType.CloudVm
+                    getEnvironmentType(name) === EnvironmentType.CloudVm ||
+                    getEnvironmentType(name) === EnvironmentType.LocalVm
                   }
                   onChange={value =>
                     handlePersistentChange(value.target.checked)

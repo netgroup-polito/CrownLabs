@@ -16,8 +16,12 @@ data:
     window.VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM="{{ .Values.configuration.oidc.adminClaim }}";
     window.VITE_APP_CROWNLABS_GRAFANA_DASHBOARD_URL="{{ .Values.configuration.backend.grafana }}";
     window.VITE_APP_CROWNLABS_BASTION_HOST="{{ .Values.configuration.backend.bastion }}";
+    window.VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING={{ .Values.configuration.imageCreationWarning | quote }};
+    window.CROWNLABS_IMAGE_CREATION_HELP={{ .Values.configuration.imageCreationHelp | quote }};
+    window.VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION={{ .Values.configuration.publicRegistryNameDestination | quote }};
     window.VITE_APP_CROWNLABS_IMAGELIST_STANDALONE ="{{ .Values.configuration.imagelist.standalone }}";
     window.VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS ="{{ .Values.configuration.imagelist.containerdisks }}";
+    window.VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS ="{{ .Values.configuration.imagelist.publicSnapshots }}";
     window.VITE_APP_DEFAULT_STOP_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.stopAfterInactivity }}";
     window.VITE_APP_DEFAULT_DELETE_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterInactivity }}";
     window.VITE_APP_DEFAULT_DELETE_AFTER_CREATION="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterCreation }}";

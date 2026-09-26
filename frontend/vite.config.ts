@@ -12,6 +12,7 @@ if (base[base.length - 1] !== '/') {
 // https://vite.dev/config/
 export default defineConfig({
   base,
+  envPrefix: ['VITE_', 'CROWNLABS_IMAGE_CREATION_HELP'],
   server: {
     port: 3000,
   },

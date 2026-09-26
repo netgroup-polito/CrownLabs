@@ -34,6 +34,7 @@ import {
 import { TemplatesEmpty } from '../TemplatesEmpty';
 import { TemplatesTable } from '../TemplatesTable';
 import { SharedVolumesDrawer } from '../../SharedVolumes';
+import { ImagesDrawer } from '../../Images';
 import { AuthContext } from '../../../../contexts/AuthContext';
 import ModalCreateTemplate from '../../ModalCreateTemplate';
 import type { TemplateForm } from '../../ModalCreateTemplate/types';
@@ -540,19 +541,22 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
           )}
         </Spin>
       </div>
-      {role === WorkspaceRole.manager && !loadingTemplate && !isPersonal ? (
+      {role === WorkspaceRole.manager && !loadingTemplate ? (
         <div
           style={{
             position: 'sticky',
             bottom: 0,
             zIndex: 100,
           }}
-          className="cl-shared-volumes-bg"
+          className="cl-shared-volumes-bg flex justify-center items-center gap-4"
         >
-          <SharedVolumesDrawer
-            workspaceNamespace={workspaceNamespace}
-            isPersonal={isPersonal}
-          />
+          {role === WorkspaceRole.manager && !isPersonal && (
+            <SharedVolumesDrawer
+              workspaceNamespace={workspaceNamespace}
+              isPersonal={isPersonal}
+            />
+          )}
+          <ImagesDrawer workspaceNamespace={workspaceNamespace} />
         </div>
       ) : null}
     </div>
