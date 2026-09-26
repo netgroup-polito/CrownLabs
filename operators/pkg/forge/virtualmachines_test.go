@@ -20,6 +20,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
@@ -150,6 +151,48 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 				Expect(dvSpec).To(Equal(cdiv1beta1.DataVolumeSpec{}))
 			})
 		})
+	})
+
+	Describe("The forge.ParseLocalVMImage function", func() {
+		type ParseLocalVMImageCase struct {
+			Image    string
+			Expected types.NamespacedName
+			Fails    bool
+		}
+
+		DescribeTable("Correctly resolves the PVC referenced by a LocalVM image",
+			func(c ParseLocalVMImageCase) {
+				source, err := forge.ParseLocalVMImage(c.Image)
+
+				if c.Fails {
+					Expect(err).To(HaveOccurred())
+					Expect(source).To(BeZero())
+					return
+				}
+
+				Expect(err).NotTo(HaveOccurred())
+				Expect(source).To(Equal(c.Expected))
+			},
+			Entry("When the image is well formed", ParseLocalVMImageCase{
+				Image:    localVMImage,
+				Expected: types.NamespacedName{Namespace: "golden-images", Name: "debian-nginx-raw-block"},
+			}),
+			Entry("When the image has no separator", ParseLocalVMImageCase{
+				Image: "debian-nginx-raw-block", Fails: true,
+			}),
+			Entry("When the image has more than one separator", ParseLocalVMImageCase{
+				Image: invalidLocalImage, Fails: true,
+			}),
+			Entry("When the namespace is empty", ParseLocalVMImageCase{
+				Image: "/debian-nginx-raw-block", Fails: true,
+			}),
+			Entry("When the PVC name is empty", ParseLocalVMImageCase{
+				Image: "golden-images/", Fails: true,
+			}),
+			Entry("When the image is empty", ParseLocalVMImageCase{
+				Image: "", Fails: true,
+			}),
+		)
 	})
 
 	Describe("The forge.DataVolumeSourceForge function", func() {

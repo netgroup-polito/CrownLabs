@@ -27,7 +27,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
 
-// RegistryConfig contains the configuration for a single registry endpoint.
+// RegistryConfig contains the configuration for a single image list source.
 type RegistryConfig struct {
 	Name          string `json:"name"`
 	Type          string `json:"type"`
@@ -36,7 +36,8 @@ type RegistryConfig struct {
 	Username      string `json:"username"`
 	Password      string `json:"password"`
 	ImageListName string `json:"imageListName"`
-	Project       string `json:"project,omitempty"` // Only for Harbor
+	Project       string `json:"project,omitempty"`   // Only for Harbor
+	Namespace     string `json:"namespace,omitempty"` // Only for InstanceSnapshot
 }
 
 // UpdateResult represents the result of updating a single image list.
@@ -150,6 +151,11 @@ func (u *BackgroundUpdater) Update(ctx context.Context) error {
 
 // ProcessSingleRegistryConfig processes a single registry configuration.
 func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) error {
+	if regConfig.Type == "public-snapshots" {
+		_, err := updatePublicSnapshotImageList(ctx, regConfig, k8sClient, log)
+		return err
+	}
+
 	var requestor Requestor
 
 	switch regConfig.Type {
@@ -161,6 +167,11 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 		}
 		RequestersSharedData["harbor_project_name"] = regConfig.Project
 		requestor = NewHarborImageListRequestor(log.WithName(regConfig.Name).WithName("harborRequestor"))
+	case "instancesnapshot", "instancesnapshots", "instanceSnapshot":
+		if regConfig.Namespace == "" {
+			return fmt.Errorf("namespace is required for InstanceSnapshot image list source")
+		}
+		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
 	default:
 		return fmt.Errorf("unsupported registry type: %s", regConfig.Type)
 	}
@@ -186,6 +197,10 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 
 // ProcessSingleRegistryConfigWithItems processes a single registry configuration and returns the updated items.
 func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) ([]clv1alpha1.ImageListItem, error) {
+	if regConfig.Type == "public-snapshots" {
+		return updatePublicSnapshotImageList(ctx, regConfig, k8sClient, log)
+	}
+
 	var requestor Requestor
 
 	switch regConfig.Type {
@@ -197,6 +212,11 @@ func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *Regist
 		}
 		RequestersSharedData["harbor_project_name"] = regConfig.Project
 		requestor = NewHarborImageListRequestor(log.WithName(regConfig.Name).WithName("harborRequestor"))
+	case "instancesnapshot", "instancesnapshots", "instanceSnapshot":
+		if regConfig.Namespace == "" {
+			return nil, fmt.Errorf("namespace is required for InstanceSnapshot image list source")
+		}
+		requestor = NewInstanceSnapshotImageListRequestor(k8sClient, regConfig.Namespace, regConfig.RegistryName, log.WithName(regConfig.Name).WithName("instanceSnapshotRequestor"))
 	default:
 		return nil, fmt.Errorf("unsupported registry type: %s", regConfig.Type)
 	}

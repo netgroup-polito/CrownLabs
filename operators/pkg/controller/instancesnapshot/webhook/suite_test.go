@@ -15,12 +15,12 @@
 package webhook_test
 
 import (
+	"testing"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
@@ -29,21 +29,26 @@ var (
 )
 
 const (
-	testTenant           = "pippo"
-	testWorkspace        = "test"
-	testTemplate         = "tmpl1"
-	testExistingInstance = "inst1"
-	testNewInstance      = "inst2"
-	testEnvironment      = "env1"
-	testMissingTemplate  = "missing"
+	testTenant          = "tester"
+	testWorkspace       = "test-workspace"
+	testInstance        = "test-instance"
+	testSnapshot        = "test-snapshot"
+	testEnvironment     = "env1"
+	testPublicNamespace = "public-snapshots"
+	testBypassGroup     = "system:masters"
+	testServiceAccount  = "system:serviceaccount:crownlabs:instance-operator"
 
-	testTenantNamespace    = "tenant-" + testTenant
-	testWorkspaceNamespace = "workspace-" + testWorkspace
+	testTenantNamespace      = "tenant-" + testTenant
+	testOtherTenantNamespace = "tenant-other-tester"
+	testWorkspaceNamespace   = "workspace-" + testWorkspace
 )
+
+func TestInstanceSnapshotValidator(t *testing.T) {
+	RegisterFailHandler(Fail)
+	RunSpecs(t, "InstanceSnapshotValidator Suite")
+}
 
 var _ = BeforeSuite(func() {
 	scheme = runtime.NewScheme()
-	Expect(clv1alpha1.AddToScheme(scheme)).To(Succeed())
 	Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
-	Expect(corev1.AddToScheme(scheme)).To(Succeed())
 })

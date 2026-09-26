@@ -1,0 +1,21 @@
+{{- if and .Values.snapshotPublishers .Values.operator.configurations.snapshotPublicNamespace }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  # The public catalog namespace is shared by every release deployed on the cluster, such as the
+  # per-PR stagings: prefixing the release keeps each binding owned by exactly one of them.
+  name: {{ include "crownlabs.fullname" . }}-snapshot-publishers
+  namespace: {{ .Values.operator.configurations.snapshotPublicNamespace }}
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crownlabs-manage-instance-snapshots
+subjects:
+{{- range .Values.snapshotPublishers }}
+  - kind: {{ .kind }}
+    name: {{ .name }}
+    apiGroup: rbac.authorization.k8s.io
+{{- end }}
+{{- end }}

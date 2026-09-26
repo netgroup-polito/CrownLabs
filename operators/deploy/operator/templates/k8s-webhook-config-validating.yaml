@@ -54,4 +54,32 @@ webhooks:
       path: /validator-v1alpha2-instance
       port: 443
   sideEffects: None
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: {{ include "operator.webhookname" . }}-instancesnapshot
+  annotations:
+    cert-manager.io/inject-ca-from: {{ .Release.Namespace }}/{{ include "operator.webhookname" . }}
+webhooks:
+- name: validate.instancesnapshot.crownlabs.polito.it
+  failurePolicy: Fail
+  admissionReviewVersions:
+  - v1
+  namespaceSelector:
+    matchLabels:
+      {{ (split "=" .Values.configurations.targetLabel)._0 }}: {{ (split "=" .Values.configurations.targetLabel)._1 }}
+  rules:
+  - apiGroups:   ["crownlabs.polito.it"]
+    apiVersions: ["v1alpha2"]
+    operations:  ["CREATE","UPDATE"]
+    resources:   ["instancesnapshots"]
+    scope:       "Namespaced"
+  clientConfig:
+    service:
+      name: {{ include "operator.webhookname" . }}
+      namespace: {{ .Release.Namespace }}
+      path: /validator-v1alpha2-instancesnapshot
+      port: 443
+  sideEffects: None
 {{ end }}

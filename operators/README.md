@@ -113,7 +113,6 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 - **Template** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by managers and read by users, while creating new instances.
 - **Instance** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in the operator, which creates/destroy associated resources (e.g.; Virtual Machines).
-- **InstanceSnapshot** defines a snapshot for a persistent VM instance. The associated operator will start the snapshot creation process once this resource is created.
 
 ### Persistent Feature
 
@@ -132,23 +131,6 @@ The PVC represents a request for a PersistentVolume (PV). In other words thanks 
 The aim of the importer pod is to extract an image (in this case from a docker registry where it is saved) and load it inside the PVC. This process, depending on the size of the image, can take some minutes. Once the import is completed, the Phase of the DataVolume becomes Succeeded and the Instance Operator wakes up so that all the other resources are created.
 
 N.B. The process of creating a persistent VirtualMachine can take, as said, a bit more time with the respect to a normal one (5-10 mins). However when you restart the VM you will not have to wait such time.
-
-### Snapshots of persistent VM instances
-
-The Instance Operator allows the creation of snapshots of persistent VM instances, producing a new image to be uploaded into the docker registry.
-This feature is provided by an additional control loop running in the Instance Operator, the *Instance Snapshot controller*, in charge of watching the InstanceSnapshot resource.
-This controller starts the snapshot creation process once a new *InstanceSnapshot* resource is found.
-
-The two main limitations of this approach are the following:
-- Snapshots of *ephemeral* VMs are currently unsupported
-- Persistent VMs should be powered off when the snapshot creation process starts, otherwise it is not possible to steal DataVolume from the VM and the creation fails.
-
-If the request for a new snapshot is valid, a new Job is created that performs the following two main actions:
-
-- **Export the VM's disk**: this action is done by an init container in the job; it steals the DataVolume from the VM and converts the above raw disk image in a QCOW2 image, using the [QEMU disk image utility](https://qemu.readthedocs.io/en/master/tools/qemu-img.html). After the conversion, it creates the Dockerfile for the Docker image build, which is needed in the next step.
-- **Build a new image and push it to the Docker registry**: once the init container terminates successfully, an EmptyDir volume with the building context is ready to be used for building the image and pushing it to the registry. This job leverages [Kaniko](https://github.com/GoogleContainerTools/kaniko), which allows to build a Docker image without a privileged container, since all the commands in the Dockerfile are executed in userspace. Note that Kaniko requires a large amount of RAM during the building process, so make sure that the RAM memory limit in your namespace is enough (currently the Kaniko container has a RAM memory limit of 32GB).
-
-When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, you should first create a new Template with the newly uploaded image.
 
 ### Attachable storage
 
@@ -576,6 +558,43 @@ The Image List Updater is composed of:
 The updater supports multiple registry types through pluggable Requestor implementations:
 - `DockerImageListRequestor`: Docker Registry HTTP API V2
 - `HarborImageListRequestor`: Harbor REST API v2
+- `InstanceSnapshotImageListRequestor`: legacy snapshot images exported to a registry
+- `PublicSnapshotImageListSource`: completed public CDI snapshot artifacts in a configured namespace
+
+### Local snapshot catalogs
+
+The additional `public-snapshots` source follows the CDI snapshot API from [PR #1179](https://github.com/netgroup-polito/CrownLabs/pull/1179), also used by the image management UI in [PR #1200](https://github.com/netgroup-polito/CrownLabs/pull/1200). It reads `status.artifact.dataVolumeRef` from completed snapshots; it does not query export Jobs or container registries. The snapshot CRD and controller are provided by #1179, independently of this updater. The ImageList branch is based on #1179 and uses its typed `InstanceSnapshotList`, `SnapshotArtifact` and `SnapshotPhase` constants directly.
+
+Add a source under `configurations.imageList.registries` (under `operator` in the umbrella chart):
+
+```yaml
+- name: public-local-snapshots
+  type: public-snapshots
+  namespace: cldprog-5-block-vms-tests
+  imageListName: public-local-snapshots
+```
+
+Use the same public namespace configured through `operator.configurations.snapshotPublicNamespace` in #1179 and `frontend-app.configuration.publicRegistryNameDestination` in #1200. ImageLists are cluster-scoped and readable by every authenticated user: do not publish tenant or private workspace catalogs through this source. Workspace image management continues to query namespaced InstanceSnapshots directly.
+
+The frontend in #1200 creates resources named `<image-name>-YYYYMMDD-HHmmss`; the controller in #1179 gives the DataVolume and PVC that same name. The catalog reuses the existing ImageList fields: `registryName` contains the configured public namespace, `name` contains the resource name prefix and `versions` contains its date/time suffixes, newest first. Images are sorted alphabetically. For example, snapshots `ubuntu-lab-20260924-103000` and `ubuntu-lab-20260925-090001` produce:
+
+```yaml
+spec:
+  registryName: cldprog-5-block-vms-tests
+  images:
+    - name: ubuntu-lab
+      versions:
+        - "20260925-090001"
+        - "20260924-103000"
+```
+
+For this catalog, the frontend must build a `LocalVM` environment with `image = registryName + "/" + name + "-" + selectedVersion`, for example `cldprog-5-block-vms-tests/ubuntu-lab-20260925-090001`. The suffix is copied from `metadata.name`, not inferred from `creationTimestamp` or converted to UTC: #1200 currently uses the creator's local time. Only the final suffix is parsed, so image names may contain hyphens and dates. The prefix in the public namespace defines a catalog image, even if snapshots come from different source instances; `spec.imageName` is a display label and cannot override the artifact identity.
+
+The updater validates the suffix as a real date/time and only splits names when `status.artifact.dataVolumeRef.name` matches the snapshot name. Older/custom names or different artifact names remain available with the full artifact name and `versions: []`; consumers then use `registryName + "/" + name`. If an unversioned artifact coexists with dated versions of the same name, an empty-string version identifies that unversioned choice. No creation dates or artifact names are invented, and duplicate choices are removed.
+
+Keep this catalog separate from Docker/Harbor catalogs in the frontend: local versions use a hyphen when reconstructing the PVC name, while registry images retain their existing tag handling. No ImageList CRD, RBAC or chart changes are required: enable the source through the existing configuration after updating the operator binary, using a distinct `imageListName`. For `public-snapshots`, the saved `registryName` is always the configured namespace, regardless of any legacy registry settings, and `projectBaseName` is empty. The public registry picker in #1200 still needs to consume this ImageList; this change is limited to the updater.
+
+Only completed, non-deleting snapshots with a complete artifact reference in the configured namespace are included. An empty source clears stale entries; a failed list request leaves the existing catalog intact. The updater only needs read access to InstanceSnapshots and get/list/watch/create/update access to ImageLists. It does not need snapshot status writes or DataVolume permissions. The existing operator ClusterRole already grants these permissions and is unchanged. The existing Docker, Harbor and legacy `instancesnapshot` sources, tag processing and RBAC remain unchanged; the new source writes a separate ImageList and does not query or replace those catalogs.
 
 ### Architecture and Extensibility
 
@@ -723,4 +742,3 @@ This enables integration with external triggers such as:
 - Webhook endpoints from registries notifying of new images
 - Event-based triggers from other controllers
 - On-demand API endpoints for manual updates
-

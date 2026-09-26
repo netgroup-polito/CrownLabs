@@ -33,6 +33,12 @@ global:
 
 createClusterRoles: true
 
+# Subjects allowed to publish snapshots into the public catalog (operator.configurations.snapshotPublicNamespace).
+# Cluster administrators can always do it; leave empty to grant nobody else. Example:
+#   - kind: Group
+#     name: kubernetes:workspace-cloudprog:manager
+snapshotPublishers: []
+
 frontend-app:
   replicaCount: 1
   image:
@@ -102,6 +108,8 @@ operator:
   configurations:
     tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
     targetLabel: crownlabs.polito.it/operator-selector=production
+    # Namespace hosting the public snapshot catalog. Volumes stored here can be read by every tenant.
+    snapshotPublicNamespace: "cldprog-5-block-vms-tests"
     features:
       tenant: true
       workspace: true
@@ -110,7 +118,8 @@ operator:
       pmp: true
       keycloak: true
       webhooks: true
-      imageList: false
+      imageList: true
+      instancesnapshot: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -138,6 +147,10 @@ operator:
           password: ""
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
+        - name: snapshots-workspace
+          type: public-snapshots
+          namespace: cldprog-5-block-vms-tests
+          imageListName: public-snapshots
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
@@ -245,13 +258,6 @@ instance-operator:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader
       contentUploaderImage: crownlabs/content-uploader
-    containerVmSnapshots:
-      kanikoImage: gcr.io/kaniko-project/executor
-      exportImage: "crownlabs/img-exporter"
-      exportImageTag: ""
-    privateContainerRegistry:
-      url: registry.crownlabs.example.com
-      secretName: registry-credentials
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
 
