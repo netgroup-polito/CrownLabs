@@ -38,8 +38,8 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
-	instancesnapshot_controller "github.com/netgroup-polito/CrownLabs/operators/pkg/instancesnapshot-controller"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/instsnapctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/restcfg"
 )
@@ -63,7 +63,6 @@ func init() {
 func main() {
 	containerEnvOpts := forge.ContainerEnvOpts{}
 	expositionCfg := forge.ExpositionConfig{}
-	instSnapOpts := instancesnapshot_controller.ContainersSnapshotOpts{}
 	publicExposureOpts := forge.PublicExposureOpts{}
 	publicExposureIPPoolRaw := ""
 	publicExposureCommonAnnotationRaw := ""
@@ -77,6 +76,7 @@ func main() {
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run for the Instance controller")
+	enableInstanceSnapshot := flag.Bool("enable-instancesnapshot", true, "Enable the instancesnapshot controller.")
 
 	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
@@ -89,12 +89,6 @@ func main() {
 
 	flag.StringVar(&containerEnvOpts.ImagesTag, "container-env-sidecars-tag", "latest", "The tag for service containers (such as gui sidecar containers)")
 	flag.StringVar(&containerEnvOpts.ContentToolsImg, "container-env-content-tools-img", "crownlabs/content-tools:latest", "The image for the content tools (for downloads and uploads)")
-
-	flag.StringVar(&instSnapOpts.VMRegistry, "vm-registry", "", "The registry where VMs should be uploaded")
-	flag.StringVar(&instSnapOpts.RegistrySecretName, "vm-registry-secret", "", "The name of the secret for the VM registry")
-
-	flag.StringVar(&instSnapOpts.ContainerImgExport, "container-export-img", "crownlabs/img-exporter", "The image for the img-exporter (container in charge of exporting the disk of a persistent vm)")
-	flag.StringVar(&instSnapOpts.ContainerKaniko, "container-kaniko-img", "gcr.io/kaniko-project/executor", "The image for the Kaniko container to be deployed")
 
 	flag.StringVar(&publicExposureIPPoolRaw, "public-exposure-ip-pool", "", "Comma-separated list of IPs, ranges or CIDRs for public exposure")
 	flag.StringVar(&publicExposureCommonAnnotationRaw, "public-exposure-common-annotations", "", "Comma-separated list of common annotations in format key1=val1,key2=val2")
@@ -208,17 +202,15 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Configure the InstanceSnapshot controller
-	instanceSnapshotCtrl := "InstanceSnapshot"
-	if err = (&instancesnapshot_controller.InstanceSnapshotReconciler{
-		Client:             mgr.GetClient(),
-		Scheme:             mgr.GetScheme(),
-		EventsRecorder:     mgr.GetEventRecorderFor(instanceSnapshotCtrl),
-		NamespaceWhitelist: nsWhitelist,
-		ContainersSnapshot: instSnapOpts,
-	}).SetupWithManager(mgr); err != nil {
-		log.Error(err, "unable to create controller", "controller", instanceSnapshotCtrl)
-		os.Exit(1)
+	if *enableInstanceSnapshot {
+		if err = (&instsnapctrl.InstanceSnapshotReconciler{
+			Client:         mgr.GetClient(),
+			Scheme:         mgr.GetScheme(),
+			EventsRecorder: mgr.GetEventRecorderFor("InstanceSnapshot"),
+		}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
+			log.Error(err, "unable to create controller", "controller", "InstanceSnapshot")
+			os.Exit(1)
+		}
 	}
 
 	// Add readiness probe

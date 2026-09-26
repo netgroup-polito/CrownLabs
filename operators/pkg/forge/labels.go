@@ -133,6 +133,12 @@ const (
 	MyDriveAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant,crownlabs.polito.it/name={tenant-id}"
 	// ShVolAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a SharedVolume PVC.
 	ShVolAuthorizationAnnotationValue = "crownlabs.polito.it/type=tenant"
+
+	// LabelSnapshotArtifactKey marks a PVC produced by the snapshot controller. Only volumes carrying
+	// it may be used as a LocalVM source outside the public snapshot catalog.
+	LabelSnapshotArtifactKey = "crownlabs.polito.it/snapshot-artifact"
+	// LabelSnapshotArtifactValue is the value expected on LabelSnapshotArtifactKey.
+	LabelSnapshotArtifactValue = "true"
 )
 
 // InstanceLabels receives in input a set of labels and returns the updated set depending on the specified template,
