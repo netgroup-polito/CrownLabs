@@ -58,7 +58,7 @@ const TenantPersonalWorkspaceSettings: FC<
         !data.cpu || data.cpu <= 0 ||
         !data.memory || data.memory <= 0 ||
         !data.instances || data.instances <= 0 ||
-        data.disk == null || data.disk < 0
+        !data.disk || data.disk <= 0
       ) {
         throw new Error('All quota fields must be provided when enabled');
       }
@@ -101,7 +101,7 @@ const TenantPersonalWorkspaceSettings: FC<
     }
   };
 
-  // Strict validator for CPU, RAM, Instances (must be >= 1)
+  // Strict validator for CPU, RAM, Instances, Disk (must be >= 1)
   const positiveNumberValidator: RuleRender = f => {
     if (f.getFieldValue('enabled')) {
       return {
@@ -110,26 +110,6 @@ const TenantPersonalWorkspaceSettings: FC<
             return Promise.resolve();
           }
           return Promise.reject(new Error(`Value must be at least 1`));
-        },
-      };
-    } else {
-      return {
-        validator(_: RuleObject, _value: number) {
-          return Promise.resolve();
-        },
-      };
-    }
-  };
-
-  // Flexible validator for Disk (allows 0)
-  const nonNegativeNumberValidator: RuleRender = f => {
-    if (f.getFieldValue('enabled')) {
-      return {
-        validator(_: RuleObject, value: number) {
-          if (value >= 0) {
-            return Promise.resolve();
-          }
-          return Promise.reject(new Error(`Value must be at least 0`));
         },
       };
     } else {
@@ -188,7 +168,7 @@ const TenantPersonalWorkspaceSettings: FC<
           cpu: [positiveNumberValidator],
           memory: [positiveNumberValidator],
           instances: [positiveNumberValidator],
-          disk: [nonNegativeNumberValidator],
+          disk: [positiveNumberValidator],
           otherResources: [
             () => ({
               validator(_, value) {

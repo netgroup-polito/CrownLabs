@@ -330,16 +330,20 @@ export const findKeyByValue = <T, K extends keyof unknown>(
 export const convertToGiB = (sizeStr: string): number => {
   const match = sizeStr
     .trim()
-    .match(/^(\d+(?:\.\d+)?)(Ki|Mi|Gi|Ti|K|M|G|T)B?$/i);
+    .match(/^(\d+(?:\.\d+)?)(?:(Ki|Mi|Gi|Ti|K|M|G|T)B?)?$/i);
   if (!match) {
     throw new Error('Invalid size string');
   }
 
   const [, valueStr, unitRaw] = match;
   const value = Number.parseFloat(valueStr);
+  const round2 = (n: number) => Math.round(n * 100) / 100;
+  // A quantity without a unit is expressed in bytes (e.g. an unset field is serialized as '0')
+  if (!unitRaw) {
+    return round2(value / (1024 * 1024 * 1024));
+  }
   // Strip trailing 'i' and uppercase to normalise both X and Xi to the same prefix
   const unit = unitRaw.replace(/i$/i, '').toUpperCase();
-  const round2 = (n: number) => Math.round(n * 100) / 100;
 
   switch (unit) {
     case 'G':
