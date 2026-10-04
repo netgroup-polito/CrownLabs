@@ -23,6 +23,8 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/klog/v2"
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -49,6 +51,8 @@ func init() {
 
 	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
 	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
+	utilruntime.Must(virtv1.AddToScheme(rscheme))
+	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
 }
 
 func main() {
@@ -78,6 +82,7 @@ func main() {
 	var enableTenant bool
 	var enableWorkspace bool
 	var enableInstance bool
+	var enableInstanceSnapshot bool
 	var enableSharedVolume bool
 	var enablePmp bool
 	var enableKeycloak bool
@@ -85,6 +90,7 @@ func main() {
 	flag.BoolVar(&enableTenant, "enable-tenant", false, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", false, "Enable the workspace controller.")
 	flag.BoolVar(&enableInstance, "enable-instance", false, "Enable the instance controller.")
+	flag.BoolVar(&enableInstanceSnapshot, "enable-instancesnapshot", true, "Enable the instance snapshot controller.")
 	flag.BoolVar(&enableSharedVolume, "enable-sharedvolume", false, "Enable the sharedvolume controller.")
 	flag.BoolVar(&enablePmp, "enable-pmp", false, "Enable the PVC mirror provisioner.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", false, "Enable the Keycloak integration.")
@@ -162,6 +168,13 @@ func main() {
 		err := setupInstance(mgr)
 		if err != nil {
 			klog.Fatal(err, "Unable to create instance webhook")
+		}
+	}
+
+	if enableInstanceSnapshot {
+		log.Info("Starting the instance snapshot controller")
+		if err := setupInstanceSnapshot(mgr); err != nil {
+			klog.Fatal(err, "Unable to create instance snapshot controller")
 		}
 	}
 

@@ -21,6 +21,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
@@ -269,23 +270,32 @@ func VirtualMachineReadinessProbe(environment *clv1alpha2.Environment) *virtv1.P
 	}
 }
 
+// ParseLocalVMImage resolves the image field of a LocalVM environment, formatted as
+// "namespace/pvc-name", into the PVC it points at.
+func ParseLocalVMImage(image string) (types.NamespacedName, error) {
+	parts := strings.Split(image, "/")
+	if len(parts) != 2 || parts[0] == "" || parts[1] == "" {
+		return types.NamespacedName{}, fmt.Errorf("invalid LocalVM image %q: expected namespace/pvc-name", image)
+	}
+
+	return types.NamespacedName{Namespace: parts[0], Name: parts[1]}, nil
+}
+
 // DataVolumeSourceForge forges the DataVolumeSource for DataVolume.
 func DataVolumeSourceForge(environment *clv1alpha2.Environment) (*cdiv1beta1.DataVolumeSource, error) {
 	// For ClassLocalVM, the DataVolume is created from a pre-existing PVC containing the golden image.
 	if environment.EnvironmentType == clv1alpha2.ClassLocalVM {
-		// Splitting the environment.Image
-		// In case of LocalVM the string must be formatted as: namespace/pvc-name
-
-		parts := strings.Split(environment.Image, "/")
-		if len(parts) == 2 && parts[0] != "" && parts[1] != "" {
-			return &cdiv1beta1.DataVolumeSource{
-				PVC: &cdiv1beta1.DataVolumeSourcePVC{
-					Namespace: parts[0],
-					Name:      parts[1],
-				},
-			}, nil
+		source, err := ParseLocalVMImage(environment.Image)
+		if err != nil {
+			return nil, err
 		}
-		return nil, fmt.Errorf("invalid LocalVM image %q: expected namespace/pvc-name", environment.Image)
+
+		return &cdiv1beta1.DataVolumeSource{
+			PVC: &cdiv1beta1.DataVolumeSourcePVC{
+				Namespace: source.Namespace,
+				Name:      source.Name,
+			},
+		}, nil
 	}
 
 	// For ClassCloudVM, the DataVolume is created from an HTTP source pointing to the image URL.

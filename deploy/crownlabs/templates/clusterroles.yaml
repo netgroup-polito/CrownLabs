@@ -86,6 +86,22 @@ rules:
       - deletecollection
 
 ---
+# Bound to the snapshot publishers in the public catalog only,
+# and grants creation alone, so that published snapshots cannot be edited afterwards.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: crownlabs-publish-instance-snapshots
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - instancesnapshots
+    verbs:
+      - create
+---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:

@@ -9,6 +9,7 @@ configurations:
     tenant: true
     workspace: true
     instance: true
+    instanceSnapshot: true
     sharedvolume: true
     pmp: false
     keycloak: true
@@ -28,6 +29,11 @@ configurations:
     # compatibilityMode: set to true for compatibility with older Keycloak versions
     compatibilityMode: false
   mydrivePVCsSize: 1Gi
+  # Namespace hosting the public snapshot catalog. Volumes stored here can be read by every tenant.
+  snapshotPublicNamespace: "crownlabs-public-snapshots"
+  # Keycloak group whose members can publish snapshots into the public catalog. Leave empty to let
+  # only the snapshot webhook bypass groups do it.
+  snapshotPublisherGroup: "kubernetes:image-publisher"
   mydrivePVCsStorageClassName: rook-nfs
   mydrivePVCsNamespace: mydrive-pvcs
 
@@ -46,7 +52,7 @@ configurations:
       memory: 50
       # Maximum number of instances that can be created by a tenant. 0 means unlimited.
       instances: 10
-  
+
   maxConcurrentShVolReconciles: 1
   sharedVolumeOptions:
     storageClass: rook-nfs
@@ -54,24 +60,24 @@ configurations:
     configFile: /etc/config/registries.yaml
     updateInterval: 600
     registries:
-        - name: harbor-registry-standalone
-          type: harbor
-          url: http://harbor-core.harbor:80
-          registryName: harbor.ng.crownlabs.polito.it
-          username: ""
-          password: ""
-          imageListName: harbor-standalone
-          project: crownlabs-standalone
-        - name: harbor-registry-containerdisks
-          type: harbor
-          url: http://harbor-core.harbor:80
-          registryName: harbor.ng.crownlabs.polito.it
-          username: ""
-          password: ""
-          imageListName: harbor-containerdisks
-          project: crownlabs-containerdisks
-    
-  pvcMirrorProvisioner:  
+      - name: harbor-registry-standalone
+        type: harbor
+        url: http://harbor-core.harbor:80
+        registryName: harbor.ng.crownlabs.polito.it
+        username: ""
+        password: ""
+        imageListName: harbor-standalone
+        project: crownlabs-standalone
+      - name: harbor-registry-containerdisks
+        type: harbor
+        url: http://harbor-core.harbor:80
+        registryName: harbor.ng.crownlabs.polito.it
+        username: ""
+        password: ""
+        imageListName: harbor-containerdisks
+        project: crownlabs-containerdisks
+
+  pvcMirrorProvisioner:
     provisionerName: pmp.crownlabs.polito.it
     storageClass:
       name: pvc-mirror
@@ -94,7 +100,7 @@ podAnnotations: {}
 securityContext:
   capabilities:
     drop:
-    - ALL
+      - ALL
   readOnlyRootFilesystem: true
   runAsNonRoot: true
   runAsUser: 20000
@@ -113,6 +119,7 @@ webhook:
   deployment:
     certsMount: /tmp/k8s-webhook-server/serving-certs/
     webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+    snapshotWebhookBypassGroups: system:masters,kubernetes:admin
     baseWorkspaces: utilities
   enableMutating: false
   enableValidating: false
