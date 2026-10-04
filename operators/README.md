@@ -113,7 +113,6 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 - **Template** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by managers and read by users, while creating new instances.
 - **Instance** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in the operator, which creates/destroy associated resources (e.g.; Virtual Machines).
-- **InstanceSnapshot** defines a snapshot for a persistent VM instance. The associated operator will start the snapshot creation process once this resource is created.
 
 ### Persistent Feature
 
@@ -132,23 +131,6 @@ The PVC represents a request for a PersistentVolume (PV). In other words thanks 
 The aim of the importer pod is to extract an image (in this case from a docker registry where it is saved) and load it inside the PVC. This process, depending on the size of the image, can take some minutes. Once the import is completed, the Phase of the DataVolume becomes Succeeded and the Instance Operator wakes up so that all the other resources are created.
 
 N.B. The process of creating a persistent VirtualMachine can take, as said, a bit more time with the respect to a normal one (5-10 mins). However when you restart the VM you will not have to wait such time.
-
-### Snapshots of persistent VM instances
-
-The Instance Operator allows the creation of snapshots of persistent VM instances, producing a new image to be uploaded into the docker registry.
-This feature is provided by an additional control loop running in the Instance Operator, the *Instance Snapshot controller*, in charge of watching the InstanceSnapshot resource.
-This controller starts the snapshot creation process once a new *InstanceSnapshot* resource is found.
-
-The two main limitations of this approach are the following:
-- Snapshots of *ephemeral* VMs are currently unsupported
-- Persistent VMs should be powered off when the snapshot creation process starts, otherwise it is not possible to steal DataVolume from the VM and the creation fails.
-
-If the request for a new snapshot is valid, a new Job is created that performs the following two main actions:
-
-- **Export the VM's disk**: this action is done by an init container in the job; it steals the DataVolume from the VM and converts the above raw disk image in a QCOW2 image, using the [QEMU disk image utility](https://qemu.readthedocs.io/en/master/tools/qemu-img.html). After the conversion, it creates the Dockerfile for the Docker image build, which is needed in the next step.
-- **Build a new image and push it to the Docker registry**: once the init container terminates successfully, an EmptyDir volume with the building context is ready to be used for building the image and pushing it to the registry. This job leverages [Kaniko](https://github.com/GoogleContainerTools/kaniko), which allows to build a Docker image without a privileged container, since all the commands in the Dockerfile are executed in userspace. Note that Kaniko requires a large amount of RAM during the building process, so make sure that the RAM memory limit in your namespace is enough (currently the Kaniko container has a RAM memory limit of 32GB).
-
-When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, you should first create a new Template with the newly uploaded image.
 
 ### Attachable storage
 
@@ -540,6 +522,153 @@ For a deeper definition go to
 - `Workspace` [GoLang code version](./api/v1alpha1/workspace_types.go)
 - `Workspace` [YAML version](./deploy/crds/crownlabs.polito.it_workspaces.yaml)
 
+## CrownLabs InstanceSnapshot Controller
+
+The InstanceSnapshot controller creates a reusable copy of a VM disk through a CDI `DataVolume` clone. It runs in the main `operator` process and watches namespaced `InstanceSnapshot` resources (`crownlabs.polito.it/v1alpha2`) and their owned DataVolumes. The resulting DataVolume and PVC have the same name and namespace as the snapshot.
+
+The implementation is in [instsnapctrl/controller.go](pkg/instsnapctrl/controller.go), with admission checks in the [snapshot webhook](pkg/controller/instancesnapshot/webhook/validator.go) and [instance webhook](pkg/controller/instance/webhook/validator.go).
+
+### Snapshot API
+
+Create the resource in the destination namespace, referencing the source Instance and its environment explicitly:
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: InstanceSnapshot
+metadata:
+  name: ubuntu-lab-snapshot
+  namespace: crownlabs-public-snapshots
+  labels:
+    crownlabs.polito.it/tenant: mario
+spec:
+  instanceRef:
+    name: ubuntu-lab
+    namespace: tenant-mario
+  environment: desktop
+  imageName: ubuntu-lab
+  description: Base disk for the laboratory
+```
+
+For ordinary users, `crownlabs.polito.it/tenant` must be present and equal the authenticated username. Ownership is recorded in this label, replacing the former `spec.tenantRef` field. The source namespace is required by the webhook and has no default. `imageName` and `description` are optional; they become annotations on the DataVolume and do not determine its name.
+
+The entire `spec`, including the descriptive fields, is immutable after creation. The CRD enforces spec immutability, and the validating webhook also prevents changes to the tenant label. These update restrictions apply even to users in the bypass groups. See the [API types](api/v1alpha2/instancesnapshot_types.go) and [CRD schema](deploy/crds/crownlabs.polito.it_instancesnapshots.yaml).
+
+### Reconciliation and artifacts
+
+The source must have an existing disk PVC and a Template with exactly one environment. Use that environment's name in `spec.environment`. Stop the Instance and wait for its VirtualMachineInstance to disappear before taking the snapshot.
+
+1. The controller adds `instancesnapshot.crownlabs.polito.it/finalizer` using a metadata patch, preserving the immutable spec, and initializes an empty phase to `Pending`.
+2. It resolves the source Instance and Template, then checks `Instance.spec.running` and the presence of the source VirtualMachineInstance. A running Instance or a remaining VMI causes reconciliation to retry; these checks happen in the controller, not at snapshot admission.
+3. It creates a DataVolume in the snapshot's namespace with `spec.source.pvc` pointing to the source disk. The clone copies the source PVC's storage request, storage class, access modes and volume mode. CDI performs the clone, including cross-namespace data movement when needed.
+4. While the DataVolume is non-terminal, the snapshot becomes `Processing`. On CDI `Succeeded`, the controller labels the artifact PVC `crownlabs.polito.it/snapshot-artifact=true` and marks the snapshot `Completed`. On CDI `Failed`, it marks the snapshot `Failed`.
+
+An existing DataVolume at the destination must already be controlled by this snapshot; otherwise the snapshot fails with `ArtifactNotOwned`. Completed and failed snapshots are terminal and are not retried automatically. A new attempt requires a new InstanceSnapshot resource.
+
+Successful status includes the artifact reference and storage size:
+
+```yaml
+status:
+  phase: Completed
+  artifact:
+    dataVolumeRef:
+      name: ubuntu-lab-snapshot
+      namespace: crownlabs-public-snapshots
+    volumeSize: 20Gi
+```
+
+`volumeSize` is a Kubernetes quantity copied from the DataVolume PVC storage request. It describes the provisioned disk request, not a compressed image size. The DataVolume also carries the `crownlabs.polito.it/image-name`, `crownlabs.polito.it/snapshot-description` and `crownlabs.polito.it/snapshot-tenant` annotations when the corresponding values are available.
+
+On deletion, the finalizer requests deletion of the referenced DataVolume only if it is controlled by that snapshot, then removes itself. An absent artifact is accepted; an unowned DataVolume is left untouched. CDI/Kubernetes handle the dependent PVC cleanup. A failed clone is retained until the snapshot is deleted so it can be inspected.
+
+### Access control
+
+Kubernetes RBAC controls creation in the destination namespace. The snapshot webhook additionally validates the tenant label, permission to publish into the public namespace, and permission to read the source namespace. Ordinary tenants can read sources in:
+
+| Source namespace | Access |
+| --- | --- |
+| Their own tenant namespace | Allowed. |
+| An enrolled workspace namespace | Allowed for users and managers; candidate or failing memberships are excluded. |
+| The configured public snapshot namespace | Allowed. |
+| Another tenant or an unrelated workspace | Denied. |
+
+Workspace managers do not gain access to the private namespaces of their workspace's tenants. Namespace access is shared with LocalVM validation through `forge.TenantCanReadNamespace`.
+
+Publishing to the public namespace also requires membership in `snapshotPublisherGroup`. The umbrella chart binds this group to `crownlabs-publish-instance-snapshots` through a namespaced RoleBinding; that role grants only `create`, not read, update or delete. The existing view and management roles provide their respective permissions through normal RBAC aggregation.
+
+Membership in `snapshotWebhookBypassGroups` skips the snapshot webhook's creation checks for tenant ownership, source access and publisher membership. It does not grant Kubernetes RBAC permissions. An empty `snapshotPublisherGroup` prevents ordinary users from publishing publicly; bypass users still follow their RBAC permissions.
+
+### Public snapshot namespace
+
+The public snapshot catalog uses `crownlabs-public-snapshots` by default. The Go default is defined by `forge.DefaultPublicSnapshotNamespace` in [namespace.go](pkg/forge/namespace.go) and can be overridden with `--snapshot-public-namespace`.
+
+For Helm deployments, set `configurations.snapshotPublicNamespace` in the operator chart, or `operator.configurations.snapshotPublicNamespace` in the umbrella chart. The umbrella chart inherits the default from the operator subchart. This value is passed to the operator's snapshot and instance admission checks and determines the namespace of the public snapshot publisher RoleBinding.
+
+Volumes in this namespace can be read by every tenant. Publishing remains controlled by `snapshotPublisherGroup` and `webhook.deployment.snapshotWebhookBypassGroups`; the namespace setting does not change those permissions.
+
+### Configuration and deployment
+
+The controller is enabled by `configurations.features.instanceSnapshot` in the operator chart, or `operator.configurations.features.instanceSnapshot` in the umbrella chart. Both charts and the binary default to enabling the controller. Admission checks require the webhook server and validating webhook configuration as well:
+
+```yaml
+# Umbrella chart values
+operator:
+  configurations:
+    features:
+      instanceSnapshot: true
+      instance: true
+      webhooks: true
+    snapshotPublicNamespace: crownlabs-public-snapshots
+    snapshotPublisherGroup: kubernetes:image-publisher
+  webhook:
+    enableValidating: true
+    deployment:
+      snapshotWebhookBypassGroups: system:masters,kubernetes:admin
+```
+
+The umbrella chart already enables these webhooks. The standalone operator chart defaults `features.webhooks` and `webhook.enableValidating` to `false`, so enable both when deploying it directly. The publisher RoleBinding and user-facing ClusterRoles are supplied by the umbrella chart.
+
+| CLI flag | Binary default | Helm default |
+| --- | --- | --- |
+| `--enable-instancesnapshot` | `true` | `true` |
+| `--snapshot-public-namespace` | `crownlabs-public-snapshots` | `crownlabs-public-snapshots` |
+| `--snapshot-publisher-group` | Empty | `kubernetes:image-publisher` |
+| `--snapshot-webhook-bypass-groups` | `system:masters` | `system:masters,kubernetes:admin` |
+
+Install the updated InstanceSnapshot CRD before upgrading the operator, and ensure CDI and the storage backend support the required PVC cloning. Provision the destination namespace and label it to match `configurations.targetLabel`: the validating webhook configurations select namespaces using that label. The public namespace setting alone does not create or label the namespace. Clients using the former `spec.tenantRef` field must switch to the tenant label; restart qlkube after applying CRD changes if GraphQL clients consume the schema.
+
+### Starting instances from a snapshot
+
+Use a completed artifact as a Template environment with `environmentType: LocalVM` and `image: <artifact-namespace>/<artifact-name>`. For the example above, the image is `crownlabs-public-snapshots/ubuntu-lab-snapshot`. The instance controller creates a new DataVolume cloned from that PVC.
+
+The instance webhook validates LocalVM sources on Instance creation and when changing a stopped Instance to running:
+
+- The source reference must contain a namespace and PVC name, and the PVC must exist.
+- The requesting tenant must be allowed to read the namespace. Outside the public catalog, the PVC must also carry `crownlabs.polito.it/snapshot-artifact=true`.
+- The Template environment's `resources.disk` must be at least the larger of the source PVC's storage request and reported capacity. Missing or non-positive source sizes are rejected.
+
+The bypass groups skip namespace and artifact-label authorization checks, but PVC existence and disk-size checks still apply, including for public images.
+
+### Checking and troubleshooting snapshots
+
+Inspect the snapshot, its events, and its DataVolume/PVC in the destination namespace:
+
+```bash
+kubectl get isnap -n crownlabs-public-snapshots
+kubectl describe isnap ubuntu-lab-snapshot -n crownlabs-public-snapshots
+kubectl get datavolume,pvc ubuntu-lab-snapshot -n crownlabs-public-snapshots
+```
+
+| Symptom or event | Meaning |
+| --- | --- |
+| `Pending` with running-Instance/VMI errors in operator logs | Stop the source VM and wait for its VMI to disappear. |
+| `Processing` | Inspect the DataVolume's CDI status and events for clone progress or storage problems. |
+| `SourceInstanceDeleted` / `TemplateNotFound` | The referenced Instance or its Template was not found; the snapshot is `Failed`. |
+| `MultiEnvTemplateNotAllowed` | The Template has zero or multiple environments; the snapshot is `Failed`. |
+| `ArtifactNotOwned` | The target or cleanup reference points to a DataVolume not owned by this snapshot. |
+| `SnapshotFailed` / `SnapshotCompleted` | CDI reported failure, or the clone succeeded and the artifact PVC was labeled. |
+
+`status.conditions` is part of the API but is not populated by the current controller; use `status.phase`, Kubernetes events and operator logs to diagnose progress.
+
 ## CrownLabs Image List Updater
 
 The CrownLabs Image List Updater is a modular component that manages the retrieval and synchronization of available images from container registries and exposes them as ImageList custom resources in Kubernetes.
@@ -723,4 +852,3 @@ This enables integration with external triggers such as:
 - Webhook endpoints from registries notifying of new images
 - Event-based triggers from other controllers
 - On-demand API endpoints for manual updates
-

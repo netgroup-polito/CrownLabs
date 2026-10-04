@@ -29,4 +29,25 @@ subjects:
 - kind: Group
   name: system:authenticated
   apiGroup: rbac.authorization.k8s.io
+{{- if and .Values.operator.configurations.snapshotPublicNamespace .Values.operator.configurations.snapshotPublisherGroup }}
+
+---
+# Unlike the bindings above it is namespaced: publishing is granted in the public snapshot catalog only.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: crownlabs-publish-instance-snapshots
+  namespace: {{ .Values.operator.configurations.snapshotPublicNamespace }}
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: crownlabs-publish-instance-snapshots
+subjects:
+- kind: Group
+  name: {{ .Values.operator.configurations.snapshotPublisherGroup | quote }}
+  apiGroup: rbac.authorization.k8s.io
+{{- end }}
+
 {{- end }}
