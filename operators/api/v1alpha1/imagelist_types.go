@@ -25,6 +25,23 @@ type ImageListItem struct {
 
 	// The list of versions the image is available in.
 	Versions []string `json:"versions"`
+
+	// Optional metadata for individual versions. Entries may be missing when the source has no metadata.
+	// +optional
+	// +listType=map
+	// +listMapKey=version
+	VersionDetails []ImageVersionDetails `json:"versionDetails,omitempty"`
+}
+
+// ImageVersionDetails describes metadata for one image version.
+type ImageVersionDetails struct {
+	// The corresponding entry in versions, or an empty string for an unversioned artifact.
+	Version string `json:"version"`
+
+	// The snapshot volume capacity as a Kubernetes quantity, for example "10Gi".
+	// Omitted when unknown; this is not the compressed image size in a registry.
+	// +optional
+	VolumeSize string `json:"volumeSize,omitempty"`
 }
 
 // ImageListSpec is the specification of the desired state of the ImageList.

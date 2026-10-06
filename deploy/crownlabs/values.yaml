@@ -102,8 +102,10 @@ operator:
   configurations:
     tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
     targetLabel: crownlabs.polito.it/operator-selector=production
-    # snapshotPublicNamespace inherits its default from the operator chart.
-    # Override it here to change the public snapshot catalog namespace.
+    # Namespace hosting the public snapshot catalog. Volumes stored here can be read by every tenant.
+    # Also used by public-snapshots ImageList sources that omit namespace.
+    # Check that this namespace exists before deploying: it must be created manually.
+    snapshotPublicNamespace: "crownlabs-public-snapshots"
     # Keycloak group whose members can publish snapshots into the public catalog. Leave empty to let
     # only the snapshot webhook bypass groups do it.
     snapshotPublisherGroup: "kubernetes:image-publisher"
@@ -144,6 +146,12 @@ operator:
           password: ""
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
+        - name: snapshots-workspace
+          # Read completed artifacts from configurations.snapshotPublicNamespace.
+          type: public-snapshots
+          # Set namespace explicitly only when overriding the inherited catalog namespace.
+          # The ImageList resource name is independent of the artifact namespace.
+          imageListName: public-local-snapshots
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin

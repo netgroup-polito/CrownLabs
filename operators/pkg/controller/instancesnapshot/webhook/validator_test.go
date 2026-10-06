@@ -155,7 +155,7 @@ var _ = Describe("InstanceSnapshotValidator", func() {
 			// service account, which would be rejected were the scope checked again.
 			oldSnapshot := snapshotOf(testTenant, testTenantNamespace)
 			newSnapshot := oldSnapshot.DeepCopy()
-			newSnapshot.Finalizers = []string{"instancesnapshot.crownlabs.polito.it/finalizer"}
+			newSnapshot.Finalizers = []string{clv1alpha2.InstSnapCtrlFinalizerName}
 
 			_, err := validator.ValidateUpdate(requestFrom(testServiceAccount), oldSnapshot, newSnapshot)
 			Expect(err).NotTo(HaveOccurred())

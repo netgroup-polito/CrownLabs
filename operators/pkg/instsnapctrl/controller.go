@@ -56,25 +56,24 @@ func (r *InstanceSnapshotReconciler) Reconcile(ctx context.Context, req ctrl.Req
 	}
 
 	// Snapshot finalizer for DataVolume cleanup on deletion
-	finalizerName := "instancesnapshot.crownlabs.polito.it/finalizer"
 	if snapshot.DeletionTimestamp.IsZero() {
-		if !ctrlutil.ContainsFinalizer(&snapshot, finalizerName) {
+		if !ctrlutil.ContainsFinalizer(&snapshot, clv1alpha2.InstSnapCtrlFinalizerName) {
 			// Patch metadata only: a full Update can change omitted or empty spec fields
 			// during JSON serialization and violate the spec's immutability validation.
 			original := snapshot.DeepCopy()
-			ctrlutil.AddFinalizer(&snapshot, finalizerName)
+			ctrlutil.AddFinalizer(&snapshot, clv1alpha2.InstSnapCtrlFinalizerName)
 			if err := r.Patch(ctx, &snapshot, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, err
 			}
 		}
 	} else {
 		// Deletion logic
-		if ctrlutil.ContainsFinalizer(&snapshot, finalizerName) {
+		if ctrlutil.ContainsFinalizer(&snapshot, clv1alpha2.InstSnapCtrlFinalizerName) {
 			if err := r.cleanupDataVolume(ctx, &snapshot); err != nil {
 				return ctrl.Result{}, err
 			}
 			original := snapshot.DeepCopy()
-			ctrlutil.RemoveFinalizer(&snapshot, finalizerName)
+			ctrlutil.RemoveFinalizer(&snapshot, clv1alpha2.InstSnapCtrlFinalizerName)
 			if err := r.Patch(ctx, &snapshot, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 				return ctrl.Result{}, err
 			}
