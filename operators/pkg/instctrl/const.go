@@ -25,6 +25,11 @@ const (
 	// EvTntNotFoundMsg -> the event message corresponding to a not found tenant.
 	EvTntNotFoundMsg = "Tenant %v not found"
 
+	// EvClusterFlavorNotFound -> the event key corresponding to a not found cluster flavor.
+	EvClusterFlavorNotFound = "ClusterFlavorNotFound"
+	// EvClusterFlavorNotFoundMsg -> the event message corresponding to a not found cluster flavor.
+	EvClusterFlavorNotFoundMsg = "ClusterFlavor %v/%v not found"
+
 	// EvEnvironmentErr -> the event key corresponding to a failed environment enforcement.
 	EvEnvironmentErr = "EnvironmentEnforcementFailed"
 	// EvEnvironmentErrMsg -> the event message corresponding to a failed environment enforcement.
