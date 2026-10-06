@@ -285,6 +285,8 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
 			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+			Expect(domain.Devices.Video).To(BeNil())
+			Expect(domain.Devices.Inputs).To(BeEmpty())
 		})
 
 		When("the environment is served by native VNC", func() {
@@ -304,6 +306,12 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 					{Protocol: "UDP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
 				}
 				Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
+			})
+			It("Should set the virtio video device", func() {
+				Expect(domain.Devices.Video).To(Equal(&virtv1.VideoDevice{Type: "virtio"}))
+			})
+			It("Should set the virtio tablet", func() {
+				Expect(domain.Devices.Inputs).To(ConsistOf(virtv1.Input{Name: "tablet", Type: virtv1.InputTypeTablet, Bus: virtv1.InputBusVirtio}))
 			})
 		})
 	})
