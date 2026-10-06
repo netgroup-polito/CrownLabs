@@ -17,6 +17,7 @@ import ModalCreateTemplate from '../ModalCreateTemplate';
 import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 import QuotaDisplay from '../QuotaDisplay';
+import WorkspaceImagesContextProvider from '../../../contexts/WorkspaceImagesContextProvider';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -28,6 +29,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [showUserListModal, setShowUserListModal] = useState<boolean>(false);
 
   const { tenantNamespace, workspace, isPersonalWorkspace: isPersonal } = props;
+  const workspaceNamespace = isPersonal ? tenantNamespace : workspace.namespace;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
@@ -37,9 +39,6 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const [show, setShow] = useState(false);
 
   const submitHandler = (t: Template) => {
-    const workspaceNamespace = isPersonal
-      ? tenantNamespace
-      : workspace.namespace;
     const templateIdValue = `${workspace.name}-`;
 
     const environmentList: EnvironmentListListItemInput[] = [];
@@ -119,10 +118,10 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
     });
   };
 
-  return (
+  const content = (
     <>
       <ModalCreateTemplate
-        workspaceNamespace={isPersonal ? tenantNamespace : workspace.namespace}
+        workspaceNamespace={workspaceNamespace}
         cpuInterval={{ max: 8, min: 1 }}
         ramInterval={{ max: 32, min: 1 }}
         diskInterval={{ max: 50, min: 10 }}
@@ -220,6 +219,14 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         </div>
       </Box>
     </>
+  );
+
+  return workspace.role === WorkspaceRole.manager ? (
+    <WorkspaceImagesContextProvider workspaceNamespace={workspaceNamespace}>
+      {content}
+    </WorkspaceImagesContextProvider>
+  ) : (
+    content
   );
 };
 

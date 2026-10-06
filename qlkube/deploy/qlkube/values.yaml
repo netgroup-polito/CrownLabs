@@ -34,6 +34,9 @@ configuration:
           - resource: templates
             version: v1alpha2
             mapping: itPolitoCrownlabsV1alpha2Template
+          - resource: instancesnapshots
+            version: v1alpha2
+            mapping: itPolitoCrownlabsV1alpha2InstanceSnapshot
 
   # This wrappers configuration maps to the current content
   # of the src/wrappers.js file. Must be a subset of exposedAPIs.

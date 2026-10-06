@@ -145,7 +145,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
               : 'lg:w-1/2 xl:w-5/12'
           } ${extended ? 'pr-2' : ''}`}
         >
-          {!extended && <RowInstanceActionsDropdown {...fieldsDropdown} />}
+          <RowInstanceActionsDropdown {...fieldsDropdown} />
           {persistent && (
             <RowInstanceActionsPersistent
               instance={instance}
@@ -163,7 +163,6 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
             instance={instance}
             viewMode={viewMode}
           />
-          {extended && <RowInstanceActionsDropdown {...fieldsDropdown} />}
         </div>
       </div>
       <Modal

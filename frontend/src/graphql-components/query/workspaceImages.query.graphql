@@ -1,0 +1,9 @@
+query workspaceImages($workspaceNamespace: String!) {
+  imageList: listCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot(
+    namespace: $workspaceNamespace
+  ) {
+    images: items {
+      ...WorkspaceImageFields
+    }
+  }
+}

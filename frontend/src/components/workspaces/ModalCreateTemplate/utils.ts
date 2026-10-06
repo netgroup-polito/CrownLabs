@@ -1,6 +1,7 @@
 import {
   VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS,
   VITE_APP_CROWNLABS_IMAGELIST_STANDALONE,
+  VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
 } from '../../../env';
 import { EnvironmentType, type ImagesQuery } from '../../../generated-types';
 import type { Template } from './ModalCreateTemplate';
@@ -28,6 +29,35 @@ export const formItemLayout = {
 export const getImageNameNoVer = (image: string) => {
   // split on the last ':' to correctly handle registry:port/repo:tag cases
   return image.includes(':') ? image.slice(0, image.lastIndexOf(':')) : image;
+};
+
+// Snapshot volumes originate from the template Disk field, which stores an
+// integer as a Gi quantity (for example, 15 becomes "15Gi").
+export const volumeSizeToGiB = (
+  volumeSize: string | number | null | undefined,
+): number | undefined => {
+  if (volumeSize === null || volumeSize === undefined) return;
+
+  if (typeof volumeSize === 'number') {
+    return Number.isInteger(volumeSize) ? volumeSize : undefined;
+  }
+
+  const match = volumeSize.trim().match(/^(\d+)Gi$/);
+  return match ? Number(match[1]) : undefined;
+};
+
+export const getSnapshotDateTime = (
+  resourceName?: string | null,
+  imageName?: string | null,
+): string | undefined => {
+  if (!resourceName || !imageName) return;
+
+  const prefix = `${imageName}-`;
+  const suffix = resourceName.startsWith(prefix)
+    ? resourceName.slice(prefix.length)
+    : '';
+
+  return /^\d{8}-\d{6}$/.test(suffix) ? suffix : undefined;
 };
 
 export const getDefaultTemplate = (resources: Resources): Template => {
@@ -84,25 +114,81 @@ export const getImagesFromList = (imageList: ImageList): Image[] => {
 // Process image lists from the query
 export const getImageLists = (data: ImagesQuery): ImageList[] => {
   if (!data?.imageList?.images) return [];
-  return data.imageList.images
-    .filter(img => img?.spec?.registryName && img?.spec?.images)
-    .filter(img => {
-      const name = img?.metadata?.name;
-      if (!name) return false;
-      const normalized = name.trim();
-      return projectName.some(proj => proj && normalized === proj.trim());
-    })
-    .map(img => ({
-      name: img!.metadata?.name || 'Unnamed List',
-      registryName: img!.spec!.registryName,
-      projectBaseName: img!.spec!.projectBaseName || undefined,
-      images: img!
-        .spec!.images.filter(i => i?.name && i?.versions)
-        .map(i => ({
-          name: i!.name,
-          versions: i!.versions.filter(v => v !== null) as string[],
-        })),
-    }));
+  return data.imageList.images.flatMap(img => {
+    const spec = img?.spec;
+    const name = img?.metadata?.name;
+    if (!name || !spec?.registryName) return [];
+
+    const normalized = name.trim();
+    if (!projectName.some(proj => proj && normalized === proj.trim())) {
+      return [];
+    }
+
+    return [
+      {
+        name,
+        registryName: spec.registryName,
+        projectBaseName: spec.projectBaseName || undefined,
+        images: spec.images
+          .filter((image): image is NonNullable<typeof image> =>
+            Boolean(image?.name),
+          )
+          .map(image => ({
+            name: image.name,
+            versions: image.versions.filter(
+              (version): version is string => version !== null,
+            ),
+            versionDetails: image.versionDetails
+              ?.filter(
+                (detail): detail is NonNullable<typeof detail> =>
+                  detail !== null,
+              )
+              .map(detail => ({
+                version: detail.version,
+                volumeSize: detail.volumeSize ?? undefined,
+              })),
+          })),
+      },
+    ];
+  });
+};
+
+// Public local images are published by the operator as a cluster-scoped
+// ImageList. Unlike workspace images, this list is a catalog: its registryName
+// contains the namespace of the public PVCs and versions identify each image.
+export const getPublicSnapshotImageList = (
+  data: ImagesQuery,
+): ImageList | undefined => {
+  const imageList = data?.imageList?.images?.find(
+    image =>
+      image?.metadata?.name === VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
+  );
+
+  if (!imageList?.spec?.registryName || !imageList.spec.images) return;
+
+  return {
+    name: imageList.metadata?.name ?? '',
+    registryName: imageList.spec.registryName,
+    projectBaseName: imageList.spec.projectBaseName || undefined,
+    images: imageList.spec.images
+      .filter((image): image is NonNullable<typeof image> =>
+        Boolean(image?.name),
+      )
+      .map(image => ({
+        name: image.name,
+        versions: image.versions.filter(
+          (version): version is string => version !== null,
+        ),
+        versionDetails: image.versionDetails
+          ?.filter(
+            (detail): detail is NonNullable<typeof detail> => detail !== null,
+          )
+          .map(detail => ({
+            version: detail.version,
+            volumeSize: detail.volumeSize ?? undefined,
+          })),
+      })),
+  };
 };
 
 export const useImageLists = (dataImages: ImagesQuery) => {
