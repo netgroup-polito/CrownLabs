@@ -1,0 +1,37 @@
+fragment WorkspaceImageFields on ItPolitoCrownlabsV1alpha2InstanceSnapshot {
+  metadata {
+    name
+    namespace
+    uid
+    creationTimestamp
+    generation
+    labels
+  }
+  spec {
+    instanceRef {
+      name
+      namespace
+    }
+    environment
+    imageName
+    description
+  }
+  status {
+    phase
+    artifact {
+      dataVolumeRef {
+        name
+        namespace
+      }
+      volumeSize
+    }
+    conditions {
+      type
+      status
+      reason
+      message
+      observedGeneration
+      lastTransitionTime
+    }
+  }
+}

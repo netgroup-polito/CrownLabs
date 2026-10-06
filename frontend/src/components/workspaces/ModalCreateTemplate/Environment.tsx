@@ -10,21 +10,50 @@ import {
   Space,
   Cascader,
   ConfigProvider,
+  Empty,
 } from 'antd';
-import { useEffect, useState, type FC } from 'react';
-import { EnvironmentType } from '../../../generated-types';
+import { useContext, useEffect, useState, type FC } from 'react';
+import { EnvironmentType, Phase4 } from '../../../generated-types';
+import { WorkspaceImagesContext } from '../../../contexts/WorkspaceImagesContext';
 import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
-import type { ChildFormItem, Resources, TemplateFormEnv, Image } from './types';
-import { formItemLayout, getImageNameNoVer, isInImageList } from './utils';
+import type {
+  ChildFormItem,
+  Resources,
+  TemplateFormEnv,
+  Image,
+  ImageList,
+} from './types';
+import {
+  formItemLayout,
+  getImageNameNoVer,
+  getSnapshotDateTime,
+  isInImageList,
+  volumeSizeToGiB,
+} from './utils';
 import type { DefaultOptionType } from 'antd/es/cascader';
 
 // Environment type options
 const environmentTypeOptions = [
   { value: EnvironmentType.VirtualMachine, label: 'Virtual Machine' },
   { value: EnvironmentType.CloudVm, label: 'Cloud VM' },
+  { value: EnvironmentType.LocalVm, label: 'Local VM' },
   { value: EnvironmentType.Standalone, label: 'Container (Standalone)' },
   //{ value: EnvironmentType.Container, label: 'Container' },
+];
+
+// A disabled empty state keeps the source's side menu expandable.
+const emptyImageOptions: DefaultOptionType[] = [
+  {
+    value: 'empty',
+    label: (
+      <Empty
+        image={Empty.PRESENTED_IMAGE_SIMPLE}
+        description="No images available"
+      />
+    ),
+    disabled: true,
+  },
 ];
 
 const getImageNamesCascader = (images: Image[]) => {
@@ -83,6 +112,9 @@ type EnvironmentProps = {
   resources: Resources;
   sharedVolumes: SharedVolume[];
   isPersonal: boolean;
+  publicSnapshotImageList?: ImageList;
+  loadingPublicSnapshotImageList: boolean;
+  publicSnapshotImageListError: boolean;
 } & ChildFormItem;
 
 export const Environment: FC<EnvironmentProps> = ({
@@ -93,6 +125,9 @@ export const Environment: FC<EnvironmentProps> = ({
   resources,
   sharedVolumes,
   isPersonal,
+  publicSnapshotImageList,
+  loadingPublicSnapshotImageList,
+  publicSnapshotImageListError,
 }) => {
   const form = Form.useFormInstance();
 
@@ -198,6 +233,134 @@ export const Environment: FC<EnvironmentProps> = ({
   };
 
   const currentEnvironmentType = getEnvironmentType(name);
+  const {
+    data: workspaceImages,
+    loading: loadingWorkspaceImages,
+    error: workspaceImagesError,
+  } = useContext(WorkspaceImagesContext);
+
+  const completedImageOptions = (images: typeof workspaceImages) => {
+    const selectableImages = images?.imageList?.images ?? [];
+    const imageNameOccurrences = new Map<string, number>();
+
+    selectableImages.forEach(image => {
+      const dataVolumeRef = image?.status?.artifact?.dataVolumeRef;
+      const imageName = image?.spec?.imageName || image?.metadata?.name;
+      if (
+        image?.status?.phase === Phase4.Completed &&
+        dataVolumeRef?.name &&
+        dataVolumeRef.namespace &&
+        imageName
+      ) {
+        imageNameOccurrences.set(
+          imageName,
+          (imageNameOccurrences.get(imageName) ?? 0) + 1,
+        );
+      }
+    });
+
+    return selectableImages
+      .flatMap(image => {
+        const dataVolumeRef = image?.status?.artifact?.dataVolumeRef;
+        const imageName = image?.spec?.imageName || image?.metadata?.name;
+        if (
+          image?.status?.phase !== Phase4.Completed ||
+          !dataVolumeRef?.name ||
+          !dataVolumeRef.namespace ||
+          !imageName
+        )
+          return [];
+
+        const dateTime = getSnapshotDateTime(
+          image?.metadata?.name,
+          image?.spec?.imageName,
+        );
+        const hasDuplicateName = (imageNameOccurrences.get(imageName) ?? 0) > 1;
+
+        // PVC has the same name and namespace as its DataVolume.
+        return [
+          {
+            value: `${dataVolumeRef.namespace}/${dataVolumeRef.name}`,
+            label:
+              hasDuplicateName && dateTime
+                ? `${imageName} (${dateTime})`
+                : imageName,
+            minimumDiskGiB: volumeSizeToGiB(
+              image?.status?.artifact?.volumeSize,
+            ),
+          },
+        ];
+      })
+      .sort((a, b) => a.label.localeCompare(b.label));
+  };
+
+  const completedWorkspaceImages = completedImageOptions(workspaceImages);
+  const publicSnapshotImageOptions = (publicSnapshotImageList?.images ?? [])
+    .flatMap(image =>
+      image.versions.length
+        ? image.versions.map(version => {
+            const versionDetails = image.versionDetails?.find(
+              details => details.version === version,
+            );
+            return {
+              value: `${publicSnapshotImageList!.registryName}/${image.name}-${version}`,
+              label: `${image.name} (${version})`,
+              minimumDiskGiB: volumeSizeToGiB(versionDetails?.volumeSize),
+            };
+          })
+        : [
+            {
+              value: `${publicSnapshotImageList!.registryName}/${image.name}`,
+              label: image.name,
+              minimumDiskGiB: volumeSizeToGiB(
+                image.versionDetails?.find(details => details.version === '')
+                  ?.volumeSize,
+              ),
+            },
+          ],
+    )
+    .sort((a, b) => a.label.localeCompare(b.label));
+  const publicSnapshotImageValues = new Set(
+    publicSnapshotImageOptions.map(image => image.value),
+  );
+  const localImageOptions: DefaultOptionType[] = [
+    {
+      value: 'workspace',
+      label: 'From this Workspace',
+      children:
+        loadingWorkspaceImages || workspaceImagesError
+          ? [
+              {
+                value: 'unavailable',
+                label: loadingWorkspaceImages
+                  ? 'Loading images…'
+                  : 'Unable to load images',
+                disabled: true,
+              },
+            ]
+          : completedWorkspaceImages.length
+            ? completedWorkspaceImages
+            : emptyImageOptions,
+    },
+    {
+      value: 'public-registry',
+      label: 'From the Public Registry',
+      children:
+        loadingPublicSnapshotImageList || publicSnapshotImageListError
+          ? [
+              {
+                value: 'unavailable',
+                label: loadingPublicSnapshotImageList
+                  ? 'Loading images…'
+                  : 'Unable to load images',
+                disabled: true,
+              },
+            ]
+          : publicSnapshotImageOptions.length
+            ? publicSnapshotImageOptions
+            : emptyImageOptions,
+    },
+  ];
   const currentAvailableImages = getAvailableImagesForEnvironment(
     currentEnvironmentType,
     availableImagesVM,
@@ -208,6 +371,26 @@ export const Environment: FC<EnvironmentProps> = ({
     name,
     'image',
   ]);
+  const selectedImageMinimumDisk = currentImageValue
+    ? [...completedWorkspaceImages, ...publicSnapshotImageOptions].find(
+        image => image.value === currentImageValue,
+      )?.minimumDiskGiB
+    : undefined;
+  const localVmMinimumDisk = Math.max(
+    resources.disk.min,
+    selectedImageMinimumDisk ?? 0,
+  );
+
+  useEffect(() => {
+    if (
+      currentEnvironmentType !== EnvironmentType.LocalVm ||
+      !environments?.[name] ||
+      environments[name].disk >= localVmMinimumDisk
+    )
+      return;
+
+    form.setFieldValue(['environments', name, 'disk'], localVmMinimumDisk);
+  }, [currentEnvironmentType, environments, form, localVmMinimumDisk, name]);
 
   useEffect(() => {
     setImagesSearchOptions(getImageNamesCascader(currentAvailableImages));
@@ -301,6 +484,7 @@ export const Environment: FC<EnvironmentProps> = ({
               break;
 
             case EnvironmentType.CloudVm:
+            case EnvironmentType.LocalVm:
               gui = false;
               rewriteUrl = false;
               persistent = true;
@@ -315,6 +499,11 @@ export const Environment: FC<EnvironmentProps> = ({
           return {
             ...env,
             environmentType: envType,
+            image:
+              envType === EnvironmentType.LocalVm ||
+              env.environmentType === EnvironmentType.LocalVm
+                ? ''
+                : env.image,
             gui: gui,
             rewriteUrl: rewriteUrl,
             persistent: persistent,
@@ -467,7 +656,48 @@ export const Environment: FC<EnvironmentProps> = ({
       </Form.Item>
 
       {/* VM Image Selection - Remove {...fullLayout} */}
-      {isVM(name) || isStandalone(name) ? (
+      {currentEnvironmentType === EnvironmentType.LocalVm ? (
+        <ConfigProvider
+          theme={{ components: { Cascader: { dropdownHeight: 'auto' } } }}
+        >
+          <Form.Item
+            {...restField}
+            label="Image"
+            name={[name, 'image']}
+            rules={[{ required: true, message: 'Select an image' }]}
+            {...formItemLayout}
+            getValueProps={(value?: string) => ({
+              value: value
+                ? [
+                    publicSnapshotImageValues.has(value)
+                      ? 'public-registry'
+                      : 'workspace',
+                    value,
+                  ]
+                : [],
+            })}
+            getValueFromEvent={(value: string[]) =>
+              value?.length === 2 ? value[1] : ''
+            }
+          >
+            <Cascader
+              options={localImageOptions}
+              placeholder="Select image source"
+              expandTrigger="click"
+              changeOnSelect={false}
+              displayRender={(labels, selectedOptions) =>
+                selectedOptions?.[0]?.value === 'public-registry' &&
+                currentImageValue
+                  ? currentImageValue.replace('/', ' / ')
+                  : labels.join(' / ')
+              }
+              getPopupContainer={trigger =>
+                trigger.parentElement || document.body
+              }
+            />
+          </Form.Item>
+        </ConfigProvider>
+      ) : isVM(name) || isStandalone(name) ? (
         <ConfigProvider
           theme={{
             components: {
@@ -633,7 +863,8 @@ export const Environment: FC<EnvironmentProps> = ({
               >
                 <Checkbox
                   disabled={
-                    getEnvironmentType(name) === EnvironmentType.CloudVm
+                    getEnvironmentType(name) === EnvironmentType.CloudVm ||
+                    getEnvironmentType(name) === EnvironmentType.LocalVm
                   }
                   onChange={value =>
                     handlePersistentChange(value.target.checked)
@@ -718,10 +949,34 @@ export const Environment: FC<EnvironmentProps> = ({
         <Form.Item
           {...restField}
           name={[name, 'disk']}
+          rules={[
+            {
+              validator: async (_, value: number | null | undefined) => {
+                if (currentEnvironmentType !== EnvironmentType.LocalVm) return;
+                if (localVmMinimumDisk > resources.disk.max) {
+                  throw new Error(
+                    `The selected image requires at least ${localVmMinimumDisk} GiB, but the maximum available disk is ${resources.disk.max} GiB.`,
+                  );
+                }
+                if ((value ?? 0) < localVmMinimumDisk) {
+                  throw new Error(
+                    `Disk must be at least ${localVmMinimumDisk} GiB for the selected image.`,
+                  );
+                }
+              },
+            },
+          ]}
           label={
             <>
               Disk{' '}
-              <Tooltip title="Amount of disk space allocated to the environment, if persistent">
+              <Tooltip
+                title={
+                  currentEnvironmentType === EnvironmentType.LocalVm &&
+                  selectedImageMinimumDisk !== undefined
+                    ? `The selected image requires a disk of at least ${localVmMinimumDisk} GiB.`
+                    : 'Amount of disk space allocated to the environment, if persistent'
+                }
+              >
                 <InfoCircleOutlined className="ml-1" />
               </Tooltip>
             </>
@@ -735,11 +990,13 @@ export const Environment: FC<EnvironmentProps> = ({
             disabled={!isPersistent(name)}
             max={resources.disk.max}
             min={
-              getEnvironmentType(name) === EnvironmentType.VirtualMachine
-                ? isPersistent(name)
-                  ? resources.disk.min
+              getEnvironmentType(name) === EnvironmentType.LocalVm
+                ? localVmMinimumDisk
+                : getEnvironmentType(name) === EnvironmentType.VirtualMachine
+                  ? isPersistent(name)
+                    ? resources.disk.min
+                    : 0
                   : 0
-                : 0
             }
           />
         </Form.Item>

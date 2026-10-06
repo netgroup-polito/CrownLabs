@@ -10,6 +10,10 @@ query images {
         images {
           name
           versions
+          versionDetails {
+            version
+            volumeSize
+          }
         }
       }
     }

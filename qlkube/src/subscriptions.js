@@ -7,6 +7,13 @@ const subscriptionsRemote = [
     api: 'apis',
     group: 'crownlabs.polito.it',
     version: 'v1alpha2',
+    resource: 'instancesnapshots',
+    type: 'itPolitoCrownlabsV1alpha2InstanceSnapshot',
+  },
+  {
+    api: 'apis',
+    group: 'crownlabs.polito.it',
+    version: 'v1alpha2',
     resource: 'instances',
     type: 'itPolitoCrownlabsV1alpha2Instance',
     listMapping: 'itPolitoCrownlabsV1alpha2InstanceList',

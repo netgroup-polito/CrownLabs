@@ -1,0 +1,11 @@
+mutation deleteWorkspaceImage(
+  $workspaceNamespace: String!
+  $imageName: String!
+) {
+  deletedImage: deleteCrownlabsPolitoItV1alpha2NamespacedInstanceSnapshot(
+    namespace: $workspaceNamespace
+    name: $imageName
+  ) {
+    kind
+  }
+}
