@@ -13,6 +13,11 @@ kind: Namespace
 metadata:
   name: workspace-standalone
 ---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace-olympia
+---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template
 metadata:
@@ -61,7 +66,7 @@ spec:
       mountMyDriveVolume: false
       resources:
         cpu: 4
-        memory: 1G
+        memory: 1Gi
         disk: 1G
         reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
@@ -143,3 +148,26 @@ spec:
         reservedCPUPercentage: 25
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: workload-cluster
+  namespace: workspace-olympia
+spec:
+  prettyName: Workload Cluster
+  description: A nested Kubernetes cluster provisioned via Cluster API, Kamaji and KubeVirt
+  environmentList:
+    - name: wl-cluster
+      environmentType: Cluster
+      image: k8s-1-26-basic # name of the ClusterFlavor to use
+      mountMyDriveVolume: false
+      guiEnabled: false
+      resources:
+        cpu: 2
+        memory: 2Gi
+        reservedCPUPercentage: 50
+      cluster:
+        workersCount: 1
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: olympia

@@ -1,0 +1,245 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.19.0
+  name: clusterflavors.crownlabs.polito.it
+spec:
+  group: crownlabs.polito.it
+  names:
+    kind: ClusterFlavor
+    listKind: ClusterFlavorList
+    plural: clusterflavors
+    shortNames:
+    - cflv
+    singular: clusterflavor
+  scope: Namespaced
+  versions:
+  - name: v1alpha2
+    schema:
+      openAPIV3Schema:
+        description: ClusterFlavor describes a reusable blueprint for provisioning
+          a Kubernetes cluster in CrownLabs.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: ClusterFlavorSpec is the specification of the desired state
+              of the ClusterFlavor.
+            properties:
+              addonList:
+                description: The set of additional Helm charts to be installed on
+                  the cluster.
+                items:
+                  description: AddonSpec describes an additional Helm chart to be
+                    installed on the cluster.
+                  properties:
+                    chartName:
+                      description: The name of the Helm chart to be installed.
+                      type: string
+                    name:
+                      description: The name of the addon.
+                      type: string
+                    namespace:
+                      description: The namespace in which the Helm chart should be
+                        installed.
+                      type: string
+                    repoURL:
+                      description: The URL of the Helm chart repository.
+                      type: string
+                    values:
+                      description: |-
+                        ValuesTemplate is an inline YAML representing the values for the Helm chart.
+                        This YAML supports Go templating to reference
+                        fields from each selected workload Cluster and programatically create and
+                        set values.
+                      type: string
+                    version:
+                      description: The version of the Helm chart to be installed.
+                      type: string
+                  required:
+                  - chartName
+                  - name
+                  - namespace
+                  - repoURL
+                  - version
+                  type: object
+                type: array
+              controlPlane:
+                description: The specification of the control plane nodes of the cluster.
+                properties:
+                  apiServerResources:
+                    description: The CPU and memory limits assigned to the kube-apiserver.
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The CPU limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The memory limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - cpu
+                    - memory
+                    type: object
+                  controllerManagerResources:
+                    description: The CPU and memory limits assigned to the kube-controller-manager.
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The CPU limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The memory limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - cpu
+                    - memory
+                    type: object
+                  cpu:
+                    description: The maximum amount of CPU required by this resource
+                      set.
+                    format: int64
+                    minimum: 1
+                    type: integer
+                  dataStoreName:
+                    description: The datastore backend used by the control plane (e.g.
+                      "etcd", "sqlite").
+                    type: string
+                  disk:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of disk occupancy required by
+                      this resource set.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                  konnectivityResources:
+                    description: ComponentResources specifies the CPU and memory limits
+                      assigned to a single control plane component.
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The CPU limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The memory limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - cpu
+                    - memory
+                    type: object
+                  memory:
+                    anyOf:
+                    - type: integer
+                    - type: string
+                    description: The maximum amount of RAM memory required by this
+                      resource set.
+                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                    x-kubernetes-int-or-string: true
+                    x-kubernetes-validations:
+                    - message: Minimum 1 GB of RAM is required
+                      rule: quantity(self).compareTo(quantity('1Gi')) >= 0
+                  otherResources:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      Generic map to handle any extended hardware resources (e.g., nvidia.com/gpu, amd.com/gpu)
+                      without hardcoding specific vendor keys.
+                    type: object
+                  replicas:
+                    default: 1
+                    description: The number of control plane replicas (use an odd
+                      number greater than 1 for HA setups).
+                    format: int32
+                    minimum: 1
+                    type: integer
+                  schedulerResources:
+                    description: The CPU and memory limits assigned to the kube-scheduler.
+                    properties:
+                      cpu:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The CPU limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      memory:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: The memory limit assigned to the component.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                    required:
+                    - cpu
+                    - memory
+                    type: object
+                required:
+                - cpu
+                - dataStoreName
+                - memory
+                - replicas
+                type: object
+              version:
+                description: The Kubernetes version to be installed on the cluster,
+                  e.g. "1.28".
+                type: string
+              workers:
+                description: The specification of the worker nodes of the cluster.
+                properties:
+                  image:
+                    description: The container image to be used for the worker nodes.
+                    type: string
+                required:
+                - image
+                type: object
+            required:
+            - controlPlane
+            - version
+            - workers
+            type: object
+        type: object
+    served: true
+    storage: true

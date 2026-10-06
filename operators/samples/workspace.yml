@@ -7,9 +7,9 @@ metadata:
 spec:
   prettyName: A cup of tea from the queen
   quota:
-    cpu: "8"
-    memory: "15Gi"
-    instances: 3
+    cpu: 20
+    memory: "50Gi"
+    instances: 10
 ---
 apiVersion: crownlabs.polito.it/v1alpha1
 kind: Workspace
@@ -20,7 +20,7 @@ metadata:
 spec:
   prettyName: Just coffee
   quota:
-    cpu: "10"
+    cpu: 10
     memory: "25Gi"
     instances: 5
 ---
@@ -33,7 +33,7 @@ metadata:
 spec:
   prettyName: A bit spicy
   quota:
-    cpu: "6"
+    cpu: 6
     memory: "20Gi"
     instances: 4
 ---
@@ -46,6 +46,19 @@ metadata:
 spec:
   prettyName: Standalone environments
   quota:
-    cpu: "8"
+    cpu: 8
     memory: "15Gi"
     instances: 3
+---
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: olympia
+  labels:
+    crownlabs.polito.it/operator-selector: local
+spec:
+  prettyName: Mr Olympia
+  quota:
+    cpu: 10
+    memory: "50Gi"
+    instances: 8

@@ -22,7 +22,7 @@ import (
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
 )
 
-// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone";"LocalVM"
+// +kubebuilder:validation:Enum="VirtualMachine";"Container";"CloudVM";"Standalone";"LocalVM";"Cluster"
 
 // EnvironmentType is an enumeration of the different types of environments that
 // can be instantiated in CrownLabs.
@@ -39,6 +39,8 @@ const (
 	ClassStandalone EnvironmentType = "Standalone"
 	// ClassLocalVM -> the environment is constituted by a Virtual Machine started from a local Golden Image.
 	ClassLocalVM EnvironmentType = "LocalVM"
+	// ClassCluster -> the environment is constituted by a Cluster of Virtual Machines.
+	ClassCluster EnvironmentType = "Cluster"
 )
 
 // CleanupOptions defines the automatic actions to enforce termination policies.
@@ -102,7 +104,10 @@ type TemplateStatus struct {
 }
 
 // Environment defines the characteristics of an environment composing the Template.
+// +kubebuilder:validation:XValidation:rule="self.environmentType == 'Cluster' || !has(self.cluster)",message="cluster can only be set for Cluster environments"
+// +kubebuilder:validation:XValidation:rule="self.environmentType != 'Cluster' || has(self.cluster)",message="cluster is required for Cluster environments"
 type Environment struct {
+
 	// The name identifying the specific environment.
 	// The name must be unique within the Template and must follow the Kubernetes
 	// naming conventions, i.e. it must consist of lower case alphanumeric characters,
@@ -114,7 +119,7 @@ type Environment struct {
 	Image string `json:"image"`
 
 	// The type of environment to be instantiated, among VirtualMachine,
-	// Container, CloudVM, LocalVM and Standalone.
+	// Container, CloudVM, LocalVM, Standalone and Cluster.
 	EnvironmentType EnvironmentType `json:"environmentType"`
 
 	// +kubebuilder:default=true
@@ -152,6 +157,17 @@ type Environment struct {
 
 	// The list of information about Shared Volumes that has to be mounted to the instance.
 	SharedVolumeMounts []SharedVolumeMountInfo `json:"sharedVolumeMounts,omitempty"`
+
+	// The specification of the cluster to be created when instantiating the environment.
+	Cluster *ClusterSpec `json:"cluster,omitempty"`
+}
+
+// ClusterSpec defines the specification of a cluster environment, including the number of worker nodes.
+type ClusterSpec struct {
+	// The number of nodes in the cluster.
+	// +kubebuilder:validation:Minimum:=1
+	// +kubebuilder:validation:Maximum:=10
+	WorkersCount int `json:"workersCount"`
 }
 
 // EnvironmentResources is the specification of the amount of resources

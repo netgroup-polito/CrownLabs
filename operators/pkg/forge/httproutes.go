@@ -202,8 +202,9 @@ func ExpositionGUIPath(instance *clv1alpha2.Instance, environment *clv1alpha2.En
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v", ExpositionInstancePrefix, instance.UID, environment.Name), "/")
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
 		return strings.TrimRight(fmt.Sprintf("%v/%v/%v/%s", ExpositionInstancePrefix, instance.UID, environment.Name, "(.*)"), "/")
+	default:
+		return ""
 	}
-	return ""
 }
 
 // ExpositionGUICleanPath returns the path of the route targeting the environment GUI vnc or Standalone, without regex.
