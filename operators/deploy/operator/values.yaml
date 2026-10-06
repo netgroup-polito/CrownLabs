@@ -30,6 +30,8 @@ configurations:
     compatibilityMode: false
   mydrivePVCsSize: 1Gi
   # Namespace hosting the public snapshot catalog. Volumes stored here can be read by every tenant.
+  # Also used by public-snapshots ImageList sources that omit namespace.
+  # Check that this namespace exists before deploying: it must be created manually.
   snapshotPublicNamespace: "crownlabs-public-snapshots"
   # Keycloak group whose members can publish snapshots into the public catalog. Leave empty to let
   # only the snapshot webhook bypass groups do it.

@@ -53,7 +53,6 @@ var _ = Describe("The InstanceSnapshot controller", func() {
 		instanceName    = "test-instance"
 		templateName    = "test-template"
 		environment     = "env1"
-		finalizer       = "instancesnapshot.crownlabs.polito.it/finalizer"
 
 		// The DataVolume and its PVC share the snapshot's name.
 		artifactName = snapshotName
@@ -78,7 +77,7 @@ var _ = Describe("The InstanceSnapshot controller", func() {
 				Name:       snapshotName,
 				Namespace:  tenantNamespace,
 				UID:        snapshotUID,
-				Finalizers: []string{finalizer},
+				Finalizers: []string{clv1alpha2.InstSnapCtrlFinalizerName},
 			},
 			Spec: clv1alpha2.InstanceSnapshotSpec{
 				Instance:    clv1alpha2.GenericRef{Name: instanceName, Namespace: tenantNamespace},
