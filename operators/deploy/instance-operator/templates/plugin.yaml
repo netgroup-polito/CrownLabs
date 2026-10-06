@@ -9,6 +9,11 @@ spec:
   - condition: >-
       "crownlabs.polito.it/native-vnc" in vmi.Labels &&
       vmi.Labels['crownlabs.polito.it/native-vnc'] == 'true'
+      {{- range splitList "&" .Values.configurations.generic.whitelistLabels }}
+      {{- $label := splitList "=" . }} &&
+      "{{ index $label 0 }}" in vmi.Labels &&
+      vmi.Labels['{{ index $label 0 }}'] == '{{ index $label 1 }}'
+      {{- end }}
     cel:
       expression: >-
         Domain{QEMUCommandline: DomainQEMUCommandline{Args: [

@@ -90,13 +90,14 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 
 	Describe("The forge.VirtualMachineSpec function", func() {
 		var spec virtv1.VirtualMachineSpec
+		operatorSelectorLabels := map[string]string{"crownlabs.polito.it/operator-selector": "test"}
 
 		JustBeforeEach(func() {
-			spec = forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)
+			spec = forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos, operatorSelectorLabels)
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentSelectorLabels(&instance, &environment))))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentSelectorLabels(&instance, &environment), operatorSelectorLabels)))
 		})
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))

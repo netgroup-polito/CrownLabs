@@ -110,7 +110,7 @@ func (r *InstanceReconciler) enforceVirtualMachine(ctx context.Context) error {
 		// VirtualMachine specifications are forged only at creation time, as changing them later may be
 		// either rejected by the webhook or cause the restart of the child VMI, with consequent possible data loss.
 		if vm.CreationTimestamp.IsZero() {
-			vm.Spec = forge.VirtualMachineSpec(instance, template, environment, mountInfos)
+			vm.Spec = forge.VirtualMachineSpec(instance, template, environment, mountInfos, r.NamespaceWhitelist.MatchLabels)
 		}
 		// If DataVolumeTemplates are present, they are removed from the VM specifications, as they are not needed anymore. In fact, the DataVolume is already created and managed by the controller.
 		if len(vm.Spec.DataVolumeTemplates) > 0 {
@@ -167,7 +167,7 @@ func (r *InstanceReconciler) enforceVirtualMachineInstance(ctx context.Context) 
 				vmi.Spec = forge.VirtualMachineInstanceSpec(instance, template, environment, mountInfos)
 			}
 			labels := forge.EnvironmentObjectLabels(vmi.GetLabels(), instance, environment)
-			vmi.SetLabels(forge.VirtualMachineLabels(environment, labels))
+			vmi.SetLabels(forge.VirtualMachineLabels(environment, labels, r.NamespaceWhitelist.MatchLabels))
 
 			return ctrl.SetControllerReference(instance, &vmi, r.Scheme)
 		})

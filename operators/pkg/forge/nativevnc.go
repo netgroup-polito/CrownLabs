@@ -15,19 +15,23 @@
 package forge
 
 import (
+	"maps"
+
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
 
 // VirtualMachineLabels forges the labels for the VirtualMachineInstance template, marking
 // VM-family environments without a pre-installed (TigerVNC/noVNC) graphical desktop so that
 // the native-VNC KubeVirt Plugin injects QEMU's native VNC-over-websocket listener into the
-// libvirt domain XML.
-func VirtualMachineLabels(environment *clv1alpha2.Environment, labels map[string]string) map[string]string {
+// libvirt domain XML. Such VMIs also carry the namespace selector labels of the operator that
+// forged them: Plugins are cluster-wide, so each deployment's Plugin matches only its own VMIs.
+func VirtualMachineLabels(environment *clv1alpha2.Environment, labels, operatorSelectorLabels map[string]string) map[string]string {
 	if labels == nil {
 		labels = map[string]string{}
 	}
 	if !environment.GuiEnabled {
 		labels[LabelNativeVNCKey] = "true"
+		maps.Copy(labels, operatorSelectorLabels)
 	}
 	return labels
 }

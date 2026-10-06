@@ -61,11 +61,11 @@ var (
 
 // VirtualMachineSpec forges the specification of a Kubevirt VirtualMachine object
 // representing the definition of the VM corresponding to a persistent CrownLabs environment.
-func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.VirtualMachineSpec {
+func VirtualMachineSpec(instance *clv1alpha2.Instance, template *clv1alpha2.Template, environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount, operatorSelectorLabels map[string]string) virtv1.VirtualMachineSpec {
 	return virtv1.VirtualMachineSpec{
 		Template: &virtv1.VirtualMachineInstanceTemplateSpec{
 			ObjectMeta: metav1.ObjectMeta{
-				Labels: VirtualMachineLabels(environment, EnvironmentSelectorLabels(instance, environment)),
+				Labels: VirtualMachineLabels(environment, EnvironmentSelectorLabels(instance, environment), operatorSelectorLabels),
 			},
 			Spec: VirtualMachineInstanceSpec(instance, template, environment, mountInfos),
 		},

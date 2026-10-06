@@ -167,7 +167,11 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 	})
 
 	JustBeforeEach(func() {
-		reconciler = instctrl.InstanceReconciler{Client: clientBuilder.Build(), Scheme: scheme.Scheme}
+		reconciler = instctrl.InstanceReconciler{
+			Client:             clientBuilder.Build(),
+			Scheme:             scheme.Scheme,
+			NamespaceWhitelist: metav1.LabelSelector{MatchLabels: map[string]string{"crownlabs.polito.it/operator-selector": "test"}},
+		}
 
 		ctx, _ = clctx.TenantInto(ctx, &tenant)
 		ctx, _ = clctx.InstanceInto(ctx, &instance)
@@ -257,7 +261,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 				It("The VMI should be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
-					Expect(vmi.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentObjectLabels(nil, &instance, &environment))))
+					Expect(vmi.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentObjectLabels(nil, &instance, &environment), reconciler.NamespaceWhitelist.MatchLabels)))
 					Expect(vmi.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
@@ -315,7 +319,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 				It("The VMI should still be present and have the common attributes", func() {
 					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
-					Expect(vmi.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentObjectLabels(nil, &instance, &environment))))
+					Expect(vmi.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentObjectLabels(nil, &instance, &environment), reconciler.NamespaceWhitelist.MatchLabels)))
 					Expect(vmi.GetOwnerReferences()).To(ContainElement(ownerRef))
 				})
 
@@ -477,7 +481,7 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					vm.Spec.Template.Spec.Domain.Resources = forge.VirtualMachineResources(&environment)
 					vm.Spec.Running = nil
 					vm.Spec.Template.Spec.NodeSelector = map[string]string{}
-					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)))
+					Expect(vm.Spec).To(Equal(forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos, reconciler.NamespaceWhitelist.MatchLabels)))
 				})
 
 				It("The VM should be present and with the running flag set", func() {
