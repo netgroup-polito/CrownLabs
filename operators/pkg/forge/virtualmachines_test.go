@@ -284,6 +284,8 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
+			Expect(domain.Devices.Video).To(Equal(&virtv1.VideoDevice{Type: "virtio"}))
+			Expect(domain.Devices.Inputs).To(ConsistOf(virtv1.Input{Name: "tablet", Type: virtv1.InputTypeTablet, Bus: virtv1.InputBusVirtio}))
 
 			// Without a pre-installed graphical desktop (GuiEnabled: false), the environment
 			// gets masquerade networking with every port forwarded to the guest except the
@@ -302,6 +304,12 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			BeforeEach(func() { environment.GuiEnabled = true })
 			It("Should set the bridge network interface", func() {
 				Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+			})
+			It("Should keep the default video device", func() {
+				Expect(domain.Devices.Video).To(BeNil())
+			})
+			It("Should keep the default input devices", func() {
+				Expect(domain.Devices.Inputs).To(BeEmpty())
 			})
 		})
 	})

@@ -66,6 +66,7 @@ const NativeVNCPage: FC = () => {
       // "binary" must come first, since QEMU rejects a handshake that does not offer it,
       // and the token last, since the gateway reads to the end of the header value.
       rfbOptions={{ wsProtocols: ['binary', token] }}
+      resizeSession
       scaleViewport
       focusOnClick
       background="#000000"

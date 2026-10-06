@@ -41,6 +41,7 @@ const (
 	volumeRootName      = "root"
 	volumeCloudInitName = "cloud-init"
 	virtioDiskType      = "virtio"
+	virtioVideoType     = "virtio"
 
 	// terminationGracePeriod -> the amount of seconds before a terminating VM is forcefully deleted.
 	terminationGracePeriod = 60
@@ -110,8 +111,12 @@ func VolumeCloudInit(secretName string) virtv1.Volume {
 // object representing the definition of the VM corresponding to a given CrownLabs Environment.
 func VirtualMachineDomain(environment *clv1alpha2.Environment, mountInfos []corev1.VolumeMount) virtv1.DomainSpec {
 	iface := virtv1.DefaultBridgeNetworkInterface()
+	var video *virtv1.VideoDevice
+	var inputs []virtv1.Input
 	if !environment.GuiEnabled {
 		iface = masqueradeNetworkInterfaceForNativeVNC()
+		video = &virtv1.VideoDevice{Type: virtioVideoType}
+		inputs = []virtv1.Input{{Name: "tablet", Type: virtv1.InputTypeTablet, Bus: virtv1.InputBusVirtio}}
 	}
 
 	return virtv1.DomainSpec{
@@ -122,6 +127,8 @@ func VirtualMachineDomain(environment *clv1alpha2.Environment, mountInfos []core
 			Disks:       VolumeDiskTargets(environment),
 			Filesystems: VirtualMachineFilesystems(mountInfos),
 			Interfaces:  []virtv1.Interface{*iface},
+			Video:       video,
+			Inputs:      inputs,
 		},
 	}
 }
