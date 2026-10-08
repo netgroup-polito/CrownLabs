@@ -118,8 +118,8 @@ var _ = Describe("HTTPRoute helpers", func() {
 		})
 
 		Context("HTTPRouteRuleFilters cases", func() {
-			makeEnv := func(t clv1alpha2.EnvironmentType, rewrite bool, name string) *clv1alpha2.Environment {
-				return &clv1alpha2.Environment{EnvironmentType: t, RewriteURL: rewrite, Name: name}
+			makeEnv := func(t clv1alpha2.EnvironmentType, rewrite, guiEnabled bool, name string) *clv1alpha2.Environment {
+				return &clv1alpha2.Environment{EnvironmentType: t, RewriteURL: rewrite, GuiEnabled: guiEnabled, Name: name}
 			}
 
 			It("returns nil for nil environment", func() {
@@ -128,44 +128,62 @@ var _ = Describe("HTTPRoute helpers", func() {
 			})
 
 			It("returns nil when rewrite disabled", func() {
-				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassStandalone, false, ""))
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassStandalone, false, false, ""))
 				Expect(filters).To(BeNil())
 			})
 
 			It("returns standalone rewrite when requested and environment is standalone", func() {
-				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassStandalone, true, ""))
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassStandalone, true, false, ""))
 				Expect(filters).To(HaveLen(1))
 				f := filters[0]
 				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
 			})
 
-			It("returns GUI rewrite when requested and environment is cloud VM", func() {
-				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassCloudVM, true, ""))
+			It("returns GUI rewrite only when environment is cloud VM with GUI enabled", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassCloudVM, true, true, ""))
 				Expect(filters).To(HaveLen(1))
-				f := filters[0]
-				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
+				Expect(filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
 			})
 
-			It("returns GUI rewrite when requested and environment is local VM", func() {
-				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassLocalVM, true, ""))
-				Expect(filters).To(HaveLen(1))
-				f := filters[0]
-				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
+			It("returns GUI rewrite plus cookie-stripping filter when environment is cloud VM without GUI (native VNC)", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassCloudVM, true, false, ""))
+				Expect(filters).To(HaveLen(2))
+				Expect(filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+				Expect(filters[1].Type).To(Equal(gatewayv1.HTTPRouteFilterRequestHeaderModifier))
+				Expect(filters[1].RequestHeaderModifier.Remove).To(ConsistOf("Cookie"))
 			})
 
-			It("returns GUI rewrite when requested and environment is VM", func() {
-				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassVM, true, ""))
+			It("returns GUI rewrite only when environment is local VM with GUI enabled", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassLocalVM, true, true, ""))
 				Expect(filters).To(HaveLen(1))
-				f := filters[0]
-				Expect(f.Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
-				Expect(*f.URLRewrite.Path.ReplacePrefixMatch).To(Equal(forge.URLRewriteEndpoint))
+				Expect(filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+			})
+
+			It("returns GUI rewrite plus cookie-stripping filter when environment is local VM without GUI (native VNC)", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassLocalVM, true, false, ""))
+				Expect(filters).To(HaveLen(2))
+				Expect(filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+				Expect(filters[1].Type).To(Equal(gatewayv1.HTTPRouteFilterRequestHeaderModifier))
+				Expect(filters[1].RequestHeaderModifier.Remove).To(ConsistOf("Cookie"))
+			})
+
+			It("returns GUI rewrite only when environment is VM with GUI enabled", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassVM, true, true, ""))
+				Expect(filters).To(HaveLen(1))
+				Expect(filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+			})
+
+			It("returns GUI rewrite plus cookie-stripping filter when environment is VM without GUI (native VNC)", func() {
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.ClassVM, true, false, ""))
+				Expect(filters).To(HaveLen(2))
+				Expect(filters[0].Type).To(Equal(gatewayv1.HTTPRouteFilterURLRewrite))
+				Expect(filters[1].Type).To(Equal(gatewayv1.HTTPRouteFilterRequestHeaderModifier))
+				Expect(filters[1].RequestHeaderModifier.Remove).To(ConsistOf("Cookie"))
 			})
 
 			It("returns nil for unknown environment type", func() {
-				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.EnvironmentType("unknown"), true, ""))
+				filters := forge.HTTPRouteRuleFilters(makeEnv(clv1alpha2.EnvironmentType("unknown"), true, false, ""))
 				Expect(filters).To(BeNil())
 			})
 		})
