@@ -55,7 +55,7 @@ export const VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING = getEnvVar(
 export const VITE_APP_CROWNLABS_IMAGE_CREATION_HELP =
   import.meta.env.VITE_APP_CROWNLABS_IMAGE_CREATION_HELP ??
   (window as envVarObj).VITE_APP_CROWNLABS_IMAGE_CREATION_HELP ??
-  'https://www.youtube.com/watch?v=i7fqga7xQv0';
+  'https://github.com/netgroup-polito/CrownLabs/blob/master/provisioning/virtual-machines/README-reset-cloud-init.md';
 export const VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION = getEnvVar(
   'VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION',
 );
