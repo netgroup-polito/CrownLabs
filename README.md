@@ -18,42 +18,143 @@ Finally, CrownLabs supports also instructors, who can connect to the remote desk
 
 For more information, visit the CrownLabs website ([https://crownlabs.polito.it](https://crownlabs.polito.it)) and download our [scientific paper](https://ieeexplore.ieee.org/document/9136697) published in IEEE Access.
 
-
 ## Architecture
 
-CrownLabs relies on three major high-level components:
-* **The Backend Business Logic**, which provides the different CrownLabs functionalities and is implemented by custom Kubernetes operators (e.g. the Instance Operator);
-* **qlkube**, a middleware that can expose the Kubernetes API Server as a GraphQL service;
-* **The Frontend Dashboard**, which interacts with the Kubernetes API Server through _qlkube_ and exposes the different CrownLabs custom resources through a graphical interface.
+CrownLabs is organized around Kubernetes namespaces and the resources managed within them. Its architecture comprises some main scopes:
 
-In addition, **Envoy Gateway** (implementing the Kubernetes Gateway API) manages HTTP/HTTPS traffic routing:
-* **Static Routes** for core auxiliary services: `/` (Frontend Dashboard), `/graph` (qlkube), and `/webssh` (Bastion Web SSH);
-* **Dynamic Routes** generated on-demand for per-user VM and container instances;
-* **Security Policies**
+* the **CL release namespace**, which contains the controllers and platform services, including the frontend, GraphQL relay, and SSH bastion;
+* **workspace namespaces**, which contain the templates used to define computing environments;
+* **tenant namespaces**, which contain the instances and environments made available to each tenant.
 
-A high-level representation of the main architectural building blocks composing CrownLabs is given by the following figure.
-Please notice that, for the sake of clarity, the figure depicts only the most important elements for the provision of the actual service (i.e., remote computing labs), while omitting low-level components and the ones associated with the cluster operation (e.g monitoring).
+Cluster-wide `Workspace` and `Tenant` resources connect these scopes. Controllers reconcile them into their corresponding namespaces, while instances reference workspace templates and create the environments used by students and instructors. _QLKube_ acts as the GraphQL relay through which the dashboard accesses the Kubernetes API Server. The gateway and SSH bastion provide access to the resulting environments.
 
-![CrownLabs High-Level Architecture](documentation/architecture.svg)
+The namespace-oriented model focuses on the principal components required to provide remote computing labs. It omits low-level components and services associated with cluster operation, such as monitoring.
 
-## Backend Business Logic
+```mermaid
+flowchart LR
 
-The backend business logic providing the different CrownLabs functionalities is implemented by custom Kubernetes operators, while the data model is defined by means of CRDs.
-Specifically, the main backend components are:
+User@{shape: trap-b, label: "User Browser⁴"}
+
+subgraph Cluster["Kubernetes Cluster"]
+    %% Cells
+    Argo["Argo/Helm¹"]
+    Release["CL Argo Application¹"]
+
+    %% subgraphs
+    subgraph ReleaseNS["CL Release Namespace¹"]
+        Controllers@{shape: docs, label: "Controller Set¹"}
+        Frontend["Frontend-app⁴"]:::FrontendStyle
+        GraphQL["GraphQL Relay⁵"]
+        Bastion["SSH Bastion"]
+    end
+    WorkspaceCR["`Workspace CR
+        [cluster-wide]
+        _workspace: abc_`"]:::CustomResourceStyle
+    Controllers -- manages --> WorkspaceCR
+    subgraph WorkspaceNS["`Workspace Namespace:
+    _workspace-abc_ ³`"]
+        direction LR
+        TemplateCR["`Template CR
+            template: _foo_`"]:::CustomResourceStyle
+    end
+    TenantCR["`Tenant CR
+        [cluster-wide]
+        _tenant: xyz-efg_`"]:::CustomResourceStyle
+    subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ ²`"]
+        InstanceCR["`Instance CR
+            _instance: bar_`"]:::CustomResourceStyle
+        InstanceEnv@{shape: docs, label: "bar Environments"}
+
+    end
+    subgraph K8S["K8S Provided Infrastructure"]
+        APIServer["API Server"]
+        GWAPI["Gateway Balancer"]
+    end
+end
+
+Controllers -- manages --> TenantCR
+Argo .-> Release
+Release -. becomes .-> ReleaseNS
+Frontend -. exposed through .-> GWAPI
+Frontend -. delivered to .-> User
+GraphQL .-> APIServer
+GWAPI ---> InstanceEnv
+WorkspaceCR -- reconciles to --> WorkspaceNS
+TenantCR -- reconciles to --> TenantNS
+User --> GWAPI
+User -. interacts with .-> GraphQL
+User -. interacts with .-> InstanceEnv
+InstanceCR -. references to ..-> TemplateCR
+InstanceCR --> InstanceEnv
+GraphQL -. exposed through .-> GWAPI
+User --> Bastion
+Bastion  --> InstanceEnv
+
+classDef ControllerStyle stroke:#FF8000,rx:12,ry:12,fill:none
+classDef WorkspaceStyle stroke:#0A6522,rx:12,ry:12,fill:none
+classDef CustomResourceStyle stroke:#FF0000,rx:12,ry:12,fill:none
+classDef TenantStyle stroke:#2222FF,rx:12,ry:12,fill:none
+classDef EnvironmentStyle stroke:#A865B5,rx:12,ry:12,fill:none
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
+classDef ClusterStyle stroke:#80FF00,rx:12,ry:12,fill:none
+
+classDef GenericDomainStyle fill:none,rx:12,ry:12,stroke-dasharray:8
+classDef WorkspaceNSStyle stroke:#0A6522,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantNSStyle stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef ReleaseNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
+
+class K8S GenericDomainStyle
+class ReleaseNS ReleaseNSStyle
+class Controllers ControllerStyle
+class WorkspaceNS WorkspaceNSStyle
+class InstanceEnv EnvironmentStyle
+class TenantNS TenantNSStyle
+class Cluster ClusterStyle
+```
+¹More about the deployment [here](deploy/crownlabs/README.md).  
+²More about Tenant soon.  
+³More about Workspace soon.  
+⁴More about Frontend [here](frontend/README.md)  
+⁵More about QLKube [here](qlkube/README.md).  
+
+### Graph Legend:
+
+Dashed borders represent logical domains such as namespaces or infrastructure groups; solid borders represent individual entities.  
+Solid arrows show physical or operational links, while dashed arrows show logical relationships.
+
+```mermaid
+%% ==== OVERVIEW GRAPH ====
+flowchart LR
+
+
+Domain["Logical Domain"]:::DomainStyle
+Entity["Single Entity"]:::EntitySyle
+
+Domain -- physical link --> Entity
+Domain -. logical link .-> Entity
+
+classDef DomainStyle rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef EntitySyle rx:12,ry:12,fill:none
+```
+
+## Controllers and Resource Management
+
+CrownLabs functionalities are implemented by custom Kubernetes operators, while the data model is defined by means of Kubernetes Custom Resource Definitions (CRDs). These operators reconcile cluster-wide and namespace-scoped resources across the namespace-oriented architecture.
+The main controllers are:
 
 * the **Instance Operator**, which implements the logic to spawn new environments starting from predefined templates;
 * the **Tenant Operator**, which automates the management of CrownLabs users (i.e. tenants) and groups (i.e. workspaces);
 * the **Bastion Operator**, which configures an SSH bastion to provide command-line access to the environments instead of the web-based GUI.
 
-Furthermore, some additional components are leveraged to simplify and automate companion tasks, such as listing the available images and deleting stale environments.
+Furthermore, additional components simplify and automate companion tasks, such as listing the available images and deleting stale environments.
 
-For more information regarding the CrownLabs backend, as well as for the deployment and configuration instructions, please refer to the corresponding [README](./operators/README.md).
+For more information about the operators, as well as deployment and configuration instructions, please refer to the corresponding [README](./operators/README.md).
 
-## Frontend Dashboard
+## User Access
 
-The frontend dashboard is the component responsible for providing access to the CrownLabs custom resources through an easy to use graphical interface.
-It allows final users to explore the workspaces they are enrolled in, spawn new environments, and connect to their instances.
-Additionally, privileged users can create, update and delete both templates and tenant resources, effectively managing the available environments and the permissions granted to access the system.
+The frontend dashboard, exposed through the release namespace, provides access to CrownLabs resources through an easy-to-use graphical interface.
+It allows users to explore the workspaces they are enrolled in, spawn new environments in tenant namespaces, and connect to their instances.
+Privileged users can also create, update, and delete templates and tenant resources, managing the environments and permissions available across the workspace and tenant namespaces.
 Authentication is managed through an external OIDC identity provider integrated with Kubernetes, while the authorizations to access specific resources are granted leveraging the Kubernetes RBAC approach.
 
 # Installation
