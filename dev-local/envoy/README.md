@@ -100,25 +100,28 @@ kubectl wait --for=condition=Available deployment --all -n cert-manager --timeou
 
 ## 4. Deploy Envoy
 
-First of all, we have to generate a self-signed CA root authority.
-We will use it to sign the next certificates, to be able to serve the pages via HTTPS.
-The first time we will open the browser on a hosted page, we will have to instruct it to trust the certificate.
+To do this, we need a series of components:
 
-Then, we need a certificate.
-For ease of use during development, we will only generate a single wildcard certificate `*.crownlabs.local`, that will work for all pages.
-It is be stored in the `crownlabs-tls` secret.
+- First of all, we have to generate a self-signed CA root authority.
+  We will use it to sign the next certificates, to be able to serve the pages via HTTPS.
+  The first time we will open the browser on a hosted page, we will have to instruct it to trust the certificate.
+- Then, we need a certificate.
+  For ease of use during development, we will only generate a single wildcard certificate `*.crownlabs.local`, that will work for all pages.
+  It is be stored in the `crownlabs-tls` secret.
+- For the gateway itself, we need to create a `GatewayClass` and a `Gateway` listening on ports 80 and 443.
+  For HTTPS, it uses the `crownlabs-tls` certificate we just created.
+- Finally, we add a redirect to any HTTP request.
+  A status 301 will prompt the user to use HTTPS.
+- The api server also needs a `Backend` and an `HTTPRoute` to correctly forward the requests to the k3s api server.
+- Moreover, a modification to the settings downloaded earlier is necessary: for the envoy gateway, we need to set `extensionApis: { enableBackend: true }`, or it would not correctly accept kubectl commands later on.
 
-For the gateway itself, we need to create a `GatewayClass` and a `Gateway` listening on ports 80 and 443.
-For HTTPS, it uses the `crownlabs-tls` certificate we just created.
-
-Finally, we add a redirect to any HTTP request.
-A status 301 will prompt the user to use HTTPS.
-
-All these things are done automatically by applying the manifest in this folder:
+All these things are done automatically by applying the manifest in this folder.
+Furthermore, the gateway needs to be restarted so that the changes take effect:
 
 ```bash
 kubectl apply -f dev-local/envoy/manifests
 kubectl wait --for=condition=Ready certificate/crownlabs-tls -n default --timeout=30s
+kubectl rollout restart deployment -n envoy-gateway-system envoy-gateway
 ```
 
 Envoy Gateway automatically creates the actual `LoadBalancer` `Service` that backs this `Gateway`, under the `envoy-gateway-system` namespace, with an auto-generated name.
@@ -143,15 +146,17 @@ kubectl get gateway crownlabs -n default
 ## 5. Configure the static DNS
 
 In your local machine, you will try accessing URLs such as `keycloak.crownlabs.local`.
-Since there is no DNS to point the URL to the right IP, you will have to add them manually.
+Since there is no DNS server to point the URL to the right IP, you will have to add them manually.
 This is done by inserting a tuple `<ip> <URL>` in the file `/etc/hosts` in your machine.
 
 In the next steps of this guide, we will setup the keycloak and mailpit services, so we can start adding the DNS resolutions right now.
+Moreover, an entry is also required to bridge the k3s API.
 The target IP address is simply the host itself, so `127.0.0.1`:
 
 ```bash
 echo "127.0.0.1 keycloak.crownlabs.local" | sudo tee -a /etc/hosts
 echo "127.0.0.1 mail.crownlabs.local" | sudo tee -a /etc/hosts
+echo "127.0.0.1 apiserver.crownlabs.local" | sudo tee -a /etc/hosts
 ```
 
 Keep in mind that now we have the routings, but there is still nothing listening listening behind.
@@ -176,6 +181,7 @@ This can be done with the following commands, executed on an elevated PowerShell
 ```powershell
 Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 keycloak.crownlabs.local"
 Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 mail.crownlabs.local"
+Add-Content -Path C:\Windows\System32\drivers\etc\hosts -Value "127.0.0.1 apiserver.crownlabs.local"
 ```
 
 Please note that directly editing the file `C:\Windows\System32\drivers\etc\hosts` may not work, despite using Notepad "run as Administrator": if the elevation did not actually take effect, you would be editing a per-user shallow copy, without any notification.

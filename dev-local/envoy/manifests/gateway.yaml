@@ -13,6 +13,50 @@
 # TLS terminates here, at the Gateway edge — backends (Keycloak, later Mailpit)
 # are plain HTTP behind it. This is what let Keycloak's own manifest drop its
 # self-managed HTTPS certificate/probes entirely (see ../../keycloak/manifests/keycloak.yaml).
+---
+# Source: gateway-helm/templates/envoy-gateway-config.yaml
+# Added "enableBackend: true" under "ExtensionApis"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: envoy-gateway-config
+  namespace: envoy-gateway-system
+  labels:
+    helm.sh/chart: gateway-helm-v0.0.0-latest
+    app.kubernetes.io/name: gateway-helm
+    app.kubernetes.io/instance: eg
+    app.kubernetes.io/version: "latest"
+    app.kubernetes.io/managed-by: Helm
+data:
+  envoy-gateway.yaml: |
+    apiVersion: gateway.envoyproxy.io/v1alpha1
+    kind: EnvoyGateway
+    extensionApis:
+      enableBackend: true
+    gateway:
+      controllerName: gateway.envoyproxy.io/gatewayclass-controller
+    logging:
+      level:
+        default: info
+    provider:
+      kubernetes:
+        rateLimitDeployment:
+          container:
+            image: docker.io/envoyproxy/ratelimit:1e50889b
+          patch:
+            type: StrategicMerge
+            value:
+              spec:
+                template:
+                  spec:
+                    containers:
+                    - imagePullPolicy: IfNotPresent
+                      name: envoy-ratelimit
+        shutdownManager:
+          image: envoyproxy/gateway:v1.8.2
+      type: Kubernetes
+---
 apiVersion: cert-manager.io/v1
 kind: ClusterIssuer
 metadata:
@@ -94,3 +138,34 @@ spec:
           requestRedirect:
             scheme: https
             statusCode: 301
+---
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: Backend
+metadata:
+  name: k3s-api
+  namespace: default
+spec:
+  endpoints:
+    - fqdn:
+        hostname: kubernetes.default.svc.cluster.local
+        port: 443
+  tls:
+    insecureSkipVerify: true
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: apiserver
+  labels:
+    app: apiserver
+spec:
+  parentRefs:
+    - name: crownlabs
+      sectionName: https
+  hostnames:
+    - apiserver.crownlabs.local
+  rules:
+    - backendRefs:
+      - name: k3s-api
+        group: gateway.envoyproxy.io
+        kind: Backend

@@ -302,71 +302,7 @@ data:
             "containerId" : "9f765e91-5162-44a9-91cc-085ddea22dff",
             "attributes" : { }
           } ],
-          "operator-local" : [ {
-            "id" : "dce592a2-347e-4f69-939a-9f985cb95667",
-            "name" : "workspace-coffee:manager",
-            "description" : "Just coffee Manager Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          }, {
-            "id" : "d26ca5d9-bf19-432f-bfcf-1338570c3cf4",
-            "name" : "workspace-tea:manager",
-            "description" : "A cup of tea from the queen Manager Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          }, {
-            "id" : "f82953a1-014b-4b22-8e99-8ee9853382e1",
-            "name" : "workspace-standalone:manager",
-            "description" : "Standalone environments Manager Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          }, {
-            "id" : "c9245b68-9d40-4e95-bb40-b041ed5508bc",
-            "name" : "workspace-coffee:user",
-            "description" : "Just coffee User Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          }, {
-            "id" : "b2116c7d-2b1e-4083-ad66-559a116aaab6",
-            "name" : "workspace-tea:user",
-            "description" : "A cup of tea from the queen User Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          }, {
-            "id" : "b3fcd69d-5ca3-4ee5-8049-49511b88e8de",
-            "name" : "workspace-chill-pepper:manager",
-            "description" : "A bit spicy Manager Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          }, {
-            "id" : "89287d64-8951-480e-8aac-8649eb270043",
-            "name" : "workspace-chill-pepper:user",
-            "description" : "A bit spicy User Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          }, {
-            "id" : "94d5b035-38b5-45b7-9437-4077200d1190",
-            "name" : "workspace-standalone:user",
-            "description" : "Standalone environments User Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "766c24f3-d227-4180-baf6-e0895d28ee86",
-            "attributes" : { }
-          } ],
+          "operator-local" : [ ],
           "admin-cli" : [ ],
           "account-console" : [ ],
           "broker" : [ {
@@ -517,8 +453,7 @@ data:
         "requiredActions" : [ ],
         "realmRoles" : [ "default-roles-crownlabs" ],
         "clientRoles" : {
-          "k8s" : [ "workspace-tea:user", "workspace-coffee:manager" ],
-          "operator-local" : [ "workspace-coffee:manager", "workspace-standalone:manager", "workspace-tea:user" ]
+          "k8s" : [ "workspace-tea:user", "workspace-coffee:manager" ]
         },
         "notBefore" : 0,
         "groups" : [ ]
@@ -699,7 +634,7 @@ data:
         "consentRequired" : false,
         "standardFlowEnabled" : true,
         "implicitFlowEnabled" : false,
-        "directAccessGrantsEnabled" : false,
+        "directAccessGrantsEnabled" : true,
         "serviceAccountsEnabled" : false,
         "publicClient" : true,
         "frontchannelLogout" : true,
@@ -709,12 +644,12 @@ data:
           "realm_client" : "false",
           "oidc.ciba.grant.enabled" : "false",
           "backchannel.logout.session.required" : "true",
+          "oauth2.jwt.authorization.grant.enabled" : "false",
           "standard.token.exchange.enabled" : "false",
           "frontchannel.logout.session.required" : "true",
           "post.logout.redirect.uris" : "http://localhost:3000/*",
           "display.on.consent.screen" : "false",
           "oauth2.device.authorization.grant.enabled" : "false",
-          "pkce.code.challenge.method" : "S256",
           "backchannel.logout.revoke.offline.tokens" : "false",
           "dpop.bound.access.tokens" : "false"
         },
@@ -741,29 +676,32 @@ data:
         "notBefore" : 0,
         "bearerOnly" : false,
         "consentRequired" : false,
-        "standardFlowEnabled" : true,
+        "standardFlowEnabled" : false,
         "implicitFlowEnabled" : false,
         "directAccessGrantsEnabled" : false,
         "serviceAccountsEnabled" : true,
         "publicClient" : false,
-        "frontchannelLogout" : false,
+        "frontchannelLogout" : true,
         "protocol" : "openid-connect",
         "attributes" : {
-          "realm_client" : "false",
-          "oidc.ciba.grant.enabled" : "false",
+          "logout.confirmation.enabled" : "false",
           "client.secret.creation.time" : "1783423773",
-          "backchannel.logout.session.required" : "true",
           "oauth2.jwt.authorization.grant.enabled" : "false",
           "standard.token.exchange.enabled" : "false",
+          "frontchannel.logout.session.required" : "true",
           "post.logout.redirect.uris" : "+",
           "oauth2.device.authorization.grant.enabled" : "false",
           "backchannel.logout.revoke.offline.tokens" : "false",
+          "realm_client" : "false",
+          "oidc.ciba.grant.enabled" : "false",
+          "backchannel.logout.session.required" : "true",
+          "display.on.consent.screen" : "false",
           "dpop.bound.access.tokens" : "false"
         },
         "authenticationFlowBindingOverrides" : { },
         "fullScopeAllowed" : true,
         "nodeReRegistrationTimeout" : -1,
-        "defaultClientScopes" : [ "web-origins", "service_account", "acr", "roles", "profile", "basic", "email" ],
+        "defaultClientScopes" : [ "web-origins", "service_account", "acr", "roles", "profile", "api", "basic", "email" ],
         "optionalClientScopes" : [ "address", "phone", "organization", "offline_access", "microprofile-jwt" ]
       }, {
         "id" : "de5debc9-500a-4540-97ae-6283298a6774",

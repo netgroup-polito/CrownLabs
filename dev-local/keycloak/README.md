@@ -14,8 +14,7 @@ In basic terms, it's what allows you to login once, and then authorizes you to o
 Here is a list of useful terms when working with keycloak:
 
 - **group**: a group of users.
-- **client**: an entity (application or service) that is entitled to request a user's access token.
-  Clients may also be entitled to request keycloak to authenticate the user.
+- **client**: an entity (application or service) that "does something". This can be either requesting a user's access token for other purposes, or modifying user rights within keycloak itself.
 - **client scope**: describing how a client should interact with keycloak. (For example, should authentication be mandatory, or optional?)
 - **realm**: a set of users, credentials, roles, and groups.
   When you have non-admin credentials, they belong to a specific realm, and allow you to login only on that realm.
@@ -66,10 +65,15 @@ You will therefore not reach the page, and have a `ERR_CERT_AUTHORITY_INVALID` e
 You can safely continue on the website ("Advanced" &rarr; "Proceed").
 This should be remembered by your browser, so when you open other websites signed with the same certificate, you will not get the error anymore._
 
-On top of the admin account, the imported realm includes a user account (`john.doe`/`johndoe123`, with already verified email, in the `crownlabs` realm).
-At [this link ](https://keycloak.crownlabs.local:8443/realms/crownlabs/account/) you can check that the credentials actually work.
-However, you get an error after login, since the server where you should be redirected to is not present.
-Once the frontend is running, you will be able to use these credentials to login as a normal user in the website.
+On top of the admin account, the imported realm includes three other credential sets:
+
+- a user account (`john.doe`/`johndoe123`, with already verified email, in the `crownlabs` realm).
+  At [this link ](https://keycloak.crownlabs.local:8443/realms/crownlabs/account/) you can check that the credentials are accepted.
+  However, after the login you will get an error, since the server where you should be redirected to is not present.
+  Once the frontend is running, you will be able to use these credentials to login as a normal user in the website.
+- credentials for a service account (`operator-local`/`operator-local-dev-secret`).
+  Those are used by the main CrownLabs operator to do all the required operations on the keycloak service
+- a `k8s` client (no secret), where the user authenticates himself.
 
 _Please note that these credentials are known values, deliberately documented for local development.
 For security reasons, do not reuse them in real environments._
@@ -90,6 +94,67 @@ This is the purpose of this step of the guide.
 Fully explaining the rationale of every action is relatively complex.
 For this reason, the guide only lists the required steps, along with some very basic motivation.
 The full rationale, verification steps and troubleshooting table can be found in the file [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md): please refer to it if something in this guide does not behave as expected.
+
+### 3.0. Checking that user authorization is currently not setup
+
+_Note: in this step, nothing fundamental will be achieved.
+We will setup a kubeconfig to access the cluster as user, and then we will see that it is not authorized to execute any command.
+Feel free to skip this step if you don't want to set it up, or do not need to check the before and after._
+
+As for the real CrownLabs instance, our local setup can be accessed also via kubectl commands.
+To test this, we can create a new kubeconfig, to login as John Doe.
+Please refer to [the base k3s guide, section 2.3](../base-k3s/README.md#23-instructing-kubectl-to-use-the-file-single-kubeconfig) if you need help to have multiple kubeconfigs available at the same time.
+
+With the official "[Accessing a CrownLabs Sandbox Namespace](https://crownlabs.polito.it/resources/sandbox/)" guide, we can set up everything needed to connect.
+Since it is a local instance, some links in the yaml file may have to be changed.
+For convenience, the following is a fully ready kubeconfig file (you may still need to follow the initial installation steps in the official guide):
+
+<!-- prettier-ignore-start -->
+
+```yaml
+apiVersion: v1
+kind: Config
+clusters:
+- cluster:
+    server: https://apiserver.crownlabs.local:8443
+  name: k3s_JohnDoe
+contexts:
+- context:
+    cluster: k3s_JohnDoe
+    namespace: tenant-john-doe
+    user: k3s_JohnDoe-oidc
+  name: k3s_JohnDoe
+current-context: k3s_JohnDoe
+users:
+- name: k3s_JohnDoe-oidc
+  user:
+    exec:
+      apiVersion: client.authentication.k8s.io/v1beta1
+      args:
+      - oidc-login
+      - get-token
+      - --oidc-issuer-url=https://keycloak.crownlabs.local:8443/realms/crownlabs
+      - --oidc-client-id=k8s
+      - --skip-open-browser
+      - --username=john.doe
+      - --password=johndoe123
+      command: kubectl
+```
+
+<!-- prettier-ignore-end -->
+
+_Note: while working with this new kubeconfig context, remember that the main k3s context (likely called `default`) must be active when launching `WSL_bridge.sh`._
+
+As user (aka with this new kubeconfig), you can use kubectl to get info about your own tenant, with the following command:
+
+```bash
+kubectl get tenant.crownlabs.polito.it john.doe
+
+# error: You must be logged in to the server (the server has asked for the client to provide credentials)
+```
+
+If you run it now, you will get an error, as reported above.
+After executing the next steps, this command will instead work successfully, authenticating John Doe and reporting his tenant's data.
 
 ### 3.1. Considering the root certificate as trusted
 
@@ -155,29 +220,17 @@ journalctl -u k3s -f   # Confirm there is no "invalid authentication configurati
 
 ## Final checks
 
+Now, everything should be setup.
+Running the same command as before should now report data about the tenant John Doe:
+
 ```bash
-kubectl get pods -A
-# Expected: keycloak-0, postgres, cert-manager, and envoy-gateway-system pods are all Running, with no CrashLoopBackOff.
+# ensure you are using the john.doe kubeconfig
 
-curl -sk -o /dev/null -w "%{http_code}\n" https://keycloak.crownlabs.local/realms/crownlabs
-# On WSL2: https://keycloak.crownlabs.local:8443/realms/crownlabs
-# Expected: 200.
+kubectl get tenant.crownlabs.polito.it john.doe
 
-kubectl get nodes
-# Expected: Ready. This confirms the API server came back up after the restart in step 2.
+# NAME       FIRST NAME   LAST NAME   READY   AGE
+# john.doe   John         Doe         true    60d
 ```
-
-Expected end state:
-
-- ✅ Keycloak is up, and reachable through the Gateway.
-- ✅ The `crownlabs` realm is imported, and the `k8s`/`operator-local` clients are configured.
-- ✅ The `mydrive-pvcs` namespace exists.
-- ✅ The Kubernetes API server authenticates through OIDC.
-
-## Next
-
-- [`../operators/README.md`](../operators/README.md): set up base RBAC and run the CrownLabs operator. This needs everything above.
-- For qlkube (which talks directly to the real API server instead of through `kubectl proxy`) and for the frontend's OIDC configuration, see steps 4 to 6 in [`apiserver-oidc-integration.md`](apiserver-oidc-integration.md).
 
 ## Exporting the realm
 
