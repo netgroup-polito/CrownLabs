@@ -7,8 +7,8 @@ metadata:
 spec:
   prettyName: A cup of tea from the queen
   quota:
-    cpu: "8"
-    memory: "15Gi"
+    cpu: 8
+    memory: 15Gi
     instances: 3
 ---
 apiVersion: crownlabs.polito.it/v1alpha1
@@ -20,8 +20,8 @@ metadata:
 spec:
   prettyName: Just coffee
   quota:
-    cpu: "10"
-    memory: "25Gi"
+    cpu: 10
+    memory: 25Gi
     instances: 5
 ---
 apiVersion: crownlabs.polito.it/v1alpha1
@@ -33,8 +33,8 @@ metadata:
 spec:
   prettyName: A bit spicy
   quota:
-    cpu: "6"
-    memory: "20Gi"
+    cpu: 6
+    memory: 20Gi
     instances: 4
 ---
 apiVersion: crownlabs.polito.it/v1alpha1
@@ -46,6 +46,6 @@ metadata:
 spec:
   prettyName: Standalone environments
   quota:
-    cpu: "8"
-    memory: "15Gi"
+    cpu: 8
+    memory: 15Gi
     instances: 3
