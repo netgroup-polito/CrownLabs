@@ -7,6 +7,9 @@ CrownLabs needs a Kubernetes cluster, to host:
 
 In the following steps, you can find the commands to set K3s up.
 
+Note: among many alternatives, in this guide we selected K3s because of its *completeness* (it supports almost everything is available in vanilla K8s), its moderate *resource requirements*, and its *simplicity*.
+Other alternatives are also possible, but are not documented in this guide.
+
 ## 1. Install K3s
 
 ```bash
