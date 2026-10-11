@@ -145,16 +145,22 @@ users:
 
 _Note: while working with this new kubeconfig context, remember that the main k3s context (likely called `default`) must be active when launching `WSL_bridge.sh`._
 
-As user (aka with this new kubeconfig), you can use kubectl to get info about your own tenant, with the following command:
+As normal user (not cluster admin), you are very limted in the kubectl commands you can execute.
+One of the commands allowed in the main CrownLabs instance is the one to get info about your own tenant:
 
 ```bash
 kubectl get tenant.crownlabs.polito.it john.doe
-
-# error: You must be logged in to the server (the server has asked for the client to provide credentials)
 ```
 
-If you run it now, you will get an error, as reported above.
-After executing the next steps, this command will instead work successfully, authenticating John Doe and reporting his tenant's data.
+If you try to execute it now (with this new kubeconfig), you will get the following error:
+
+```
+E1011 11:15:35.526873   47433 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
+Unable to connect to the server: getting credentials: exec: executable kubectl failed with exit code 1
+```
+
+This is because the k3s api needs to authenticate you, but _does not know_ a John Doe, which you are claiming to be.
+At the moment, John Doe only _lives_ inside Keycloak, which is an application _inside_ k3s, of which k3s does not know anything.
 
 ### 3.1. Considering the root certificate as trusted
 
@@ -220,17 +226,26 @@ journalctl -u k3s -f   # Confirm there is no "invalid authentication configurati
 
 ## Final checks
 
-Now, everything should be setup.
-Running the same command as before should now report data about the tenant John Doe:
+Now, everything should be setup for having Keycloak handle the authentication for k3s.
+Running the same command as before should now not result in an authentication error:
 
 ```bash
-# ensure you are using the john.doe kubeconfig
+# make sure you are using the john.doe kubeconfig
 
 kubectl get tenant.crownlabs.polito.it john.doe
-
-# NAME       FIRST NAME   LAST NAME   READY   AGE
-# john.doe   John         Doe         true    60d
 ```
+
+If everything was correct, you should receive another kind of error:
+
+```
+error: the server doesn't have a resource type "tenant"
+```
+
+This is normal behaviour for the moment.
+The k3s successfully authenticated our user using Keycloak, hence the error is not "provide credentials" anymore.
+
+This new error is caused by the fact that "tenant" is a custom resource, created in a future guide (operators): at the moment, k3s is not able to provide it for us.
+Still, the authentication was successful &ndash; which is what we care about right now.
 
 ## Exporting the realm
 
