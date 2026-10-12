@@ -38,6 +38,36 @@ const NativeVNCPage: FC = () => {
     }
   };
 
+  // Last text synced between the local and the VM clipboard, in either direction, so that
+  // a text is never sent back to the side it came from.
+  const lastClipboardTextRef = useRef<string | null>(null);
+
+  // The VM clipboard changed: copy its text to the local clipboard.
+  const copyToLocalClipboard = (e: CustomEvent<{ text: string }>) => {
+    lastClipboardTextRef.current = e.detail.text;
+    // Rejected when the page has no focus (Chromium) or no recent user input (Firefox).
+    navigator.clipboard.writeText(e.detail.text).catch(() => {});
+  };
+
+  // The console got the focus: send the local clipboard to the VM, ready to be pasted there.
+  const sendLocalClipboard = async () => {
+    if (!connectedRef.current) return;
+    try {
+      const permission = await navigator.permissions.query({
+        name: 'clipboard-read' as PermissionName,
+      });
+      if (permission.state === 'denied') return;
+      const text = await navigator.clipboard.readText();
+      if (text && text !== lastClipboardTextRef.current) {
+        lastClipboardTextRef.current = text;
+        vncRef.current?.clipboardPaste(text);
+      }
+    } catch {
+      // Permission not supported by the browser, or the page lost the focus meanwhile.
+    }
+  };
+
+
   if (loading) return <div className="native-vnc-page-status">Loading…</div>;
 
   if (!wsUrl || !token)
@@ -55,7 +85,7 @@ const NativeVNCPage: FC = () => {
     );
 
   return (
-    <div onBlur={keepFocusDuringCapture}>
+    <div onBlur={keepFocusDuringCapture} onFocus={sendLocalClipboard}>
     <VncScreen
       ref={vncRef}
       url={wsUrl}
@@ -77,6 +107,7 @@ const NativeVNCPage: FC = () => {
       onDisconnect={() => {
         if (!connectedRef.current) setConnectionFailed(true);
       }}
+      onClipboard={copyToLocalClipboard}
     />
     </div>
   );
