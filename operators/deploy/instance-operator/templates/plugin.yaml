@@ -14,9 +14,17 @@ spec:
       "{{ index $label 0 }}" in vmi.Labels &&
       vmi.Labels['{{ index $label 0 }}'] == '{{ index $label 1 }}'
       {{- end }}
+    # -vnc: QEMU's built-in VNC server, reachable over websocket on port 5901.
+    # -chardev/-device: a qemu-vdagent channel on the existing virtio-serial controller,
+    # sharing the clipboard with spice-vdagent in the guest; mouse=off leaves the pointer
+    # to the virtio tablet.
     cel:
       expression: >-
         Domain{QEMUCommandline: DomainQEMUCommandline{Args: [
           DomainQEMUCommandlineArg{Value: "-vnc"},
-          DomainQEMUCommandlineArg{Value: "0.0.0.0:0,websocket=5901"}
+          DomainQEMUCommandlineArg{Value: "0.0.0.0:0,websocket=5901"},
+          DomainQEMUCommandlineArg{Value: "-chardev"},
+          DomainQEMUCommandlineArg{Value: "qemu-vdagent,id=vdagent,clipboard=on,mouse=off"},
+          DomainQEMUCommandlineArg{Value: "-device"},
+          DomainQEMUCommandlineArg{Value: '{"driver":"virtserialport","chardev":"vdagent","name":"com.redhat.spice.0"}'}
         ]}}
