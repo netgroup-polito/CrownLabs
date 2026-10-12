@@ -31,7 +31,7 @@ configuration:
     containerdisks: crownlabs-containerdisks
     publicSnapshots: public-local-snapshots
   imageCreationWarning: "Before creating an image, reset cloud-init and complete any required manual configuration inside the VM."
-  imageCreationHelp: "https://www.youtube.com/watch?v=i7fqga7xQv0"
+  imageCreationHelp: "https://github.com/netgroup-polito/CrownLabs/blob/master/provisioning/virtual-machines/README-reset-cloud-init.md"
   publicRegistryNameDestination: crownlabs-public-snapshots
   customResources:
     nvidia.com/gpu: "NVIDIA GPU"
