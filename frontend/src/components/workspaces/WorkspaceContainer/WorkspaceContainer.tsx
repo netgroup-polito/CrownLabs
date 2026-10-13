@@ -18,6 +18,7 @@ import type { Template } from '../ModalCreateTemplate/ModalCreateTemplate';
 import { TemplatesTableLogic } from '../Templates/TemplatesTableLogic';
 import QuotaDisplay from '../QuotaDisplay';
 import WorkspaceImagesContextProvider from '../../../contexts/WorkspaceImagesContextProvider';
+import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 
 export interface IWorkspaceContainerProps {
   tenantNamespace: string;
@@ -32,6 +33,10 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
   const workspaceNamespace = isPersonal ? tenantNamespace : workspace.namespace;
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
+  const { totalQuota } = useContext(OwnedInstancesContext);
+  const workspaceDiskQuota = totalQuota[workspace.name]?.disk;
+  // No configured disk quota means disk-backed environments cannot be started.
+  const diskMax = workspaceDiskQuota ?? 0;
   const [createTemplateMutation, { loading }] = useCreateTemplateMutation({
     onError: apolloErrorCatcher,
   });
@@ -124,7 +129,7 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
         workspaceNamespace={workspaceNamespace}
         cpuInterval={{ max: 8, min: 1 }}
         ramInterval={{ max: 32, min: 1 }}
-        diskInterval={{ max: 50, min: 10 }}
+        diskInterval={{ max: diskMax, min: Math.min(10, diskMax) }}
         setShow={setShow}
         show={show}
         submitHandler={submitHandler}
