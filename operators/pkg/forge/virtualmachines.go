@@ -318,13 +318,6 @@ func DataVolumeSourceForge(environment *clv1alpha2.Environment) (*cdiv1beta1.Dat
 
 // DataVolumeSpec forges the spec of a DataVolume, which needs to be created before the VM.
 func DataVolumeSpec(environment *clv1alpha2.Environment) (cdiv1beta1.DataVolumeSpec, error) {
-	// Select the correct volume mode based on VM type. Defaults to FS, but for CloudVMs Block Mode is used
-	volumeMode := corev1.PersistentVolumeFilesystem
-
-	if environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
-		volumeMode = corev1.PersistentVolumeBlock
-	}
-
 	source, err := DataVolumeSourceForge(environment)
 	if err != nil {
 		return cdiv1beta1.DataVolumeSpec{}, err
@@ -334,7 +327,7 @@ func DataVolumeSpec(environment *clv1alpha2.Environment) (cdiv1beta1.DataVolumeS
 		Source: source,
 		PVC: &corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			VolumeMode:  &volumeMode,
+			VolumeMode:  ptr.To(corev1.PersistentVolumeBlock),
 			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: environment.Resources.Disk,
