@@ -1,0 +1,4 @@
+smtpServer: "localhost"
+smtpPort: "1025"
+smtpUsername: "user"
+smtpPassword: "pass"
