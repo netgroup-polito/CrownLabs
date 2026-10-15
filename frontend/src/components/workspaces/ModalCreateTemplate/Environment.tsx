@@ -472,7 +472,7 @@ export const Environment: FC<EnvironmentProps> = ({
           theme={{
             components: {
               Cascader: {
-                dropdownHeight: 'auto',
+                dropdownHeight: 'min(320px, 40vh)',
               },
             },
           }}
