@@ -76,5 +76,9 @@ export type ImageList = {
   images: Array<{
     name: string;
     versions: Array<string>;
+    versionDetails?: Array<{
+      version: string;
+      volumeSize?: string;
+    }>;
   }>;
 };

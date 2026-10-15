@@ -48,6 +48,12 @@ func NewUpdater(requestor []Requestor, imageListBase, projectBaseName string, im
 
 // Update performs the update process for the ImageList resource.
 func (u *Updater) Update(ctx context.Context) error {
+	_, err := u.updateWithItems(ctx)
+	return err
+}
+
+// updateWithItems returns the processed images after a successful update without reading them back from the cache.
+func (u *Updater) updateWithItems(ctx context.Context) ([]clv1alpha1.ImageListItem, error) {
 	start := time.Now()
 	u.Log.Info("Starting the update process")
 	images := []map[string]interface{}{}
@@ -55,25 +61,28 @@ func (u *Updater) Update(ctx context.Context) error {
 		list, err := r.GetImageList(ctx)
 		if err != nil {
 			u.Log.Error(err, "failed to retrieve data from upstream")
-			return err
+			return nil, err
 		}
 		images = append(images, list...)
 	}
 
 	// Process and convert images to CRD format
 	imageListItems := ProcessImageList(images)
+	if imageListItems == nil {
+		imageListItems = []clv1alpha1.ImageListItem{}
+	}
 	u.Log.V(1).Info("processed images", "imageCount", len(imageListItems))
 
 	// Save images using the configured saver
 	if u.ImageListSaver != nil {
 		if err := u.ImageListSaver.CreateOrUpdateImageList(u.RegistryName, u.ProjectBaseName, imageListItems); err != nil {
 			u.Log.Error(err, "failed to save data as ImageList", "registry", u.RegistryName)
-			return err
+			return nil, err
 		}
 	}
 
 	u.Log.Info("update process completed successfully", "duration_seconds", time.Since(start).Seconds())
-	return nil
+	return imageListItems, nil
 }
 
 // ProcessImageList converts raw image data from the registry into CRD ImageListItem objects.

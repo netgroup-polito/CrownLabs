@@ -19,9 +19,12 @@ import (
 	"context"
 	"fmt"
 
+	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -29,6 +32,7 @@ import (
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 const (
@@ -38,7 +42,10 @@ const (
 // InstanceValidator implements a validating webhook for Instance resources.
 type InstanceValidator struct {
 	admission.CustomValidator
-	Client client.Client
+	Client                  client.Client
+	APIReader               client.Reader
+	PublicSnapshotNamespace string
+	BypassGroups            []string
 }
 
 // accumulateEnvResources aggregates the resource footprints from a list of environments into the running totals.
@@ -182,6 +189,117 @@ func validateQuota(ctx context.Context, instance *clv1alpha2.Instance, cl client
 	return warnings, nil
 }
 
+// hasLocalVMEnvironment reports whether the template boots at least one environment from a volume
+// of this cluster, which is the only case a cross-namespace clone can arise from.
+func hasLocalVMEnvironment(template *clv1alpha2.Template) bool {
+	for i := range template.Spec.EnvironmentList {
+		if template.Spec.EnvironmentList[i].EnvironmentType == clv1alpha2.ClassLocalVM {
+			return true
+		}
+	}
+
+	return false
+}
+
+// validateVolumeSources verifies access to every LocalVM source and ensures the target disk
+// is large enough to clone it.
+func (iv *InstanceValidator) validateVolumeSources(ctx context.Context, instance *clv1alpha2.Instance) error {
+	// The template is resolved through its own reference, so templates living outside the tenant
+	// namespace are covered as well.
+	template := &clv1alpha2.Template{}
+	if err := iv.Client.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), template); err != nil {
+		return fmt.Errorf("failed to get instance template: %w", err)
+	}
+
+	// Nothing to validate unless the template boots from a volume.
+	if !hasLocalVMEnvironment(template) {
+		return nil
+	}
+
+	req, err := admission.RequestFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get admission request from context: %w", err)
+	}
+
+	bypassAuthorization := utils.MatchOneInStringSlices(iv.BypassGroups, req.UserInfo.Groups)
+	tenant := &clv1alpha2.Tenant{}
+	if !bypassAuthorization {
+		if err := iv.Client.Get(ctx, types.NamespacedName{Name: req.UserInfo.Username}, tenant); err != nil {
+			return fmt.Errorf("failed to get tenant %s: %w", req.UserInfo.Username, err)
+		}
+	}
+
+	for i := range template.Spec.EnvironmentList {
+		env := &template.Spec.EnvironmentList[i]
+		if env.EnvironmentType != clv1alpha2.ClassLocalVM {
+			continue
+		}
+
+		source, err := forge.ParseLocalVMImage(env.Image)
+		if err != nil {
+			return err
+		}
+
+		if !bypassAuthorization && !forge.TenantCanReadNamespace(tenant, source.Namespace, iv.PublicSnapshotNamespace) {
+			logger := ctrl.LoggerFrom(ctx)
+			logger.Info("Unauthorized PVC access attempt",
+				"tenant", tenant.Name,
+				"instance", instance.Name,
+				"environment", env.Name,
+				"pvcNamespace", source.Namespace,
+				"pvcName", source.Name)
+			return fmt.Errorf("environment %q cannot use volume %q from namespace %q: the source must belong to "+
+				"your own tenant, to a workspace you are subscribed to, or to the public snapshot catalog",
+				env.Name, source.Name, source.Namespace)
+		}
+
+		requireSnapshotArtifact := !bypassAuthorization && source.Namespace != iv.PublicSnapshotNamespace
+		if err := iv.validateSourceVolume(ctx, source, env, requireSnapshotArtifact); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// validateSourceVolume checks snapshot publication when required and always checks disk size,
+// including for public images and actors bypassing authorization checks.
+func (iv *InstanceValidator) validateSourceVolume(
+	ctx context.Context,
+	source types.NamespacedName,
+	env *clv1alpha2.Environment,
+	requireSnapshotArtifact bool,
+) error {
+	pvc := &corev1.PersistentVolumeClaim{}
+	if err := iv.APIReader.Get(ctx, source, pvc); err != nil {
+		if kerrors.IsNotFound(err) {
+			return fmt.Errorf("environment %q refers to volume %s, which does not exist", env.Name, source)
+		}
+		return fmt.Errorf("environment %q: cannot verify volume %s: %w", env.Name, source, err)
+	}
+
+	// Reaching a namespace does not imply being entitled to every volume inside it.
+	if requireSnapshotArtifact && pvc.Labels[forge.LabelSnapshotArtifactKey] != forge.LabelSnapshotArtifactValue {
+		return fmt.Errorf("environment %q refers to volume %s, which is not a published snapshot: only snapshot "+
+			"artifacts can be booted outside the public catalog", env.Name, source)
+	}
+
+	// Provisioned capacity can exceed the request; a pending expansion can make the request larger.
+	minimumDisk := pvc.Spec.Resources.Requests[corev1.ResourceStorage]
+	if capacity := pvc.Status.Capacity[corev1.ResourceStorage]; capacity.Cmp(minimumDisk) > 0 {
+		minimumDisk = capacity
+	}
+	if minimumDisk.Sign() <= 0 {
+		return fmt.Errorf("environment %q: cannot determine the disk size of source volume %s", env.Name, source)
+	}
+	if env.Resources.Disk.Cmp(minimumDisk) < 0 {
+		return fmt.Errorf("environment %q requests disk size %s, but source volume %s requires at least %s",
+			env.Name, env.Resources.Disk.String(), source, minimumDisk.String())
+	}
+
+	return nil
+}
+
 // ValidateCreate validates a new instance creation request.
 func (iv *InstanceValidator) ValidateCreate(
 	ctx context.Context,
@@ -193,6 +311,10 @@ func (iv *InstanceValidator) ValidateCreate(
 	instance, ok := obj.(*clv1alpha2.Instance)
 	if !ok {
 		return warnings, fmt.Errorf("expected Instance resource but got %T", obj)
+	}
+
+	if err := iv.validateVolumeSources(ctx, instance); err != nil {
+		return warnings, err
 	}
 
 	return validateQuota(ctx, instance, iv.Client)
@@ -221,5 +343,15 @@ func (iv *InstanceValidator) ValidateUpdate(
 		return warnings, nil
 	}
 
-	return validateQuota(ctx, newInstance, iv.Client)
+	quotaWarnings, err := validateQuota(ctx, newInstance, iv.Client)
+	if err != nil {
+		return quotaWarnings, err
+	}
+	warnings = append(warnings, quotaWarnings...)
+
+	if err := iv.validateVolumeSources(ctx, newInstance); err != nil {
+		return warnings, err
+	}
+
+	return warnings, nil
 }

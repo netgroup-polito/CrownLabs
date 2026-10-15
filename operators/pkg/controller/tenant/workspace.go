@@ -135,22 +135,7 @@ func (r *Reconciler) removeNoWorkspaceLabel(
 func (r *Reconciler) getEnrolledWorkspaces(
 	tn *clv1alpha2.Tenant,
 ) []clv1alpha2.TenantWorkspaceEntry {
-	validWorkspaces := make([]clv1alpha2.TenantWorkspaceEntry, 0, len(tn.Spec.Workspaces))
-	for _, ws := range tn.Spec.Workspaces {
-		// skip workspaces in Candidate status
-		if ws.Role == clv1alpha2.Candidate {
-			continue
-		}
-
-		// skip failing workspaces
-		if slices.Contains(tn.Status.FailingWorkspaces, ws.Name) {
-			continue
-		}
-
-		validWorkspaces = append(validWorkspaces, ws)
-	}
-
-	return validWorkspaces
+	return forge.EnrolledWorkspaces(tn)
 }
 
 func (r *Reconciler) getWorkspacesList(

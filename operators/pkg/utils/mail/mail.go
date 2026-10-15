@@ -124,7 +124,7 @@ func getPlaceholderMap(placeholders *Placeholders) map[string]string {
 	placeholdersValue := reflect.ValueOf(placeholders)
 
 	// Handle pointer to struct
-	if placeholdersType.Kind() == reflect.Ptr {
+	if placeholdersType.Kind() == reflect.Pointer {
 		if placeholdersValue.IsNil() {
 			return make(map[string]string)
 		}

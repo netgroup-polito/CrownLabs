@@ -6,6 +6,9 @@ interface IAuthContext {
   token?: string;
   userId?: string;
   profile?: UserProfile;
+  groups: string[];
+  isClusterAdmin: boolean;
+  isImagePublisher: boolean;
   logout: () => Promise<void>;
 }
 
@@ -14,5 +17,8 @@ export const AuthContext = createContext<IAuthContext>({
   token: undefined,
   userId: undefined,
   profile: undefined,
+  groups: [],
+  isClusterAdmin: false,
+  isImagePublisher: false,
   logout: async () => void 0,
 });

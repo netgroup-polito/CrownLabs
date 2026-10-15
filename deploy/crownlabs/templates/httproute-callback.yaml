@@ -22,4 +22,5 @@ spec:
           kind: Service
           name: {{ include "crownlabs.fullname" . }}-secpol-dummy-backend
           port: 80
+          weight: 1
 {{- end }}
