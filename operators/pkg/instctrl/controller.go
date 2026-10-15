@@ -305,7 +305,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 			urlNeeded = true
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassCluster:
 			if tmplEnv.GuiEnabled {
 				urlNeeded = true
 			}
@@ -350,6 +350,12 @@ func (r *InstanceReconciler) enforceSingleEnvironment(ctx context.Context, tmplE
 			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 			return err
 		}
+	case clv1alpha2.ClassCluster:
+		if err := r.EnforceClusterEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	default:
 	}
 
 	r.setInitialReadyTimeIfNecessary(ctx)
