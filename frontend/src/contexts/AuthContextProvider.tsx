@@ -10,6 +10,10 @@ import { ErrorContext } from '../errorHandling/ErrorContext';
 import { ErrorTypes } from '../errorHandling/utils';
 import { useAuth } from 'react-oidc-context';
 import { AuthContext } from './AuthContext';
+import {
+  VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM,
+  VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX,
+} from '../env';
 
 const AuthContextProvider: FC<PropsWithChildren> = props => {
   const { children } = props;
@@ -54,6 +58,14 @@ const AuthContextProvider: FC<PropsWithChildren> = props => {
       .catch(loginErrorCatcher);
   }, [removeUser, signoutRedirect, loginErrorCatcher]);
 
+  const groups = (user?.profile.groups ?? []) as string[];
+  const isClusterAdmin = groups.includes(
+    `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:${VITE_APP_CROWNLABS_GROUPS_ADMIN_CLAIM}`,
+  );
+  const isImagePublisher = groups.includes(
+    `${VITE_APP_CROWNLABS_GROUPS_CLAIM_PREFIX}:image-publisher`,
+  );
+
   return isLoading ? null : (
     <AuthContext.Provider
       value={{
@@ -61,6 +73,9 @@ const AuthContextProvider: FC<PropsWithChildren> = props => {
         token: user?.id_token,
         userId: user?.profile.preferred_username || '',
         profile: user?.profile,
+        groups,
+        isClusterAdmin,
+        isImagePublisher,
         logout,
       }}
     >

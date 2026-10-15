@@ -16,13 +16,6 @@ configurations:
   containerEnvironmentOptions:
     tag: ""
     contentToolsImg: crownlabs/content-tools
-  containerVmSnapshots:
-    kanikoImage: gcr.io/kaniko-project/executor:latest
-    exportImage: "crownlabs/img-exporter"
-    exportImageTag: ""
-  privateContainerRegistry:
-    url: registry.crownlabs.example.com
-    secretName: registry-credentials
   maxConcurrentReconciles: 1
 
   monitoring:

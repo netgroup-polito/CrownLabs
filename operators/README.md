@@ -113,7 +113,6 @@ The Instance Operator implements the backend logic necessary to spawn new enviro
 
 - **Template** defines the size of the execution environment (e.g.; Virtual Machine), its base image and a description. This object is created by managers and read by users, while creating new instances.
 - **Instance** defines an instance of a certain template. The manipulation of those objects triggers the reconciliation logic in the operator, which creates/destroy associated resources (e.g.; Virtual Machines).
-- **InstanceSnapshot** defines a snapshot for a persistent VM instance. The associated operator will start the snapshot creation process once this resource is created.
 
 ### Persistent Feature
 
@@ -132,23 +131,6 @@ The PVC represents a request for a PersistentVolume (PV). In other words thanks 
 The aim of the importer pod is to extract an image (in this case from a docker registry where it is saved) and load it inside the PVC. This process, depending on the size of the image, can take some minutes. Once the import is completed, the Phase of the DataVolume becomes Succeeded and the Instance Operator wakes up so that all the other resources are created.
 
 N.B. The process of creating a persistent VirtualMachine can take, as said, a bit more time with the respect to a normal one (5-10 mins). However when you restart the VM you will not have to wait such time.
-
-### Snapshots of persistent VM instances
-
-The Instance Operator allows the creation of snapshots of persistent VM instances, producing a new image to be uploaded into the docker registry.
-This feature is provided by an additional control loop running in the Instance Operator, the *Instance Snapshot controller*, in charge of watching the InstanceSnapshot resource.
-This controller starts the snapshot creation process once a new *InstanceSnapshot* resource is found.
-
-The two main limitations of this approach are the following:
-- Snapshots of *ephemeral* VMs are currently unsupported
-- Persistent VMs should be powered off when the snapshot creation process starts, otherwise it is not possible to steal DataVolume from the VM and the creation fails.
-
-If the request for a new snapshot is valid, a new Job is created that performs the following two main actions:
-
-- **Export the VM's disk**: this action is done by an init container in the job; it steals the DataVolume from the VM and converts the above raw disk image in a QCOW2 image, using the [QEMU disk image utility](https://qemu.readthedocs.io/en/master/tools/qemu-img.html). After the conversion, it creates the Dockerfile for the Docker image build, which is needed in the next step.
-- **Build a new image and push it to the Docker registry**: once the init container terminates successfully, an EmptyDir volume with the building context is ready to be used for building the image and pushing it to the registry. This job leverages [Kaniko](https://github.com/GoogleContainerTools/kaniko), which allows to build a Docker image without a privileged container, since all the commands in the Dockerfile are executed in userspace. Note that Kaniko requires a large amount of RAM during the building process, so make sure that the RAM memory limit in your namespace is enough (currently the Kaniko container has a RAM memory limit of 32GB).
-
-When the snapshot creation process successfully terminates, the docker registry will contain a new VM image with the exact copy of the target persistent VM at the moment of the snapshot creation. Note that before being able to create a new VM instance with that image, you should first create a new Template with the newly uploaded image.
 
 ### Attachable storage
 
@@ -540,42 +522,306 @@ For a deeper definition go to
 - `Workspace` [GoLang code version](./api/v1alpha1/workspace_types.go)
 - `Workspace` [YAML version](./deploy/crds/crownlabs.polito.it_workspaces.yaml)
 
+## CrownLabs InstanceSnapshot Controller
+
+The InstanceSnapshot controller creates a reusable copy of a VM disk through a CDI `DataVolume` clone. It runs in the main `operator` process and watches namespaced `InstanceSnapshot` resources (`crownlabs.polito.it/v1alpha2`) and their owned DataVolumes. The resulting DataVolume and PVC have the same name and namespace as the snapshot.
+
+The implementation is in [instsnapctrl/controller.go](pkg/instsnapctrl/controller.go), with admission checks in the [snapshot webhook](pkg/controller/instancesnapshot/webhook/validator.go) and [instance webhook](pkg/controller/instance/webhook/validator.go).
+
+### Snapshot API
+
+Create the resource in the destination namespace, referencing the source Instance and its environment explicitly:
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: InstanceSnapshot
+metadata:
+  name: ubuntu-lab-snapshot
+  namespace: crownlabs-public-snapshots
+  labels:
+    crownlabs.polito.it/tenant: mario
+spec:
+  instanceRef:
+    name: ubuntu-lab
+    namespace: tenant-mario
+  environment: desktop
+  imageName: ubuntu-lab
+  description: Base disk for the laboratory
+```
+
+For ordinary users, `crownlabs.polito.it/tenant` must be present and equal the authenticated username. Ownership is recorded in this label, replacing the former `spec.tenantRef` field. The source namespace is required by the webhook and has no default. `imageName` and `description` are optional; they become annotations on the DataVolume and do not determine its name.
+
+The entire `spec`, including the descriptive fields, is immutable after creation. The CRD enforces spec immutability, and the validating webhook also prevents changes to the tenant label. These update restrictions apply even to users in the bypass groups. See the [API types](api/v1alpha2/instancesnapshot_types.go) and [CRD schema](deploy/crds/crownlabs.polito.it_instancesnapshots.yaml).
+
+### Reconciliation and artifacts
+
+The source must have an existing disk PVC and a Template with exactly one environment. Use that environment's name in `spec.environment`. Stop the Instance and wait for its VirtualMachineInstance to disappear before taking the snapshot.
+
+1. The controller adds `instancesnapshot.crownlabs.polito.it/finalizer` using a metadata patch, preserving the immutable spec, and initializes an empty phase to `Pending`.
+2. It resolves the source Instance and Template, then checks `Instance.spec.running` and the presence of the source VirtualMachineInstance. A running Instance or a remaining VMI causes reconciliation to retry; these checks happen in the controller, not at snapshot admission.
+3. It creates a DataVolume in the snapshot's namespace with `spec.source.pvc` pointing to the source disk. The clone copies the source PVC's storage request, storage class, access modes and volume mode. CDI performs the clone, including cross-namespace data movement when needed.
+4. While the DataVolume is non-terminal, the snapshot becomes `Processing`. On CDI `Succeeded`, the controller labels the artifact PVC `crownlabs.polito.it/snapshot-artifact=true` and marks the snapshot `Completed`. On CDI `Failed`, it marks the snapshot `Failed`.
+
+An existing DataVolume at the destination must already be controlled by this snapshot; otherwise the snapshot fails with `ArtifactNotOwned`. Completed and failed snapshots are terminal and are not retried automatically. A new attempt requires a new InstanceSnapshot resource.
+
+Successful status includes the artifact reference and storage size:
+
+```yaml
+status:
+  phase: Completed
+  artifact:
+    dataVolumeRef:
+      name: ubuntu-lab-snapshot
+      namespace: crownlabs-public-snapshots
+    volumeSize: 20Gi
+```
+
+`volumeSize` is a Kubernetes quantity copied from the DataVolume PVC storage request. It describes the provisioned disk request, not a compressed image size. The DataVolume also carries the `crownlabs.polito.it/image-name`, `crownlabs.polito.it/snapshot-description` and `crownlabs.polito.it/snapshot-tenant` annotations when the corresponding values are available.
+
+On deletion, the finalizer requests deletion of the referenced DataVolume only if it is controlled by that snapshot, then removes itself. An absent artifact is accepted; an unowned DataVolume is left untouched. CDI/Kubernetes handle the dependent PVC cleanup. A failed clone is retained until the snapshot is deleted so it can be inspected.
+
+### Access control
+
+Kubernetes RBAC controls creation in the destination namespace. The snapshot webhook additionally validates the tenant label, permission to publish into the public namespace, and permission to read the source namespace. Ordinary tenants can read sources in:
+
+| Source namespace | Access |
+| --- | --- |
+| Their own tenant namespace | Allowed. |
+| An enrolled workspace namespace | Allowed for users and managers; candidate or failing memberships are excluded. |
+| The configured public snapshot namespace | Allowed. |
+| Another tenant or an unrelated workspace | Denied. |
+
+Workspace managers do not gain access to the private namespaces of their workspace's tenants. Namespace access is shared with LocalVM validation through `forge.TenantCanReadNamespace`.
+
+Publishing to the public namespace also requires membership in `snapshotPublisherGroup`. The umbrella chart binds this group to `crownlabs-publish-instance-snapshots` through a namespaced RoleBinding; that role grants only `create`, not read, update or delete. The existing view and management roles provide their respective permissions through normal RBAC aggregation.
+
+Membership in `snapshotWebhookBypassGroups` skips the snapshot webhook's creation checks for tenant ownership, source access and publisher membership. It does not grant Kubernetes RBAC permissions. An empty `snapshotPublisherGroup` prevents ordinary users from publishing publicly; bypass users still follow their RBAC permissions.
+
+### Public snapshot namespace
+
+The public snapshot catalog uses `crownlabs-public-snapshots` by default. The Go default is defined by `forge.DefaultPublicSnapshotNamespace` in [namespace.go](pkg/forge/namespace.go) and can be overridden with `--snapshot-public-namespace`.
+
+For Helm deployments, set `configurations.snapshotPublicNamespace` in the operator chart, or `operator.configurations.snapshotPublicNamespace` in the umbrella chart. Both charts explicitly configure the same default in their values. This value is passed to the operator's snapshot and instance admission checks and determines the namespace of the public snapshot publisher RoleBinding.
+
+Volumes in this namespace can be read by every tenant. Publishing remains controlled by `snapshotPublisherGroup` and `webhook.deployment.snapshotWebhookBypassGroups`; the namespace setting does not change those permissions.
+
+### Configuration and deployment
+
+The controller is enabled by `configurations.features.instanceSnapshot` in the operator chart, or `operator.configurations.features.instanceSnapshot` in the umbrella chart. Both charts and the binary default to enabling the controller. Admission checks require the webhook server and validating webhook configuration as well:
+
+```yaml
+# Umbrella chart values
+operator:
+  configurations:
+    features:
+      instanceSnapshot: true
+      instance: true
+      webhooks: true
+    snapshotPublicNamespace: crownlabs-public-snapshots
+    snapshotPublisherGroup: kubernetes:image-publisher
+  webhook:
+    enableValidating: true
+    deployment:
+      snapshotWebhookBypassGroups: system:masters,kubernetes:admin
+```
+
+The umbrella chart already enables these webhooks. The standalone operator chart defaults `features.webhooks` and `webhook.enableValidating` to `false`, so enable both when deploying it directly. The publisher RoleBinding and user-facing ClusterRoles are supplied by the umbrella chart.
+
+| CLI flag | Binary default | Helm default |
+| --- | --- | --- |
+| `--enable-instancesnapshot` | `true` | `true` |
+| `--snapshot-public-namespace` | `crownlabs-public-snapshots` | `crownlabs-public-snapshots` |
+| `--snapshot-publisher-group` | Empty | `kubernetes:image-publisher` |
+| `--snapshot-webhook-bypass-groups` | `system:masters` | `system:masters,kubernetes:admin` |
+
+Install the updated InstanceSnapshot CRD before upgrading the operator, and ensure CDI and the storage backend support the required PVC cloning. Provision the destination namespace and label it to match `configurations.targetLabel`: the validating webhook configurations select namespaces using that label. The public namespace setting alone does not create or label the namespace. Clients using the former `spec.tenantRef` field must switch to the tenant label; restart qlkube after applying CRD changes if GraphQL clients consume the schema.
+
+### Starting instances from a snapshot
+
+Use a completed artifact as a Template environment with `environmentType: LocalVM` and `image: <artifact-namespace>/<artifact-name>`. For the example above, the image is `crownlabs-public-snapshots/ubuntu-lab-snapshot`. The instance controller creates a new DataVolume cloned from that PVC.
+
+The instance webhook validates LocalVM sources on Instance creation and when changing a stopped Instance to running:
+
+- The source reference must contain a namespace and PVC name, and the PVC must exist.
+- The requesting tenant must be allowed to read the namespace. Outside the public catalog, the PVC must also carry `crownlabs.polito.it/snapshot-artifact=true`.
+- The Template environment's `resources.disk` must be at least the larger of the source PVC's storage request and reported capacity. Missing or non-positive source sizes are rejected.
+
+The bypass groups skip namespace and artifact-label authorization checks, but PVC existence and disk-size checks still apply, including for public images.
+
+### Checking and troubleshooting snapshots
+
+Inspect the snapshot, its events, and its DataVolume/PVC in the destination namespace:
+
+```bash
+kubectl get isnap -n crownlabs-public-snapshots
+kubectl describe isnap ubuntu-lab-snapshot -n crownlabs-public-snapshots
+kubectl get datavolume,pvc ubuntu-lab-snapshot -n crownlabs-public-snapshots
+```
+
+| Symptom or event | Meaning |
+| --- | --- |
+| `Pending` with running-Instance/VMI errors in operator logs | Stop the source VM and wait for its VMI to disappear. |
+| `Processing` | Inspect the DataVolume's CDI status and events for clone progress or storage problems. |
+| `SourceInstanceDeleted` / `TemplateNotFound` | The referenced Instance or its Template was not found; the snapshot is `Failed`. |
+| `MultiEnvTemplateNotAllowed` | The Template has zero or multiple environments; the snapshot is `Failed`. |
+| `ArtifactNotOwned` | The target or cleanup reference points to a DataVolume not owned by this snapshot. |
+| `SnapshotFailed` / `SnapshotCompleted` | CDI reported failure, or the clone succeeded and the artifact PVC was labeled. |
+
+`status.conditions` is part of the API but is not populated by the current controller; use `status.phase`, Kubernetes events and operator logs to diagnose progress.
+
 ## CrownLabs Image List Updater
 
-The CrownLabs Image List Updater is a modular component that manages the retrieval and synchronization of available images from container registries and exposes them as ImageList custom resources in Kubernetes.
+The CrownLabs Image List Updater synchronizes images from container registries and completed public snapshots into cluster-scoped `ImageList` custom resources (`crownlabs.polito.it/v1alpha1`). Each configured source writes its own catalog, identified by `imageListName`.
 
-The updater is now integrated into the main operator controller, eliminating the need for a separate deployment. It can be enabled as an optional feature and runs as a periodic background task with a configurable update interval.
-When `configurations.imageList` is not defined in the Helm values, the operator does not mount the registry ConfigMap and does not pass the image list command-line arguments.
+The updater runs inside the main operator, performs an initial update at startup, and then refreshes the catalogs periodically. Enable it through `configurations.features.imageList` in the operator chart, or `operator.configurations.features.imageList` in the umbrella chart. The umbrella chart enables the feature by default; the standalone operator chart disables it. Both configure a 600-second interval. The Harbor sources are present in both charts; the public snapshot source is added in the umbrella chart. See [Integration with the Operator](#integration-with-the-operator) for the configuration and CLI flags.
 
 ### Architecture
 
 The Image List Updater is composed of:
 
-1. **Update Method** (`(*BackgroundUpdater).Update(ctx)`) - Executes a complete update cycle across all configured registries. This method is:
-    - Called by the scheduler when periodic updates are enabled
-    - Intended to be invoked on a `BackgroundUpdater` instance for on-demand or event-triggered updates
-    - Protected against overlapping executions by the updater's concurrency controls
+1. **Update Method** (`(*BackgroundUpdater).Update(ctx)`) - Reloads the configuration file and processes each source in sequence. A failed source is logged without stopping the remaining sources; the cycle returns an error if any source fails. A mutex prevents overlapping update cycles.
 
 2. **Periodic Scheduler** (`StartScheduler(ctx)`) - Manages automatic updates at a configurable interval:
    - Runs inside the operator when enabled
    - Prevents concurrent updates with mutex protection
    - Performs initial update on startup, then periodic updates
 
-3. **Configuration System** - Reads registry configurations from a ConfigMap containing:
+3. **Configuration System** - Reads source configurations from the `image-lists-sources` ConfigMap containing:
    - Registry URLs and authentication credentials
-   - Registry types (Docker, Harbor, etc.)
+   - Source types and namespaces for snapshot catalogs
    - Target ImageList resource names
 
 4. **Processing Pipeline**:
-   - **Requestor**: Authenticates with the registry and retrieves the list of available images
-   - **Updater**: Processes the raw image data and converts it to CRD format
-   - **Saver**: Creates or updates the ImageList custom resource in Kubernetes
+   - **Registry sources**: A `Requestor` retrieves image names and tags, and `ProcessImageList` converts them into `ImageListItem` entries. It removes `latest` tags and excludes images without another tag.
+   - **Public snapshots**: `PublicSnapshotImageListSource` reads typed snapshot artifacts and produces `ImageListItem` entries directly, preserving local artifact names and volume metadata without registry tag processing.
+   - **Saver**: Creates or replaces the catalog's spec, including `registryName`, `projectBaseName` and `images`. A successful empty result persists `images: []` to clear stale entries.
 
-### Supported Registries
+`ProcessSingleRegistryConfigWithItems` returns the processed items after saving them, without querying the source twice or reading the updated ImageList back from the Kubernetes client cache.
 
-The updater supports multiple registry types through pluggable Requestor implementations:
-- `DockerImageListRequestor`: Docker Registry HTTP API V2
-- `HarborImageListRequestor`: Harbor REST API v2
+### Supported Sources
+
+| Configuration `type` | Implementation | Source |
+| --- | --- | --- |
+| `docker` | `DockerImageListRequestor` | Docker Registry HTTP API V2. |
+| `harbor` | `HarborImageListRequestor` | Harbor REST API v2; requires `project`. |
+| `instancesnapshot` | `InstanceSnapshotImageListRequestor` | Legacy registry exports: reads completed snapshots and their export Jobs in `namespace`. Also accepts `instancesnapshots` and `instanceSnapshot`. |
+| `public-snapshots` | `PublicSnapshotImageListSource` | Local CDI artifacts referenced by completed snapshots in `namespace`. |
+
+Use `public-snapshots` for the CDI snapshot controller. The legacy `instancesnapshot` source expects export Jobs and cannot discover these local artifacts.
+
+### Local snapshot catalogs
+
+The `public-snapshots` source reads `InstanceSnapshot` resources (`crownlabs.polito.it/v1alpha2`) and publishes their `status.artifact.dataVolumeRef` references. The snapshot controller creates the CDI DataVolume/PVC artifacts; the updater only catalogs them and does not query export Jobs, registries, DataVolumes or PVCs.
+
+#### Source configuration
+
+Add a source to `configurations.imageList.registries` (under `operator` in the umbrella chart). In Helm values, omit `namespace` to inherit `configurations.snapshotPublicNamespace`:
+
+```yaml
+- name: snapshots-workspace
+  type: public-snapshots
+  imageListName: public-local-snapshots
+```
+
+This source is defined in the umbrella chart's [values.yaml](../deploy/crownlabs/values.yaml), alongside the Harbor sources. The operator subchart retains its Harbor defaults and provides the ConfigMap template. `name` identifies the source in logs; `imageListName` is the name of the generated Kubernetes resource and is independent of the artifact namespace. Configure the public namespace once through `operator.configurations.snapshotPublicNamespace` (or `configurations.snapshotPublicNamespace` in the operator chart); it defaults to `crownlabs-public-snapshots`. Helm fills in any missing or empty `namespace` on `public-snapshots` sources before writing the ConfigMap. An explicit source namespace is preserved and must be kept aligned with the public access configuration.
+
+For `public-snapshots`, the configuration file consumed by the Go updater must contain `namespace`, which supplies the saved `spec.registryName`; raw configuration files must set it explicitly. The public namespace flag defaults to `forge.DefaultPublicSnapshotNamespace` when running the binary directly, but does not fill in source configuration files. `projectBaseName` is empty and omitted from the serialized spec. Registry fields (`url`, `registryName`, `project`, `username`, `password`) are not used. Assign a distinct `imageListName` to each source so that catalogs do not overwrite one another.
+
+ImageLists are cluster-scoped and readable by every authenticated user. Only publish the public namespace through this source; private and workspace catalogs must be queried through namespaced InstanceSnapshots with the appropriate access checks. The source does not verify that its namespace matches `snapshotPublicNamespace`.
+
+#### Image names and versions
+
+The snapshot controller gives the DataVolume/PVC the same name as the InstanceSnapshot. For resources named `<image-name>-YYYYMMDD-HHmmss`, the catalog splits the final valid date/time suffix into a version and groups artifacts by the remaining prefix. Images are sorted alphabetically and versions by descending timestamp string. For example, snapshots `ubuntu-lab-20260924-103000` and `ubuntu-lab-20260925-090001` produce:
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: ImageList
+metadata:
+  name: public-local-snapshots
+spec:
+  registryName: crownlabs-public-snapshots
+  images:
+    - name: ubuntu-lab
+      versions:
+        - "20260925-090001"
+        - "20260924-103000"
+      versionDetails:
+        - version: "20260925-090001"
+          volumeSize: "20Gi"
+        - version: "20260924-103000"
+          volumeSize: "10Gi"
+```
+
+The suffix is copied from the resource name; it is not derived from `creationTimestamp` or converted to UTC. Sorting therefore follows the encoded timestamps, which may reflect the creator's local time. Only the final suffix is parsed, so image names may contain hyphens and dates. The prefix in the public namespace defines a catalog image even when snapshots come from different source instances; `spec.imageName` does not override artifact identity.
+
+The updater only splits names when `status.artifact.dataVolumeRef.name` matches the snapshot name and the suffix is a real date/time. Older/custom names, invalid dates and different artifact names retain the full artifact name with `versions: []`. If an unversioned artifact coexists with dated versions of the same image, `versions` also contains `""` as the last choice. Duplicate choices are removed.
+
+#### Volume capacity metadata
+
+`versionDetails` is an optional list of metadata keyed by `version`. The public source copies positive `status.artifact.volumeSize` values into `volumeSize` as Kubernetes quantity strings, for example `"20Gi"`. This is the volume capacity, not the compressed size of a registry image.
+
+- Match details by `version`, not by array index: missing, zero and negative sizes produce no metadata entry, while the image version remains available.
+- Unversioned artifacts use `version: ""`, including when `versions` is empty.
+- Duplicate references to the same artifact produce one entry with the largest reported positive capacity.
+- Catalogs without `versionDetails` remain valid. Docker, Harbor and legacy snapshot sources continue to publish names and versions without this metadata.
+
+The API definition and schema are in [imagelist_types.go](api/v1alpha1/imagelist_types.go) and the [ImageList CRD](deploy/crds/crownlabs.polito.it_imagelists.yaml).
+
+#### Frontend and GraphQL consumers
+
+For this catalog, build a `LocalVM` environment whose `image` points to the source PVC:
+
+| Selected version | Environment `image` |
+| --- | --- |
+| Non-empty version | `registryName + "/" + name + "-" + selectedVersion` |
+| Empty version, or `versions: []` | `registryName + "/" + name` |
+
+For the example above, selecting `20260925-090001` yields `crownlabs-public-snapshots/ubuntu-lab-20260925-090001`. Keep this catalog separate from Docker/Harbor catalogs in the frontend because registry tags and local PVC versions use different image references.
+
+After qlkube reloads the updated CRD schema, consumers can query the metadata alongside the existing fields:
+
+```graphql
+query publicSnapshotCatalog {
+  itPolitoCrownlabsV1alpha1ImageList(name: "public-local-snapshots") {
+    spec {
+      registryName
+      images {
+        name
+        versions
+        versionDetails {
+          version
+          volumeSize
+        }
+      }
+    }
+  }
+}
+```
+
+The current frontend [images query](../frontend/src/graphql-components/query/images.query.graphql) only requests image names and versions. Consuming the public catalog and its capacity metadata also requires updating the frontend selection logic, query and generated GraphQL types.
+
+#### Refresh behavior and permissions
+
+Only snapshots with `status.phase: Completed`, no deletion timestamp, a non-empty artifact name and an artifact namespace matching the configured namespace are included. An empty source clears stale entries; a failed snapshot list request leaves the existing catalog intact. Additions and deletions are reflected at the next successful refresh. The updater trusts snapshot status and does not check whether the referenced PVC still exists.
+
+The public source needs read access to InstanceSnapshots and get/list/watch/create/update access to ImageLists. It does not need snapshot status writes, Job access or DataVolume permissions. The existing operator ClusterRole already grants the necessary access.
+
+#### Upgrading and checking the catalog
+
+Apply the updated ImageList CRD before upgrading the operator so Kubernetes accepts `versionDetails`:
+
+```bash
+# Run from the repository root.
+kubectl apply -f operators/deploy/crds/crownlabs.polito.it_imagelists.yaml
+```
+
+Configure the public source and deploy the operator, then restart qlkube to reload the schema. After the startup refresh, inspect the catalog with:
+
+```bash
+kubectl get imagelist public-local-snapshots -o yaml
+```
+
+For an empty catalog, check the configured namespace and the snapshots' phase, deletion timestamp and artifact references. If metadata is missing, check `status.artifact.volumeSize` and confirm the updated CRD is installed. If updates fail, inspect the operator's `imagelist-updater` logs for the source name and target ImageList.
 
 ### Architecture and Extensibility
 
@@ -583,7 +829,7 @@ The Image List Updater uses a modular interface-based design that allows easy ex
 
 #### Requestor Interface
 
-Each registry type is implemented as a `Requestor`, which must satisfy the following interface:
+Docker, Harbor and legacy registry exports use the `Requestor` interface below. The public snapshot source instead returns typed `[]clv1alpha1.ImageListItem` entries directly through the dedicated path in `public_snapshots.go`.
 
 ```go
 type Requestor interface {
@@ -606,7 +852,7 @@ The storage layer uses a `Saver` interface for creating/updating ImageList resou
 ```go
 type Saver interface {
   // CreateOrUpdateImageList creates or updates the Kubernetes ImageList resource with images from a registry
-  CreateOrUpdateImageList(registryName string, images []clv1alpha1.ImageListItem) error
+  CreateOrUpdateImageList(registryName, projectBaseName string, images []clv1alpha1.ImageListItem) error
 }
 ```
 
@@ -649,7 +895,7 @@ To add support for a new registry type:
    }
    ```
 
-4. **Update the initialization logic** in `pkg/imagelist/agent.go` to instantiate your requestor when the registry type matches:
+4. **Update both processing functions**, `ProcessSingleRegistryConfig` and `ProcessSingleRegistryConfigWithItems`, in `pkg/imagelist/agent.go` to instantiate your requestor when the registry type matches:
    ```go
    case "mycustom":
        requestor = NewMyCustomRegistryRequestor(log)
@@ -664,26 +910,39 @@ To add support for a new registry type:
 
 The Image List Updater is integrated into the main operator controller and can be enabled via Helm values or command-line flags:
 
-**Via Helm values:**
+**Via Helm values** (operator chart; nest under `operator` in the umbrella chart):
+
 ```yaml
 configurations:
+  features:
+    imageList: true
+  snapshotPublicNamespace: crownlabs-public-snapshots
   imageList:
     configFile: /etc/config/registries.yaml
-    updateInterval: 300  # seconds
+    updateInterval: 600  # seconds
+    registries:
+      - name: public-snapshots
+        type: public-snapshots
+        imageListName: public-local-snapshots
 ```
+
+The example configures only the public catalog. Include the Docker/Harbor entries in `registries` as well to keep those sources enabled: a Helm list override replaces the default list.
 
 **Via command-line flags:**
+
 ```bash
---enable-image-list=true
+--enable-imagelist=true
 --image-list-config-file=/etc/config/registries.yaml
---image-list-update-interval=300
+--image-list-update-interval=600
 ```
 
-If `configurations.imageList` is omitted, these flags are not rendered and image list processing remains disabled.
+The binary defaults to `--enable-imagelist=false` and a 300-second interval; a non-positive interval also falls back to 300 seconds. The umbrella chart enables the feature by default, while the standalone operator chart disables it; both configure a 600-second interval. Set the feature flag to `true` to enable updates; when using the operator chart directly, add a `public-snapshots` entry to `configurations.imageList.registries` to include the public catalog.
+
+Use `configurations.features.imageList` to enable or disable updates (under `operator` in the umbrella chart). Omitting `configurations.imageList` from an override file retains the chart's default source list. The feature flag controls ConfigMap generation and the configuration/interval arguments; the optional ConfigMap volume mount is separately conditional on the presence of `configurations.imageList`.
 
 ### Registry Configuration (ConfigMap)
 
-The ConfigMap should contain a YAML array of registry configurations:
+The chart renders `configurations.imageList.registries` as a YAML array in the `registries` key of the `image-lists-sources` ConfigMap, mounted at `/etc/config/registries.yaml`. When running the binary directly, provide the same array in the file passed through `--image-list-config-file`. The file must contain at least one source and is reloaded at each update cycle.
 
 ```yaml
 - name: dockerhub
@@ -702,25 +961,27 @@ The ConfigMap should contain a YAML array of registry configurations:
   project: crownlabs-container-disks
   username: admin
   password: password
+
+- name: snapshots-workspace
+  type: public-snapshots
+  namespace: crownlabs-public-snapshots
+  imageListName: public-local-snapshots
 ```
 
 ### Usage
 
-Other components can trigger updates programmatically by calling the `Update()` method on the configured `BackgroundUpdater` instance:
+The operator initializes the updater through `imagelist.Initialize` and runs `imagelist.StartScheduler(ctx)` as a manager runnable. Other components can refresh an individual source with `ProcessSingleRegistryConfigWithItems`, passing an existing context, Kubernetes client and logger:
 
 ```go
 import "github.com/netgroup-polito/CrownLabs/operators/pkg/imagelist"
 
- // Keep a reference to the updater created during application startup.
- var updater *imagelist.BackgroundUpdater
-
-// Trigger a manual update from any component
-ctx := context.Background()
-err := updater.Update(ctx)
+config := imagelist.RegistryConfig{
+    Name:          "public-snapshots",
+    Type:          "public-snapshots",
+    Namespace:     "crownlabs-public-snapshots",
+    ImageListName: "public-local-snapshots",
+}
+items, err := imagelist.ProcessSingleRegistryConfigWithItems(ctx, &config, k8sClient, log)
 ```
 
-This enables integration with external triggers such as:
-- Webhook endpoints from registries notifying of new images
-- Event-based triggers from other controllers
-- On-demand API endpoints for manual updates
-
+`items` contains the processed catalog after a successful save. `ProcessSingleRegistryConfig` provides the same operation when only an error result is needed. Direct calls do not acquire the background updater's mutex; callers must coordinate concurrent writes to the same ImageList.

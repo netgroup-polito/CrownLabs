@@ -52,6 +52,7 @@ frontend-app:
     imagelist:
       standalone: crownlabs-standalone
       containerdisks: crownlabs-standalone
+    publicRegistryNameDestination: crownlabs-public-snapshots
 
     defaultTimeouts:
       cleanup:
@@ -82,6 +83,9 @@ qlkube:
             - resource: templates
               version: v1alpha2
               mapping: itPolitoCrownlabsV1alpha2Template
+            - resource: instancesnapshots
+              version: v1alpha2
+              mapping: itPolitoCrownlabsV1alpha2InstanceSnapshot
     wrappers:
       fileName: wrappers.js
       resources:
@@ -102,6 +106,13 @@ operator:
   configurations:
     tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
     targetLabel: crownlabs.polito.it/operator-selector=production
+    # Namespace hosting the public snapshot catalog. Volumes stored here can be read by every tenant.
+    # Also used by public-snapshots ImageList sources that omit namespace.
+    # Check that this namespace exists before deploying: it must be created manually.
+    snapshotPublicNamespace: "crownlabs-public-snapshots"
+    # Keycloak group whose members can publish snapshots into the public catalog. Leave empty to let
+    # only the snapshot webhook bypass groups do it.
+    snapshotPublisherGroup: "kubernetes:image-publisher"
     features:
       tenant: true
       workspace: true
@@ -110,7 +121,8 @@ operator:
       pmp: true
       keycloak: true
       webhooks: true
-      imageList: false
+      imageList: true
+      instanceSnapshot: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -138,9 +150,16 @@ operator:
           password: ""
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
+        - name: snapshots-workspace
+          # Read completed artifacts from configurations.snapshotPublicNamespace.
+          type: public-snapshots
+          # Set namespace explicitly only when overriding the inherited catalog namespace.
+          # The ImageList resource name is independent of the artifact namespace.
+          imageListName: public-local-snapshots
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
+      snapshotWebhookBypassGroups: system:masters,kubernetes:admin
       baseWorkspaces: utilities
     enableMutating: true
     enableValidating: true
@@ -245,13 +264,6 @@ instance-operator:
       tag: ""
       contentDownloaderImage: crownlabs/content-downloader
       contentUploaderImage: crownlabs/content-uploader
-    containerVmSnapshots:
-      kanikoImage: gcr.io/kaniko-project/executor
-      exportImage: "crownlabs/img-exporter"
-      exportImageTag: ""
-    privateContainerRegistry:
-      url: registry.crownlabs.example.com
-      secretName: registry-credentials
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
 

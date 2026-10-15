@@ -81,6 +81,8 @@ In [infrastructure](infrastructure/), we present all the services which should b
 The deployment and configuration of the different CrownLabs components can be performed leveraging the provided Helm Chart.
 Please, refer to the corresponding [README](./deploy/crownlabs/README.md) file for more information about the installation procedure.
 
+Before installation, manually create the shared namespaces for MyDrive and the public instance snapshot catalog, and ensure their names match the deployment configuration. See [Required namespaces for MyDrive and instance snapshots](./deploy/crownlabs/README.md#required-namespaces-for-mydrive-and-instance-snapshots) for commands and configuration values.
+
 # CrownLabs run-time configuration
 
 Crownlabs has several components, mostly operators, which may need to be configured with appropriate labels and/or other information in order to achieve the intended behaviour.

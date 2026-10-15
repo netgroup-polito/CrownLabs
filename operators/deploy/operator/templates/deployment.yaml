@@ -44,6 +44,9 @@ spec:
             - "--wait-user-verification={{ .Values.configurations.waitUserVerification }}"
             - "--tenant-ns-keep-alive={{ .Values.configurations.tenantNamespaceKeepAlive }}"
             - "--webhook-bypass-groups={{ .Values.webhook.deployment.webhookBypassGroups }}"
+            - "--snapshot-public-namespace={{ .Values.configurations.snapshotPublicNamespace }}"
+            - "--snapshot-publisher-group={{ .Values.configurations.snapshotPublisherGroup }}"
+            - "--snapshot-webhook-bypass-groups={{ .Values.webhook.deployment.snapshotWebhookBypassGroups }}"
             - "--base-workspaces={{ .Values.webhook.deployment.baseWorkspaces }}"
             - "--sandbox-cluster-role={{ .Values.configurations.sandboxClusterRole }}"
             - "--max-concurrent-reconciles={{ .Values.configurations.maxConcurrentReconciles }}"
@@ -59,6 +62,7 @@ spec:
             - "--enable-tenant={{.Values.configurations.features.tenant}}"
             - "--enable-workspace={{.Values.configurations.features.workspace}}"
             - "--enable-instance={{.Values.configurations.features.instance}}"
+            - "--enable-instancesnapshot={{.Values.configurations.features.instanceSnapshot}}"
             - "--enable-sharedvolume={{.Values.configurations.features.sharedvolume}}"
             - "--enable-pmp={{.Values.configurations.features.pmp}}"
             - "--enable-keycloak={{.Values.configurations.features.keycloak}}"
@@ -66,7 +70,6 @@ spec:
             - "--enable-imagelist={{.Values.configurations.features.imageList}}"
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
-            - "--enable-imagelist={{ .Values.configurations.features.imageList }}"
             {{- if .Values.configurations.features.imageList }}
             - "--image-list-config-file={{ .Values.configurations.imageList.configFile }}"
             - "--image-list-update-interval={{ .Values.configurations.imageList.updateInterval }}"

@@ -1,4 +1,10 @@
 {{ if .Values.configurations.features.imageList }}
+{{- $registries := deepCopy .Values.configurations.imageList.registries }}
+{{- range $source := $registries }}
+{{- if and (eq $source.type "public-snapshots") (not $source.namespace) }}
+{{- $_ := set $source "namespace" (required "configurations.snapshotPublicNamespace is required when a public-snapshots source omits namespace" $.Values.configurations.snapshotPublicNamespace) }}
+{{- end }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -8,6 +14,6 @@ metadata:
     {{- include "operator.labels" . | nindent 4 }}
 data:
   registries: |
-    {{- .Values.configurations.imageList.registries | toYaml | nindent 4 }}
+    {{- $registries | toYaml | nindent 4 }}
 
 {{ end }}

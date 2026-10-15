@@ -63,3 +63,6 @@ const TnOperatorFinalizerName = "crownlabs.polito.it/tenant-operator"
 
 // ShVolCtrlFinalizerName is the name of the finalizer for SharedVolume's PVC protection.
 const ShVolCtrlFinalizerName = "crownlabs.polito.it/shvolctrl-volume-protection"
+
+// InstSnapCtrlFinalizerName is the name of the finalizer for InstanceSnapshot's DataVolume cleanup.
+const InstSnapCtrlFinalizerName = "instancesnapshot.crownlabs.polito.it/finalizer"

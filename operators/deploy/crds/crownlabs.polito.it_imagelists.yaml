@@ -53,6 +53,29 @@ spec:
                     name:
                       description: The name identifying a single image.
                       type: string
+                    versionDetails:
+                      description: Optional metadata for individual versions. Entries
+                        may be missing when the source has no metadata.
+                      items:
+                        description: ImageVersionDetails describes metadata for one
+                          image version.
+                        properties:
+                          version:
+                            description: The corresponding entry in versions, or an
+                              empty string for an unversioned artifact.
+                            type: string
+                          volumeSize:
+                            description: |-
+                              The snapshot volume capacity as a Kubernetes quantity, for example "10Gi".
+                              Omitted when unknown; this is not the compressed image size in a registry.
+                            type: string
+                        required:
+                        - version
+                        type: object
+                      type: array
+                      x-kubernetes-list-map-keys:
+                      - version
+                      x-kubernetes-list-type: map
                     versions:
                       description: The list of versions the image is available in.
                       items:

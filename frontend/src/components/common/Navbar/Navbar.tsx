@@ -33,7 +33,7 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const { routes, transparent } = props;
   const { getDriveUrl, mydriveInstance } = useMydrive();
 
-  const { profile } = useContext(AuthContext);
+  const { groups } = useContext(AuthContext);
   const routesData = routes.map(r => r.route);
   const {
     data,
@@ -52,14 +52,12 @@ const Navbar: FC<INavbarProps> = ({ ...props }) => {
   const currentName = routesData.find(r => r.path === currentPath)?.name || '';
   const displayName = currentName || (isSSHRoute ? 'Web SSH' : '');
 
-  const userGroups = (profile?.groups || []) as string[];
-
   // To be visible, the route must not be hidden and the user must have the required groups (if any)
   const visibleRoutes = routes.filter(
     b =>
       b.linkPosition !== LinkPosition.Hidden &&
       (!b.requiredGroups ||
-        (profile && b.requiredGroups.some(g => userGroups.includes(g)))),
+        b.requiredGroups.some(requiredGroup => groups.includes(requiredGroup))),
   );
   const buttons = visibleRoutes.map((b, i) => {
     const routeData = b.route;
