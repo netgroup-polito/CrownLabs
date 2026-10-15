@@ -12,7 +12,7 @@ More info at [Keycloak's website](https://www.keycloak.org).
 ## Pre-requisites
 Here we assume that the following operators are installed and configured in the K8s cluster:
 * [ROOK](https://rook.io/)
-* [NGINX Ingress Controller](https://github.com/kubernetes/ingress-nginx)
+* [Envoy Gateway](../..//deploy/crownlabs/docs/gateway-architecture-and-routing.md)
 * [cert-manager](https://cert-manager.io/)
 * A namespace in K8S cluster called **keycloak-ha**
 
