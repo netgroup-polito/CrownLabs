@@ -23,8 +23,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
@@ -46,6 +48,7 @@ type Tracker struct {
 	debounceInterval time.Duration
 	lastUpdated      map[string]time.Time
 	mu               sync.RWMutex
+	log              logr.Logger
 }
 
 // NewTracker creates an ActivityTracker with the specified debounce interval.
@@ -57,7 +60,14 @@ func NewTracker(cl client.Client, debounceInterval time.Duration) *Tracker {
 		client:           cl,
 		debounceInterval: debounceInterval,
 		lastUpdated:      make(map[string]time.Time),
+		log:              ctrl.Log.WithName("activity-tracker"),
 	}
+}
+
+// WithLogger sets a custom logger for the Tracker.
+func (t *Tracker) WithLogger(log logr.Logger) *Tracker {
+	t.log = log.WithName("activity-tracker")
+	return t
 }
 
 // GetDebounceInterval returns the configured debounce interval.
@@ -239,6 +249,11 @@ func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1a
 	if err := t.client.Patch(ctx, instance, client.MergeFrom(orig)); err != nil {
 		return fmt.Errorf("failed patching instance %s/%s activity: %w", instance.Namespace, instance.Name, err)
 	}
+
+	t.log.Info("Recorded instance activity from Envoy ALS",
+		"instance", key,
+		"lastActivity", timestamp.Format(time.RFC3339),
+	)
 
 	t.SetLastUpdated(key, timestamp)
 	if uid != "" {

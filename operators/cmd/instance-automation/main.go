@@ -153,7 +153,7 @@ func main() {
 		}
 
 		log.Info("Activity Tracking via Envoy ALS enabled", "bindAddr", *activityALSBindAddr, "debounceInterval", *activityDebounceInterval)
-		activityTracker := activity.NewTracker(mgr.GetClient(), *activityDebounceInterval)
+		activityTracker := activity.NewTracker(mgr.GetClient(), *activityDebounceInterval).WithLogger(log)
 		alsServer := activity.NewALSServer(activityTracker, *activityALSBindAddr, log)
 		if err := mgr.Add(alsServer); err != nil {
 			log.Error(err, "unable to add ALS server to manager")
