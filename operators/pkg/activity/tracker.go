@@ -23,7 +23,10 @@ import (
 	"sync"
 	"time"
 
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
@@ -62,10 +65,10 @@ func (t *Tracker) GetDebounceInterval() time.Duration {
 	return t.debounceInterval
 }
 
-// ShouldUpdate checks whether an activity timestamp should trigger a patch for the given instance UID.
-func (t *Tracker) ShouldUpdate(instanceUID string, now time.Time) bool {
+// ShouldUpdate checks whether an activity timestamp should trigger a patch for the given key.
+func (t *Tracker) ShouldUpdate(key string, now time.Time) bool {
 	t.mu.RLock()
-	last, exists := t.lastUpdated[instanceUID]
+	last, exists := t.lastUpdated[key]
 	t.mu.RUnlock()
 
 	if !exists {
@@ -75,10 +78,20 @@ func (t *Tracker) ShouldUpdate(instanceUID string, now time.Time) bool {
 }
 
 // SetLastUpdated manually sets the last updated timestamp in the memory cache (useful for initialization/testing).
-func (t *Tracker) SetLastUpdated(instanceUID string, ts time.Time) {
+func (t *Tracker) SetLastUpdated(key string, ts time.Time) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.lastUpdated[instanceUID] = ts
+	t.lastUpdated[key] = ts
+}
+
+// ExtractTargetFromClusterOrRoute extracts the namespace and resource name from an
+// Envoy Gateway cluster name or route name (e.g. "httproute/<namespace>/<name>/...").
+func ExtractTargetFromClusterOrRoute(target string) (namespace, name string, ok bool) {
+	parts := strings.Split(target, "/")
+	if len(parts) >= 3 && parts[0] == "httproute" && parts[1] != "" && parts[2] != "" {
+		return parts[1], parts[2], true
+	}
+	return "", "", false
 }
 
 // ExtractInstanceUIDFromPath extracts the instance UID from an HTTP/WebSocket path matching /instance/<uid>/...
@@ -100,6 +113,61 @@ func ExtractInstanceUIDFromPath(path string) (string, bool) {
 	}
 
 	return parts[0], true
+}
+
+// FindInstanceNameByServiceOrRoute resolves the Instance name from a Service or HTTPRoute in the same namespace.
+func (t *Tracker) FindInstanceNameByServiceOrRoute(ctx context.Context, namespace, name string) (string, error) {
+	// 1. Try finding the Service
+	var svc corev1.Service
+	if err := t.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, &svc); err == nil {
+		if instName, ok := svc.Labels[forge.LabelInstanceKey]; ok && instName != "" {
+			return instName, nil
+		}
+		for _, owner := range svc.OwnerReferences {
+			if owner.Kind == "Instance" && owner.Name != "" {
+				return owner.Name, nil
+			}
+		}
+	}
+
+	// 2. Try finding the HTTPRoute
+	var route gatewayv1.HTTPRoute
+	if err := t.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, &route); err == nil {
+		if instName, ok := route.Labels[forge.LabelInstanceKey]; ok && instName != "" {
+			return instName, nil
+		}
+		for _, owner := range route.OwnerReferences {
+			if owner.Kind == "Instance" && owner.Name != "" {
+				return owner.Name, nil
+			}
+		}
+	}
+
+	return "", fmt.Errorf("could not resolve instance for service/route %s/%s", namespace, name)
+}
+
+// RecordActivityForService records user activity for an instance given the backend Service or HTTPRoute name.
+func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, serviceOrRouteName string, timestamp time.Time) error {
+	if namespace == "" || serviceOrRouteName == "" {
+		return fmt.Errorf("empty namespace or service name")
+	}
+
+	instanceName, err := t.FindInstanceNameByServiceOrRoute(ctx, namespace, serviceOrRouteName)
+	if err != nil {
+		return err
+	}
+
+	key := fmt.Sprintf("%s/%s", namespace, instanceName)
+	if !t.ShouldUpdate(key, timestamp) {
+		return nil
+	}
+
+	var instance clv1alpha2.Instance
+	if err := t.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: instanceName}, &instance); err != nil {
+		return fmt.Errorf("failed fetching instance %s/%s: %w", namespace, instanceName, err)
+	}
+
+	return t.RecordActivityForInstance(ctx, &instance, timestamp)
 }
 
 // FindInstanceByUID searches for an instance by its metadata.uid.
@@ -146,13 +214,17 @@ func (t *Tracker) RecordActivity(ctx context.Context, instanceUID string, timest
 
 // RecordActivityForInstance records user activity directly on a retrieved Instance object.
 func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time) error {
+	key := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
 	uid := string(instance.GetUID())
 
 	// Check existing annotation on the instance if in-memory cache didn't have it
 	if currentStr, ok := instance.Annotations[forge.LastActivityAnnotation]; ok {
 		if currentTime, err := time.Parse(time.RFC3339, currentStr); err == nil {
 			if timestamp.Sub(currentTime) < t.debounceInterval && !timestamp.Before(currentTime) {
-				t.SetLastUpdated(uid, currentTime)
+				t.SetLastUpdated(key, currentTime)
+				if uid != "" {
+					t.SetLastUpdated(uid, currentTime)
+				}
 				return nil
 			}
 		}
@@ -168,6 +240,9 @@ func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1a
 		return fmt.Errorf("failed patching instance %s/%s activity: %w", instance.Namespace, instance.Name, err)
 	}
 
-	t.SetLastUpdated(uid, timestamp)
+	t.SetLastUpdated(key, timestamp)
+	if uid != "" {
+		t.SetLastUpdated(uid, timestamp)
+	}
 	return nil
 }

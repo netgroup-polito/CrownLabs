@@ -9,13 +9,6 @@ metadata:
   {{- end }}
 spec:
   gatewayClassName: {{ .Values.gatewayAPI.class }}
-  {{- if and .Values.gatewayAPI.envoyProxy .Values.gatewayAPI.envoyProxy.enabled }}
-  infrastructure:
-    parametersRef:
-      group: gateway.envoyproxy.io
-      kind: EnvoyProxy
-      name: {{ .Values.gatewayAPI.envoyProxy.name | default (printf "%s-proxy-config" (.Values.global.gateway.name | default .Values.gatewayAPI.name)) }}
-  {{- end }}
   listeners:
     - name: {{ .Values.gatewayAPI.listenerName }}
       protocol: HTTPS

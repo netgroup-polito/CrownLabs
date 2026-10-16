@@ -20,11 +20,13 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/activity"
@@ -32,6 +34,34 @@ import (
 )
 
 var _ = Describe("Activity Tracker", func() {
+	Context("ExtractTargetFromClusterOrRoute", func() {
+		It("correctly extracts namespace and name from Envoy Gateway cluster name", func() {
+			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("httproute/tenant-mario/my-vm-default-env/rule/0/backend/0")
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal("tenant-mario"))
+			Expect(name).To(Equal("my-vm-default-env"))
+		})
+
+		It("correctly extracts namespace and name from Envoy Gateway route name", func() {
+			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("httproute/tenant-lucia/lab-workstation-gui/rule/0")
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal("tenant-lucia"))
+			Expect(name).To(Equal("lab-workstation-gui"))
+		})
+
+		It("fails when target string does not match expected format", func() {
+			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("passthrough_cluster")
+			Expect(ok).To(BeFalse())
+			Expect(ns).To(BeEmpty())
+			Expect(name).To(BeEmpty())
+
+			ns, name, ok = activity.ExtractTargetFromClusterOrRoute("")
+			Expect(ok).To(BeFalse())
+			Expect(ns).To(BeEmpty())
+			Expect(name).To(BeEmpty())
+		})
+	})
+
 	Context("ExtractInstanceUIDFromPath", func() {
 		It("correctly extracts instance UID from standard GUI path", func() {
 			uid, ok := activity.ExtractInstanceUIDFromPath("/instance/123e4567-e89b-12d3-a456-426614174000/env-default")
@@ -71,6 +101,87 @@ var _ = Describe("Activity Tracker", func() {
 			uid, ok = activity.ExtractInstanceUIDFromPath("/instance/")
 			Expect(ok).To(BeFalse())
 			Expect(uid).To(BeEmpty())
+		})
+	})
+
+	Context("Service-based Activity Tracking", func() {
+		var (
+			ctx         context.Context
+			cl          client.Client
+			scheme      *runtime.Scheme
+			tracker     *activity.Tracker
+			instance    *clv1alpha2.Instance
+			service     *corev1.Service
+			httpRoute   *gatewayv1.HTTPRoute
+			now         time.Time
+			namespace   = "tenant-tester"
+			instName    = "test-instance"
+			serviceName = "test-instance-default-env"
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			scheme = runtime.NewScheme()
+			Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			Expect(gatewayv1.Install(scheme)).To(Succeed())
+			Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
+
+			instance = &clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instName,
+					Namespace: namespace,
+					UID:       "instance-uid-12345",
+				},
+			}
+
+			service = &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      serviceName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						forge.LabelInstanceKey: instName,
+					},
+				},
+			}
+
+			httpRoute = &gatewayv1.HTTPRoute{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "route-without-service",
+					Namespace: namespace,
+					Labels: map[string]string{
+						forge.LabelInstanceKey: instName,
+					},
+				},
+			}
+
+			cl = fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(instance, service, httpRoute).
+				Build()
+
+			tracker = activity.NewTracker(cl, 15*time.Minute)
+			now = time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
+		})
+
+		It("resolves instance from Service label and updates activity", func() {
+			Expect(tracker.RecordActivityForService(ctx, namespace, serviceName, now)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: namespace, Name: instName}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("resolves instance from HTTPRoute when Service is absent", func() {
+			Expect(tracker.RecordActivityForService(ctx, namespace, "route-without-service", now)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: namespace, Name: instName}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("returns error when service or route does not exist", func() {
+			err := tracker.RecordActivityForService(ctx, namespace, "non-existent-svc", now)
+			Expect(err).To(HaveOccurred())
 		})
 	})
 

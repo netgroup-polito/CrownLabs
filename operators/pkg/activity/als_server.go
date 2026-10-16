@@ -73,6 +73,30 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 		}
 
 		for _, entry := range httpLogs.GetLogEntry() {
+			var timestamp time.Time
+			if common := entry.GetCommonProperties(); common != nil && common.GetStartTime() != nil {
+				timestamp = common.GetStartTime().AsTime()
+			} else {
+				timestamp = time.Now()
+			}
+
+			// 1. Primary: Extract target namespace and service from UpstreamCluster or RouteName
+			var targetNamespace, targetName string
+			if common := entry.GetCommonProperties(); common != nil {
+				targetNamespace, targetName, _ = ExtractTargetFromClusterOrRoute(common.GetUpstreamCluster())
+				if targetNamespace == "" || targetName == "" {
+					targetNamespace, targetName, _ = ExtractTargetFromClusterOrRoute(common.GetRouteName())
+				}
+			}
+
+			if targetNamespace != "" && targetName != "" {
+				if err := s.tracker.RecordActivityForService(ctx, targetNamespace, targetName, timestamp); err != nil {
+					s.log.V(1).Info("Could not record activity for service entry", "namespace", targetNamespace, "name", targetName, "error", err.Error())
+				}
+				continue
+			}
+
+			// 2. Fallback: extract UID from request path if available
 			req := entry.GetRequest()
 			if req == nil {
 				continue
@@ -84,15 +108,8 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 				continue
 			}
 
-			var timestamp time.Time
-			if common := entry.GetCommonProperties(); common != nil && common.GetStartTime() != nil {
-				timestamp = common.GetStartTime().AsTime()
-			} else {
-				timestamp = time.Now()
-			}
-
 			if err := s.tracker.RecordActivity(ctx, uid, timestamp); err != nil {
-				s.log.Error(err, "failed recording activity from ALS log entry", "instanceUID", uid, "path", path)
+				s.log.Error(err, "failed recording activity from ALS log entry path", "instanceUID", uid, "path", path)
 			}
 		}
 	}
