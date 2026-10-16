@@ -798,7 +798,7 @@ query publicSnapshotCatalog {
 }
 ```
 
-The current frontend [images query](../frontend/src/graphql-components/query/images.query.graphql) only requests image names and versions. Consuming the public catalog and its capacity metadata also requires updating the frontend selection logic, query and generated GraphQL types.
+The frontend does not list all ImageLists: it fetches only the ones it uses, each one by name, with the [imageList query](../frontend/src/graphql-components/query/imageList.query.graphql), which also requests `versionDetails`. The name of the public catalog is read from `VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS`, set by the frontend Helm chart; see [Frontend image lists](../deploy/crownlabs/README.md#frontend-image-lists) for how the chart chooses it.
 
 #### Refresh behavior and permissions
 

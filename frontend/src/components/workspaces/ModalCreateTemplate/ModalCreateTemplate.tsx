@@ -22,10 +22,7 @@ import {
   Flex,
 } from 'antd';
 import { Button } from 'antd';
-import type {
-  CreateTemplateMutation,
-  ImagesQuery,
-} from '../../../generated-types';
+import type { CreateTemplateMutation } from '../../../generated-types';
 import {
   InfoCircleOutlined,
   CheckSquareFilled,
@@ -36,7 +33,6 @@ import { useNodesLabelsQuery } from '../../../generated-types';
 import {
   EnvironmentType,
   useWorkspaceTemplatesQuery,
-  useImagesQuery,
   useWorkspaceSharedVolumesQuery,
 } from '../../../generated-types';
 import type { ApolloError, FetchResult } from '@apollo/client';
@@ -49,9 +45,10 @@ import {
   formItemLayout,
   getDefaultTemplate,
   getImageNameNoVer,
-  getPublicSnapshotImageList,
   internalRegistry,
   useImageLists,
+  usePublicSnapshotImageList,
+  type ImageListQueryOptions,
 } from './utils';
 
 const { Text } = Typography;
@@ -127,20 +124,25 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
-  // Fetch all image lists
-  const {
-    data: dataImages,
-    loading: loadingImageLists,
-    error: imageListsError,
-  } = useImagesQuery({
-    variables: {},
-    // Run the query when the modal opens. Reuse cached ImageLists immediately
-    // while also refreshing them from qlkube, so newly published public images
-    // appear without requiring a page reload.
+  // Fetch the image lists when the modal opens. Reuse cached ImageLists
+  // immediately while also refreshing them from qlkube, so newly published
+  // public images appear without requiring a page reload.
+  const imageListOptions: ImageListQueryOptions = {
     skip: !show,
     fetchPolicy: 'cache-and-network',
     onError: apolloErrorCatcher,
-  });
+  };
+  const {
+    availableImagesVM,
+    availableImagesContainer,
+    projectBaseNameVM,
+    projectBaseNameContainer,
+  } = useImageLists(imageListOptions);
+  const {
+    publicSnapshotImageList,
+    loadingPublicSnapshotImageList,
+    publicSnapshotImageListError,
+  } = usePublicSnapshotImageList(imageListOptions);
 
   const [form] = Form.useForm<TemplateForm>();
   const environments = Form.useWatch('environments', form);
@@ -227,16 +229,6 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     },
     variables: { workspaceNamespace },
   });
-
-  const {
-    availableImagesVM,
-    availableImagesContainer,
-    projectBaseNameVM,
-    projectBaseNameContainer,
-  } = useImageLists(dataImages ?? ({} as ImagesQuery));
-  const publicSnapshotImageList = getPublicSnapshotImageList(
-    dataImages ?? ({} as ImagesQuery),
-  );
 
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
@@ -964,8 +956,8 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         availableImagesVM={availableImagesVM}
         availableImagesContainer={availableImagesContainer}
         publicSnapshotImageList={publicSnapshotImageList}
-        loadingPublicSnapshotImageList={loadingImageLists}
-        publicSnapshotImageListError={Boolean(imageListsError)}
+        loadingPublicSnapshotImageList={loadingPublicSnapshotImageList}
+        publicSnapshotImageListError={publicSnapshotImageListError}
         resources={{
           cpu: cpuInterval,
           ram: ramInterval,
