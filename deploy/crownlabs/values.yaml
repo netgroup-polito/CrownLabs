@@ -50,8 +50,9 @@ frontend-app:
       realm: <realm>
       providerUrl: https://auth.example.com/auth/
     imagelist:
-      standalone: crownlabs-standalone
-      containerdisks: crownlabs-standalone
+      enabled: false
+      standalone: harbor-standalone
+      containerdisks: harbor-containerdisks
     publicRegistryNameDestination: crownlabs-public-snapshots
 
     defaultTimeouts:
@@ -150,12 +151,10 @@ operator:
           password: ""
           imageListName: harbor-containerdisks
           project: crownlabs-containerdisks
-        - name: snapshots-workspace
-          # Read completed artifacts from configurations.snapshotPublicNamespace.
+        - imageListName: public-local-snapshots
+          registryName: crownlabs-public-snapshots
           type: public-snapshots
-          # Set namespace explicitly only when overriding the inherited catalog namespace.
-          # The ImageList resource name is independent of the artifact namespace.
-          imageListName: public-local-snapshots
+          namespace: crownlabs-public-snapshots
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin

@@ -19,9 +19,15 @@ data:
     window.VITE_APP_CROWNLABS_IMAGE_CREATION_WARNING={{ .Values.configuration.imageCreationWarning | quote }};
     window.VITE_APP_CROWNLABS_IMAGE_CREATION_HELP={{ .Values.configuration.imageCreationHelp | quote }};
     window.VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION={{ .Values.configuration.publicRegistryNameDestination | quote }};
-    window.VITE_APP_CROWNLABS_IMAGELIST_STANDALONE ="{{ .Values.configuration.imagelist.standalone }}";
-    window.VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS ="{{ .Values.configuration.imagelist.containerdisks }}";
-    window.VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS ="{{ .Values.configuration.imagelist.publicSnapshots }}";
+    {{- if .Values.configuration.imagelist.enabled }}
+    window.VITE_APP_CROWNLABS_IMAGELIST_STANDALONE={{ .Values.configuration.imagelist.standalone | quote }};
+    window.VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS={{ .Values.configuration.imagelist.containerdisks | quote }};
+    window.VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS={{ .Values.configuration.imagelist.publicSnapshots | quote }};
+    {{- else }}
+    window.VITE_APP_CROWNLABS_IMAGELIST_STANDALONE="harbor-standalone-pre-production";
+    window.VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS="harbor-containerdisks-pre-production";
+    window.VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS="public-local-snapshots-pre-production";
+    {{- end }}
     window.VITE_APP_DEFAULT_STOP_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.stopAfterInactivity }}";
     window.VITE_APP_DEFAULT_DELETE_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterInactivity }}";
     window.VITE_APP_DEFAULT_DELETE_AFTER_CREATION="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterCreation }}";
