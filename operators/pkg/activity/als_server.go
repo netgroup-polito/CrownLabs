@@ -16,6 +16,7 @@ package activity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -58,7 +59,7 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 		}
 
 		msg, err := stream.Recv()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			return stream.SendAndClose(&als.StreamAccessLogsResponse{})
 		}
 		if err != nil {
@@ -97,10 +98,11 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 	}
 }
 
-// Start begins listening on bindAddr and serves gRPC requests until the context is cancelled.
+// Start begins listening on bindAddr and serves gRPC requests until the context is canceled.
 // It implements controller-runtime's Runnable interface so it can be added directly to ctrl.Manager.
 func (s *ALSServer) Start(ctx context.Context) error {
-	lis, err := net.Listen("tcp", s.bindAddr)
+	var lc net.ListenConfig
+	lis, err := lc.Listen(ctx, "tcp", s.bindAddr)
 	if err != nil {
 		return fmt.Errorf("failed listening on %s for ALS: %w", s.bindAddr, err)
 	}
@@ -112,7 +114,7 @@ func (s *ALSServer) Start(ctx context.Context) error {
 
 	errChan := make(chan error, 1)
 	go func() {
-		if serveErr := s.grpcServer.Serve(lis); serveErr != nil && serveErr != grpc.ErrServerStopped {
+		if serveErr := s.grpcServer.Serve(lis); serveErr != nil && !errors.Is(serveErr, grpc.ErrServerStopped) {
 			errChan <- serveErr
 		}
 		close(errChan)

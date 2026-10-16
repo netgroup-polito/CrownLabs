@@ -72,7 +72,8 @@ var _ = Describe("Envoy ALS Server", func() {
 		tracker = activity.NewTracker(cl, 15*time.Minute)
 
 		// Find a free port for testing
-		lis, err := net.Listen("tcp", "127.0.0.1:0")
+		var lc net.ListenConfig
+		lis, err := lc.Listen(ctx, "tcp", "127.0.0.1:0")
 		Expect(err).ToNot(HaveOccurred())
 		serverAddr = lis.Addr().String()
 		Expect(lis.Close()).To(Succeed())
