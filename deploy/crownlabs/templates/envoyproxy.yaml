@@ -1,0 +1,28 @@
+{{- if and .Values.global.gateway.gatewayApiMode .Values.gatewayAPI.envoyProxy .Values.gatewayAPI.envoyProxy.enabled }}
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: EnvoyProxy
+metadata:
+  name: {{ .Values.gatewayAPI.envoyProxy.name | default (printf "%s-proxy-config" (.Values.global.gateway.name | default .Values.gatewayAPI.name)) }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "crownlabs.labels" . | nindent 4 }}
+spec:
+  telemetry:
+    accessLog:
+      settings:
+        - {{- with .Values.gatewayAPI.envoyProxy.alsService.matchPrefix }}
+          matches:
+            - "request.path.startsWith('{{ . }}')"
+          {{- end }}
+          sinks:
+            - type: ALS
+              als:
+                backendRefs:
+                  - group: ""
+                    kind: Service
+                    name: {{ .Values.gatewayAPI.envoyProxy.alsService.name | default "instance-operator-automation" }}
+                    {{- with .Values.gatewayAPI.envoyProxy.alsService.namespace }}
+                    namespace: {{ . }}
+                    {{- end }}
+                    port: {{ .Values.gatewayAPI.envoyProxy.alsService.port | default 9000 }}
+{{- end }}

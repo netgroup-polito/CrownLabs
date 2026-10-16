@@ -340,6 +340,13 @@ gatewayAPI:
   allowedRoutesSimple:
     key: "crownlabs.polito.it/gw-access"
     value: "crownlabs-main-production"
+  envoyProxy:
+    enabled: true
+    # name: crownlabs-main-proxy-config
+    alsService:
+      name: instance-operator-automation
+      port: 9000
+      matchPrefix: "/instance/"
 
 
 exam-agent:

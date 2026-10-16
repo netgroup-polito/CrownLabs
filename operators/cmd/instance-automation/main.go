@@ -16,6 +16,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 	"strings"
@@ -31,11 +32,13 @@ import (
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/activity"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instautoctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -107,6 +110,10 @@ func main() {
 	enableInactivityNotifications := flag.Bool("enable-inactivity-notifications", false, "Enable the sending of inactivity notifications to users on instance inactivity")
 	enableExpirationNotifications := flag.Bool("enable-expiration-notifications", false, "Enable the sending of expiration notifications to users on instance expiration")
 
+	enableActivityTracking := flag.Bool("enable-activity-tracking", true, "Enable tracking user activity via Envoy Access Log Service")
+	activityDebounceInterval := flag.Duration("activity-debounce-interval", activity.DefaultDebounceInterval, "Debounce interval for activity updates")
+	activityALSBindAddr := flag.String("activity-als-bind-addr", ":9000", "The bind address for Envoy gRPC Access Log Service")
+
 	mailTemplateDir := flag.String("mail-template-dir", "/etc/crownmail/templates", "The directory containing email templates and configuration (typically through a mounted ConfigMap)")
 	mailConfigDir := flag.String("mail-config-dir", "/etc/crownmail/configs", "The directory containing email configuration (typically through a mounted Secret)")
 
@@ -134,6 +141,23 @@ func main() {
 		os.Exit(1)
 	}
 
+	if *enableActivityTracking {
+		if err := mgr.GetFieldIndexer().IndexField(context.Background(), &clv1alpha2.Instance{}, "metadata.uid", func(rawObj client.Object) []string {
+			return []string{string(rawObj.GetUID())}
+		}); err != nil {
+			log.Error(err, "unable to index instances by metadata.uid")
+			os.Exit(1)
+		}
+
+		log.Info("Activity Tracking via Envoy ALS enabled", "bindAddr", *activityALSBindAddr, "debounceInterval", *activityDebounceInterval)
+		activityTracker := activity.NewTracker(mgr.GetClient(), *activityDebounceInterval)
+		alsServer := activity.NewALSServer(activityTracker, *activityALSBindAddr, log)
+		if err := mgr.Add(alsServer); err != nil {
+			log.Error(err, "unable to add ALS server to manager")
+			os.Exit(1)
+		}
+	}
+
 	mailClient, err = mail.NewMailClientFromFilesystem(*mailConfigDir, *mailTemplateDir)
 	if err != nil {
 		log.Error(err, "unable to create mail client from filesystem", "templateDir", *mailTemplateDir)
@@ -141,12 +165,17 @@ func main() {
 	}
 	log.Info("CrownLabs Email client created", "templateDir", *mailTemplateDir)
 
-	prometheus, err := instautoctrl.NewPrometheusObj(*prometheusURL, *prometheusNginxAvailability, *prometheusBastionSSHAvailability, *prometheusWebSSHAvailability,
-		*prometheusNginxData, *prometheusBastionSSHData, *prometheusWebSSHData, *queryStep)
+	var prometheus instautoctrl.PrometheusClientInterface
+	if *prometheusURL != "" {
+		prometheus, err = instautoctrl.NewPrometheusObj(*prometheusURL, *prometheusNginxAvailability, *prometheusBastionSSHAvailability, *prometheusWebSSHAvailability,
+			*prometheusNginxData, *prometheusBastionSSHData, *prometheusWebSSHData, *queryStep)
 
-	if err != nil {
-		log.Error(err, "unable to create Prometheus client")
-		os.Exit(1)
+		if err != nil {
+			log.Error(err, "unable to create Prometheus client")
+			os.Exit(1)
+		}
+	} else {
+		log.Info("Prometheus URL is empty, skipping Prometheus client creation")
 	}
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}

@@ -1,0 +1,135 @@
+// Copyright 2020-2026 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package activity
+
+import (
+	"context"
+	"fmt"
+	"io"
+	"net"
+	"time"
+
+	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
+	"github.com/go-logr/logr"
+	"google.golang.org/grpc"
+)
+
+// ALSServer implements the Envoy gRPC AccessLogService.
+type ALSServer struct {
+	als.UnimplementedAccessLogServiceServer
+	tracker    *Tracker
+	bindAddr   string
+	grpcServer *grpc.Server
+	log        logr.Logger
+}
+
+// NewALSServer creates a new Envoy ALS server instance.
+func NewALSServer(tracker *Tracker, bindAddr string, log logr.Logger) *ALSServer {
+	if bindAddr == "" {
+		bindAddr = ":9000"
+	}
+	return &ALSServer{
+		tracker:  tracker,
+		bindAddr: bindAddr,
+		log:      log.WithName("envoy-als-server"),
+	}
+}
+
+// StreamAccessLogs handles incoming streaming access logs from Envoy proxies.
+func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLogsServer) error {
+	ctx := stream.Context()
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		msg, err := stream.Recv()
+		if err == io.EOF {
+			return stream.SendAndClose(&als.StreamAccessLogsResponse{})
+		}
+		if err != nil {
+			s.log.V(1).Info("ALS stream terminated or errored", "error", err.Error())
+			return err
+		}
+
+		httpLogs := msg.GetHttpLogs()
+		if httpLogs == nil {
+			continue
+		}
+
+		for _, entry := range httpLogs.GetLogEntry() {
+			req := entry.GetRequest()
+			if req == nil {
+				continue
+			}
+
+			path := req.GetPath()
+			uid, ok := ExtractInstanceUIDFromPath(path)
+			if !ok {
+				continue
+			}
+
+			var timestamp time.Time
+			if common := entry.GetCommonProperties(); common != nil && common.GetStartTime() != nil {
+				timestamp = common.GetStartTime().AsTime()
+			} else {
+				timestamp = time.Now()
+			}
+
+			if err := s.tracker.RecordActivity(ctx, uid, timestamp); err != nil {
+				s.log.Error(err, "failed recording activity from ALS log entry", "instanceUID", uid, "path", path)
+			}
+		}
+	}
+}
+
+// Start begins listening on bindAddr and serves gRPC requests until the context is cancelled.
+// It implements controller-runtime's Runnable interface so it can be added directly to ctrl.Manager.
+func (s *ALSServer) Start(ctx context.Context) error {
+	lis, err := net.Listen("tcp", s.bindAddr)
+	if err != nil {
+		return fmt.Errorf("failed listening on %s for ALS: %w", s.bindAddr, err)
+	}
+
+	s.grpcServer = grpc.NewServer()
+	als.RegisterAccessLogServiceServer(s.grpcServer, s)
+
+	s.log.Info("Envoy ALS gRPC server listening", "address", s.bindAddr)
+
+	errChan := make(chan error, 1)
+	go func() {
+		if serveErr := s.grpcServer.Serve(lis); serveErr != nil && serveErr != grpc.ErrServerStopped {
+			errChan <- serveErr
+		}
+		close(errChan)
+	}()
+
+	select {
+	case <-ctx.Done():
+		s.log.Info("Shutting down Envoy ALS gRPC server gracefully")
+		s.grpcServer.GracefulStop()
+		return nil
+	case serveErr := <-errChan:
+		return serveErr
+	}
+}
+
+// NeedLeaderElection specifies if this runnable needs leader election.
+// Returns false to ensure ALS can receive logs across all active replicas if needed.
+func (s *ALSServer) NeedLeaderElection() bool {
+	return false
+}

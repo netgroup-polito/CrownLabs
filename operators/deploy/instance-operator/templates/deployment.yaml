@@ -166,6 +166,9 @@ spec:
             - --enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}
             - --enable-expiration-notifications={{ .Values.configurations.automation.enableExpirationNotifications }}
             - --margin-time={{ .Values.configurations.automation.marginTime }}
+            - --enable-activity-tracking={{ .Values.configurations.automation.enableActivityTracking }}
+            - --activity-debounce-interval={{ .Values.configurations.automation.activityDebounceInterval }}
+            - --activity-als-bind-addr=:{{ .Values.configurations.automation.activityALSPort }}
           ports:
             - name: auto-metrics
               containerPort: 8080
@@ -173,6 +176,11 @@ spec:
             - name: auto-probes
               containerPort: 8081
               protocol: TCP
+            {{- if .Values.configurations.automation.enableActivityTracking }}
+            - name: als-grpc
+              containerPort: {{ .Values.configurations.automation.activityALSPort | default 9000 }}
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
