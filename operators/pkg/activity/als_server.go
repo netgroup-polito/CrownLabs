@@ -78,19 +78,26 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 		for _, entry := range httpLogs.GetLogEntry() {
 			var path string
 			if req := entry.GetRequest(); req != nil {
-				path = req.GetPath()
+				// Envoy rewrites the path; OriginalPath contains the client's original URL.
+				if orig := req.GetOriginalPath(); orig != "" {
+					path = orig
+				} else {
+					path = req.GetPath()
+				}
 			}
 
-			// Discard immediately if the request path does not contain the instance prefix.
-			if !strings.Contains(path, InstancePathPrefix) {
+			// 1. Immediate early discard: zero allocations, O(1) prefix check.
+			if !strings.HasPrefix(path, InstancePathPrefix) {
 				continue
 			}
 
-			var cluster, route string
-			if common := entry.GetCommonProperties(); common != nil {
-				cluster = common.GetUpstreamCluster()
-				route = common.GetRouteName()
+			common := entry.GetCommonProperties()
+			if common == nil {
+				continue
 			}
+
+			cluster := common.GetUpstreamCluster()
+			route := common.GetRouteName()
 
 			s.log.Info("Incoming ALS instance log entry",
 				"cluster", cluster,
@@ -98,20 +105,15 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 				"path", path,
 			)
 
-			var timestamp time.Time
-			if common := entry.GetCommonProperties(); common != nil && common.GetStartTime() != nil {
-				timestamp = common.GetStartTime().AsTime()
-			} else {
-				timestamp = time.Now()
+			timestamp := time.Now()
+			if start := common.GetStartTime(); start != nil {
+				timestamp = start.AsTime()
 			}
 
-			// 1. Primary: Extract target namespace and service from UpstreamCluster or RouteName
-			var targetNamespace, targetName string
-			if common := entry.GetCommonProperties(); common != nil {
-				targetNamespace, targetName, _ = ExtractTargetFromClusterOrRoute(common.GetUpstreamCluster())
-				if targetNamespace == "" || targetName == "" {
-					targetNamespace, targetName, _ = ExtractTargetFromClusterOrRoute(common.GetRouteName())
-				}
+			// Primary: Extract target namespace and service from UpstreamCluster or RouteName
+			targetNamespace, targetName, ok := ExtractTargetFromClusterOrRoute(cluster)
+			if !ok {
+				targetNamespace, targetName, _ = ExtractTargetFromClusterOrRoute(route)
 			}
 
 			if targetNamespace != "" && targetName != "" {
