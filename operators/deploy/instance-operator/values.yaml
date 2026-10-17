@@ -17,6 +17,10 @@ configurations:
     tag: ""
     contentToolsImg: crownlabs/content-tools
   maxConcurrentReconciles: 1
+  activityTracking:
+    enabled: true
+    debounceInterval: "15m"
+    alsPort: 9000
 
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
@@ -51,9 +55,6 @@ configurations:
     expirationNotificationInterval: "24h"
     inactiveDestructionNotificationInterval: "24h"
     marginTime: "1m"
-    enableActivityTracking: true
-    activityDebounceInterval: "15m"
-    activityALSPort: 9000
   publicExposure:
     # The IP pool used to assign public IPs to instances.
     # Specify IPs as ranges or CIDRs, e.g., "172.18.0.240-172.18.0.249" or "172.18.0.250/30"

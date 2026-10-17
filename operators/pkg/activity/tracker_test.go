@@ -62,47 +62,6 @@ var _ = Describe("Activity Tracker", func() {
 		})
 	})
 
-	Context("ExtractInstanceUIDFromPath", func() {
-		It("correctly extracts instance UID from standard GUI path", func() {
-			uid, ok := activity.ExtractInstanceUIDFromPath("/instance/123e4567-e89b-12d3-a456-426614174000/env-default")
-			Expect(ok).To(BeTrue())
-			Expect(uid).To(Equal("123e4567-e89b-12d3-a456-426614174000"))
-		})
-
-		It("correctly extracts instance UID with app prefix", func() {
-			uid, ok := activity.ExtractInstanceUIDFromPath("/app/instance/my-instance-uid/gui/novnc")
-			Expect(ok).To(BeTrue())
-			Expect(uid).To(Equal("my-instance-uid"))
-		})
-
-		It("correctly extracts instance UID when query params are present", func() {
-			uid, ok := activity.ExtractInstanceUIDFromPath("/instance/inst-abc-123/env?token=xyz&foo=bar")
-			Expect(ok).To(BeTrue())
-			Expect(uid).To(Equal("inst-abc-123"))
-		})
-
-		It("correctly extracts instance UID without trailing segments", func() {
-			uid, ok := activity.ExtractInstanceUIDFromPath("/instance/target-uid-1")
-			Expect(ok).To(BeTrue())
-			Expect(uid).To(Equal("target-uid-1"))
-		})
-
-		It("fails when path does not contain instance prefix", func() {
-			uid, ok := activity.ExtractInstanceUIDFromPath("/graph")
-			Expect(ok).To(BeFalse())
-			Expect(uid).To(BeEmpty())
-		})
-
-		It("fails on empty path or trailing slash without UID", func() {
-			uid, ok := activity.ExtractInstanceUIDFromPath("")
-			Expect(ok).To(BeFalse())
-			Expect(uid).To(BeEmpty())
-
-			uid, ok = activity.ExtractInstanceUIDFromPath("/instance/")
-			Expect(ok).To(BeFalse())
-			Expect(uid).To(BeEmpty())
-		})
-	})
 
 	Context("Service-based Activity Tracking", func() {
 		var (
@@ -227,9 +186,10 @@ var _ = Describe("Activity Tracker", func() {
 		})
 
 		It("should update when instance is seen for the first time", func() {
-			Expect(tracker.ShouldUpdate(instanceUID, now)).To(BeTrue())
+			key := instance.Namespace + "/" + instance.Name
+			Expect(tracker.ShouldUpdate(key, now)).To(BeTrue())
 
-			err := tracker.RecordActivity(ctx, instanceUID, now)
+			err := tracker.RecordActivityForInstance(ctx, instance, now)
 			Expect(err).ToNot(HaveOccurred())
 
 			// Verify annotation was written on the instance
@@ -239,15 +199,16 @@ var _ = Describe("Activity Tracker", func() {
 		})
 
 		It("should debounce updates within 15 minutes", func() {
+			key := instance.Namespace + "/" + instance.Name
 			// First update at 12:00
-			Expect(tracker.RecordActivity(ctx, instanceUID, now)).To(Succeed())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
 
 			// Second update at 12:05 (only 5 minutes elapsed)
 			timeFiveMinLater := now.Add(5 * time.Minute)
-			Expect(tracker.ShouldUpdate(instanceUID, timeFiveMinLater)).To(BeFalse())
+			Expect(tracker.ShouldUpdate(key, timeFiveMinLater)).To(BeFalse())
 
 			// RecordActivity at 12:05 should not update the annotation
-			Expect(tracker.RecordActivity(ctx, instanceUID, timeFiveMinLater)).To(Succeed())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, timeFiveMinLater)).To(Succeed())
 
 			var retrieved clv1alpha2.Instance
 			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
@@ -256,31 +217,20 @@ var _ = Describe("Activity Tracker", func() {
 		})
 
 		It("should perform update after 15 minutes have elapsed", func() {
+			key := instance.Namespace + "/" + instance.Name
 			// First update at 12:00
-			Expect(tracker.RecordActivity(ctx, instanceUID, now)).To(Succeed())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
 
 			// Next update at 12:15:01 (15m 1s elapsed)
 			timeFifteenMinLater := now.Add(15*time.Minute + 1*time.Second)
-			Expect(tracker.ShouldUpdate(instanceUID, timeFifteenMinLater)).To(BeTrue())
+			Expect(tracker.ShouldUpdate(key, timeFifteenMinLater)).To(BeTrue())
 
-			Expect(tracker.RecordActivity(ctx, instanceUID, timeFifteenMinLater)).To(Succeed())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, timeFifteenMinLater)).To(Succeed())
 
 			var retrieved clv1alpha2.Instance
 			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
 			// Timestamp should now be updated to 12:15:01
 			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(timeFifteenMinLater.Format(time.RFC3339)))
-		})
-
-		It("returns error when instance UID does not exist", func() {
-			err := tracker.RecordActivity(ctx, "non-existent-uid", now)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("not found"))
-		})
-
-		It("returns error when instance UID is empty", func() {
-			err := tracker.RecordActivity(ctx, "", now)
-			Expect(err).To(HaveOccurred())
-			Expect(err.Error()).To(ContainSubstring("empty instance UID"))
 		})
 	})
 })

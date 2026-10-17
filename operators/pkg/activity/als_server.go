@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
@@ -83,14 +84,17 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 			cluster := common.GetUpstreamCluster()
 			route := common.GetRouteName()
 
-			// 1. Primary: Extract target namespace and service from UpstreamCluster or RouteName.
-			// Envoy Gateway names instance routes as "httproute/<namespace>/<name>/...".
-			// Non-HTTPRoute traffic (or unrelated clusters) is discarded immediately.
+			// Extract target namespace and route name from cluster or route (httproute/<namespace>/<name>/...).
 			targetNamespace, targetName, ok := ExtractTargetFromClusterOrRoute(cluster)
 			if !ok {
 				targetNamespace, targetName, ok = ExtractTargetFromClusterOrRoute(route)
 			}
 			if !ok {
+				continue
+			}
+
+			// Discard non-instance traffic (routes not matching the instance prefix).
+			if !strings.HasPrefix(targetName, "instance-") && !strings.Contains(targetName, "instance") {
 				continue
 			}
 
@@ -120,7 +124,6 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 }
 
 // Start begins listening on bindAddr and serves gRPC requests until the context is canceled.
-// It implements controller-runtime's Runnable interface so it can be added directly to ctrl.Manager.
 func (s *ALSServer) Start(ctx context.Context) error {
 	var lc net.ListenConfig
 	lis, err := lc.Listen(ctx, "tcp", s.bindAddr)

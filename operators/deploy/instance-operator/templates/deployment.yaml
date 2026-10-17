@@ -51,6 +51,11 @@ spec:
             - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
             - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
             - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
+            {{- if .Values.configurations.activityTracking.enabled }}
+            - '--enable-activity-tracking={{ .Values.configurations.activityTracking.enabled }}'
+            - '--activity-debounce-interval={{ .Values.configurations.activityTracking.debounceInterval }}'
+            - '--activity-als-bind-addr=:{{ .Values.configurations.activityTracking.alsPort }}'
+            {{- end }}
 
           ports:
             - name: op-metrics
@@ -59,6 +64,11 @@ spec:
             - name: op-probes
               containerPort: 8081
               protocol: TCP
+            {{- if .Values.configurations.activityTracking.enabled }}
+            - name: als-grpc
+              containerPort: {{ .Values.configurations.activityTracking.alsPort | default 9000 }}
+              protocol: TCP
+            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz
@@ -166,9 +176,6 @@ spec:
             - --enable-inactivity-notifications={{ .Values.configurations.automation.enableInactivityNotifications }}
             - --enable-expiration-notifications={{ .Values.configurations.automation.enableExpirationNotifications }}
             - --margin-time={{ .Values.configurations.automation.marginTime }}
-            - --enable-activity-tracking={{ .Values.configurations.automation.enableActivityTracking }}
-            - --activity-debounce-interval={{ .Values.configurations.automation.activityDebounceInterval }}
-            - --activity-als-bind-addr=:{{ .Values.configurations.automation.activityALSPort }}
           ports:
             - name: auto-metrics
               containerPort: 8080
@@ -176,11 +183,6 @@ spec:
             - name: auto-probes
               containerPort: 8081
               protocol: TCP
-            {{- if .Values.configurations.automation.enableActivityTracking }}
-            - name: als-grpc
-              containerPort: {{ .Values.configurations.automation.activityALSPort | default 9000 }}
-              protocol: TCP
-            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz

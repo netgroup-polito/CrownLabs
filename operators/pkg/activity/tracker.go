@@ -38,9 +38,6 @@ import (
 const (
 	// DefaultDebounceInterval defines the default time to suppress redundant activity updates.
 	DefaultDebounceInterval = 15 * time.Minute
-
-	// InstancePathPrefix is the path token identifying instance routes.
-	InstancePathPrefix = "/instance/"
 )
 
 // Tracker handles debounced activity timestamp updates for CrownLabs instances.
@@ -95,8 +92,7 @@ func (t *Tracker) SetLastUpdated(key string, ts time.Time) {
 	t.lastUpdated[key] = ts
 }
 
-// ExtractTargetFromClusterOrRoute extracts the namespace and resource name from an
-// Envoy Gateway cluster name or route name (e.g. "httproute/<namespace>/<name>/...").
+// ExtractTargetFromClusterOrRoute extracts the namespace and resource name from cluster or route (httproute/<namespace>/<name>/...).
 func ExtractTargetFromClusterOrRoute(target string) (namespace, name string, ok bool) {
 	parts := strings.Split(target, "/")
 	if len(parts) >= 3 && parts[0] == "httproute" && parts[1] != "" && parts[2] != "" {
@@ -105,26 +101,6 @@ func ExtractTargetFromClusterOrRoute(target string) (namespace, name string, ok 
 	return "", "", false
 }
 
-// ExtractInstanceUIDFromPath extracts the instance UID from an HTTP/WebSocket path matching /instance/<uid>/...
-func ExtractInstanceUIDFromPath(path string) (string, bool) {
-	// Strip query parameters if present
-	if idx := strings.Index(path, "?"); idx != -1 {
-		path = path[:idx]
-	}
-
-	idx := strings.Index(path, InstancePathPrefix)
-	if idx == -1 {
-		return "", false
-	}
-
-	remainder := path[idx+len(InstancePathPrefix):]
-	parts := strings.Split(remainder, "/")
-	if len(parts) == 0 || parts[0] == "" {
-		return "", false
-	}
-
-	return parts[0], true
-}
 
 // FindInstanceNameByServiceOrRoute resolves the Instance name from a Service or HTTPRoute in the same namespace.
 func (t *Tracker) FindInstanceNameByServiceOrRoute(ctx context.Context, namespace, name string) (string, error) {
@@ -182,48 +158,6 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 	return t.RecordActivityForInstanceWithKey(ctx, &instance, timestamp, routeKey)
 }
 
-// FindInstanceByUID searches for an instance by its metadata.uid.
-func (t *Tracker) FindInstanceByUID(ctx context.Context, uid string) (*clv1alpha2.Instance, error) {
-	var instanceList clv1alpha2.InstanceList
-
-	// 1. Attempt lookup using field indexer if available
-	if err := t.client.List(ctx, &instanceList, client.MatchingFields{"metadata.uid": uid}); err == nil && len(instanceList.Items) > 0 {
-		return &instanceList.Items[0], nil
-	}
-
-	// 2. Fallback: list instances and find matching UID
-	var allInstances clv1alpha2.InstanceList
-	if err := t.client.List(ctx, &allInstances); err != nil {
-		return nil, fmt.Errorf("failed listing instances: %w", err)
-	}
-
-	for i := range allInstances.Items {
-		if string(allInstances.Items[i].GetUID()) == uid {
-			return &allInstances.Items[i], nil
-		}
-	}
-
-	return nil, fmt.Errorf("instance with UID %q not found", uid)
-}
-
-// RecordActivity records user activity for an instance given its UID and the activity timestamp.
-func (t *Tracker) RecordActivity(ctx context.Context, instanceUID string, timestamp time.Time) error {
-	if instanceUID == "" {
-		return fmt.Errorf("empty instance UID")
-	}
-
-	if !t.ShouldUpdate(instanceUID, timestamp) {
-		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "instanceUID", instanceUID)
-		return nil
-	}
-
-	instance, err := t.FindInstanceByUID(ctx, instanceUID)
-	if err != nil {
-		return err
-	}
-
-	return t.RecordActivityForInstanceWithKey(ctx, instance, timestamp, instanceUID)
-}
 
 // RecordActivityForInstance records user activity directly on a retrieved Instance object.
 func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time) error {

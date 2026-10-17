@@ -147,6 +147,17 @@ var _ = Describe("Envoy ALS Server", func() {
 								Path: "/graph",
 							},
 						},
+						// Non-instance website route (should be safely ignored)
+						{
+							CommonProperties: &data.AccessLogCommon{
+								StartTime:       timestamppb.New(logTime),
+								UpstreamCluster: "httproute/website/website/rule/0",
+								RouteName:       "httproute/website/website/rule/0/match/0/crownlabs_polito_it",
+							},
+							Request: &data.HTTPRequestProperties{
+								Path: "/cloud/ocs/v1.php/cloud/users/test",
+							},
+						},
 					},
 				},
 			},
