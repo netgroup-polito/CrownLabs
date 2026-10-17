@@ -62,7 +62,6 @@ var _ = Describe("Activity Tracker", func() {
 		})
 	})
 
-
 	Context("Service-based Activity Tracking", func() {
 		var (
 			ctx         context.Context

@@ -101,7 +101,6 @@ func ExtractTargetFromClusterOrRoute(target string) (namespace, name string, ok 
 	return "", "", false
 }
 
-
 // FindInstanceNameByServiceOrRoute resolves the Instance name from a Service or HTTPRoute in the same namespace.
 func (t *Tracker) FindInstanceNameByServiceOrRoute(ctx context.Context, namespace, name string) (string, error) {
 	// 1. Try finding the Service
@@ -157,7 +156,6 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 
 	return t.RecordActivityForInstanceWithKey(ctx, &instance, timestamp, routeKey)
 }
-
 
 // RecordActivityForInstance records user activity directly on a retrieved Instance object.
 func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time) error {
