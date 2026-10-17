@@ -134,7 +134,7 @@ var _ = Describe("Envoy ALS Server", func() {
 								UpstreamCluster: "httproute/tenant-als/als-test-instance-default-env/rule/0/backend/0",
 							},
 							Request: &data.HTTPRequestProperties{
-								Path: "/custom-url/not-using-uid",
+								Path: "/instance/als-test-instance-uid-12345/default-env",
 							},
 						},
 						// Non-matching path / unknown cluster (should be safely ignored)

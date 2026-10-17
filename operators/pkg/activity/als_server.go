@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"time"
 
 	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
@@ -75,15 +76,23 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 		}
 
 		for _, entry := range httpLogs.GetLogEntry() {
-			var cluster, route, path string
+			var path string
+			if req := entry.GetRequest(); req != nil {
+				path = req.GetPath()
+			}
+
+			// Discard immediately if the request path does not contain the instance prefix.
+			if !strings.Contains(path, InstancePathPrefix) {
+				continue
+			}
+
+			var cluster, route string
 			if common := entry.GetCommonProperties(); common != nil {
 				cluster = common.GetUpstreamCluster()
 				route = common.GetRouteName()
 			}
-			if req := entry.GetRequest(); req != nil {
-				path = req.GetPath()
-			}
-			s.log.V(utils.LogDebugLevel).Info("Incoming ALS log entry",
+
+			s.log.Info("Incoming ALS instance log entry",
 				"cluster", cluster,
 				"route", route,
 				"path", path,
@@ -109,21 +118,6 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 				if err := s.tracker.RecordActivityForService(ctx, targetNamespace, targetName, timestamp); err != nil {
 					s.log.V(utils.LogDebugLevel).Info("Could not record activity for service entry", "namespace", targetNamespace, "name", targetName, "error", err.Error())
 				}
-				continue
-			}
-
-			// 2. Fallback: extract UID from request path if available
-			if path == "" {
-				continue
-			}
-
-			uid, ok := ExtractInstanceUIDFromPath(path)
-			if !ok {
-				continue
-			}
-
-			if err := s.tracker.RecordActivity(ctx, uid, timestamp); err != nil {
-				s.log.Error(err, "failed recording activity from ALS log entry path", "instanceUID", uid, "path", path)
 			}
 		}
 	}

@@ -163,15 +163,15 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 		return fmt.Errorf("empty namespace or service name")
 	}
 
+	routeKey := fmt.Sprintf("%s/%s", namespace, serviceOrRouteName)
+	if !t.ShouldUpdate(routeKey, timestamp) {
+		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "route", routeKey)
+		return nil
+	}
+
 	instanceName, err := t.FindInstanceNameByServiceOrRoute(ctx, namespace, serviceOrRouteName)
 	if err != nil {
 		return err
-	}
-
-	key := fmt.Sprintf("%s/%s", namespace, instanceName)
-	if !t.ShouldUpdate(key, timestamp) {
-		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "instance", key)
-		return nil
 	}
 
 	var instance clv1alpha2.Instance
@@ -179,7 +179,7 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 		return fmt.Errorf("failed fetching instance %s/%s: %w", namespace, instanceName, err)
 	}
 
-	return t.RecordActivityForInstance(ctx, &instance, timestamp)
+	return t.RecordActivityForInstanceWithKey(ctx, &instance, timestamp, routeKey)
 }
 
 // FindInstanceByUID searches for an instance by its metadata.uid.
@@ -222,11 +222,17 @@ func (t *Tracker) RecordActivity(ctx context.Context, instanceUID string, timest
 		return err
 	}
 
-	return t.RecordActivityForInstance(ctx, instance, timestamp)
+	return t.RecordActivityForInstanceWithKey(ctx, instance, timestamp, instanceUID)
 }
 
 // RecordActivityForInstance records user activity directly on a retrieved Instance object.
 func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time) error {
+	key := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
+	return t.RecordActivityForInstanceWithKey(ctx, instance, timestamp, key)
+}
+
+// RecordActivityForInstanceWithKey records user activity and updates cache for instance and optional cacheKey.
+func (t *Tracker) RecordActivityForInstanceWithKey(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time, cacheKey string) error {
 	key := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
 	uid := string(instance.GetUID())
 
@@ -236,6 +242,9 @@ func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1a
 			if timestamp.Sub(currentTime) < t.debounceInterval && !timestamp.Before(currentTime) {
 				t.log.V(utils.LogDebugLevel).Info("Activity update skipped by existing annotation timestamp", "instance", key)
 				t.SetLastUpdated(key, currentTime)
+				if cacheKey != "" {
+					t.SetLastUpdated(cacheKey, currentTime)
+				}
 				if uid != "" {
 					t.SetLastUpdated(uid, currentTime)
 				}
@@ -260,6 +269,9 @@ func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1a
 	)
 
 	t.SetLastUpdated(key, timestamp)
+	if cacheKey != "" {
+		t.SetLastUpdated(cacheKey, timestamp)
+	}
 	if uid != "" {
 		t.SetLastUpdated(uid, timestamp)
 	}
