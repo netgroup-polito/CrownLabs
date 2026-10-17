@@ -17,6 +17,10 @@ configurations:
     tag: ""
     contentToolsImg: crownlabs/content-tools
   maxConcurrentReconciles: 1
+  activityTracking:
+    enabled: true
+    debounceInterval: "15m"
+    alsPort: 9000
 
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090

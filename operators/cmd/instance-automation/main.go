@@ -33,6 +33,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -52,6 +53,8 @@ func init() {
 
 	utilruntime.Must(clv1alpha1.AddToScheme(rscheme))
 	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
+
+	utilruntime.Must(gatewayv1.Install(rscheme))
 
 	utilruntime.Must(virtv1.AddToScheme(rscheme))
 	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
@@ -141,12 +144,17 @@ func main() {
 	}
 	log.Info("CrownLabs Email client created", "templateDir", *mailTemplateDir)
 
-	prometheus, err := instautoctrl.NewPrometheusObj(*prometheusURL, *prometheusNginxAvailability, *prometheusBastionSSHAvailability, *prometheusWebSSHAvailability,
-		*prometheusNginxData, *prometheusBastionSSHData, *prometheusWebSSHData, *queryStep)
+	var prometheus instautoctrl.PrometheusClientInterface
+	if *prometheusURL != "" {
+		prometheus, err = instautoctrl.NewPrometheusObj(*prometheusURL, *prometheusNginxAvailability, *prometheusBastionSSHAvailability, *prometheusWebSSHAvailability,
+			*prometheusNginxData, *prometheusBastionSSHData, *prometheusWebSSHData, *queryStep)
 
-	if err != nil {
-		log.Error(err, "unable to create Prometheus client")
-		os.Exit(1)
+		if err != nil {
+			log.Error(err, "unable to create Prometheus client")
+			os.Exit(1)
+		}
+	} else {
+		log.Info("Prometheus URL is empty, skipping Prometheus client creation")
 	}
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}
