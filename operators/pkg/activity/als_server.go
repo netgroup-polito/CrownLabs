@@ -25,6 +25,8 @@ import (
 	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
 	"github.com/go-logr/logr"
 	"google.golang.org/grpc"
+
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 // ALSServer implements the Envoy gRPC AccessLogService.
@@ -73,6 +75,20 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 		}
 
 		for _, entry := range httpLogs.GetLogEntry() {
+			var cluster, route, path string
+			if common := entry.GetCommonProperties(); common != nil {
+				cluster = common.GetUpstreamCluster()
+				route = common.GetRouteName()
+			}
+			if req := entry.GetRequest(); req != nil {
+				path = req.GetPath()
+			}
+			s.log.V(utils.LogDebugLevel).Info("Incoming ALS log entry",
+				"cluster", cluster,
+				"route", route,
+				"path", path,
+			)
+
 			var timestamp time.Time
 			if common := entry.GetCommonProperties(); common != nil && common.GetStartTime() != nil {
 				timestamp = common.GetStartTime().AsTime()
@@ -91,18 +107,16 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 
 			if targetNamespace != "" && targetName != "" {
 				if err := s.tracker.RecordActivityForService(ctx, targetNamespace, targetName, timestamp); err != nil {
-					s.log.V(1).Info("Could not record activity for service entry", "namespace", targetNamespace, "name", targetName, "error", err.Error())
+					s.log.V(utils.LogDebugLevel).Info("Could not record activity for service entry", "namespace", targetNamespace, "name", targetName, "error", err.Error())
 				}
 				continue
 			}
 
 			// 2. Fallback: extract UID from request path if available
-			req := entry.GetRequest()
-			if req == nil {
+			if path == "" {
 				continue
 			}
 
-			path := req.GetPath()
 			uid, ok := ExtractInstanceUIDFromPath(path)
 			if !ok {
 				continue

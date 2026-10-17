@@ -32,6 +32,7 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
 const (
@@ -169,6 +170,7 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 
 	key := fmt.Sprintf("%s/%s", namespace, instanceName)
 	if !t.ShouldUpdate(key, timestamp) {
+		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "instance", key)
 		return nil
 	}
 
@@ -211,6 +213,7 @@ func (t *Tracker) RecordActivity(ctx context.Context, instanceUID string, timest
 	}
 
 	if !t.ShouldUpdate(instanceUID, timestamp) {
+		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "instanceUID", instanceUID)
 		return nil
 	}
 
@@ -231,6 +234,7 @@ func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1a
 	if currentStr, ok := instance.Annotations[forge.LastActivityAnnotation]; ok {
 		if currentTime, err := time.Parse(time.RFC3339, currentStr); err == nil {
 			if timestamp.Sub(currentTime) < t.debounceInterval && !timestamp.Before(currentTime) {
+				t.log.V(utils.LogDebugLevel).Info("Activity update skipped by existing annotation timestamp", "instance", key)
 				t.SetLastUpdated(key, currentTime)
 				if uid != "" {
 					t.SetLastUpdated(uid, currentTime)
