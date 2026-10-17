@@ -1,0 +1,511 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pippo
+---
+
+# This YAML file defines a nested Kubernetes cluster using Cluster API (CAPI)
+# with KubeVirt as the infrastructure provider and Kamaji as the control plane provider.
+# The cluster is named "workload-cluster-01" in the "pippo" namespace.
+# Kubernetes version: v1.26.0
+#
+# Resources defined:
+# 1. Cluster - main resource that orchestrates the cluster lifecycle
+# 2. KubevirtCluster - KubeVirt-based infrastructure configuration
+# 3. KamajiControlPlane - control plane managed by Kamaji
+# 4. MachineDeployment - worker node deployment
+# 5. KubevirtMachineTemplate - VM template for worker nodes
+# 6. KubeadmConfigTemplate - bootstrap configuration for worker nodes
+# 7. HelmChartProxy - automatic Cilium CNI installation
+---
+# =============================================================================
+# RESOURCE 1: Cluster
+# This is the main Cluster API resource representing the workload cluster.
+# It acts as the coordination point between the control plane and infrastructure.
+# =============================================================================
+apiVersion: cluster.x-k8s.io/v1beta2  # Cluster API version (stable beta2)
+kind: Cluster  # Resource type: represents a complete Kubernetes cluster
+metadata:
+  # Unique cluster name within the namespace
+  name: workload-cluster-01
+  # Namespace where the cluster resource will be created
+  namespace: pippo
+  # Labels are used for resource selection and matching
+  labels:
+    # This label indicates that Cilium is used as the CNI.
+    # It will be used by HelmChartProxy to select this cluster
+    # and automatically install Cilium as the network plugin.
+    cni: cilium
+    ingress: nginx
+spec:
+  # Reference to the control plane provider.
+  # This links the cluster to the KamajiControlPlane resource
+  # that will manage control plane components (api-server, controller-manager, scheduler, etcd).
+  controlPlaneRef:
+    # Kamaji control plane provider API group (v1beta2 uses apiGroup instead of apiVersion)
+    apiGroup: controlplane.cluster.x-k8s.io
+    # Resource type: KamajiControlPlane manages the control plane in a multi-tenant fashion
+    kind: KamajiControlPlane
+    # Name of the KamajiControlPlane resource (must match the resource defined below).
+    # In v1beta2 references are namespace-local, so the namespace field is no longer allowed.
+    name: workload-cluster-01-control-plane
+  # Reference to the infrastructure provider.
+  # This links the cluster to the KubevirtCluster resource
+  # that will manage the underlying infrastructure (networks, load balancers, etc.).
+  infrastructureRef:
+    # KubeVirt infrastructure provider API group (v1beta2 uses apiGroup instead of apiVersion)
+    apiGroup: infrastructure.cluster.x-k8s.io
+    # Resource type: KubevirtCluster manages virtual machine-based infrastructure
+    kind: KubevirtCluster
+    # Name of the KubevirtCluster resource (must match the resource defined below).
+    # In v1beta2 references are namespace-local, so the namespace field is no longer allowed.
+    name: workload-cluster-01-infrastructure
+  # Cluster network configuration.
+  # Defines the CIDR ranges for services and pods in the workload cluster.
+  clusterNetwork:
+    # CIDR configuration for Kubernetes Services.
+    # Each Service will receive a ClusterIP from this range.
+    services:
+      # List of CIDR blocks for services.
+      # 10.96.0.0/16 is the default Kubernetes range for services.
+      cidrBlocks:
+        - 10.96.0.0/16
+    # CIDR configuration for Kubernetes Pods.
+    # Each Pod will receive an IP address from this range.
+    pods:
+      # List of CIDR blocks for pods.
+      # 10.244.0.0/16 is commonly used with Flannel and Cilium.
+      cidrBlocks:
+        - 10.244.0.0/16
+---
+# =============================================================================
+# RESOURCE 2: KubevirtCluster
+# Represents the KubeVirt-based cluster infrastructure.
+# KubeVirt allows running virtual machines as Pods in Kubernetes,
+# enabling the creation of nested clusters (cluster within a cluster).
+# =============================================================================
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1  # KubeVirt provider API version (alpha)
+kind: KubevirtCluster  # Resource type: defines the KubeVirt infrastructure for the cluster
+metadata:
+  # The KubevirtCluster resource must be marked as 
+  # externally managed using the annotation cluster.x-k8s.io/managed-by.
+  # The reason behind that is that the CAPI KubeVirt provider is automatically creating a 
+  # "Load Balancer" service for the Control Plane VMs, although these will be missing 
+  # since Kamaji will take care of the Control Plane component.
+  # This is made possible by the said annotation and will let the Kamaji Control Plane 
+  # provider to patch the KubeVirtCluster with the address and port provisioned by Kamaji 
+  # itself, with no extra Service resources.
+  annotations:
+      cluster.x-k8s.io/managed-by: kamaji
+  # Infrastructure resource name - must match the reference in the Cluster
+  name: workload-cluster-01-infrastructure
+  # Namespace consistent with all other cluster resources
+  namespace: pippo
+# spec:
+  # The controlPlaneServiceTemplate section defines how to expose
+  # the workload cluster API server.
+  # In a KubeVirt setup with Kamaji managing the control plane,
+  # this configuration can be minimal.
+  # controlPlaneServiceTemplate:
+    # Specification of the Kubernetes Service that will expose the API server
+    # spec:
+      # type: ClusterIP
+---
+# =============================================================================
+# RESOURCE 3: KamajiControlPlane
+# Kamaji is a control plane provider for Cluster API that enables
+# efficient multi-tenant control plane management.
+# Instead of creating dedicated VMs for the control plane, Kamaji runs
+# control plane components as pods in the management cluster.
+# =============================================================================
+apiVersion: controlplane.cluster.x-k8s.io/v1alpha1  # Kamaji API version (alpha)
+kind: KamajiControlPlane  # Resource type: control plane managed by Kamaji
+metadata:
+  # Control plane name - must match the reference in the Cluster resource
+  name: workload-cluster-01-control-plane
+  # Namespace consistent with the cluster
+  namespace: pippo
+spec:
+  # Number of control plane replicas.
+  # 2 replicas provide high availability for control plane components.
+  # Note: for proper etcd quorum, odd numbers are recommended (1, 3, 5),
+  # but with Kamaji and an external datastore, 2 replicas are acceptable.
+  replicas: 1
+  # Kubernetes version to deploy on the control plane.
+  # Must match the version used on worker nodes.
+  version: v1.26.0
+  # Datastore configuration for etcd.
+  # Kamaji supports different backends for control plane storage.
+  dataStoreName: default
+  # Type of datastore used to persist cluster state.
+  # "etcd" indicates the use of an etcd cluster (can be shared across tenants).
+  # Other options: "MySQL", "PostgreSQL", etc.
+  dataStoreSchema: etcd
+  # Network configuration for the Kamaji control plane
+  network:
+    # Service configuration that exposes the workload cluster API server
+    serviceType: ClusterIP
+  apiServer:
+    resources:
+      limits: 
+        memory: "512Mi"
+        cpu: "500m"
+  scheduler:
+    resources:
+      limits: 
+        memory: "128Mi"
+        cpu: "100m"
+  controllerManager:
+    resources:
+      limits: 
+        memory: "128Mi"
+        cpu: "100m"
+
+  # Addons section for additional control plane components
+  addons:
+    # CoreDNS is the internal DNS server for the Kubernetes cluster.
+    # Kamaji can manage its deployment automatically.
+    coreDNS: {}
+    # Kube-proxy manages network rules for Kubernetes Services.
+    # An empty object indicates using the default configuration.
+    kubeProxy: {}
+    # Each Tenant Control Plane pod includes a konnectivity-server running 
+    # as a sidecar container, which establishes and maintains secure tunnels 
+    # with agents running on the worker nodes.
+    konnectivity: {}
+
+---
+# =============================================================================
+# RESOURCE 4: MachineDeployment
+# Similar to a Kubernetes Deployment but for cluster machines (nodes).
+# Manages the worker node lifecycle, including scaling and rolling updates.
+# =============================================================================
+apiVersion: cluster.x-k8s.io/v1beta2  # Cluster API version
+kind: MachineDeployment  # Resource type: manages a set of worker machines
+metadata:
+  # Name of the MachineDeployment for worker nodes
+  name: workload-cluster-01-md-0
+  # Namespace consistent with the cluster
+  namespace: pippo
+spec:
+  # Name of the cluster these machines belong to.
+  # Cluster API uses this field to associate machines with the correct cluster.
+  clusterName: workload-cluster-01
+  # Number of replicas (worker nodes) to create and maintain.
+  # 2 workers provide redundancy for application workloads.
+  replicas: 1
+  # Selector to identify machines managed by this MachineDeployment.
+  # Cluster API automatically adds the necessary labels.
+  selector:
+    # matchLabels is automatically populated by the controller
+    matchLabels: {}
+  # Template that defines how to create each individual worker machine
+  template:
+    spec:
+      # Cluster name - repeated in the template for consistency
+      clusterName: workload-cluster-01
+      # Kubernetes version to install on worker nodes.
+      # MUST match the control plane version for compatibility.
+      version: v1.26.0
+      # Reference to the infrastructure template for machines.
+      # Defines the VM hardware characteristics (CPU, RAM, disk).
+      infrastructureRef:
+        # KubeVirt provider API group (v1beta2 uses apiGroup instead of apiVersion)
+        apiGroup: infrastructure.cluster.x-k8s.io
+        # Resource type: template for KubeVirt virtual machines
+        kind: KubevirtMachineTemplate
+        # Template name - must match the resource defined below.
+        # In v1beta2 references are namespace-local, so the namespace field is no longer allowed.
+        name: workload-cluster-01-md-0
+      # Reference to the bootstrap configuration template.
+      # Defines how to configure the operating system and join the node to the cluster.
+      bootstrap:
+        configRef:
+          # Bootstrap provider (kubeadm) API group (v1beta2 uses apiGroup instead of apiVersion)
+          apiGroup: bootstrap.cluster.x-k8s.io
+          # Resource type: kubeadm configuration template
+          kind: KubeadmConfigTemplate
+          # Bootstrap template name - must match the resource defined below.
+          # In v1beta2 references are namespace-local, so the namespace field is no longer allowed.
+          name: workload-cluster-01-md-0
+---
+# =============================================================================
+# RESOURCE 5: KubevirtMachineTemplate
+# Defines the hardware template for KubeVirt virtual machines
+# that will serve as worker nodes for the workload cluster.
+# Each VM will be created with these CPU, memory, and disk specifications.
+# =============================================================================
+apiVersion: infrastructure.cluster.x-k8s.io/v1alpha1  # KubeVirt provider API version
+kind: KubevirtMachineTemplate  # Resource type: template for KubeVirt VMs
+metadata:
+  # Template name - referenced by the MachineDeployment
+  name: workload-cluster-01-md-0
+  # Namespace consistent with all other resources
+  namespace: pippo
+spec:
+  # Template that defines the specification for each virtual machine
+  template:
+    spec:
+      # KubeVirt VirtualMachineInstance specification.
+      # Defines the hardware resources allocated to the VM.
+      virtualMachineBootstrapCheck:
+        # Verifies the VM has booted correctly before proceeding
+        checkStrategy: ssh
+      virtualMachineTemplate:
+        metadata:
+          # Namespace where VMs will be created (same as the cluster)
+          namespace: pippo
+        spec:
+          # runStrategy defines how to manage the VM lifecycle.
+          # "Always" means the VM will always be restarted if it stops.
+          runStrategy: Always
+          template:
+            spec:
+              # Domain section: defines the VM hardware resources
+              domain:
+                # Virtual machine CPU configuration
+                cpu:
+                  # Number of CPU cores allocated to the VM.
+                  # 2 cores are sufficient for a standard worker node.
+                  cores: 1
+                # Virtual machine RAM configuration
+                memory:
+                  # Amount of RAM allocated to the VM.
+                  guest: 1Gi
+                # Device configuration (disks, network interfaces, etc.)
+                devices:
+                  # List of disks attached to the VM
+                  disks:
+                    # Operating system boot disk
+                    - name: containervolume
+                      # The disk is exposed as a virtio device for optimal performance
+                      disk:
+                        # Virtio bus: high-performance paravirtualized driver
+                        bus: virtio
+              # List of volumes to mount in the VM
+              volumes:
+                # Volume containing the operating system image
+                - name: containervolume
+                  # containerDisk: a disk image contained in an OCI container.
+                  # This approach allows distributing OS images as containers,
+                  # simplifying version management.
+                  containerDisk:
+                    # Container image URL containing the VM disk.
+                    # This image contains Ubuntu 20.04 preconfigured for Kubernetes v1.26.0
+                    # and is provided by the Cluster API Provider KubeVirt (CAPK) project.
+                    image: quay.io/capk/ubuntu-2004-container-disk:v1.26.0
+---
+# =============================================================================
+# RESOURCE 6: KubeadmConfigTemplate
+# Defines the bootstrap configuration for worker nodes using kubeadm.
+# Kubeadm is the standard tool for initializing and joining nodes to a Kubernetes cluster.
+# This template specifies commands to run before the join and the kubeadm configuration.
+# =============================================================================
+apiVersion: bootstrap.cluster.x-k8s.io/v1beta1  # Kubeadm bootstrap provider API version
+kind: KubeadmConfigTemplate  # Resource type: kubeadm configuration template
+metadata:
+  # Template name - referenced by the MachineDeployment
+  name: workload-cluster-01-md-0
+  # Namespace consistent with all other resources
+  namespace: pippo
+spec:
+  # Template that defines the bootstrap configuration for each worker node
+  template:
+    spec:
+      # Configuration for the "kubeadm join" command.
+      # This block defines how the worker node will join the existing cluster.
+      joinConfiguration:
+        # Node-specific configuration for the join operation
+        nodeRegistration:
+          # CRI (Container Runtime Interface) socket name.
+          # containerd is the default container runtime for modern Kubernetes.
+          criSocket: unix:///var/run/containerd/containerd.sock
+          # Kubelet extra args: additional arguments passed to kubelet.
+          # kubeletExtraArgs:
+            # External cloud provider: indicates that the cloud provider is managed
+            # by an external controller (in this case KubeVirt).
+            # cloud-provider: external
+      # Commands to execute BEFORE running kubeadm.
+      # These commands prepare the node by installing the necessary packages
+      # for Kubernetes (kubelet, kubeadm, kubectl).
+      #
+      # The order of commands is CRITICAL: each command depends on the success
+      # of the previous one. If a command fails, the node bootstrap fails
+      # and the machine will be marked as "Failed".
+      preKubeadmCommands:
+        # 1. Updates the list of available packages from configured repositories.
+        # Required to ensure the most recent package information is available
+        # before installing anything.
+        # - apt-get update
+        # 2. Installs prerequisite packages for adding HTTPS repositories.
+        # Without these packages, APT cannot download from HTTPS repositories
+        # or verify GPG signatures of packages.
+        #
+        # - apt-transport-https: support for HTTPS repositories
+        # - ca-certificates: CA certificates for validating HTTPS connections
+        # - curl: tool to download files from URLs (used for the GPG key)
+        # - gpg: GNU Privacy Guard, for verifying package signatures
+        #
+        # The -y flag automatically accepts installation without requiring
+        # interactive confirmation (necessary for automated scripts).
+        # - apt-get install -y apt-transport-https ca-certificates curl gpg
+        # 3. Creates the directory for APT repository GPG keys.
+        # In modern Debian/Ubuntu versions, repository GPG keys are stored
+        # in /etc/apt/keyrings/ instead of the global keyring.
+        # The -p flag creates parent directories if they don't exist.
+        # - mkdir -p /etc/apt/keyrings
+        # 4. Downloads and saves the public GPG key from the official Kubernetes repository.
+        # This key is used to verify the authenticity of downloaded packages.
+        # Without this verification, it would be possible to install compromised packages.
+        #
+        # The command:
+        # - curl -fsSL: downloads silently, fails on HTTP errors
+        # - gpg --dearmor: converts the key from ASCII-armored to binary format
+        # - -o: saves to the specified file
+        # - curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.26/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        # 5. Adds the official Kubernetes repository to the APT sources list.
+        # This repository contains kubelet, kubeadm, and kubectl for version v1.26.
+        #
+        # - signed-by: specifies which GPG key to use for package verification
+        # - The repository is specific to the minor version (v1.26),
+        #   ensuring only patches of the same minor version are installed.
+        #
+        # If the Kubernetes version changes, this URL must be updated
+        # (e.g., v1.25, v1.27).
+        # - echo "deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.26/deb/ /" > /etc/apt/sources.list.d/kubernetes.list
+        # 6. Updates the package list again to include the new repository.
+        # After adding the Kubernetes repository, a new update is needed
+        # to make kubelet, kubeadm, and kubectl packages available.
+        # - apt-get update
+        # 7. Installs the core Kubernetes components:
+        #
+        # - kubelet: agent running on each node that manages pods.
+        #   Receives pod specs from the API server and ensures containers
+        #   are running and healthy.
+        #
+        # - kubeadm: tool for bootstrapping and joining nodes.
+        #   Manages kubelet configuration, certificate generation,
+        #   and node registration with the API server.
+        #
+        # - kubectl: CLI for interacting with the Kubernetes cluster.
+        #   Not strictly required on workers, but useful for debugging and diagnostics.
+        #
+        # The -y flag accepts installation without interactive confirmation.
+        # - apt-get install -y kubelet=1.26.0-* kubeadm=1.26.0-* kubectl=1.26.0-*
+        # 8. Holds Kubernetes package versions to prevent accidental upgrades
+        # during apt-get upgrade.
+        # Uncoordinated kubelet/kubeadm upgrades could cause incompatibilities
+        # with the control plane and render the node unusable.
+        # Upgrades must be managed through the controlled Cluster API upgrade
+        # process (MachineDeployment rolling update).
+        # - apt-mark hold kubelet kubeadm kubectl
+        # 9. Enables and starts the kubelet service via systemd.
+        # - "enable": configures kubelet to start automatically at boot
+        # - "--now": starts the service immediately without waiting for a reboot
+        #
+        # Kubelet must be running for kubeadm to complete the join.
+        # Kubeadm configures kubelet, then kubelet registers itself
+        # with the API server as a worker node.
+        # - systemctl enable --now kubelet
+---
+# =============================================================================
+# RESOURCE 7: HelmChartProxy
+# HelmChartProxy is a resource from the Cluster API Add-on Provider (CAAPH)
+# that enables automatic Helm chart installation on workload clusters.
+# In this case, it is used to install Cilium as the CNI (Container Network Interface).
+# Cilium provides networking, security, and observability for cluster pods.
+# =============================================================================
+apiVersion: addons.cluster.x-k8s.io/v1alpha1  # Helm add-on provider API version (alpha). CAAPH manages Helm chart installation on target clusters.
+kind: HelmChartProxy  # Resource type: proxy for automatic Helm chart installation on one or more workload clusters.
+metadata:
+  # HelmChartProxy resource name.
+  # Convention: <cluster-name>-<chart-name> or simply <chart-name>
+  # if installing on all clusters with a specific label.
+  name: cilium-cni
+  # Namespace where the resource resides (in the management cluster).
+  # The CAAPH controller monitors this namespace for HelmChartProxy resources.
+  namespace: pippo
+spec:
+  # clusterSelector defines which clusters to install this Helm chart on.
+  # Uses a Kubernetes label selector to find target clusters.
+  # The CAAPH controller continuously monitors clusters matching the selector
+  # and installs/updates the chart on each of them.
+  clusterSelector:
+    matchLabels:
+      # Selects all clusters with the label cni=cilium.
+      # The Cluster resource (Resource 1) defined above has this label,
+      # so Cilium will be automatically installed on it.
+      #
+      # This mechanism allows:
+      # - Automatically installing Cilium on new clusters with the correct label
+      # - Centrally managing the Cilium version across all clusters
+      # - Uninstalling Cilium by removing the label from the cluster
+      #
+      # If the label value is changed (e.g., "calico"), this HelmChartProxy
+      # will no longer install Cilium on that cluster.
+      cni: cilium
+  # Helm release name (equivalent to the --release-name flag of helm install).
+  # This name identifies the Cilium installation in the workload cluster.
+  # It is used to track the installation state and for future upgrades.
+  # If this name is changed, Helm will create a NEW installation instead of upgrading
+  # the existing one, potentially causing conflicts.
+  releaseName: cilium
+  # URL of the Helm repository containing the Cilium chart.
+  # This is the official Cilium repository maintained by Isovalent.
+  # The CAAPH controller will download the chart from this repository.
+  #
+  # If the repository is unreachable (firewall, DNS), the installation will fail.
+  # In air-gapped environments, a local repository mirror should be used.
+  repoURL: https://helm.cilium.io
+  # Name of the Helm chart to install from the repository.
+  # "cilium" is the main chart that installs all Cilium components:
+  # - cilium-agent: DaemonSet on every node, manages networking and policies
+  # - cilium-operator: Deployment that manages cluster-wide resources
+  # - hubble-relay: (optional) for network observability
+  chartName: cilium
+  # Specific Helm chart version to install.
+  # 1.16.4 is a stable Cilium version compatible with Kubernetes v1.26.0.
+  #
+  # Specifying an exact version is important to:
+  # - Ensure installation reproducibility
+  # - Avoid untested automatic upgrades
+  # - Maintain compatibility with the Kubernetes version
+  #
+  # To upgrade Cilium, modify this field and the CAAPH controller
+  # will perform a "helm upgrade" on all selected clusters.
+  version: 1.16.4
+  # Namespace in the workload cluster where Cilium will be installed.
+  # kube-system is the standard namespace for Kubernetes system components
+  # (kube-proxy, CoreDNS, CNI, etc.).
+  #
+  # Installing Cilium in kube-system is the standard convention because:
+  # - System components have higher priority
+  # - The namespace is protected by default policies
+  # - It is consistent with the official Cilium documentation
+  namespace: kube-system
+
+
+---
+apiVersion: addons.cluster.x-k8s.io/v1alpha1
+kind: HelmChartProxy
+metadata:
+  name: ingress-nginx
+  namespace: pippo
+spec:
+  clusterSelector:
+    matchLabels:
+      ingress: nginx
+  releaseName: ingress-nginx
+  repoURL: https://kubernetes.github.io/ingress-nginx
+  chartName: ingress-nginx
+  version: 4.11.3
+  namespace: ingress-nginx
+  valuesTemplate: |
+    controller:
+      service:
+        type: NodePort
+        nodePorts:
+          http: 30080
+          https: 30443
+      ingressClassResource:
+        default: true

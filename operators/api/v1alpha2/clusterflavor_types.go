@@ -90,8 +90,42 @@ func (c *ControlPlaneSpec) UnmarshalJSON(data []byte) error {
 
 // WorkerSpec describes the shape of the worker nodes of the cluster.
 type WorkerSpec struct {
-	// The container image to be used for the worker nodes.
-	Image string `json:"image"`
+	// Disk describes the root disk source for worker nodes.
+	Disk WorkerDiskSpec `json:"disk"`
+}
+
+// WorkerDiskType identifies the source used for a worker root disk.
+type WorkerDiskType string
+
+const (
+	// WorkerDiskContainerDisk uses an image stored in an OCI container.
+	WorkerDiskContainerDisk WorkerDiskType = "containerDisk"
+	// WorkerDiskDataVolume uses an existing CDI DataVolume.
+	WorkerDiskDataVolume WorkerDiskType = "dataVolume"
+	// WorkerDiskCloudImage imports an HTTP cloud image into a CDI DataVolume.
+	WorkerDiskCloudImage WorkerDiskType = "cloudImage"
+)
+
+// WorkerDiskSpec describes the root disk source for worker nodes.
+type WorkerDiskSpec struct {
+	// Type selects the disk source.
+	// +kubebuilder:validation:Enum=containerDisk;dataVolume;cloudImage
+	Type WorkerDiskType `json:"type"`
+
+	// Image is the OCI image used by containerDisk.
+	Image string `json:"image,omitempty"`
+
+	// Name is the existing DataVolume name used by dataVolume.
+	Name string `json:"name,omitempty"`
+
+	// URL is the HTTP URL imported by cloudImage.
+	URL string `json:"url,omitempty"`
+
+	// StorageClassName is the storage class used for a cloudImage import.
+	StorageClassName string `json:"storageClassName,omitempty"`
+
+	// StorageSize is the requested size of a cloudImage DataVolume.
+	StorageSize resource.Quantity `json:"storageSize,omitempty"`
 }
 
 // AddonSpec describes an additional Helm chart to be installed on the cluster.

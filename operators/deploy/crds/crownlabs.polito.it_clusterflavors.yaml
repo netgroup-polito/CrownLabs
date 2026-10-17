@@ -229,11 +229,43 @@ spec:
               workers:
                 description: The specification of the worker nodes of the cluster.
                 properties:
-                  image:
-                    description: The container image to be used for the worker nodes.
-                    type: string
+                  disk:
+                    description: Disk describes the root disk source for worker nodes.
+                    properties:
+                      image:
+                        description: Image is the OCI image used by containerDisk.
+                        type: string
+                      name:
+                        description: Name is the existing DataVolume name used by
+                          dataVolume.
+                        type: string
+                      storageClassName:
+                        description: StorageClassName is the storage class used for
+                          a cloudImage import.
+                        type: string
+                      storageSize:
+                        anyOf:
+                        - type: integer
+                        - type: string
+                        description: StorageSize is the requested size of a cloudImage
+                          DataVolume.
+                        pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                        x-kubernetes-int-or-string: true
+                      type:
+                        description: Type selects the disk source.
+                        enum:
+                        - containerDisk
+                        - dataVolume
+                        - cloudImage
+                        type: string
+                      url:
+                        description: URL is the HTTP URL imported by cloudImage.
+                        type: string
+                    required:
+                    - type
+                    type: object
                 required:
-                - image
+                - disk
                 type: object
             required:
             - controlPlane

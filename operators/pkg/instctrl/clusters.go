@@ -83,8 +83,12 @@ func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) erro
 		return err
 	}
 
+	machineTemplateSpec, err := forge.KubevirtMachineTemplateSpec(instance.Namespace, flavor.Spec.Workers, &environment.Resources)
+	if err != nil {
+		return err
+	}
 	if _, err := r.enforceClusterAPIObject(ctx, forge.GVKKubevirtMachineTemplate, names.MachineDeployment, instance.Namespace, labels, func(u *unstructured.Unstructured) {
-		u.Object["spec"] = forge.KubevirtMachineTemplateSpec(instance.Namespace, flavor.Spec.Workers.Image, &environment.Resources)
+		u.Object["spec"] = machineTemplateSpec
 	}); err != nil {
 		return err
 	}

@@ -15,6 +15,8 @@
 package forge
 
 import (
+	"fmt"
+
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -210,9 +212,44 @@ func MachineDeploymentSpec(clusterName string, names ClusterResourceNames, versi
 }
 
 // KubevirtMachineTemplateSpec returns the spec of the KubevirtMachineTemplate resource describing the VM
-// hosting each worker node of the Cluster environment. The worker image comes from the ClusterFlavor, while
+// hosting each worker node of the Cluster environment. The worker disk comes from the ClusterFlavor, while
 // the amount of CPU/Memory assigned to each worker node comes from the Environment resources.
-func KubevirtMachineTemplateSpec(namespace, workerImage string, resources *clv1alpha2.EnvironmentResources) map[string]interface{} {
+func KubevirtMachineTemplateSpec(namespace string, worker clv1alpha2.WorkerSpec, resources *clv1alpha2.EnvironmentResources) (map[string]interface{}, error) {
+	disk, err := workerDiskSpec(worker)
+	if err != nil {
+		return nil, err
+	}
+
+	virtualMachineSpec := map[string]interface{}{
+		"runStrategy": "Always",
+		"template": map[string]interface{}{
+			"spec": map[string]interface{}{
+				"domain": map[string]interface{}{
+					"cpu": map[string]interface{}{
+						"cores": resources.CPU,
+					},
+					"memory": map[string]interface{}{
+						"guest": resources.Memory.String(),
+					},
+					"devices": map[string]interface{}{
+						"disks": []interface{}{
+							map[string]interface{}{
+								"name": ClusterContainerVolumeName,
+								"disk": map[string]interface{}{
+									"bus": ClusterVirtioBus,
+								},
+							},
+						},
+					},
+				},
+				"volumes": []interface{}{disk.volume},
+			},
+		},
+	}
+	if disk.dataVolumeTemplate != nil {
+		virtualMachineSpec["dataVolumeTemplates"] = []interface{}{disk.dataVolumeTemplate}
+	}
+
 	return map[string]interface{}{
 		"template": map[string]interface{}{
 			"spec": map[string]interface{}{
@@ -223,42 +260,63 @@ func KubevirtMachineTemplateSpec(namespace, workerImage string, resources *clv1a
 					"metadata": map[string]interface{}{
 						"namespace": namespace,
 					},
-					"spec": map[string]interface{}{
-						"runStrategy": "Always",
-						"template": map[string]interface{}{
-							"spec": map[string]interface{}{
-								"domain": map[string]interface{}{
-									"cpu": map[string]interface{}{
-										"cores": resources.CPU,
-									},
-									"memory": map[string]interface{}{
-										"guest": resources.Memory.String(),
-									},
-									"devices": map[string]interface{}{
-										"disks": []interface{}{
-											map[string]interface{}{
-												"name": ClusterContainerVolumeName,
-												"disk": map[string]interface{}{
-													"bus": ClusterVirtioBus,
-												},
-											},
-										},
-									},
-								},
-								"volumes": []interface{}{
-									map[string]interface{}{
-										"name": ClusterContainerVolumeName,
-										"containerDisk": map[string]interface{}{
-											"image": workerImage,
-										},
-									},
-								},
-							},
+					"spec": virtualMachineSpec,
+				},
+			},
+		},
+	}, nil
+}
+
+type workerDisk struct {
+	volume             map[string]interface{}
+	dataVolumeTemplate map[string]interface{}
+}
+
+func workerDiskSpec(worker clv1alpha2.WorkerSpec) (workerDisk, error) {
+	switch worker.Disk.Type {
+	case clv1alpha2.WorkerDiskContainerDisk:
+		if worker.Disk.Image == "" {
+			return workerDisk{}, fmt.Errorf("workers.disk.image is required for type %q", worker.Disk.Type)
+		}
+		return workerDisk{volume: map[string]interface{}{
+			"name":          ClusterContainerVolumeName,
+			"containerDisk": map[string]interface{}{"image": worker.Disk.Image},
+		}}, nil
+	case clv1alpha2.WorkerDiskDataVolume:
+		if worker.Disk.Name == "" {
+			return workerDisk{}, fmt.Errorf("workers.disk.name is required for type %q", worker.Disk.Type)
+		}
+		return workerDisk{volume: map[string]interface{}{
+			"name":       ClusterContainerVolumeName,
+			"dataVolume": map[string]interface{}{"name": worker.Disk.Name},
+		}}, nil
+	case clv1alpha2.WorkerDiskCloudImage:
+		if worker.Disk.URL == "" || worker.Disk.StorageClassName == "" || worker.Disk.StorageSize.Sign() <= 0 {
+			return workerDisk{}, fmt.Errorf("workers.disk.url, workers.disk.storageClassName and workers.disk.storageSize are required for type %q", worker.Disk.Type)
+		}
+		const dataVolumeName = "workervolume"
+		return workerDisk{
+			volume: map[string]interface{}{
+				"name":       ClusterContainerVolumeName,
+				"dataVolume": map[string]interface{}{"name": dataVolumeName},
+			},
+			dataVolumeTemplate: map[string]interface{}{
+				"metadata": map[string]interface{}{"name": dataVolumeName},
+				"spec": map[string]interface{}{
+					"source": map[string]interface{}{"http": map[string]interface{}{"url": worker.Disk.URL}},
+					"storage": map[string]interface{}{
+						"storageClassName": worker.Disk.StorageClassName,
+						"volumeMode":       "Block",
+						"accessModes":      []interface{}{"ReadWriteOnce"},
+						"resources": map[string]interface{}{
+							"requests": map[string]interface{}{"storage": worker.Disk.StorageSize.String()},
 						},
 					},
 				},
 			},
-		},
+		}, nil
+	default:
+		return workerDisk{}, fmt.Errorf("unsupported workers.disk.type %q", worker.Disk.Type)
 	}
 }
 

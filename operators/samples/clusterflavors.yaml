@@ -23,7 +23,9 @@ spec:
       cpu: "100m"
       memory: "128Mi"
   workers:
-    image: quay.io/capk/ubuntu-2004-container-disk:v1.26.0
+    disk:
+      type: containerDisk
+      image: quay.io/capk/ubuntu-2004-container-disk:v1.26.0
   addonList:
     - name: cilium
       repoURL: https://helm.cilium.io
