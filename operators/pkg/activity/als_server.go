@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strings"
 	"time"
 
 	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
@@ -76,21 +75,6 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 		}
 
 		for _, entry := range httpLogs.GetLogEntry() {
-			var path string
-			if req := entry.GetRequest(); req != nil {
-				// Envoy rewrites the path; OriginalPath contains the client's original URL.
-				if orig := req.GetOriginalPath(); orig != "" {
-					path = orig
-				} else {
-					path = req.GetPath()
-				}
-			}
-
-			// 1. Immediate early discard: zero allocations, O(1) prefix check.
-			if !strings.HasPrefix(path, InstancePathPrefix) {
-				continue
-			}
-
 			common := entry.GetCommonProperties()
 			if common == nil {
 				continue
@@ -99,10 +83,28 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 			cluster := common.GetUpstreamCluster()
 			route := common.GetRouteName()
 
+			// 1. Primary: Extract target namespace and service from UpstreamCluster or RouteName.
+			// Envoy Gateway names instance routes as "httproute/<namespace>/<name>/...".
+			// Non-HTTPRoute traffic (or unrelated clusters) is discarded immediately.
+			targetNamespace, targetName, ok := ExtractTargetFromClusterOrRoute(cluster)
+			if !ok {
+				targetNamespace, targetName, ok = ExtractTargetFromClusterOrRoute(route)
+			}
+			if !ok {
+				continue
+			}
+
+			var path string
+			if req := entry.GetRequest(); req != nil {
+				path = req.GetPath()
+			}
+
 			s.log.Info("Incoming ALS instance log entry",
 				"cluster", cluster,
 				"route", route,
 				"path", path,
+				"namespace", targetNamespace,
+				"name", targetName,
 			)
 
 			timestamp := time.Now()
@@ -110,16 +112,8 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 				timestamp = start.AsTime()
 			}
 
-			// Primary: Extract target namespace and service from UpstreamCluster or RouteName
-			targetNamespace, targetName, ok := ExtractTargetFromClusterOrRoute(cluster)
-			if !ok {
-				targetNamespace, targetName, _ = ExtractTargetFromClusterOrRoute(route)
-			}
-
-			if targetNamespace != "" && targetName != "" {
-				if err := s.tracker.RecordActivityForService(ctx, targetNamespace, targetName, timestamp); err != nil {
-					s.log.V(utils.LogDebugLevel).Info("Could not record activity for service entry", "namespace", targetNamespace, "name", targetName, "error", err.Error())
-				}
+			if err := s.tracker.RecordActivityForService(ctx, targetNamespace, targetName, timestamp); err != nil {
+				s.log.V(utils.LogDebugLevel).Info("Could not record activity for service entry", "namespace", targetNamespace, "name", targetName, "error", err.Error())
 			}
 		}
 	}
