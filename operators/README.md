@@ -2,6 +2,17 @@
 
 This folder contains the different components that constitute the server-side of the CrownLabs business logic. Specifically, they are either Kubernetes operators or stand-alone components which interact with Kubernetes resources.
 
+## Running tests
+
+Run `make test` from this directory. The target generates the Kubernetes resources,
+runs formatting, linting and vet checks, and executes all Go tests with coverage.
+It installs the required envtest binaries and selects the Kubernetes version through
+`KUBEBUILDER_ASSETS`, even when multiple versions are installed locally.
+
+When running `go test` directly, set `KUBEBUILDER_ASSETS` to the desired envtest binary
+directory. If it is unset, the test helper supports automatic discovery only when
+`bin/k8s` contains exactly one version directory.
+
 ## How to deploy
 
 To simplify the deployment and the configuration of the different components, CrownLabs leverages an [Helm](https://helm.sh/) chart.
@@ -10,8 +21,9 @@ The following instructions, instead focus on the deployment of a single operator
 
 ### Pre-requirements (instance-operator only)
 
-The only external requirement of the instance-operator is KubeVirt, which is responsible for the management of virtual machines on top of a Kubernetes cluster.
+VM environments require KubeVirt, which is responsible for the management of virtual machines on top of a Kubernetes cluster.
 Please, refer to the corresponding [README](../infrastructure/virtualization/README.md), for more information about the installation process.
+Cluster environments additionally require the Cluster API providers listed below.
 
 ### Install the CRDs
 
@@ -67,6 +79,12 @@ Upon the creation of an *Instance*, the operator triggers the creation of the fo
 * A [DataVolume](https://github.com/kubevirt/containerized-data-importer/blob/main/doc/datavolumes.md) (only in case of persistent VMs). It wraps a Persistent Volume Claim (PVC), and takes care of initializing it with the content of the selected VM image through an importer pod.
 
 All those resources are bound to the Instance life-cycle via the [OwnerRef property](https://kubernetes.io/docs/concepts/workloads/controllers/garbage-collection/)
+
+#### Cluster environments
+
+Cluster environments use the official Go API types for Cluster API core and
+kubeadm bootstrap v1.13.7, the KubeVirt infrastructure provider v0.11.2, the
+Kamaji control plane provider v0.19.0, and the Helm add-on provider v0.6.4.
 
 #### Gateway API & Exposition Flags
 
