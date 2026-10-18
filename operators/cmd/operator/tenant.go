@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
@@ -192,8 +193,7 @@ func setupTenantWebhook(
 		BypassGroups: strings.Split(tenantWebhookBypassGroups, ","),
 	}
 
-	if err := ctrl.NewWebhookManagedBy(mgr).
-		For(&clv1alpha2.Tenant{}).
+	if err := ctrl.NewWebhookManagedBy[runtime.Object](mgr, &clv1alpha2.Tenant{}).
 		WithValidator(&webhook.TenantValidator{
 			TenantWebhook: tnWh,
 		}).

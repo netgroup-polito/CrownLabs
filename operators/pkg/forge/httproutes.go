@@ -123,13 +123,11 @@ func HTTPRouteMatch(path string) gatewayv1.HTTPRouteMatch {
 
 // HTTPBackendRef prepares a backend (i.e., a service) reference for an HTTPRouteRule.
 func HTTPBackendRef(serviceName string, servicePort int32) gatewayv1.HTTPBackendRef {
-	backendPort := gatewayv1.PortNumber(servicePort)
-
 	backendRef := gatewayv1.HTTPBackendRef{
 		BackendRef: gatewayv1.BackendRef{
 			BackendObjectReference: gatewayv1.BackendObjectReference{
 				Name: gatewayv1.ObjectName(serviceName),
-				Port: ptr.To(backendPort),
+				Port: ptr.To(servicePort),
 			},
 		},
 	}
