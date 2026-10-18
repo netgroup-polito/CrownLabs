@@ -36,11 +36,10 @@ import (
 
 // EnforceClusterEnvironment implements the logic to create all the Cluster API (and related providers)
 // resources required to provision a nested Kubernetes cluster environment, based on the ClusterFlavor
-// referenced (by name, through the environment image) in the same namespace as the template.
+// referenced by name through the environment image in the configured central namespace.
 func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
-	template := clctx.TemplateFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 	envIndex := clctx.EnvironmentIndexFrom(ctx)
 
@@ -48,7 +47,11 @@ func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) erro
 		return fmt.Errorf("environment %q of type Cluster is missing the cluster specification", environment.Name)
 	}
 
-	flavorName := types.NamespacedName{Name: environment.Image, Namespace: template.Namespace}
+	namespace := r.ClusterFlavorNamespace
+	if namespace == "" {
+		namespace = forge.DefaultClusterFlavorNamespace
+	}
+	flavorName := types.NamespacedName{Name: environment.Image, Namespace: namespace}
 	var flavor clv1alpha2.ClusterFlavor
 	if err := r.Get(ctx, flavorName, &flavor); err != nil {
 		log.Error(err, "failed retrieving the cluster flavor", "clusterflavor", flavorName)

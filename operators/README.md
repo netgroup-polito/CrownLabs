@@ -125,6 +125,37 @@ During reconciliation, the operator filters out Pods that are terminating (`Dele
 This guarantees that the IP exposed in the status always points to the active workload, which is crucial for routing SSH connections through the Bastion and for reliable activity tracking via Prometheus.
 
 
+### Centralized ClusterFlavors
+
+For a `Cluster` environment, `image` is the exact name of a `ClusterFlavor`, not a container image or a `namespace/name` reference. The Instance Operator reads that resource from a central namespace:
+
+```bash
+# Instance Operator binary; the flag is optional with this default.
+./instance-operator --cluster-flavor-namespace=crownlabs-clusterflavors
+```
+
+`--cluster-flavor-namespace` defaults to `crownlabs-clusterflavors`. An explicitly empty or invalid namespace is rejected at startup. A missing flavor produces a `ClusterFlavorNotFound` event containing the namespace and name; there is no fallback to the template namespace.
+
+With Helm, configure the namespace once at the root of the umbrella chart's values:
+
+```yaml
+global:
+  clusterFlavorNamespace: crownlabs-clusterflavors
+```
+
+This value is shared by the Instance Operator deployment and the ImageList updater's `clusterflavors` sources that omit `namespace`. The same global value is available when installing either subchart separately; keep both releases aligned. The umbrella chart includes a `local-clusterflavors` catalog by default when ImageList updates are enabled.
+
+For example, templates in any workspace can select the same shared blueprint:
+
+```yaml
+environmentType: Cluster
+image: k8s-1-26-basic
+```
+
+Create the namespace and its ClusterFlavors before using them. The Instance Operator's existing ClusterRole grants get/list/watch access; restrict blueprint write access to trusted administrators.
+
+**Migration:** flavors previously resolved in the template namespace must be moved or copied into the central namespace, preserving the names used by templates. Alternatively, set the flag to a specific existing namespace; the selection is deployment-wide, not per-template. This is an intentional change from workspace-local resolution. The main `operator` binary handles catalog updates and webhooks; the flag belongs to the separate `instance-operator` binary that provisions instances.
+
 ### APIs/CRDs
 
 The Instance Operator implements the backend logic necessary to spawn new environments starting from a predefined template. The operator relies on two Kubernetes Custom Resource Definitions (CRDs) which implement the basic APIs:
@@ -724,6 +755,7 @@ The Image List Updater is composed of:
 | `harbor` | `HarborImageListRequestor` | Harbor REST API v2; requires `project`. |
 | `instancesnapshot` | `InstanceSnapshotImageListRequestor` | Legacy registry exports: reads completed snapshots and their export Jobs in `namespace`. Also accepts `instancesnapshots` and `instanceSnapshot`. |
 | `public-snapshots` | `PublicSnapshotImageListSource` | Local CDI artifacts referenced by completed snapshots in `namespace`. |
+| `clusterflavors` | `ClusterFlavorImageListSource` | ClusterFlavor resources in the configured namespace, using exact names and `versions: []`. |
 
 Use `public-snapshots` for the CDI snapshot controller. The legacy `instancesnapshot` source expects export Jobs and cannot discover these local artifacts.
 
@@ -840,6 +872,34 @@ kubectl get imagelist public-local-snapshots -o yaml
 ```
 
 For an empty catalog, check the configured namespace and the snapshots' phase, deletion timestamp and artifact references. If metadata is missing, check `status.artifact.volumeSize` and confirm the updated CRD is installed. If updates fail, inspect the operator's `imagelist-updater` logs for the source name and target ImageList.
+
+### ClusterFlavor catalogs
+
+The `clusterflavors` source publishes non-deleting ClusterFlavors, sorted by name, without interpreting `spec.version` as an image tag. A successful empty source clears stale entries; a failed list request leaves the existing catalog intact. The saved ImageList uses the source namespace as `spec.registryName` and an empty `projectBaseName`.
+
+In Helm, omit `namespace` to inherit `global.clusterFlavorNamespace`:
+
+```yaml
+# Under operator.configurations in the umbrella chart, or configurations in the operator chart.
+imageList:
+  registries:
+    - name: clusterflavors
+      type: clusterflavors
+      imageListName: local-clusterflavors
+```
+
+An explicit source namespace is preserved; keep it aligned with the Instance Operator's namespace. Helm arrays replace the default source list, so include any registry or snapshot sources you still need.
+
+When running the updater directly with `--image-list-config-file`, the file must specify the namespace explicitly (Helm inheritance is not applied):
+
+```yaml
+- name: clusterflavors
+  type: clusterflavors
+  namespace: crownlabs-clusterflavors
+  imageListName: local-clusterflavors
+```
+
+Inspect the catalog with `kubectl get imagelist local-clusterflavors -o yaml`. Consumers must use the exact item name for a `Cluster` environment's `image`, without prepending `registryName` or appending a version. The catalog itself is not used by the Instance Operator to resolve the namespace.
 
 ### Architecture and Extensibility
 

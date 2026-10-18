@@ -108,4 +108,6 @@ webssh:
 rbacResourcesName: crownlabs-instance-operator
 
 global:
+  # Shared with the ImageList updater when deployed through the umbrella chart.
+  clusterFlavorNamespace: crownlabs-clusterflavors
   gateway: {}

@@ -4,6 +4,10 @@
 
 replicaCount: 1
 
+global:
+  # Also used by the Instance Operator to resolve ClusterFlavor names.
+  clusterFlavorNamespace: crownlabs-clusterflavors
+
 configurations:
   features:
     tenant: true
