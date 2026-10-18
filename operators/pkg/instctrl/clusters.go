@@ -83,7 +83,7 @@ func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) erro
 		return err
 	}
 
-	machineTemplateSpec, err := forge.KubevirtMachineTemplateSpec(instance.Namespace, flavor.Spec.Workers, &environment.Resources)
+	machineTemplateSpec, err := forge.KubevirtMachineTemplateSpec(instance.Namespace, &flavor.Spec.Workers, &environment.Resources)
 	if err != nil {
 		return err
 	}

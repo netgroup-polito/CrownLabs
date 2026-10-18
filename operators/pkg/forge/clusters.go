@@ -214,7 +214,7 @@ func MachineDeploymentSpec(clusterName string, names ClusterResourceNames, versi
 // KubevirtMachineTemplateSpec returns the spec of the KubevirtMachineTemplate resource describing the VM
 // hosting each worker node of the Cluster environment. The worker disk comes from the ClusterFlavor, while
 // the amount of CPU/Memory assigned to each worker node comes from the Environment resources.
-func KubevirtMachineTemplateSpec(namespace string, worker clv1alpha2.WorkerSpec, resources *clv1alpha2.EnvironmentResources) (map[string]interface{}, error) {
+func KubevirtMachineTemplateSpec(namespace string, worker *clv1alpha2.WorkerSpec, resources *clv1alpha2.EnvironmentResources) (map[string]interface{}, error) {
 	disk, err := workerDiskSpec(worker)
 	if err != nil {
 		return nil, err
@@ -272,7 +272,7 @@ type workerDisk struct {
 	dataVolumeTemplate map[string]interface{}
 }
 
-func workerDiskSpec(worker clv1alpha2.WorkerSpec) (workerDisk, error) {
+func workerDiskSpec(worker *clv1alpha2.WorkerSpec) (workerDisk, error) {
 	switch worker.Disk.Type {
 	case clv1alpha2.WorkerDiskContainerDisk:
 		if worker.Disk.Image == "" {

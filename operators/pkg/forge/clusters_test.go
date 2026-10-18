@@ -33,7 +33,7 @@ var _ = Describe("KubeVirt worker machine templates", func() {
 	}
 
 	It("supports a container disk", func() {
-		spec, err := forge.KubevirtMachineTemplateSpec("tenant", clv1alpha2.WorkerSpec{
+		spec, err := forge.KubevirtMachineTemplateSpec("tenant", &clv1alpha2.WorkerSpec{
 			Disk: clv1alpha2.WorkerDiskSpec{
 				Type:  clv1alpha2.WorkerDiskContainerDisk,
 				Image: "registry.example/worker:latest",
@@ -45,7 +45,7 @@ var _ = Describe("KubeVirt worker machine templates", func() {
 	})
 
 	It("supports an existing DataVolume", func() {
-		spec, err := forge.KubevirtMachineTemplateSpec("tenant", clv1alpha2.WorkerSpec{
+		spec, err := forge.KubevirtMachineTemplateSpec("tenant", &clv1alpha2.WorkerSpec{
 			Disk: clv1alpha2.WorkerDiskSpec{
 				Type: clv1alpha2.WorkerDiskDataVolume,
 				Name: "ubuntu-worker",
@@ -61,7 +61,7 @@ var _ = Describe("KubeVirt worker machine templates", func() {
 	})
 
 	It("supports importing a cloud image through CDI", func() {
-		spec, err := forge.KubevirtMachineTemplateSpec("tenant", clv1alpha2.WorkerSpec{
+		spec, err := forge.KubevirtMachineTemplateSpec("tenant", &clv1alpha2.WorkerSpec{
 			Disk: clv1alpha2.WorkerDiskSpec{
 				Type:             clv1alpha2.WorkerDiskCloudImage,
 				URL:              "https://example.org/ubuntu.img",
@@ -81,7 +81,7 @@ var _ = Describe("KubeVirt worker machine templates", func() {
 	})
 
 	It("rejects incomplete disk configurations", func() {
-		_, err := forge.KubevirtMachineTemplateSpec("tenant", clv1alpha2.WorkerSpec{
+		_, err := forge.KubevirtMachineTemplateSpec("tenant", &clv1alpha2.WorkerSpec{
 			Disk: clv1alpha2.WorkerDiskSpec{Type: clv1alpha2.WorkerDiskDataVolume},
 		}, resources)
 		Expect(err).To(MatchError(`workers.disk.name is required for type "dataVolume"`))
