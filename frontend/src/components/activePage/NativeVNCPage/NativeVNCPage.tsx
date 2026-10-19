@@ -1,9 +1,19 @@
-import { type FC, useContext, useRef, useState } from 'react';
+import {
+  type FC,
+  type KeyboardEvent,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useParams } from 'react-router-dom';
 import { VncScreen, type VncScreenHandle } from 'react-vnc';
 import { AuthContext } from '../../../contexts/AuthContext';
 import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 import './NativeVNCPage.css';
+
+// X11 keysym of the V key.
+const XK_v = 0x0076;
 
 const NativeVNCPage: FC = () => {
   const { namespace = '', VMname = '', environment = '' } = useParams();
@@ -26,10 +36,6 @@ const NativeVNCPage: FC = () => {
   const connectedRef = useRef(false);
   const vncRef = useRef<VncScreenHandle>(null);
 
-  // On Chromium, clicking the screen makes noVNC show a mouse capture element, which is a div that covers the entire screen and captures all mouse events. 
-  // This is necessary for noVNC to work properly, but it also means that the VncScreen component loses focus. 
-  // If the user then clicks outside of the VncScreen component, it will lose focus and noVNC will stop capturing mouse events. 
-  // This function checks if the mouse capture element is visible, and if so, it refocuses the VncScreen component.
   // Keep the focus while a capture is in progress (https://github.com/roerohan/react-vnc/issues/5).
   const keepFocusDuringCapture = () => {
     const capture = document.getElementById('noVNC_mouse_capture_elem');
@@ -41,6 +47,11 @@ const NativeVNCPage: FC = () => {
   // Last text synced between the local and the VM clipboard, in either direction, so that
   // a text is never sent back to the side it came from.
   const lastClipboardTextRef = useRef<string | null>(null);
+  // Whether Ctrl+V takes the local clipboard from the browser's paste event, since the
+  // browser cannot read it when the console gets the focus.
+  const pasteFromEventRef = useRef(false);
+  // Physical key of a Ctrl+V waiting for the browser's paste event.
+  const pendingPasteKeyRef = useRef<string | null>(null);
 
   // The VM clipboard changed: copy its text to the local clipboard.
   const copyToLocalClipboard = (e: CustomEvent<{ text: string }>) => {
@@ -51,21 +62,52 @@ const NativeVNCPage: FC = () => {
 
   // The console got the focus: send the local clipboard to the VM, ready to be pasted there.
   const sendLocalClipboard = async () => {
-    if (!connectedRef.current) return;
+    const permission = await navigator.permissions
+      .query({ name: 'clipboard-read' as PermissionName })
+      .catch(() => null);
+    // Not supported by the browser (Firefox, Safari) or denied by the user.
+    pasteFromEventRef.current = !permission || permission.state === 'denied';
+    if (pasteFromEventRef.current || !connectedRef.current) return;
     try {
-      const permission = await navigator.permissions.query({
-        name: 'clipboard-read' as PermissionName,
-      });
-      if (permission.state === 'denied') return;
       const text = await navigator.clipboard.readText();
       if (text && text !== lastClipboardTextRef.current) {
         lastClipboardTextRef.current = text;
         vncRef.current?.clipboardPaste(text);
       }
     } catch {
-      // Permission not supported by the browser, or the page lost the focus meanwhile.
+      // Not allowed by the user, or the page lost the focus meanwhile.
     }
   };
+
+  // Ctrl+V, also with Shift, when the text comes from the paste event: keep the key from
+  // noVNC, which would block it, so that the browser runs its own paste.
+  const letBrowserPaste = (e: KeyboardEvent) => {
+    if (!pasteFromEventRef.current) return;
+    if (!e.ctrlKey || e.altKey || e.key.toLowerCase() !== 'v') return;
+    e.stopPropagation();
+    pendingPasteKeyRef.current = e.code;
+  };
+
+  // The browser ran the paste of a Ctrl+V: send its text to the VM clipboard, then press
+  // V in the VM, where Ctrl (and Shift) are still held down, so that the VM pastes it.
+  // The paste event targets the selection or the body, not the console: hence the
+  // listener on the document.
+  useEffect(() => {
+    const pasteToVM = (e: ClipboardEvent) => {
+      const code = pendingPasteKeyRef.current;
+      if (!code) return;
+      pendingPasteKeyRef.current = null;
+      e.preventDefault();
+      const text = e.clipboardData?.getData('text/plain');
+      if (text && text !== lastClipboardTextRef.current) {
+        lastClipboardTextRef.current = text;
+        vncRef.current?.clipboardPaste(text);
+      }
+      vncRef.current?.sendKey(XK_v, code);
+    };
+    document.addEventListener('paste', pasteToVM);
+    return () => document.removeEventListener('paste', pasteToVM);
+  }, []);
 
 
   if (loading) return <div className="native-vnc-page-status">Loading…</div>;
@@ -85,7 +127,7 @@ const NativeVNCPage: FC = () => {
     );
 
   return (
-    <div onBlur={keepFocusDuringCapture} onFocus={sendLocalClipboard}>
+    <div onBlur={keepFocusDuringCapture} onFocus={sendLocalClipboard} onKeyDownCapture={letBrowserPaste}>
     <VncScreen
       ref={vncRef}
       url={wsUrl}
