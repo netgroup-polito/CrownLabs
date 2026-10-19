@@ -2,17 +2,6 @@
 
 This folder contains the different components that constitute the server-side of the CrownLabs business logic. Specifically, they are either Kubernetes operators or stand-alone components which interact with Kubernetes resources.
 
-## Running tests
-
-Run `make test` from this directory. The target generates the Kubernetes resources,
-runs formatting, linting and vet checks, and executes all Go tests with coverage.
-It installs the required envtest binaries and selects the Kubernetes version through
-`KUBEBUILDER_ASSETS`, even when multiple versions are installed locally.
-
-When running `go test` directly, set `KUBEBUILDER_ASSETS` to the desired envtest binary
-directory. If it is unset, the test helper supports automatic discovery only when
-`bin/k8s` contains exactly one version directory.
-
 ## How to deploy
 
 To simplify the deployment and the configuration of the different components, CrownLabs leverages an [Helm](https://helm.sh/) chart.
