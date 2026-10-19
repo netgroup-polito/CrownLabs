@@ -160,7 +160,7 @@ spec:
   environmentList:
     - name: wl-cluster
       environmentType: Cluster
-      image: k8s-1-26-basic # name of the ClusterFlavor to use
+      image: k8s-1-30-basic # name of the ClusterFlavor to use
       mountMyDriveVolume: false
       guiEnabled: false
       resources:
