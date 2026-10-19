@@ -23,6 +23,8 @@ kubectl exec keycloak-0 -- cat /tmp/export/crownlabs-realm.json > /tmp/crownlabs
 rm /tmp/crownlabs-realm.json
 ```
 
+Now, the `manifests/crownlabs-realm-configmap.yaml` file should be updated with the new realm export.
+
 > **Note**: `kc.sh export` exits with an error (`Address already in use` on port 9000).
 > This happens because the export process tries to start the management interface on the same port the running main server already uses.
 > **The error is harmless, and happens after the data export has already completed.**
