@@ -133,11 +133,9 @@ function App() {
         {
           route: {
             name: 'Native VNC',
-            path: '/instance/:namespace/:VMname/:environment/vnc',
+            path: '/vnc/:instanceId/:environment',
           },
-          content: (
-            <NativeVNCPage key="/instance/:namespace/:VMname/:environment/vnc" />
-          ),
+          content: <NativeVNCPage key="/vnc/:instanceId/:environment" />,
           linkPosition: LinkPosition.Hidden,
         },
       ]}

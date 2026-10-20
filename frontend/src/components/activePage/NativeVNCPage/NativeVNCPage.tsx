@@ -9,28 +9,24 @@ import {
 import { useParams } from 'react-router-dom';
 import { VncScreen, type VncScreenHandle } from 'react-vnc';
 import { AuthContext } from '../../../contexts/AuthContext';
-import { OwnedInstancesContext } from '../../../contexts/OwnedInstancesContext';
 import './NativeVNCPage.css';
 
 // X11 keysym of the V key.
 const XK_v = 0x0076;
+// Formats of a Kubernetes UID and of an environment name.
+const UID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const ENV_RE = /^[a-z0-9]([-a-z0-9]*[a-z0-9])?$/;
 
 const NativeVNCPage: FC = () => {
-  const { namespace = '', VMname = '', environment = '' } = useParams();
-  const { instances, loading } = useContext(OwnedInstancesContext);
+  const { instanceId = '', environment = '' } = useParams();
   const { token } = useContext(AuthContext);
 
-  const instance = instances.find(
-    i => i.name === VMname && i.tenantNamespace === namespace,
-  );
-
-  const wsUrl = (() => {
-    if (!instance?.url) return undefined;
-    const baseUrl = instance.url.endsWith('/')
-      ? instance.url.slice(0, -1)
-      : instance.url;
-    return `${baseUrl}/${environment}/`.replace(/^https/, 'wss');
-  })();
+  // The link picks only the instance and its environment. The host is always the page's
+  // own, so the token sent with the connection never leaves CrownLabs.
+  const wsUrl =
+    UID_RE.test(instanceId) && ENV_RE.test(environment)
+      ? `wss://${window.location.host}/instance/${instanceId}/${environment}/`
+      : undefined;
 
   const [connectionFailed, setConnectionFailed] = useState(false);
   const connectedRef = useRef(false);
@@ -108,9 +104,6 @@ const NativeVNCPage: FC = () => {
     document.addEventListener('paste', pasteToVM);
     return () => document.removeEventListener('paste', pasteToVM);
   }, []);
-
-
-  if (loading) return <div className="native-vnc-page-status">Loading…</div>;
 
   if (!wsUrl || !token)
     return (

@@ -98,6 +98,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     (environmentType === EnvironmentType.Container && !gui);
   // TODO: remove this button when native VNC migration is complete
   const nativeVncEnv = environments?.find(env => !env.guiEnabled);
+  // The instance UID, the last segment of its URL (https://<host>/instance/<uid>/).
+  const instanceUid = url?.match(/\/instance\/([^/]+)\/?$/)?.[1];
   const font22px = { fontSize: '22px' };
 
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
@@ -205,12 +207,12 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           }
         />
       </Tooltip>
-      {nativeVncEnv && (
+      {nativeVncEnv && instanceUid && (
         <Tooltip placement="top" title="Test native VNC (provisional)">
           <Button
             onClick={() =>
               window.open(
-                `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`,
+                `${BASE_URL}vnc/${instanceUid}/${nativeVncEnv.name}`,
                 '_blank',
               )
             }
