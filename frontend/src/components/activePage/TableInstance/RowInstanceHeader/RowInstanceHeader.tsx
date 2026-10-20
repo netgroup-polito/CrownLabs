@@ -1,6 +1,7 @@
 import { type FC, useCallback, useMemo, useState } from 'react';
 import { Checkbox, Typography } from 'antd';
 import { WorkspaceRole } from '../../../../utils';
+import './RowInstanceHeader.css';
 import {
   CaretDownOutlined,
   CaretUpOutlined,
@@ -138,16 +139,16 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
             <Text strong>Status</Text>
           </div>
           {viewMode === WorkspaceRole.manager ? (
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center w-100percent">
               <div
-                className="flex items-center justify-start sm:w-36 cursor-pointer"
+                className="flex items-center justify-start w-100percent md:w-1/4 cursor-pointer"
                 onClick={() => selectOrder('tenantId')}
               >
                 <Text strong>ID</Text>
                 {getArrow(tenantIdOrder, true)}
               </div>
               <div
-                className="flex items-center justify-start w-36 2xl:w-44 hidden md:block cursor-pointer "
+                className="flex items-center justify-start w-1/4 2xl:w-44 hidden md:block cursor-pointer "
                 onClick={() => selectOrder('tenantDisplayName')}
               >
                 <Text strong ellipsis>
@@ -156,13 +157,31 @@ const RowInstanceHeader: FC<IRowInstanceHeaderProps> = ({ ...props }) => {
                 {getArrow(tenantDisplayNameOrder, true)}
               </div>
               <div
-                className="flex items-center justify-start hidden lg:block cursor-pointer"
+                className="flex items-center justify-start w-1/4 hidden lg:block cursor-pointer"
                 onClick={() => selectOrder('prettyName')}
               >
                 <Text ellipsis strong>
                   Instance Name
                 </Text>
                 {getArrow(prettyNameOrder, true)}
+              </div>
+              <div
+                className="flex items-center justify-start w-1/4 2xl:w-44 hidden md:block cursor-pointer "
+                onClick={() => selectOrder('tenantDisplayName')}
+              >
+                <Text strong ellipsis>
+                  Workspace
+                </Text>
+                {getArrow(tenantDisplayNameOrder, true)}
+              </div>
+              <div
+                className="flex items-center justify-start w-1/4 2xl:w-44 hidden md:block cursor-pointer "
+                onClick={() => selectOrder('tenantDisplayName')}
+              >
+                <Text strong ellipsis>
+                  Template
+                </Text>
+                {getArrow(tenantDisplayNameOrder, true)}
               </div>
             </div>
           ) : (
