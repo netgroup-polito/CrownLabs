@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -405,6 +406,15 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
+
+	// Cluster API is optional: watch Clusters (to refresh the phase of Cluster environments) only if its CRDs are installed.
+	if _, err := mgr.GetRESTMapper().RESTMapping(forge.GVKCluster.GroupKind(), forge.GVKCluster.Version); err == nil {
+		cluster := &unstructured.Unstructured{}
+		cluster.SetGroupVersionKind(forge.GVKCluster)
+		bld = bld.Owns(cluster)
+	} else {
+		mgr.GetLogger().Info("Cluster API Cluster CRD not found, Cluster environments will not be watched", "error", err.Error())
+	}
 
 	if r.ExpositionConfig.GatewayAPIMode {
 		bld = bld.Owns(&gatewayv1.HTTPRoute{})

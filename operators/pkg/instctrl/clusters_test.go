@@ -193,3 +193,67 @@ func TestClusterSpecToUnstructuredErrors(t *testing.T) {
 		}
 	}
 }
+
+func TestRetrievePhaseFromCluster(t *testing.T) {
+	cluster := func(status map[string]interface{}) *unstructured.Unstructured {
+		return &unstructured.Unstructured{Object: map[string]interface{}{"status": status}}
+	}
+	tests := []struct {
+		name   string
+		status map[string]interface{}
+		want   clv1alpha2.EnvironmentPhase
+	}{
+		{"no status", map[string]interface{}{}, clv1alpha2.EnvironmentPhaseImporting},
+		{"provisioning", map[string]interface{}{"phase": "Provisioning"}, clv1alpha2.EnvironmentPhaseImporting},
+		{"failed", map[string]interface{}{"phase": "Failed"}, clv1alpha2.EnvironmentPhaseFailed},
+		{"provisioned, not initialized", map[string]interface{}{"phase": "Provisioned"}, clv1alpha2.EnvironmentPhaseRunning},
+		{"provisioned, only control plane", map[string]interface{}{
+			"phase":          "Provisioned",
+			"initialization": map[string]interface{}{"controlPlaneInitialized": true},
+		}, clv1alpha2.EnvironmentPhaseRunning},
+		{"workers not available", map[string]interface{}{
+			"phase": "Provisioned",
+			"initialization": map[string]interface{}{
+				"controlPlaneInitialized": true, "infrastructureProvisioned": true,
+			},
+			"workers": map[string]interface{}{"desiredReplicas": int64(1), "availableReplicas": int64(0)},
+		}, clv1alpha2.EnvironmentPhaseRunning},
+		{"provisioned and initialized", map[string]interface{}{
+			"phase": "Provisioned",
+			"initialization": map[string]interface{}{
+				"controlPlaneInitialized": true, "infrastructureProvisioned": true,
+			},
+			"workers": map[string]interface{}{"desiredReplicas": int64(1), "availableReplicas": int64(1)},
+		}, clv1alpha2.EnvironmentPhaseReady},
+	}
+	r := &InstanceReconciler{}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := r.RetrievePhaseFromCluster(cluster(tt.status)); got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMergeSpecPreservesProviderFields(t *testing.T) {
+	existing := map[string]interface{}{
+		"controlPlaneEndpoint": map[string]interface{}{"host": "10.0.0.1", "port": int64(6443)},
+		"clusterNetwork":       map[string]interface{}{"pods": map[string]interface{}{"cidrBlocks": []interface{}{"old"}}},
+	}
+	desired := map[string]interface{}{
+		"clusterNetwork":  map[string]interface{}{"pods": map[string]interface{}{"cidrBlocks": []interface{}{"new"}}},
+		"controlPlaneRef": map[string]interface{}{"name": "cp"},
+	}
+	want := map[string]interface{}{
+		"controlPlaneEndpoint": map[string]interface{}{"host": "10.0.0.1", "port": int64(6443)},
+		"clusterNetwork":       map[string]interface{}{"pods": map[string]interface{}{"cidrBlocks": []interface{}{"new"}}},
+		"controlPlaneRef":      map[string]interface{}{"name": "cp"},
+	}
+	if got := mergeSpec(existing, desired); !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %#v, want %#v", got, want)
+	}
+	if got := mergeSpec(nil, desired); !reflect.DeepEqual(got, desired) {
+		t.Fatalf("nil existing: got %#v, want %#v", got, desired)
+	}
+}
