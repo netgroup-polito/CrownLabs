@@ -17,9 +17,19 @@ package forge
 import (
 	"fmt"
 
+	kamajicpv1alpha1 "github.com/clastix/cluster-api-control-plane-provider-kamaji/api/v1alpha1"
+	kamajiv1alpha1 "github.com/clastix/kamaji/api/v1alpha1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/utils/ptr"
+	virtv1 "kubevirt.io/api/core/v1"
+	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
+	helmv1alpha1 "sigs.k8s.io/cluster-api-addon-provider-helm/api/v1alpha1"
+	infrav1alpha1 "sigs.k8s.io/cluster-api-provider-kubevirt/api/v1alpha1"
+	kubeadmv1beta2 "sigs.k8s.io/cluster-api/api/bootstrap/kubeadm/v1beta2"
+	clusterv1beta2 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 )
@@ -48,19 +58,19 @@ const (
 // Group/Version/Kind of the Cluster API (and related providers) resources composing a CrownLabs Cluster environment.
 var (
 	// GVKCluster is the GVK of the Cluster API Cluster resource.
-	GVKCluster = schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta2", Kind: "Cluster"}
+	GVKCluster = clusterv1beta2.GroupVersion.WithKind("Cluster")
 	// GVKKubevirtCluster is the GVK of the KubeVirt infrastructure provider Cluster resource.
-	GVKKubevirtCluster = schema.GroupVersionKind{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1", Kind: "KubevirtCluster"}
+	GVKKubevirtCluster = infrav1alpha1.GroupVersion.WithKind("KubevirtCluster")
 	// GVKKamajiControlPlane is the GVK of the Kamaji control plane provider resource.
-	GVKKamajiControlPlane = schema.GroupVersionKind{Group: "controlplane.cluster.x-k8s.io", Version: "v1alpha1", Kind: "KamajiControlPlane"}
+	GVKKamajiControlPlane = kamajicpv1alpha1.GroupVersion.WithKind("KamajiControlPlane")
 	// GVKMachineDeployment is the GVK of the Cluster API MachineDeployment resource.
-	GVKMachineDeployment = schema.GroupVersionKind{Group: "cluster.x-k8s.io", Version: "v1beta2", Kind: "MachineDeployment"}
+	GVKMachineDeployment = clusterv1beta2.GroupVersion.WithKind("MachineDeployment")
 	// GVKKubevirtMachineTemplate is the GVK of the KubeVirt infrastructure provider machine template resource.
-	GVKKubevirtMachineTemplate = schema.GroupVersionKind{Group: "infrastructure.cluster.x-k8s.io", Version: "v1alpha1", Kind: "KubevirtMachineTemplate"}
+	GVKKubevirtMachineTemplate = infrav1alpha1.GroupVersion.WithKind("KubevirtMachineTemplate")
 	// GVKKubeadmConfigTemplate is the GVK of the kubeadm bootstrap provider config template resource.
-	GVKKubeadmConfigTemplate = schema.GroupVersionKind{Group: "bootstrap.cluster.x-k8s.io", Version: "v1beta2", Kind: "KubeadmConfigTemplate"}
+	GVKKubeadmConfigTemplate = kubeadmv1beta2.GroupVersion.WithKind("KubeadmConfigTemplate")
 	// GVKHelmChartProxy is the GVK of the Cluster API Add-on Provider for Helm chart proxy resource.
-	GVKHelmChartProxy = schema.GroupVersionKind{Group: "addons.cluster.x-k8s.io", Version: "v1alpha1", Kind: "HelmChartProxy"}
+	GVKHelmChartProxy = helmv1alpha1.GroupVersion.WithKind("HelmChartProxy")
 )
 
 // ClusterResourceNames contains the names of the Cluster API resources composing a CrownLabs Cluster environment.
@@ -107,25 +117,21 @@ func NewClusterAPIObject(gvk schema.GroupVersionKind, name, namespace string) *u
 }
 
 // ClusterSpec returns the spec of the Cluster resource representing a CrownLabs Cluster environment.
-func ClusterSpec(names ClusterResourceNames) map[string]interface{} {
-	return map[string]interface{}{
-		"controlPlaneRef": map[string]interface{}{
-			"apiGroup": GVKKamajiControlPlane.Group,
-			"kind":     GVKKamajiControlPlane.Kind,
-			"name":     names.ControlPlane,
+func ClusterSpec(names ClusterResourceNames) *clusterv1beta2.ClusterSpec {
+	return &clusterv1beta2.ClusterSpec{
+		ControlPlaneRef: clusterv1beta2.ContractVersionedObjectReference{
+			APIGroup: GVKKamajiControlPlane.Group,
+			Kind:     GVKKamajiControlPlane.Kind,
+			Name:     names.ControlPlane,
 		},
-		"infrastructureRef": map[string]interface{}{
-			"apiGroup": GVKKubevirtCluster.Group,
-			"kind":     GVKKubevirtCluster.Kind,
-			"name":     names.Infrastructure,
+		InfrastructureRef: clusterv1beta2.ContractVersionedObjectReference{
+			APIGroup: GVKKubevirtCluster.Group,
+			Kind:     GVKKubevirtCluster.Kind,
+			Name:     names.Infrastructure,
 		},
-		"clusterNetwork": map[string]interface{}{
-			"services": map[string]interface{}{
-				"cidrBlocks": []interface{}{ClusterServiceCIDR},
-			},
-			"pods": map[string]interface{}{
-				"cidrBlocks": []interface{}{ClusterPodCIDR},
-			},
+		ClusterNetwork: clusterv1beta2.ClusterNetwork{
+			Services: clusterv1beta2.NetworkRanges{CIDRBlocks: []string{ClusterServiceCIDR}},
+			Pods:     clusterv1beta2.NetworkRanges{CIDRBlocks: []string{ClusterPodCIDR}},
 		},
 	}
 }
@@ -136,43 +142,40 @@ func KubevirtClusterAnnotations() map[string]string {
 	return map[string]string{ClusterKamajiManagedByAnnotation: ClusterKamajiManagedByValue}
 }
 
-// componentResourcesSpec returns the resources.limits stanza for a Kamaji control plane component.
-func componentResourcesSpec(res *clv1alpha2.ComponentResources) map[string]interface{} {
-	return map[string]interface{}{
-		"resources": map[string]interface{}{
-			"limits": map[string]interface{}{
-				"cpu":    res.CPU.String(),
-				"memory": res.Memory.String(),
-			},
+// componentResourcesSpec returns the resource limits for a Kamaji control plane component.
+func componentResourcesSpec(res *clv1alpha2.ComponentResources) corev1.ResourceRequirements {
+	return corev1.ResourceRequirements{
+		Limits: corev1.ResourceList{
+			corev1.ResourceCPU:    res.CPU.DeepCopy(),
+			corev1.ResourceMemory: res.Memory.DeepCopy(),
 		},
 	}
 }
 
 // KamajiControlPlaneSpec returns the spec of the KamajiControlPlane resource, forged from the ClusterFlavor
 // referenced by the Cluster environment.
-func KamajiControlPlaneSpec(flavor *clv1alpha2.ClusterFlavor) map[string]interface{} {
+func KamajiControlPlaneSpec(flavor *clv1alpha2.ClusterFlavor) *kamajicpv1alpha1.KamajiControlPlaneSpec {
 	controlPlane := flavor.Spec.ControlPlane
-	return map[string]interface{}{
-		"replicas":        int64(controlPlane.Replicas),
-		"version":         flavor.Spec.Version,
-		"dataStoreName":   controlPlane.DataStoreName,
-		"dataStoreSchema": ClusterKamajiDataStoreSchema,
-		"network": map[string]interface{}{
-			"serviceType": "ClusterIP",
-		},
-		"apiServer":         componentResourcesSpec(&controlPlane.APIServerResources),
-		"scheduler":         componentResourcesSpec(&controlPlane.SchedulerResources),
-		"controllerManager": componentResourcesSpec(&controlPlane.ControllerManagerResources),
-		"addons": map[string]interface{}{
-			"coreDNS":   map[string]interface{}{},
-			"kubeProxy": map[string]interface{}{},
-			"konnectivity": map[string]interface{}{
-				"server": map[string]interface{}{
-					"port": 8132,
-					"resources": map[string]interface{}{
-						"limits": map[string]interface{}{
-							"cpu":    controlPlane.KonnectivityResources.CPU.String(),
-							"memory": controlPlane.KonnectivityResources.Memory.String(),
+	return &kamajicpv1alpha1.KamajiControlPlaneSpec{
+		Replicas: ptr.To(controlPlane.Replicas),
+		Version:  flavor.Spec.Version,
+		KamajiControlPlaneFields: kamajicpv1alpha1.KamajiControlPlaneFields{
+			DataStoreName:   controlPlane.DataStoreName,
+			DataStoreSchema: ClusterKamajiDataStoreSchema,
+			Network: kamajicpv1alpha1.NetworkComponent{
+				ServiceType: "ClusterIP",
+			},
+			ApiServer:         kamajicpv1alpha1.ControlPlaneComponent{Resources: componentResourcesSpec(&controlPlane.APIServerResources)},
+			Scheduler:         kamajicpv1alpha1.ControlPlaneComponent{Resources: componentResourcesSpec(&controlPlane.SchedulerResources)},
+			ControllerManager: kamajicpv1alpha1.ControlPlaneComponent{Resources: componentResourcesSpec(&controlPlane.ControllerManagerResources)},
+			Addons: kamajicpv1alpha1.AddonsSpec{
+				CoreDNS: &kamajicpv1alpha1.CoreDNSAddonSpec{},
+				AddonsSpec: kamajiv1alpha1.AddonsSpec{
+					KubeProxy: &kamajiv1alpha1.AddonSpec{},
+					Konnectivity: &kamajiv1alpha1.KonnectivitySpec{
+						KonnectivityServerSpec: kamajiv1alpha1.KonnectivityServerSpec{
+							Port:      8132,
+							Resources: ptr.To(componentResourcesSpec(&controlPlane.KonnectivityResources)),
 						},
 					},
 				},
@@ -183,27 +186,25 @@ func KamajiControlPlaneSpec(flavor *clv1alpha2.ClusterFlavor) map[string]interfa
 
 // MachineDeploymentSpec returns the spec of the MachineDeployment resource hosting the worker nodes of the
 // Cluster environment.
-func MachineDeploymentSpec(clusterName string, names ClusterResourceNames, version string, workersCount int) map[string]interface{} {
-	return map[string]interface{}{
-		"clusterName": clusterName,
-		"replicas":    int64(workersCount),
-		"selector": map[string]interface{}{
-			"matchLabels": map[string]interface{}{},
-		},
-		"template": map[string]interface{}{
-			"spec": map[string]interface{}{
-				"clusterName": clusterName,
-				"version":     version,
-				"infrastructureRef": map[string]interface{}{
-					"apiGroup": GVKKubevirtMachineTemplate.Group,
-					"kind":     GVKKubevirtMachineTemplate.Kind,
-					"name":     names.MachineDeployment,
+func MachineDeploymentSpec(clusterName string, names ClusterResourceNames, version string, workersCount int) *clusterv1beta2.MachineDeploymentSpec {
+	return &clusterv1beta2.MachineDeploymentSpec{
+		ClusterName: clusterName,
+		Replicas:    ptr.To(int32(workersCount)), //nolint:gosec // The Environment CRD limits workersCount to 1..10.
+		Selector:    metav1.LabelSelector{MatchLabels: map[string]string{}},
+		Template: clusterv1beta2.MachineTemplateSpec{
+			Spec: clusterv1beta2.MachineSpec{
+				ClusterName: clusterName,
+				Version:     version,
+				InfrastructureRef: clusterv1beta2.ContractVersionedObjectReference{
+					APIGroup: GVKKubevirtMachineTemplate.Group,
+					Kind:     GVKKubevirtMachineTemplate.Kind,
+					Name:     names.MachineDeployment,
 				},
-				"bootstrap": map[string]interface{}{
-					"configRef": map[string]interface{}{
-						"apiGroup": GVKKubeadmConfigTemplate.Group,
-						"kind":     GVKKubeadmConfigTemplate.Kind,
-						"name":     names.MachineDeployment,
+				Bootstrap: clusterv1beta2.Bootstrap{
+					ConfigRef: clusterv1beta2.ContractVersionedObjectReference{
+						APIGroup: GVKKubeadmConfigTemplate.Group,
+						Kind:     GVKKubeadmConfigTemplate.Kind,
+						Name:     names.MachineDeployment,
 					},
 				},
 			},
@@ -214,53 +215,40 @@ func MachineDeploymentSpec(clusterName string, names ClusterResourceNames, versi
 // KubevirtMachineTemplateSpec returns the spec of the KubevirtMachineTemplate resource describing the VM
 // hosting each worker node of the Cluster environment. The worker disk comes from the ClusterFlavor, while
 // the amount of CPU/Memory assigned to each worker node comes from the Environment resources.
-func KubevirtMachineTemplateSpec(namespace string, worker *clv1alpha2.WorkerSpec, resources *clv1alpha2.EnvironmentResources) (map[string]interface{}, error) {
-	disk, err := workerDiskSpec(worker)
+func KubevirtMachineTemplateSpec(namespace string, worker *clv1alpha2.WorkerSpec, resources *clv1alpha2.EnvironmentResources) (*infrav1alpha1.KubevirtMachineTemplateSpec, error) {
+	disk, err := workerDiskSpec(&worker.Disk)
 	if err != nil {
 		return nil, err
 	}
 
-	virtualMachineSpec := map[string]interface{}{
-		"runStrategy": "Always",
-		"template": map[string]interface{}{
-			"spec": map[string]interface{}{
-				"domain": map[string]interface{}{
-					"cpu": map[string]interface{}{
-						"cores": resources.CPU,
-					},
-					"memory": map[string]interface{}{
-						"guest": resources.Memory.String(),
-					},
-					"devices": map[string]interface{}{
-						"disks": []interface{}{
-							map[string]interface{}{
-								"name": ClusterContainerVolumeName,
-								"disk": map[string]interface{}{
-									"bus": ClusterVirtioBus,
+	return &infrav1alpha1.KubevirtMachineTemplateSpec{
+		Template: infrav1alpha1.KubevirtMachineTemplateResource{
+			Spec: infrav1alpha1.KubevirtMachineSpec{
+				BootstrapCheckSpec: infrav1alpha1.VirtualMachineBootstrapCheckSpec{CheckStrategy: "ssh"},
+				VirtualMachineTemplate: infrav1alpha1.VirtualMachineTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Namespace: namespace},
+					Spec: virtv1.VirtualMachineSpec{
+						RunStrategy:         ptr.To(virtv1.RunStrategyAlways),
+						DataVolumeTemplates: disk.dataVolumeTemplates,
+						Template: &virtv1.VirtualMachineInstanceTemplateSpec{
+							Spec: virtv1.VirtualMachineInstanceSpec{
+								Domain: virtv1.DomainSpec{
+									CPU:    &virtv1.CPU{Cores: Int64ToUint32(resources.CPU)},
+									Memory: &virtv1.Memory{Guest: ptr.To(resources.Memory.DeepCopy())},
+									Devices: virtv1.Devices{
+										Disks: []virtv1.Disk{{
+											Name:       ClusterContainerVolumeName,
+											DiskDevice: virtv1.DiskDevice{Disk: &virtv1.DiskTarget{Bus: ClusterVirtioBus}},
+										}},
+									},
 								},
+								Volumes: []virtv1.Volume{{
+									Name:         ClusterContainerVolumeName,
+									VolumeSource: disk.volumeSource,
+								}},
 							},
 						},
 					},
-				},
-				"volumes": []interface{}{disk.volume},
-			},
-		},
-	}
-	if disk.dataVolumeTemplate != nil {
-		virtualMachineSpec["dataVolumeTemplates"] = []interface{}{disk.dataVolumeTemplate}
-	}
-
-	return map[string]interface{}{
-		"template": map[string]interface{}{
-			"spec": map[string]interface{}{
-				"virtualMachineBootstrapCheck": map[string]interface{}{
-					"checkStrategy": "ssh",
-				},
-				"virtualMachineTemplate": map[string]interface{}{
-					"metadata": map[string]interface{}{
-						"namespace": namespace,
-					},
-					"spec": virtualMachineSpec,
 				},
 			},
 		},
@@ -268,67 +256,66 @@ func KubevirtMachineTemplateSpec(namespace string, worker *clv1alpha2.WorkerSpec
 }
 
 type workerDisk struct {
-	volume             map[string]interface{}
-	dataVolumeTemplate map[string]interface{}
+	volumeSource        virtv1.VolumeSource
+	dataVolumeTemplates []virtv1.DataVolumeTemplateSpec
 }
 
-func workerDiskSpec(worker *clv1alpha2.WorkerSpec) (workerDisk, error) {
-	switch worker.Disk.Type {
+func workerDiskSpec(disk *clv1alpha2.WorkerDiskSpec) (workerDisk, error) {
+	switch disk.Type {
 	case clv1alpha2.WorkerDiskContainerDisk:
-		if worker.Disk.Image == "" {
-			return workerDisk{}, fmt.Errorf("workers.disk.image is required for type %q", worker.Disk.Type)
+		if disk.Image == "" {
+			return workerDisk{}, fmt.Errorf("workers.disk.image is required for type %q", disk.Type)
 		}
-		return workerDisk{volume: map[string]interface{}{
-			"name":          ClusterContainerVolumeName,
-			"containerDisk": map[string]interface{}{"image": worker.Disk.Image},
+		return workerDisk{volumeSource: virtv1.VolumeSource{
+			ContainerDisk: &virtv1.ContainerDiskSource{Image: disk.Image},
 		}}, nil
 	case clv1alpha2.WorkerDiskDataVolume:
-		if worker.Disk.Name == "" {
-			return workerDisk{}, fmt.Errorf("workers.disk.name is required for type %q", worker.Disk.Type)
+		if disk.Name == "" {
+			return workerDisk{}, fmt.Errorf("workers.disk.name is required for type %q", disk.Type)
 		}
-		return workerDisk{volume: map[string]interface{}{
-			"name":       ClusterContainerVolumeName,
-			"dataVolume": map[string]interface{}{"name": worker.Disk.Name},
+		return workerDisk{volumeSource: virtv1.VolumeSource{
+			DataVolume: &virtv1.DataVolumeSource{Name: disk.Name},
 		}}, nil
 	case clv1alpha2.WorkerDiskCloudImage:
-		if worker.Disk.URL == "" || worker.Disk.StorageClassName == "" || worker.Disk.StorageSize.Sign() <= 0 {
-			return workerDisk{}, fmt.Errorf("workers.disk.url, workers.disk.storageClassName and workers.disk.storageSize are required for type %q", worker.Disk.Type)
+		if disk.URL == "" || disk.StorageClassName == "" || disk.StorageSize.Sign() <= 0 {
+			return workerDisk{}, fmt.Errorf("workers.disk.url, workers.disk.storageClassName and workers.disk.storageSize are required for type %q", disk.Type)
 		}
 		const dataVolumeName = "workervolume"
 		return workerDisk{
-			volume: map[string]interface{}{
-				"name":       ClusterContainerVolumeName,
-				"dataVolume": map[string]interface{}{"name": dataVolumeName},
+			volumeSource: virtv1.VolumeSource{
+				DataVolume: &virtv1.DataVolumeSource{Name: dataVolumeName},
 			},
-			dataVolumeTemplate: map[string]interface{}{
-				"metadata": map[string]interface{}{"name": dataVolumeName},
-				"spec": map[string]interface{}{
-					"source": map[string]interface{}{"http": map[string]interface{}{"url": worker.Disk.URL}},
-					"storage": map[string]interface{}{
-						"storageClassName": worker.Disk.StorageClassName,
-						"volumeMode":       "Block",
-						"accessModes":      []interface{}{"ReadWriteOnce"},
-						"resources": map[string]interface{}{
-							"requests": map[string]interface{}{"storage": worker.Disk.StorageSize.String()},
+			dataVolumeTemplates: []virtv1.DataVolumeTemplateSpec{{
+				ObjectMeta: metav1.ObjectMeta{Name: dataVolumeName},
+				Spec: cdiv1beta1.DataVolumeSpec{
+					Source: &cdiv1beta1.DataVolumeSource{
+						HTTP: &cdiv1beta1.DataVolumeSourceHTTP{URL: disk.URL},
+					},
+					Storage: &cdiv1beta1.StorageSpec{
+						StorageClassName: ptr.To(disk.StorageClassName),
+						VolumeMode:       ptr.To(corev1.PersistentVolumeBlock),
+						AccessModes:      []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
+						Resources: corev1.VolumeResourceRequirements{
+							Requests: corev1.ResourceList{corev1.ResourceStorage: disk.StorageSize},
 						},
 					},
 				},
-			},
+			}},
 		}, nil
 	default:
-		return workerDisk{}, fmt.Errorf("unsupported workers.disk.type %q", worker.Disk.Type)
+		return workerDisk{}, fmt.Errorf("unsupported workers.disk.type %q", disk.Type)
 	}
 }
 
 // KubeadmConfigTemplateSpec returns the spec of the KubeadmConfigTemplate resource used to join the worker
 // nodes of the Cluster environment.
-func KubeadmConfigTemplateSpec() map[string]interface{} {
-	return map[string]interface{}{
-		"template": map[string]interface{}{
-			"spec": map[string]interface{}{
-				"joinConfiguration": map[string]interface{}{
-					"nodeRegistration": map[string]interface{}{
-						"criSocket": ClusterCRISocket,
+func KubeadmConfigTemplateSpec() *kubeadmv1beta2.KubeadmConfigTemplateSpec {
+	return &kubeadmv1beta2.KubeadmConfigTemplateSpec{
+		Template: kubeadmv1beta2.KubeadmConfigTemplateResource{
+			Spec: kubeadmv1beta2.KubeadmConfigSpec{
+				JoinConfiguration: kubeadmv1beta2.JoinConfiguration{
+					NodeRegistration: kubeadmv1beta2.NodeRegistrationOptions{
+						CRISocket: ClusterCRISocket,
 					},
 				},
 			},
@@ -344,24 +331,19 @@ func HelmChartProxyName(names ClusterResourceNames, addon *clv1alpha2.AddonSpec)
 
 // HelmChartProxySpec returns the spec of the HelmChartProxy resource installing the given addon only on the
 // workload cluster identified by selectorLabels.
-func HelmChartProxySpec(addon *clv1alpha2.AddonSpec, selectorLabels map[string]string) map[string]interface{} {
-	matchLabels := make(map[string]interface{}, len(selectorLabels))
+func HelmChartProxySpec(addon *clv1alpha2.AddonSpec, selectorLabels map[string]string) *helmv1alpha1.HelmChartProxySpec {
+	matchLabels := make(map[string]string, len(selectorLabels))
 	for k, v := range selectorLabels {
 		matchLabels[k] = v
 	}
 
-	spec := map[string]interface{}{
-		"clusterSelector": map[string]interface{}{
-			"matchLabels": matchLabels,
-		},
-		"releaseName": addon.Name,
-		"repoURL":     addon.RepoURL,
-		"chartName":   addon.ChartName,
-		"version":     addon.Version,
-		"namespace":   addon.Namespace,
+	return &helmv1alpha1.HelmChartProxySpec{
+		ClusterSelector:  metav1.LabelSelector{MatchLabels: matchLabels},
+		ReleaseName:      addon.Name,
+		RepoURL:          addon.RepoURL,
+		ChartName:        addon.ChartName,
+		Version:          addon.Version,
+		ReleaseNamespace: addon.Namespace,
+		ValuesTemplate:   addon.ValuesTemplate,
 	}
-	if addon.ValuesTemplate != "" {
-		spec["valuesTemplate"] = addon.ValuesTemplate
-	}
-	return spec
 }

@@ -89,7 +89,7 @@ var _ = Describe("Exposition helpers", func() {
 		reconciler.EventsRecorder = record.NewFakeRecorder(1024)
 
 		// Default fake client for tests; individual tests may override with WithObjects.
-		reconciler.Client = FakeClientWrapped{Client: clientBuilder.Build(), serviceClusterIP: clusterIP}
+		reconciler.Client = FakeClientWrapped{Client: fake.NewClientBuilder().WithScheme(scheme.Scheme).Build(), serviceClusterIP: clusterIP}
 	})
 
 	JustBeforeEach(func() {

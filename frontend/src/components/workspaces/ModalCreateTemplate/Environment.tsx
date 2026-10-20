@@ -702,7 +702,7 @@ export const Environment: FC<EnvironmentProps> = ({
           theme={{
             components: {
               Cascader: {
-                dropdownHeight: 'auto',
+                dropdownHeight: 'min(320px, 40vh)',
               },
             },
           }}
@@ -949,15 +949,36 @@ export const Environment: FC<EnvironmentProps> = ({
         <Form.Item
           {...restField}
           name={[name, 'disk']}
+          dependencies={[['environments', name, 'persistent']]}
           rules={[
             {
               validator: async (_, value: number | null | undefined) => {
-                if (currentEnvironmentType !== EnvironmentType.LocalVm) return;
-                if (localVmMinimumDisk > resources.disk.max) {
+                if (
+                  form.getFieldValue(['environments', name, 'persistent']) &&
+                  resources.disk.max === 0
+                ) {
                   throw new Error(
-                    `The selected image requires at least ${localVmMinimumDisk} GiB, but the maximum available disk is ${resources.disk.max} GiB.`,
+                    'Persistent environments require a workspace disk quota.',
                   );
                 }
+                if (
+                  currentEnvironmentType === EnvironmentType.LocalVm &&
+                  localVmMinimumDisk > resources.disk.max
+                ) {
+                  throw new Error(
+                    `The selected image requires at least ${localVmMinimumDisk} GiB, but the maximum disk size is ${resources.disk.max} GiB.`,
+                  );
+                }
+                if (
+                  value !== null &&
+                  value !== undefined &&
+                  value > resources.disk.max
+                ) {
+                  throw new Error(
+                    `Disk cannot exceed the maximum of ${resources.disk.max} GiB.`,
+                  );
+                }
+                if (currentEnvironmentType !== EnvironmentType.LocalVm) return;
                 if ((value ?? 0) < localVmMinimumDisk) {
                   throw new Error(
                     `Disk must be at least ${localVmMinimumDisk} GiB for the selected image.`,
@@ -971,10 +992,15 @@ export const Environment: FC<EnvironmentProps> = ({
               Disk{' '}
               <Tooltip
                 title={
-                  currentEnvironmentType === EnvironmentType.LocalVm &&
-                  selectedImageMinimumDisk !== undefined
-                    ? `The selected image requires a disk of at least ${localVmMinimumDisk} GiB.`
-                    : 'Amount of disk space allocated to the environment, if persistent'
+                  <div>
+                    <div>
+                      {currentEnvironmentType === EnvironmentType.LocalVm &&
+                      selectedImageMinimumDisk !== undefined
+                        ? `The selected image requires a disk of at least ${localVmMinimumDisk} GiB.`
+                        : 'Amount of disk space allocated to the environment, if persistent.'}
+                    </div>
+                    <div>Maximum disk size: {resources.disk.max} GiB.</div>
+                  </div>
                 }
               >
                 <InfoCircleOutlined className="ml-1" />
@@ -988,7 +1014,6 @@ export const Environment: FC<EnvironmentProps> = ({
             style={{ width: '120px', textAlignLast: 'center' }}
             addonAfter="GiB"
             disabled={!isPersistent(name)}
-            max={resources.disk.max}
             min={
               getEnvironmentType(name) === EnvironmentType.LocalVm
                 ? localVmMinimumDisk
