@@ -276,6 +276,60 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
 					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
 				})
+
+				It("should update only the HTTPRoute parentRefs if they diverge from configuration", func() {
+					customRules := []gatewayv1.HTTPRouteRule{
+						forge.HTTPRouteRule("/custom/path", "custom-svc", 8080, &environment),
+					}
+					outdatedRoute := gatewayv1.HTTPRoute{
+						ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name),
+						Spec: gatewayv1.HTTPRouteSpec{
+							CommonRouteSpec: gatewayv1.CommonRouteSpec{
+								ParentRefs: []gatewayv1.ParentReference{
+									forge.ParentReference("old-gw", "old-gw-ns"),
+								},
+							},
+							Rules: customRules,
+						},
+					}
+					outdatedRoute.SetCreationTimestamp(metav1.Now())
+					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&outdatedRoute).Build(), serviceClusterIP: clusterIP}
+
+					err := reconciler.EnforceInstanceExposition(ctx)
+					Expect(err).ToNot(HaveOccurred())
+
+					var updatedRoute gatewayv1.HTTPRoute
+					Expect(reconciler.Client.Get(ctx, httpRouteName, &updatedRoute)).To(Succeed())
+					Expect(updatedRoute.Spec.ParentRefs).To(HaveLen(1))
+					Expect(string(updatedRoute.Spec.ParentRefs[0].Name)).To(Equal(reconciler.ExpositionConfig.GatewayName))
+					Expect(string(*updatedRoute.Spec.ParentRefs[0].Namespace)).To(Equal(reconciler.ExpositionConfig.GatewayNamespace))
+					// Verify that existing rules are preserved and not overwritten
+					Expect(updatedRoute.Spec.Rules).To(Equal(customRules))
+				})
+
+				It("should not modify HTTPRoute parentRefs if they already match configuration", func() {
+					matchingRoute := gatewayv1.HTTPRoute{
+						ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name),
+						Spec: gatewayv1.HTTPRouteSpec{
+							CommonRouteSpec: gatewayv1.CommonRouteSpec{
+								ParentRefs: []gatewayv1.ParentReference{
+									forge.ParentReference(reconciler.ExpositionConfig.GatewayName, reconciler.ExpositionConfig.GatewayNamespace),
+								},
+							},
+						},
+					}
+					matchingRoute.SetCreationTimestamp(metav1.Now())
+					reconciler.Client = FakeClientWrapped{Client: clientBuilder.WithObjects(&matchingRoute).Build(), serviceClusterIP: clusterIP}
+
+					err := reconciler.EnforceInstanceExposition(ctx)
+					Expect(err).ToNot(HaveOccurred())
+
+					var resultRoute gatewayv1.HTTPRoute
+					Expect(reconciler.Client.Get(ctx, httpRouteName, &resultRoute)).To(Succeed())
+					Expect(resultRoute.Spec.ParentRefs).To(HaveLen(1))
+					Expect(string(resultRoute.Spec.ParentRefs[0].Name)).To(Equal(reconciler.ExpositionConfig.GatewayName))
+					Expect(string(*resultRoute.Spec.ParentRefs[0].Namespace)).To(Equal(reconciler.ExpositionConfig.GatewayNamespace))
+				})
 			})
 		})
 
