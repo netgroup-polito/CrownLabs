@@ -66,7 +66,7 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 			return stream.SendAndClose(&als.StreamAccessLogsResponse{})
 		}
 		if err != nil {
-			s.log.V(1).Info("ALS stream terminated or errored", "error", err.Error())
+			s.log.V(utils.LogDebugLevel).Info("ALS stream terminated or errored", "error", err.Error())
 			return err
 		}
 

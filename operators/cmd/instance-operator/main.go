@@ -37,7 +37,6 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/activity"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/instctrl"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
@@ -100,10 +99,6 @@ func main() {
 	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
 	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
 
-	enableActivityTracking := flag.Bool("enable-activity-tracking", true, "Enable tracking user activity via Envoy Access Log Service")
-	activityDebounceInterval := flag.Duration("activity-debounce-interval", activity.DefaultDebounceInterval, "Debounce interval for activity updates")
-	activityALSBindAddr := flag.String("activity-als-bind-addr", ":9000", "The bind address for Envoy gRPC Access Log Service")
-
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -127,16 +122,6 @@ func main() {
 	if err != nil {
 		log.Error(err, "unable to start manager")
 		os.Exit(1)
-	}
-
-	if *enableActivityTracking {
-		log.Info("Activity Tracking via Envoy ALS enabled", "bindAddr", *activityALSBindAddr, "debounceInterval", *activityDebounceInterval)
-		activityTracker := activity.NewTracker(mgr.GetClient(), *activityDebounceInterval).WithLogger(log)
-		alsServer := activity.NewALSServer(activityTracker, *activityALSBindAddr, log)
-		if err := mgr.Add(alsServer); err != nil {
-			log.Error(err, "unable to add ALS server to manager")
-			os.Exit(1)
-		}
 	}
 
 	nsWhitelist := metav1.LabelSelector{MatchLabels: whiteListMap, MatchExpressions: []metav1.LabelSelectorRequirement{}}

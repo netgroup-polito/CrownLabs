@@ -12,5 +12,10 @@ spec:
       targetPort: metrics
       protocol: TCP
       name: metrics
+    - port: 9000
+      targetPort: als-grpc
+      protocol: TCP
+      appProtocol: grpc
+      name: als-grpc
   selector:
     {{- include "operator.selectorLabels" . | nindent 4 }}

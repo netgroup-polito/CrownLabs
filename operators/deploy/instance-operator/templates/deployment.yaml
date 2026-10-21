@@ -51,11 +51,6 @@ spec:
             - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
             - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
             - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
-            {{- if .Values.configurations.activityTracking.enabled }}
-            - '--enable-activity-tracking={{ .Values.configurations.activityTracking.enabled }}'
-            - '--activity-debounce-interval={{ .Values.configurations.activityTracking.debounceInterval }}'
-            - '--activity-als-bind-addr=:{{ .Values.configurations.activityTracking.alsPort }}'
-            {{- end }}
 
           ports:
             - name: op-metrics
@@ -64,11 +59,6 @@ spec:
             - name: op-probes
               containerPort: 8081
               protocol: TCP
-            {{- if .Values.configurations.activityTracking.enabled }}
-            - name: als-grpc
-              containerPort: {{ .Values.configurations.activityTracking.alsPort | default 9000 }}
-              protocol: TCP
-            {{- end }}
           livenessProbe:
             httpGet:
               path: /healthz

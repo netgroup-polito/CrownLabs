@@ -12,13 +12,6 @@ spec:
       targetPort: op-metrics
       protocol: TCP
       name: op-metrics
-    {{- if .Values.configurations.activityTracking.enabled }}
-    - port: {{ .Values.configurations.activityTracking.alsPort }}
-      targetPort: als-grpc
-      protocol: TCP
-      appProtocol: grpc
-      name: als-grpc
-    {{- end }}
   selector:
     {{- include "instance-operator.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: operator
