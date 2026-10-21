@@ -334,7 +334,7 @@ The operator will also create or update the corresponding `Service` of type `Loa
 
 The SSH bastion is composed of two basic blocks:
 
-1. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+1. `ssh-bastion`: a lightweight alpine-based container running `sshd`.
 2. `ssh-controller`: an operator-like tool based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git) to read and sync SSH keys which also tracks forwarded SSH connections, leveraging the netfilter/conntrack subsystem, and exposing them as metrics for Prometheus.
 
 ### Bastion SSH Tracker
