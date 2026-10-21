@@ -20,15 +20,20 @@ For more information, visit the CrownLabs website ([https://crownlabs.polito.it]
 
 ## Architecture
 
-CrownLabs is organized around Kubernetes namespaces and the resources managed within them. Its architecture comprises some main scopes:
+CrownLabs architecture is heavily based on Kubernetes namespaces, hence resources are created and managed mainly according to namespace concepts and permissions.
+In its essence, the CrownLabs architecture is based on three main classes of namespaces:
 
-* the **CL release namespace**, which contains the controllers and platform services, including the frontend, GraphQL relay, and SSH bastion;
-* **workspace namespaces**, which contain the templates used to define computing environments;
-* **tenant namespaces**, which contain the instances and environments made available to each tenant.
+* the **CrownLabs Release** namespace, which contains the controllers and platform services, including the frontend, GraphQL relay, and SSH bastion;
+* **Workspace** namespaces, which contain the templates used to define computing environments;
+* **Tenant** namespaces, which contain resources (e.g., instances and environments) available to each tenant.
 
-Cluster-wide `Workspace` and `Tenant` resources connect these scopes. Controllers reconcile them into their corresponding namespaces, while instances reference workspace templates and create the environments used by students and instructors. _QLKube_ acts as the GraphQL relay through which the dashboard accesses the Kubernetes API Server. The gateway and SSH bastion provide access to the resulting environments.
+Cluster-wide `Workspace` and `Tenant` resources connect these scopes.
+Controllers reconcile them into their corresponding namespaces, while _instances_ reference _workspace_ templates and create the environments used by students and instructors.
+_QLKube_ acts as the GraphQL relay allowing the dashboard to get access to the Kubernetes API Server.
+The API Gateway and the SSH Bastion provide access to the resulting environments.
 
-The namespace-oriented model focuses on the principal components required to provide remote computing labs. It omits low-level components and services associated with cluster operation, such as monitoring.
+The namespace-oriented model focuses on the main components required to provide remote computing instances.
+It omits low-level components and services associated with cluster operation, such as monitoring.
 
 ```mermaid
 flowchart LR
@@ -66,7 +71,7 @@ subgraph Cluster["Kubernetes Cluster"]
         InstanceEnv@{shape: docs, label: "bar Environments"}
 
     end
-    subgraph K8S["K8S Provided Infrastructure"]
+    subgraph K8S["K8s Provided Infrastructure"]
         APIServer["API Server"]
         GWAPI["Gateway Balancer"]
     end
@@ -111,10 +116,10 @@ class InstanceEnv EnvironmentStyle
 class TenantNS TenantNSStyle
 class Cluster ClusterStyle
 ```
-¹More about the deployment [here](deploy/crownlabs/README.md).  
+¹More about how to deploy CrownLabs [here](deploy/crownlabs/README.md).  
 ²More about Tenant soon.  
 ³More about Workspace soon.  
-⁴More about Frontend [here](frontend/README.md)  
+⁴More about Frontend [here](frontend/README.md).
 ⁵More about QLKube [here](qlkube/README.md).  
 
 ### Graph Legend:
@@ -128,19 +133,20 @@ flowchart LR
 
 
 Domain["Logical Domain"]:::DomainStyle
-Entity["Single Entity"]:::EntitySyle
+Entity["Single Entity"]:::EntityStyle
 
 Domain -- physical link --> Entity
 Domain -. logical link .-> Entity
 
 classDef DomainStyle rx:12,ry:12,fill:none,stroke-dasharray:8
-classDef EntitySyle rx:12,ry:12,fill:none
+classDef EntityStyle rx:12,ry:12,fill:none
 ```
 
 ## Controllers and Resource Management
 
-CrownLabs functionalities are implemented by custom Kubernetes operators, while the data model is defined by means of Kubernetes Custom Resource Definitions (CRDs). These operators reconcile cluster-wide and namespace-scoped resources across the namespace-oriented architecture.
-The main controllers are:
+CrownLabs business logic is implemented by custom Kubernetes operators, while the data model is defined with Kubernetes Custom Resource Definitions (CRDs).
+These operators reconcile cluster-wide and namespace-scoped resources across the namespace-oriented architecture.
+Main controllers are:
 
 * the **Instance Operator**, which implements the logic to spawn new environments starting from predefined templates;
 * the **Tenant Operator**, which automates the management of CrownLabs users (i.e. tenants) and groups (i.e. workspaces);
