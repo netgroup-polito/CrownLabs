@@ -18,6 +18,7 @@ import (
 	"flag"
 	"strings"
 
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 
@@ -49,8 +50,7 @@ func init() {
 
 // setupInstanceSnapshotWebhook configures the Webhook that validates the scope of InstanceSnapshot resources.
 func setupInstanceSnapshotWebhook(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(&clv1alpha2.InstanceSnapshot{}).
+	return ctrl.NewWebhookManagedBy[runtime.Object](mgr, &clv1alpha2.InstanceSnapshot{}).
 		WithValidator(&instsnapwebhook.InstanceSnapshotValidator{
 			Client:                  mgr.GetClient(),
 			PublicSnapshotNamespace: snapshotPublicNamespace,

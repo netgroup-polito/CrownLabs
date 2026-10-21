@@ -17,6 +17,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,6 +25,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	"k8s.io/klog/v2"
@@ -75,6 +77,7 @@ func main() {
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run for the Instance controller")
+	clusterFlavorNamespace := flag.String("cluster-flavor-namespace", forge.DefaultClusterFlavorNamespace, "Namespace hosting the shared ClusterFlavor resources")
 
 	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
@@ -106,6 +109,12 @@ func main() {
 	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
 	log := ctrl.Log.WithName("setup")
+
+	if errors := validation.IsDNS1123Label(*clusterFlavorNamespace); len(errors) > 0 {
+		log.Error(fmt.Errorf("%s", strings.Join(errors, "; ")), "invalid cluster flavor namespace", "namespace", *clusterFlavorNamespace)
+		os.Exit(1)
+	}
+	log.Info("using centralized cluster flavors", "namespace", *clusterFlavorNamespace)
 
 	whiteListMap := parseMap(*namespaceWhiteList)
 	log.Info("restricting reconciled namespaces", "labels", *namespaceWhiteList)
@@ -195,6 +204,7 @@ func main() {
 		WebSSHMasterPublicKey:     pubKeyBytes,
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
+		ClusterFlavorNamespace:    *clusterFlavorNamespace,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

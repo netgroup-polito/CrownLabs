@@ -4,6 +4,9 @@
 {{- if and (eq $source.type "public-snapshots") (not $source.namespace) }}
 {{- $_ := set $source "namespace" (required "configurations.snapshotPublicNamespace is required when a public-snapshots source omits namespace" $.Values.configurations.snapshotPublicNamespace) }}
 {{- end }}
+{{- if and (eq $source.type "clusterflavors") (not $source.namespace) }}
+{{- $_ := set $source "namespace" (required "global.clusterFlavorNamespace is required when a clusterflavors source omits namespace" $.Values.global.clusterFlavorNamespace) }}
+{{- end }}
 {{- end }}
 apiVersion: v1
 kind: ConfigMap

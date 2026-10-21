@@ -1,0 +1,144 @@
+
+#NAMESPACE
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workspace-olympia
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-john-doe
+  labels:
+    crownlabs.polito.it/operator-selector: local
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: crownlabs-clusterflavors
+---
+
+#WORKSPACE
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: olympia
+  labels:
+    crownlabs.polito.it/operator-selector: local
+spec:
+  prettyName: Mr Olympia
+  quota:
+    cpu: 10
+    memory: "50Gi"
+    instances: 8
+---
+
+#TENANT
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Tenant
+metadata:
+  name: john.doe
+  labels:
+    crownlabs.polito.it/operator-selector: local
+spec:
+  firstName: John
+  lastName: Doe
+  email: jonh.doe@email.com
+  workspaces:
+    - name: olympia
+      role: user
+  publicKeys:
+    - type1 key1 comment1
+    - type2 key2 comment3
+---
+
+#TEMPLATE
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: workload-cluster
+  namespace: workspace-olympia
+spec:
+  prettyName: Workload Cluster
+  description: A nested Kubernetes cluster provisioned via Cluster API, Kamaji and KubeVirt
+  environmentList:
+    - name: wl-cluster
+      environmentType: Cluster
+      image: k8s-1-30-basic # name of the ClusterFlavor to use
+      mountMyDriveVolume: false
+      guiEnabled: false
+      resources:
+        cpu: 2
+        memory: 2Gi
+        reservedCPUPercentage: 50
+      cluster:
+        workersCount: 1
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: olympia
+---
+
+
+#CLUSTERFLAVOR
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: ClusterFlavor
+metadata:
+  name: k8s-1-30-basic
+  namespace: crownlabs-clusterflavors
+spec:
+  version: v1.30.1
+  controlPlane:
+    cpu: 1
+    memory: 1Gi
+    replicas: 1
+    dataStoreName: default
+    apiServerResources:
+      cpu: "500m"
+      memory: "512Mi"
+    schedulerResources:
+      cpu: "100m"
+      memory: "128Mi"
+    controllerManagerResources:
+      cpu: "100m"
+      memory: "128Mi"
+    konnectivityResources:
+      cpu: "100m"
+      memory: "128Mi"
+  workers:
+    disk:
+      type: containerDisk
+      image: quay.io/capk/ubuntu-2204-container-disk:v1.30.1
+  addonList:
+    - name: cilium
+      repoURL: https://helm.cilium.io
+      chartName: cilium
+      version: 1.16.4
+      namespace: kube-system
+    - name: ingress-nginx
+      repoURL: https://kubernetes.github.io/ingress-nginx
+      chartName: ingress-nginx
+      version: 4.11.3
+      namespace: ingress-nginx
+      values: |
+        controller:
+          service:
+            type: NodePort
+            nodePorts:
+              http: 30080
+              https: 30443
+          ingressClassResource:
+            default: true
+---
+
+#INSTANCE
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Instance
+metadata:
+  name: small-cl
+  namespace: tenant-john-doe
+spec:
+  template.crownlabs.polito.it/TemplateRef:
+    name: workload-cluster
+    namespace: workspace-olympia
+  tenant.crownlabs.polito.it/TenantRef:
+    name: john.doe
+---

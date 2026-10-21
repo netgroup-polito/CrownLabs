@@ -26,6 +26,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/tools/record"
@@ -55,6 +56,7 @@ type InstanceReconciler struct {
 	WebSSHMasterPublicKey     []byte
 	PublicExposureOpts        forge.PublicExposureOpts
 	MirrorPVCStorageClassName string
+	ClusterFlavorNamespace    string
 
 	// This function, if configured, is deferred at the beginning of the Reconcile.
 	// Specifically, it is meant to be set to GinkgoRecover during the tests,
@@ -305,7 +307,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		switch tmplEnv.EnvironmentType {
 		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 			urlNeeded = true
-		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
+		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassCluster:
 			if tmplEnv.GuiEnabled {
 				urlNeeded = true
 			}
@@ -350,6 +352,12 @@ func (r *InstanceReconciler) enforceSingleEnvironment(ctx context.Context, tmplE
 			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
 			return err
 		}
+	case clv1alpha2.ClassCluster:
+		if err := r.EnforceClusterEnvironment(ctx); err != nil {
+			r.EventsRecorder.Eventf(clctx.InstanceFrom(ctx), corev1.EventTypeWarning, EvEnvironmentErr, EvEnvironmentErrMsg, tmplEnv.Name)
+			return err
+		}
+	default:
 	}
 
 	r.setInitialReadyTimeIfNecessary(ctx)
@@ -398,6 +406,15 @@ func (r *InstanceReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int)
 		// Here, we use Watches instead of Owns since we need to react also in case a VMI generated from a VM is updated,
 		// to correctly update the instance phase in case of persistent VMs with resource quota exceeded.
 		Watches(&virtv1.VirtualMachineInstance{}, handler.EnqueueRequestsFromMapFunc(r.vmiToInstance))
+
+	// Cluster API is optional: watch Clusters (to refresh the phase of Cluster environments) only if its CRDs are installed.
+	if _, err := mgr.GetRESTMapper().RESTMapping(forge.GVKCluster.GroupKind(), forge.GVKCluster.Version); err == nil {
+		cluster := &unstructured.Unstructured{}
+		cluster.SetGroupVersionKind(forge.GVKCluster)
+		bld = bld.Owns(cluster)
+	} else {
+		mgr.GetLogger().Info("Cluster API Cluster CRD not found, Cluster environments will not be watched", "error", err.Error())
+	}
 
 	if r.ExpositionConfig.GatewayAPIMode {
 		bld = bld.Owns(&gatewayv1.HTTPRoute{})
