@@ -44,8 +44,6 @@ import type { Interval, TemplateForm } from './types';
 import {
   formItemLayout,
   getDefaultTemplate,
-  getPublicSnapshotImageList,
-  getImageNameNoVer,
   internalRegistry,
   useImageLists,
   usePublicSnapshotImageList,
