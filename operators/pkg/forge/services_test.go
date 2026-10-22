@@ -90,6 +90,7 @@ var _ = Describe("Services forging", func() {
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
+					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.NativeVNCPortNumber, TargetPort: intstr.FromInt(forge.NativeVNCPortNumber)},
 				},
 			}),
 			Entry("When the Environment is of type VM, with GUI", ServiceSpecCase{
@@ -111,6 +112,7 @@ var _ = Describe("Services forging", func() {
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
+					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.NativeVNCPortNumber, TargetPort: intstr.FromInt(forge.NativeVNCPortNumber)},
 				},
 			}),
 			Entry("When the Environment is of type CloudVM, with GUI", ServiceSpecCase{
