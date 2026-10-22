@@ -28,6 +28,20 @@ export const getEnvVar = (envVarName: envVarNames): string => {
   return envVar;
 };
 
+// Image list names are optional: their default values are provided by the
+// Helm chart, so a missing variable only results in an empty image list.
+const getImageListName = (envVarName: envVarNames): string => {
+  const envVar: string | undefined =
+    import.meta.env[envVarName] ?? (window as envVarObj)[envVarName];
+  if (!envVar?.trim()) {
+    console.warn(
+      `WARNING: ENV VAR ${envVarName} NOT DEFINED, the related image list will be empty`,
+    );
+    return '';
+  }
+  return envVar.trim();
+};
+
 export const VITE_APP_CROWNLABS_OIDC_CLIENT_ID = getEnvVar(
   'VITE_APP_CROWNLABS_OIDC_CLIENT_ID',
 );
@@ -59,7 +73,7 @@ export const VITE_APP_CROWNLABS_IMAGE_CREATION_HELP =
 export const VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION = getEnvVar(
   'VITE_APP_CROWNLABS_PUBLIC_REGISTRY_NAME_DESTINATION',
 );
-export const VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS = getEnvVar(
+export const VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS = getImageListName(
   'VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS',
 );
 export const BASE_URL = getEnvVar('BASE_URL');
@@ -71,10 +85,10 @@ export const VITE_APP_MYDRIVE_WORKSPACE_NAME = getEnvVar(
   'VITE_APP_MYDRIVE_WORKSPACE_NAME',
 );
 
-export const VITE_APP_CROWNLABS_IMAGELIST_STANDALONE = getEnvVar(
+export const VITE_APP_CROWNLABS_IMAGELIST_STANDALONE = getImageListName(
   'VITE_APP_CROWNLABS_IMAGELIST_STANDALONE',
 );
-export const VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS = getEnvVar(
+export const VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS = getImageListName(
   'VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS',
 );
 

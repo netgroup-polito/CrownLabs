@@ -334,7 +334,7 @@ The operator will also create or update the corresponding `Service` of type `Loa
 
 The SSH bastion is composed of two basic blocks:
 
-1. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+1. `ssh-bastion`: a lightweight alpine-based container running `sshd`.
 2. `ssh-controller`: an operator-like tool based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git) to read and sync SSH keys which also tracks forwarded SSH connections, leveraging the netfilter/conntrack subsystem, and exposing them as metrics for Prometheus.
 
 ### Bastion SSH Tracker
@@ -798,7 +798,7 @@ query publicSnapshotCatalog {
 }
 ```
 
-The current frontend [images query](../frontend/src/graphql-components/query/images.query.graphql) only requests image names and versions. Consuming the public catalog and its capacity metadata also requires updating the frontend selection logic, query and generated GraphQL types.
+The frontend does not list all ImageLists: it fetches only the ones it uses, each one by name, with the [imageList query](../frontend/src/graphql-components/query/imageList.query.graphql), which also requests `versionDetails`. The name of the public catalog is read from `VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS`, set by the frontend Helm chart; see [Frontend image lists](../deploy/crownlabs/README.md#frontend-image-lists) for how the chart chooses it.
 
 #### Refresh behavior and permissions
 
