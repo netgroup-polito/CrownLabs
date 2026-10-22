@@ -90,6 +90,7 @@ On WSL2, use `https://keycloak.crownlabs.local:8443/realms/crownlabs` for `VITE_
 This must exactly match the URL the browser actually uses to reach Keycloak. See step 5 in [`keycloak/apiserver-oidc-integration.md`](keycloak/apiserver-oidc-integration.md).
 
 The other variables (`VITE_APP_MYDRIVE_*`, `VITE_APP_CROWNLABS_IMAGELIST_*`, and so on) can stay as they are in `.env.example`.
+The `VITE_APP_CROWNLABS_IMAGELIST_*` variables in `.env.example` point to the pre-production ImageLists, the same names the Helm chart uses when `imagelist.enabled` is `false` (see [Frontend image lists](../deploy/crownlabs/README.md#frontend-image-lists)).
 
 ```bash
 npm install
