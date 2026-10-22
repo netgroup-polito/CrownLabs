@@ -48,7 +48,6 @@ import type { Interval, TemplateForm } from './types';
 import {
   formItemLayout,
   getDefaultTemplate,
-  getImageNameNoVer,
   getPublicSnapshotImageList,
   internalRegistry,
   useImageLists,
@@ -241,17 +240,16 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
     if (envType === EnvironmentType.LocalVm) return image;
+    // The form stores internal images as "name:version", matching Image.name
     if (envType === EnvironmentType.VirtualMachine) {
-      const selectedImage = availableImagesVM.find(
-        i => getImageNameNoVer(i.name) === image,
-      );
+      const selectedImage = availableImagesVM.find(i => i.name === image);
 
       if (selectedImage) {
         return `${internalRegistry}/${projectBaseNameVM}/${selectedImage.name}`;
       }
     } else if (envType === EnvironmentType.Standalone) {
       const selectedImage = availableImagesContainer.find(
-        i => getImageNameNoVer(i.name) === image,
+        i => i.name === image,
       );
 
       if (selectedImage) {
