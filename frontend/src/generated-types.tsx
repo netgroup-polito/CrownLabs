@@ -4091,10 +4091,12 @@ export type AllTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type AllTemplatesQuery = { __typename?: 'Query', allTemplates?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
-export type ImagesQueryVariables = Exact<{ [key: string]: never; }>;
+export type ImageListQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
 
 
-export type ImagesQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha1ImageListList', images: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha1ImageList', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec', projectBaseName?: string | null, registryName: string, images: Array<{ __typename?: 'ImagesListItem', name: string, versions: Array<string | null>, versionDetails?: Array<{ __typename?: 'VersionDetailsListItem', version: string, volumeSize?: string | null } | null> | null } | null> } | null } | null> } | null };
+export type ImageListQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha1ImageList', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null } | null, spec?: { __typename?: 'Spec', projectBaseName?: string | null, registryName: string, images: Array<{ __typename?: 'ImagesListItem', name: string, versions: Array<string | null>, versionDetails?: Array<{ __typename?: 'VersionDetailsListItem', version: string, volumeSize?: string | null } | null> | null } | null> } | null } | null };
 
 export type OwnedInstancesQueryVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
@@ -5289,23 +5291,21 @@ export type AllTemplatesQueryHookResult = ReturnType<typeof useAllTemplatesQuery
 export type AllTemplatesLazyQueryHookResult = ReturnType<typeof useAllTemplatesLazyQuery>;
 export type AllTemplatesSuspenseQueryHookResult = ReturnType<typeof useAllTemplatesSuspenseQuery>;
 export type AllTemplatesQueryResult = Apollo.QueryResult<AllTemplatesQuery, AllTemplatesQueryVariables>;
-export const ImagesDocument = gql`
-    query images {
-  imageList: itPolitoCrownlabsV1alpha1ImageListList {
-    images: items {
-      metadata {
+export const ImageListDocument = gql`
+    query imageList($name: String!) {
+  imageList: itPolitoCrownlabsV1alpha1ImageList(name: $name) {
+    metadata {
+      name
+    }
+    spec {
+      projectBaseName
+      registryName
+      images {
         name
-      }
-      spec {
-        projectBaseName
-        registryName
-        images {
-          name
-          versions
-          versionDetails {
-            version
-            volumeSize
-          }
+        versions
+        versionDetails {
+          version
+          volumeSize
         }
       }
     }
@@ -5314,39 +5314,40 @@ export const ImagesDocument = gql`
     `;
 
 /**
- * __useImagesQuery__
+ * __useImageListQuery__
  *
- * To run a query within a React component, call `useImagesQuery` and pass it any options that fit your needs.
- * When your component renders, `useImagesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * To run a query within a React component, call `useImageListQuery` and pass it any options that fit your needs.
+ * When your component renders, `useImageListQuery` returns an object from Apollo Client that contains loading, error, and data properties
  * you can use to render your UI.
  *
  * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
  *
  * @example
- * const { data, loading, error } = useImagesQuery({
+ * const { data, loading, error } = useImageListQuery({
  *   variables: {
+ *      name: // value for 'name'
  *   },
  * });
  */
-export function useImagesQuery(baseOptions?: Apollo.QueryHookOptions<ImagesQuery, ImagesQueryVariables>) {
+export function useImageListQuery(baseOptions: Apollo.QueryHookOptions<ImageListQuery, ImageListQueryVariables> & ({ variables: ImageListQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
         const options = {...defaultOptions, ...baseOptions}
-        return Apollo.useQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
+        return Apollo.useQuery<ImageListQuery, ImageListQueryVariables>(ImageListDocument, options);
       }
-export function useImagesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ImagesQuery, ImagesQueryVariables>) {
+export function useImageListLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<ImageListQuery, ImageListQueryVariables>) {
           const options = {...defaultOptions, ...baseOptions}
-          return Apollo.useLazyQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
+          return Apollo.useLazyQuery<ImageListQuery, ImageListQueryVariables>(ImageListDocument, options);
         }
 // @ts-ignore
-export function useImagesSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>): Apollo.UseSuspenseQueryResult<ImagesQuery, ImagesQueryVariables>;
-export function useImagesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>): Apollo.UseSuspenseQueryResult<ImagesQuery | undefined, ImagesQueryVariables>;
-export function useImagesSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImagesQuery, ImagesQueryVariables>) {
+export function useImageListSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<ImageListQuery, ImageListQueryVariables>): Apollo.UseSuspenseQueryResult<ImageListQuery, ImageListQueryVariables>;
+export function useImageListSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImageListQuery, ImageListQueryVariables>): Apollo.UseSuspenseQueryResult<ImageListQuery | undefined, ImageListQueryVariables>;
+export function useImageListSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<ImageListQuery, ImageListQueryVariables>) {
           const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
-          return Apollo.useSuspenseQuery<ImagesQuery, ImagesQueryVariables>(ImagesDocument, options);
+          return Apollo.useSuspenseQuery<ImageListQuery, ImageListQueryVariables>(ImageListDocument, options);
         }
-export type ImagesQueryHookResult = ReturnType<typeof useImagesQuery>;
-export type ImagesLazyQueryHookResult = ReturnType<typeof useImagesLazyQuery>;
-export type ImagesSuspenseQueryHookResult = ReturnType<typeof useImagesSuspenseQuery>;
-export type ImagesQueryResult = Apollo.QueryResult<ImagesQuery, ImagesQueryVariables>;
+export type ImageListQueryHookResult = ReturnType<typeof useImageListQuery>;
+export type ImageListLazyQueryHookResult = ReturnType<typeof useImageListLazyQuery>;
+export type ImageListSuspenseQueryHookResult = ReturnType<typeof useImageListSuspenseQuery>;
+export type ImageListQueryResult = Apollo.QueryResult<ImageListQuery, ImageListQueryVariables>;
 export const OwnedInstancesDocument = gql`
     query ownedInstances($tenantNamespace: String!) {
   instanceList: listCrownlabsPolitoItV1alpha2NamespacedInstance(

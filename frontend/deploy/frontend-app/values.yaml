@@ -27,8 +27,9 @@ configuration:
     templateName: mydrive
     workspaceName: utilities
   imagelist:
-    standalone: crownlabs-standalone
-    containerdisks: crownlabs-containerdisks
+    enabled: true
+    standalone: harbor-standalone
+    containerdisks: harbor-containerdisks
     publicSnapshots: public-local-snapshots
   imageCreationWarning: "Before creating an image, reset cloud-init and complete any required manual configuration inside the VM."
   imageCreationHelp: "https://github.com/netgroup-polito/CrownLabs/blob/master/provisioning/virtual-machines/README-snapshot-init.md"
