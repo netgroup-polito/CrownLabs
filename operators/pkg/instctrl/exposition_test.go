@@ -277,7 +277,7 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
 				})
 
-				It("should update only the HTTPRoute parentRefs if they diverge from configuration", func() {
+				It("should update the HTTPRoute spec if the parent gateway diverges from configuration", func() {
 					customRules := []gatewayv1.HTTPRouteRule{
 						forge.HTTPRouteRule("/custom/path", "custom-svc", 8080, &environment),
 					}
@@ -303,11 +303,23 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(updatedRoute.Spec.ParentRefs).To(HaveLen(1))
 					Expect(string(updatedRoute.Spec.ParentRefs[0].Name)).To(Equal(reconciler.ExpositionConfig.GatewayName))
 					Expect(string(*updatedRoute.Spec.ParentRefs[0].Namespace)).To(Equal(reconciler.ExpositionConfig.GatewayNamespace))
-					// Verify that existing rules are preserved and not overwritten
-					Expect(updatedRoute.Spec.Rules).To(Equal(customRules))
+					// Verify that the whole spec is enforced using forge.HTTPRouteSpec
+					expectedSpec := forge.HTTPRouteSpec(
+						&forge.HTTPRouteTemplate{
+							Path:        forge.ExpositionGUICleanPath(&instance, &environment),
+							ServiceName: serviceName.Name,
+						},
+						&reconciler.ExpositionConfig,
+						&environment,
+						forge.GUIPortNumber,
+					)
+					Expect(updatedRoute.Spec).To(Equal(expectedSpec))
 				})
 
-				It("should not modify HTTPRoute parentRefs if they already match configuration", func() {
+				It("should not modify HTTPRoute spec if the parent gateway already matches configuration", func() {
+					customRules := []gatewayv1.HTTPRouteRule{
+						forge.HTTPRouteRule("/custom/path", "custom-svc", 8080, &environment),
+					}
 					matchingRoute := gatewayv1.HTTPRoute{
 						ObjectMeta: forge.ObjectMetaWithSuffix(&instance, environment.Name),
 						Spec: gatewayv1.HTTPRouteSpec{
@@ -316,6 +328,7 @@ var _ = Describe("Exposition helpers", func() {
 									forge.ParentReference(reconciler.ExpositionConfig.GatewayName, reconciler.ExpositionConfig.GatewayNamespace),
 								},
 							},
+							Rules: customRules,
 						},
 					}
 					matchingRoute.SetCreationTimestamp(metav1.Now())
@@ -329,6 +342,8 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(resultRoute.Spec.ParentRefs).To(HaveLen(1))
 					Expect(string(resultRoute.Spec.ParentRefs[0].Name)).To(Equal(reconciler.ExpositionConfig.GatewayName))
 					Expect(string(*resultRoute.Spec.ParentRefs[0].Namespace)).To(Equal(reconciler.ExpositionConfig.GatewayNamespace))
+					// Verify that existing rules are preserved since gateway matches
+					Expect(resultRoute.Spec.Rules).To(Equal(customRules))
 				})
 			})
 		})

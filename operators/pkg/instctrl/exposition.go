@@ -22,7 +22,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -72,16 +71,12 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 	// Enforce the HTTPRoute presence
 	httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {
-		if httpRoute.CreationTimestamp.IsZero() {
+		if httpRoute.CreationTimestamp.IsZero() || r.gatewayDiffers(&httpRoute) {
 			tpl := &forge.HTTPRouteTemplate{
 				Path:        forge.ExpositionGUICleanPath(instance, environment),
 				ServiceName: svc.GetName(),
 			}
 			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, forge.GUIPortNumber)
-		} else if r.parentRefDiffers(httpRoute.Spec.ParentRefs) {
-			httpRoute.Spec.ParentRefs = []gatewayv1.ParentReference{
-				forge.ParentReference(r.ExpositionConfig.GatewayName, r.ExpositionConfig.GatewayNamespace),
-			}
 		}
 		httpRoute.SetLabels(forge.EnvironmentObjectLabels(httpRoute.GetLabels(), instance, environment))
 
@@ -316,12 +311,12 @@ func (r *InstanceReconciler) getHTTPRouteAcceptedStatus(ctx context.Context, hr 
 	return false, nil
 }
 
-// parentRefDiffers checks if the current parentRefs slice differs from the desired Gateway name and namespace.
-func (r *InstanceReconciler) parentRefDiffers(parentRefs []gatewayv1.ParentReference) bool {
-	if len(parentRefs) != 1 {
+// gatewayDiffers checks if the route's parent Gateway diverges from configuration.
+func (r *InstanceReconciler) gatewayDiffers(hr *gatewayv1.HTTPRoute) bool {
+	if len(hr.Spec.ParentRefs) != 1 || hr.Spec.ParentRefs[0].Namespace == nil {
 		return true
 	}
-	current := parentRefs[0]
-	return string(current.Name) != r.ExpositionConfig.GatewayName ||
-		ptr.Deref(current.Namespace, "") != gatewayv1.Namespace(r.ExpositionConfig.GatewayNamespace)
+	parent := hr.Spec.ParentRefs[0]
+	return string(parent.Name) != r.ExpositionConfig.GatewayName ||
+		string(*parent.Namespace) != r.ExpositionConfig.GatewayNamespace
 }
