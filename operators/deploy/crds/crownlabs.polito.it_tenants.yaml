@@ -76,6 +76,11 @@ spec:
               firstName:
                 description: The first name of the Tenant.
                 type: string
+              imagePublisher:
+                default: false
+                description: Whether the Tenant has the image publisher role to build
+                  and upload container images.
+                type: boolean
               lastLogin:
                 description: The last login timestamp.
                 format: date-time
