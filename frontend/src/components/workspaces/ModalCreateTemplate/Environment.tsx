@@ -233,6 +233,9 @@ export const Environment: FC<EnvironmentProps> = ({
   };
 
   const currentEnvironmentType = getEnvironmentType(name);
+  const canConfigureGui =
+    currentEnvironmentType === EnvironmentType.VirtualMachine ||
+    currentEnvironmentType === EnvironmentType.LocalVm;
   const {
     data: workspaceImages,
     loading: loadingWorkspaceImages,
@@ -841,8 +844,14 @@ export const Environment: FC<EnvironmentProps> = ({
                 valuePropName="checked"
                 className="mb-0"
               >
-                <Checkbox disabled={!isVM(name)} />
+                <Checkbox disabled={!canConfigureGui} />
               </Form.Item>
+
+              {currentEnvironmentType === EnvironmentType.LocalVm && (
+                <Tooltip title="Make sure the selected image contains an operating system with a graphical desktop installed.">
+                  <InfoCircleOutlined aria-label="Local VM GUI requirements" />
+                </Tooltip>
+              )}
 
               <div className="ant-form-item-extra text-xs">
                 {getGUIDescription(name)}
