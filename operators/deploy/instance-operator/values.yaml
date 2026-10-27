@@ -53,19 +53,24 @@ configurations:
     marginTime: "1m"
   publicExposure:
     # The IP pool used to assign public IPs to instances.
-    # Specify IPs as ranges or CIDRs, e.g., "172.18.0.240-172.18.0.249" or "172.18.0.250/30"
+    # Specify IPs as single addresses, ranges or CIDRs, e.g., "172.18.0.240-172.18.0.249" or "172.18.0.250/30".
+    # Do not include addresses of LoadBalancer services that cannot be shared (e.g., the SSH bastion).
     ipPool:
       - "172.18.0.240-172.18.0.249"
       - "172.18.0.250/30"
     # Common annotations to be added to all LoadBalancer services
     # Format: "key1=val1,key2=val2"
-    commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+    # Cilium LB-IPAM shares an IP only within a namespace, unless cross-namespace sharing is allowed (only "*" is supported here).
+    commonAnnotations: "lbipam.cilium.io/sharing-key=crownlabs-pe,lbipam.cilium.io/sharing-cross-namespace=*"
     # Common labels to be added to all LoadBalancer services (optional)
     # Format: "key1=val1,key2=val2"
-    # Example: "metallb.universe.tf/ip-pool=public"
-    commonLabels: ""
+    commonLabels: "lb-ipam.cilium.io/pool=public"
     # Annotation key for specifying LoadBalancer IPs
-    loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
+    loadBalancerIPsKey: "lbipam.cilium.io/ips"
+    # Previous defaults, for MetalLB (e.g., on a local kind cluster):
+    # commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+    # commonLabels: ""   # e.g., "metallb.universe.tf/ip-pool=public"
+    # loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
 
 image:
   repository: crownlabs/instance-operator

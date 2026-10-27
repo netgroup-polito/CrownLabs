@@ -107,8 +107,11 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 				}
 			}
 			if !needsServiceUpdate(specPorts, statusPorts, svcPorts) {
-				// If the current IP is valid and the requested ports match the current ones, do nothing, already in desired state
-				log.Info("LoadBalancer service already in desired state", "service", service.GetName())
+				// If the current IP is valid and the requested ports match the current ones, keep them and only
+				// enforce the metadata, so that changes to the common labels and annotations reach existing services.
+				log.V(utils.LogDebugLevel).Info("LoadBalancer service IP and ports already in desired state", "service", service.GetName())
+				service.Labels = forge.LoadBalancerServiceObjectLabels(service.Labels, &r.PublicExposureOpts)
+				service.Annotations = forge.LoadBalancerServiceAnnotations(service.Annotations, currentIP, &r.PublicExposureOpts)
 				return nil
 			}
 		}
@@ -125,13 +128,9 @@ func (r *InstanceReconciler) enforcePublicExposurePresence(ctx context.Context) 
 			return fmt.Errorf("failed to assign IP and ports for public exposure: %w", err)
 		}
 
-		// Set labels
-		if service.Labels == nil {
-			service.Labels = forge.LoadBalancerServiceLabels(&r.PublicExposureOpts)
-		}
-
-		// Set annotations using the new options
-		service.Annotations = forge.LoadBalancerServiceAnnotations(targetIP, &r.PublicExposureOpts)
+		// Set labels and annotations, including the assigned IP
+		service.Labels = forge.LoadBalancerServiceObjectLabels(service.Labels, &r.PublicExposureOpts)
+		service.Annotations = forge.LoadBalancerServiceAnnotations(service.Annotations, targetIP, &r.PublicExposureOpts)
 
 		// Set spec
 		service.Spec = forge.LoadBalancerServiceSpec(instance, assignedPorts)
