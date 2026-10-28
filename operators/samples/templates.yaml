@@ -61,7 +61,7 @@ spec:
       mountMyDriveVolume: false
       resources:
         cpu: 4
-        memory: 1G
+        memory: 1Gi
         disk: 1G
         reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
