@@ -521,6 +521,105 @@ For a deeper definition go to
 - `Tenant` [YAML version](./deploy/crds/crownlabs.polito.it_tenants.yaml)
 - `Workspace` [GoLang code version](./api/v1alpha1/workspace_types.go)
 - `Workspace` [YAML version](./deploy/crds/crownlabs.polito.it_workspaces.yaml)
+- `CrownJob` [GoLang code version](./api/v1alpha2/crownjob_types.go)
+- `CrownJob` [YAML version](./deploy/crds/crownlabs.polito.it_crownjobs.yaml)
+
+### Job API
+
+The job API lets a user run a batch job from one of their Instances ("Run job"): the job copies the environment of the Instance, runs a command, and ends. It consists of optional fields in Workspace, Template and Tenant, and of the namespaced `CrownJob` resource (`crownlabs.polito.it/v1alpha2`), one object per run. The controller that runs the jobs follows in a later change: for now, the API server only stores and validates these resources.
+
+A Workspace gets a job queue through `queueLimits`. Each window in `windows` changes some limits during given hours of given days, and windows can be set only together with `queueLimits`: every field set in `overrides` replaces the default as a whole, and the omitted fields keep the default. A window covers `[start, end)` within one day: `start` is included, `end` is excluded, and `end` may be `"24:00"`. A window cannot cross midnight, so a night needs two windows (`"20:00"`-`"24:00"` and `"00:00"`-`"06:00"`); quote the times in YAML. Durations are a positive number of at most four digits followed by `m`, `h` or `d` (e.g., `30m`, `6h`, `2d`), the format read by `ParseDurationWithDays`; `never` is not allowed.
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: ml
+spec:
+  prettyName: Machine Learning
+  quota:
+    cpu: 16
+    memory: "32Gi"
+    instances: 4
+  jobPolicy:
+    priorityClass: crownlabs-student
+    timeZone: Europe/Rome
+  queueLimits:
+    maxAtOnce:
+      cpu: "16"
+      memory: "64Gi"
+      nvidia.com/gpu: "2"
+    maxRunTime: 6h
+    perUser:
+      resources:
+        nvidia.com/gpu: "1"
+      maxActiveJobs: 2
+  windows:
+    - days: [Mon, Tue, Wed, Thu, Fri]
+      start: "20:00"
+      end: "24:00"
+      overrides:
+        maxAtOnce:
+          cpu: "32"
+          memory: "128Gi"
+          nvidia.com/gpu: "4"
+```
+
+A Template enables "Run job" through a `job` section. The environment it names must be persistent and of type `Container` or `Standalone`. `commandPolicy` decides who chooses the command: `Fixed` (the `command` of the Template, which the user cannot change), `Editable` (the default: the user types the command, and `command`, if set, pre-fills it) or `ImageDefault` (no command: the entrypoint of the image runs).
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: pytorch-gpu
+  namespace: workspace-ml
+spec:
+  prettyName: PyTorch (GPU)
+  description: JupyterLab with PyTorch
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: ml
+  environmentList:
+    - name: jupyter-env
+      environmentType: Standalone
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
+      persistent: true
+      resources:
+        cpu: 4
+        memory: 8G
+        disk: 20G
+        reservedCPUPercentage: 50
+  job:
+    environmentName: jupyter-env
+    commandPolicy: Fixed
+    command: ["python", "train.py"]
+    otherResources:
+      nvidia.com/gpu: 1
+    maxRunTime: 4h
+```
+
+A Tenant can have its own priority class in a Workspace; otherwise, the `priorityClass` of the Workspace applies:
+
+```yaml
+spec:
+  workspaces:
+    - name: ml
+      role: user
+      jobPriorityClass: crownlabs-thesis
+```
+
+A CrownJob is created in the namespace of the Instance it references. Like that of InstanceSnapshot, its `spec` is immutable: to change a run, delete it and create a new one. The operator will report the progress of the run in `status` (`phase`, `reason`, `message`, `queuePosition`, `deadline` and `runFolder`).
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: CrownJob
+metadata:
+  name: train-1
+  namespace: tenant-mario
+spec:
+  instanceRef:
+    name: pytorch-gpu-x7k2p
+  maxRunTime: 1h
+```
 
 ## CrownLabs InstanceSnapshot Controller
 

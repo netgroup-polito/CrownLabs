@@ -49,3 +49,31 @@ spec:
     cpu: "8"
     memory: "15Gi"
     instances: 3
+  jobPolicy:
+    priorityClass: crownlabs-student
+    timeZone: Europe/Rome
+  queueLimits:
+    maxAtOnce:
+      cpu: "8"
+      memory: "16Gi"
+      nvidia.com/gpu: "2"
+    guaranteed:
+      cpu: "2"
+      memory: "4Gi"
+    maxRunTime: 6h
+    perUser:
+      resources:
+        cpu: "4"
+        memory: "8Gi"
+        nvidia.com/gpu: "1"
+      maxActiveJobs: 2
+  windows:
+    - days: [Sat, Sun]
+      start: "08:00"
+      end: "20:00"
+      overrides:
+        maxAtOnce:
+          cpu: "16"
+          memory: "32Gi"
+          nvidia.com/gpu: "4"
+        maxRunTime: 12h

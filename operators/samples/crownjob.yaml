@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: tenant-john-doe
+  labels:
+    crownlabs.polito.it/operator-selector: local
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: CrownJob
+metadata:
+  name: vscode-c-cpp-run-1
+  namespace: tenant-john-doe
+spec:
+  instanceRef:
+    name: instance-vscode-c-cpp-persistent
+  command: ["make", "run"]
+  maxRunTime: 1h
