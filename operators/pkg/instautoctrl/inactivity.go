@@ -125,6 +125,12 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// An instance being deleted (e.g., kept by a finalizer while its jobs run) must not be stopped, notified or deleted again.
+	if !instance.DeletionTimestamp.IsZero() {
+		dbgLog.Info("instance is being deleted, skipping", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		return ctrl.Result{}, nil
+	}
+
 	var template clv1alpha2.Template
 	if err := r.Get(ctx, forge.NamespacedNameFromGenericRef(instance.Spec.Template), &template); err != nil {
 		if kerrors.IsNotFound(err) {
