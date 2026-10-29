@@ -526,7 +526,7 @@ For a deeper definition go to
 
 ### Job API
 
-The job API lets a user run a batch job from one of their Instances ("Run job"): the job copies the environment of the Instance, runs a command, and ends. It consists of optional fields in Workspace, Template and Tenant, and of the namespaced `CrownJob` resource (`crownlabs.polito.it/v1alpha2`), one object per run. The controller that runs the jobs follows in a later change: for now, the API server only stores and validates these resources.
+The job API lets a user run a batch job from one of their Instances ("Run job"): the job copies the environment of the Instance, runs a command, and ends. It consists of optional fields in Workspace, Template and Tenant, and of the namespaced `CrownJob` resource (`crownlabs.polito.it/v1alpha2`), one object per run. The controllers that run the jobs are described in [CrownLabs CrownJob controllers](#crownlabs-crownjob-controllers).
 
 A Workspace gets a job queue through `queueLimits`. Each window in `windows` changes some limits during given hours of given days, and windows can be set only together with `queueLimits`: every field set in `overrides` replaces the default as a whole, and the omitted fields keep the default. A window covers `[start, end)` within one day: `start` is included, `end` is excluded, and `end` may be `"24:00"`. A window cannot cross midnight, so a night needs two windows (`"20:00"`-`"24:00"` and `"00:00"`-`"06:00"`); quote the times in YAML. Durations are a positive number of at most four digits followed by `m`, `h` or `d` (e.g., `30m`, `6h`, `2d`), the format read by `ParseDurationWithDays`; `never` is not allowed.
 
@@ -607,7 +607,7 @@ spec:
       jobPriorityClass: crownlabs-thesis
 ```
 
-A CrownJob is created in the namespace of the Instance it references. Like that of InstanceSnapshot, its `spec` is immutable: to change a run, delete it and create a new one. The operator will report the progress of the run in `status` (`phase`, `reason`, `message`, `queuePosition`, `deadline` and `runFolder`).
+A CrownJob is created in the namespace of the Instance it references. Like that of InstanceSnapshot, its `spec` is immutable: to change a run, delete it and create a new one. The operator reports the progress of the run in `status` (`phase`, `reason`, `message`, `queuePosition`, `deadline` and `runFolder`).
 
 ```yaml
 apiVersion: crownlabs.polito.it/v1alpha2
@@ -767,6 +767,79 @@ kubectl get datavolume,pvc ubuntu-lab-snapshot -n crownlabs-public-snapshots
 | `SnapshotFailed` / `SnapshotCompleted` | CDI reported failure, or the clone succeeded and the artifact PVC was labeled. |
 
 `status.conditions` is part of the API but is not populated by the current controller; use `status.phase`, Kubernetes events and operator logs to diagnose progress.
+
+## CrownLabs CrownJob controllers
+
+The CrownJob controllers run each `CrownJob` (see the [Job API](#job-api)) as a batch Job queued by [Kueue](https://kueue.sigs.k8s.io/). They run in the main `operator` process, and are disabled by default:
+
+- `crownjob` ([reconciler.go](pkg/controller/crownjob/reconciler.go)) checks a new CrownJob, creates its Job and keeps its `status` up to date;
+- `crownjob-queue` ([queue.go](pkg/controller/crownjob/queue.go)) turns the `queueLimits` of each Workspace into the Kueue ClusterQueue `crownlabs-<workspace>`;
+- `crownjob-instance` ([instance.go](pkg/controller/crownjob/instance.go)) keeps an Instance while its jobs run.
+
+The Job is forged in [crownjobs.go](pkg/forge/crownjobs.go), and the Kueue objects in [kueue.go](pkg/forge/kueue.go) as unstructured objects: the operator has no Go dependency on Kueue.
+
+### How a job runs
+
+1. The controller checks the CrownJob: its Instance (in the same namespace, not being deleted), the Template (with a `job` section), the Workspace (with `queueLimits`), the Tenant (a user or manager of the Workspace), the command, `maxRunTime`, the priority class and the resources. A failed check is final: `Failed`/`CannotStart`.
+2. It waits, without creating anything, while the Deployment or the disk of the instance does not exist yet (`InstanceNotReady`), while a ReadWriteOnce disk is used by the running instance (`DiskInUse`), or while the ClusterQueue of the Workspace does not exist (`QueueNotReady`).
+3. It adds the finalizer `crownlabs.polito.it/crownjobs` to the Instance, applies the LocalQueue `crownlabs-<workspace>` in the namespace and creates the Job, suspended. The Job copies the pod template of the Deployment of the instance: only the app container, with the chosen command, in the persistent disk, after an init container that creates `runs/<name>`. Its pods carry an `activeDeadlineSeconds` equal to `maxRunTime`.
+4. Kueue admits the Job when the job queue of the Workspace has room.
+5. Once the app container has started, a log helper Job saves its log into `runs/<name>/log.txt` (`log-2.txt`, ... for a pod that replaces it).
+6. The job ends: its command succeeds or fails, or it reaches its time limit.
+7. The finished Job, with its pods, and each log helper are deleted after `--crownjob-finished-job-ttl`. The CrownJob is kept, with its final status.
+
+### Status
+
+| `phase` | `reason` | meaning |
+| --- | --- | --- |
+| `Waiting` | `InQueue`, `QuotaReached` | In the queue; the queue uses all its resources. |
+| `Waiting` | `InstanceNotReady`, `DiskInUse`, `QueueNotReady` | The Job does not exist yet (step 2). |
+| `Starting` | `Admitted` | Admitted, and the pod is not running yet; the message says when the image is being downloaded (a `Pulling` event of the kubelet with no later `Pulled`). |
+| `Running` | `Running` | The pod runs; `deadline` is its start plus `maxRunTime`. |
+| `Succeeded` | `Completed` | The command succeeded. |
+| `Failed` | `ExitCode`, `TimeLimit`, `CannotStart`, `Canceled`, `Error` | The command failed; the time limit was reached; the job was refused, or its pod was rejected or evicted; the Instance was deleted before the job started; any other failure. |
+
+`message` is a sentence for the user, e.g. "Your command ended with exit code 3. The output is saved in runs/train-1/log.txt.". Each phase change is also an event of the CrownJob. A final status never changes. `queuePosition` and `conditions` are not set yet.
+
+### Requirements and configuration
+
+The controllers need Kueue serving `kueue.x-k8s.io/v1beta2` (tested with v0.18.3) with the `batch/job` integration, and `manageJobsWithoutQueueName: false` (the default): the log helpers have no queue name. With `--enable-crownjob`, the operator stops at startup if the cluster does not serve the ClusterQueue, LocalQueue, ResourceFlavor, WorkloadPriorityClass and Workload kinds.
+
+| CLI flag | Default | Helm value (umbrella chart) |
+| --- | --- | --- |
+| `--enable-crownjob` | `false` | `operator.configurations.features.crownJob` |
+| `--crownjob-runtime-classes` | Empty | `operator.configurations.crownJob.runtimeClasses` (e.g. `nvidia.com/gpu=nvidia`) |
+| `--crownjob-default-max-run-time` | `2h` | `operator.configurations.crownJob.defaultMaxRunTime` |
+| `--crownjob-finished-job-ttl` | `10m` | `operator.configurations.crownJob.finishedJobTTL` |
+| `--crownjob-log-helper-image` | `registry.k8s.io/kubectl:v1.34.1` | `operator.configurations.crownJob.logHelperImage` |
+| `--crownjob-max-concurrent-reconciles` | `1` | `operator.configurations.crownJob.maxConcurrentReconciles` |
+| `--job-storage-class` (instance operator) | Empty | `instance-operator.configurations.jobStorageClass` |
+
+With `features.crownJob: false` the chart passes none of the operator flags. Durations are a number followed by `m`, `h` or `d`.
+
+### Changes in other components
+
+- **Tenant quotas.** The tenant namespace has two ResourceQuotas: `crownlabs-resource-quota` (the number of instances and the storage) and `crownlabs-resource-quota-instances` (scope `NotTerminating`: CPU, memory and the extended resources). The pods of the instances have no `activeDeadlineSeconds` and are counted as before; the pods of the jobs have one, and are limited by the job queue instead.
+- **Disks for jobs.** With `--job-storage-class`, the instance operator creates the disk of the environment named by `job.environmentName` ReadWriteMany, with the storage class of the environment if set, or else the flag's: a job can run on another node while the instance runs. Existing disks keep their access mode. With a ReadWriteOnce disk, a job waits (`DiskInUse`) until the instance is stopped.
+- **Deleting an instance.** An Instance with jobs not yet final keeps the finalizer: its container is stopped (0 replicas) and its disk kept. Its jobs still waiting are canceled (`Canceled`); those admitted run until they end, then the finalizer is removed and the Instance is deleted. Deleting its CrownJobs removes it at once. The expiration and inactivity controllers of instance-automation skip an Instance being deleted.
+
+### Logs and retention
+
+The log of each job pod is saved in its run folder by a helper Job, which follows it from the start (`kubectl logs -f` through `go-runner`): nothing is lost when the kubelet rotates the log files. The helper runs with the ServiceAccount `crownjob-log-reader` of the namespace, which can only read pods and their logs, and on the node of the job pod when the disk is not ReadWriteMany. A helper that fails is reported with a `LogsNotSaved` event and does not change the phase.
+
+Finished Jobs and helpers are deleted after `--crownjob-finished-job-ttl`, with their pods and Kueue Workloads: until then, their finished pods keep the disk of an instance in use (`pvc-protection`), and a deleted instance keeps counting against `requests.storage`. CrownJobs are not deleted automatically.
+
+### Access control
+
+- The operator ClusterRole has a CrownJob section, rendered only with `features.crownJob: true`: the Jobs (including `delete`), the pods (`list`; `get` and `pods/log` are needed to create the Role of the log helpers), the events, the Deployments and disks (read), the ServiceAccount, Role and RoleBinding of the log helpers, and the Kueue objects. Its `crownjobs` rule is always rendered, since the operator binds `crownlabs-manage-instances`.
+- `crownlabs-manage-instances` lets tenants `get`, `list`, `watch`, `create`, `delete` and `deletecollection` CrownJobs; neither `update` nor `patch` (the `spec` is immutable), nor the `status`. Workspace managers get it in every namespace, as for instances. `crownlabs-view-instances` reads CrownJobs and their status.
+
+### Operational notes
+
+- Before disabling the controllers, delete the CrownJobs that are not final, or their Instances keep the finalizer, which no other component removes.
+- A job and its instance can run at the same time on a ReadWriteMany disk: two nodes appending to the same file on NFS lost lines in our tests, so they should write different files.
+- The log helper image must contain `/go-runner` and `/bin/kubectl`, as `registry.k8s.io/kubectl` does.
+- If the operator is stopped for longer than the TTL across the end of a Job, the Job is gone when it restarts, and the CrownJob reads "The job was deleted before it ended.".
 
 ## CrownLabs Image List Updater
 
