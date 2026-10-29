@@ -10,12 +10,12 @@ The CrownLabs infrastructure is composed of the following systems, each one desc
 
 Please, set them up in the following order, since each one is a prerequisite for the next.
 
-- [`base-k3s/`](base-k3s/README.md): CrownLabs needs Kubernetes to run.
+- [`00.base-k3s/`](00.base-k3s/README.md): CrownLabs needs Kubernetes to run.
   K3s is a lightweight Kubernetes distribution, that can be easily run on your laptop. The guide includes instructions to both install it from scratch, and to merge multiple kubeconfig files, in case you already have another cluster.
-- [`envoy/`](envoy/README.md): this is the new ingress controller for Kubernetes, allowing to correctly expose a service on a URL like `https://<service>.crownlabs.local`.
-- [`keycloak/`](keycloak/README.md): the identity and access management solution, providing single-sign-on and authentication for the various services. It is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
-- [`operators/`](operators/README.md): the components that constitute the server-side of the CrownLabs business logic.
-- [`mailpit/`](mailpit/README.md): a fake SMTP server with a web UI, for local email testing. Like Keycloak, it is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
+- [`01.envoy/`](01.envoy/README.md): this is the new ingress controller for Kubernetes, allowing to correctly expose a service on a URL like `https://<service>.crownlabs.local`.
+- [`02.keycloak/`](02.keycloak/README.md): the identity and access management solution, providing single-sign-on and authentication for the various services. It is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
+- [`03.operators/`](03.operators/README.md): the components that constitute the server-side of the CrownLabs business logic.
+- [`04.mailpit/`](04.mailpit/README.md): a fake SMTP server with a web UI, for local email testing. Like Keycloak, it is exposed through an `HTTPRoute` on the Gateway from `envoy/`.
   While all the other systems are almost always required, this one may be skipped, if the system enhancements you have to do are not related to sending emails.
 
 For each system, the dedicated subfolder contains:
