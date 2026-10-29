@@ -15,6 +15,8 @@ configurations:
     keycloak: true
     webhooks: false
     imageList: false
+    # The CrownJob controllers ("Run job"): they need Kueue, serving kueue.x-k8s.io/v1beta2.
+    crownJob: false
 
   # Static labels added to tenant namespaces, after the chart prepends targetLabel.
   tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
@@ -78,6 +80,19 @@ configurations:
         password: ""
         imageListName: harbor-containerdisks
         project: crownlabs-containerdisks
+
+  # Used only when features.crownJob is true.
+  crownJob:
+    # The RuntimeClass of the jobs that request a resource, as resource=runtimeClass,... (e.g. nvidia.com/gpu=nvidia).
+    runtimeClasses: ""
+    # The maximum run time of a job when neither its Template nor its Workspace sets one (a number followed by m, h or d).
+    defaultMaxRunTime: "2h"
+    # How long a finished Job, and each log helper, is kept with its pods, which keep the disk of the instance in use.
+    # The CrownJob itself is kept.
+    finishedJobTTL: "10m"
+    # The image of the Jobs that save the log of each job pod: it must contain /go-runner and /bin/kubectl.
+    logHelperImage: "registry.k8s.io/kubectl:v1.34.1"
+    maxConcurrentReconciles: 1
 
   pvcMirrorProvisioner:
     provisionerName: pmp.crownlabs.polito.it
