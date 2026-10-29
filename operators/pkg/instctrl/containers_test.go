@@ -61,6 +61,8 @@ var _ = Describe("Generation of the container based instances", func() {
 		clientBuilder fake.ClientBuilder
 		reconciler    instctrl.InstanceReconciler
 
+		jobStorageClass string
+
 		instance         clv1alpha2.Instance
 		template         clv1alpha2.Template
 		environment      clv1alpha2.Environment
@@ -124,6 +126,7 @@ var _ = Describe("Generation of the container based instances", func() {
 		}
 
 		environmentIndex = 0
+		jobStorageClass = ""
 		environment = clv1alpha2.Environment{
 			Name:               environmentName,
 			EnvironmentType:    clv1alpha2.ClassContainer,
@@ -215,7 +218,8 @@ var _ = Describe("Generation of the container based instances", func() {
 	JustBeforeEach(func() {
 		reconciler = instctrl.InstanceReconciler{
 			Client: clientBuilder.Build(), Scheme: scheme.Scheme,
-			ContainerEnvOpts: containerOpts,
+			ContainerEnvOpts:    containerOpts,
+			JobStorageClassName: jobStorageClass,
 		}
 
 		ctx, _ = clctx.TenantInto(ctx, &tenant)
@@ -382,7 +386,31 @@ var _ = Describe("Generation of the container based instances", func() {
 
 			It("The PVC should be present and have the expected specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
-				Expect(pvc.Spec).To(Equal(forge.InstancePVCSpec(&environment)))
+				Expect(pvc.Spec).To(Equal(forge.InstancePVCSpec(&template, &environment, "")))
+				Expect(pvc.Spec.AccessModes).To(ConsistOf(corev1.ReadWriteOnce))
+			})
+
+			When("the jobs of the template run in this environment and a job storage class is set", func() {
+				BeforeEach(func() {
+					template.Spec.Job = &clv1alpha2.TemplateJob{EnvironmentName: environmentName}
+					jobStorageClass = "rwx-class"
+				})
+
+				It("The PVC should be ReadWriteMany, with the job storage class", func() {
+					Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
+					Expect(pvc.Spec.AccessModes).To(ConsistOf(corev1.ReadWriteMany))
+					Expect(pvc.Spec.StorageClassName).To(PointTo(Equal("rwx-class")))
+					Expect(pvc.Spec.Resources.Requests.Storage().String()).To(Equal(disk))
+				})
+			})
+
+			When("a job storage class is set, but the template has no jobs", func() {
+				BeforeEach(func() { jobStorageClass = "rwx-class" })
+
+				It("The PVC should be ReadWriteOnce, as without the flag", func() {
+					Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
+					Expect(pvc.Spec).To(Equal(forge.InstancePVCSpec(&template, &environment, "")))
+				})
 			})
 		})
 
@@ -444,6 +472,18 @@ var _ = Describe("Generation of the container based instances", func() {
 			It("The PVC should be present and have unmodified specs", func() {
 				Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
 				Expect(pvc.Spec).To(Equal(corev1.PersistentVolumeClaimSpec{}))
+			})
+
+			When("the jobs of the template run in this environment and a job storage class is set", func() {
+				BeforeEach(func() {
+					template.Spec.Job = &clv1alpha2.TemplateJob{EnvironmentName: environmentName}
+					jobStorageClass = "rwx-class"
+				})
+
+				It("The PVC should keep its specs: they are immutable", func() {
+					Expect(reconciler.Get(ctx, objectName, &pvc)).To(Succeed())
+					Expect(pvc.Spec).To(Equal(corev1.PersistentVolumeClaimSpec{}))
+				})
 			})
 		})
 
