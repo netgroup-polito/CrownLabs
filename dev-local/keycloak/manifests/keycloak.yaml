@@ -52,19 +52,6 @@ spec:
         - name: keycloak
           port: 8080
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  labels:
-    app: keycloak
-  name: keycloak-discovery
-  namespace: default
-spec:
-  selector:
-    app: keycloak
-  clusterIP: None
-  type: ClusterIP
----
 apiVersion: apps/v1
 # Use a stateful setup to ensure that for a rolling update Pods are restarted with a rolling strategy one-by-one.
 # This prevents losing in-memory information stored redundantly in two Pods.
@@ -75,7 +62,7 @@ metadata:
   labels:
     app: keycloak
 spec:
-  serviceName: keycloak-discovery
+  # serviceName: keycloak-discovery
   # Run with one replica to save resources, or with two replicas to allow for rolling updates for configuration changes
   replicas: 1
   selector:
@@ -121,10 +108,6 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: status.podIP
-            # Instruct JGroups which DNS hostname to use to discover other Keycloak nodes
-            # Needs to be unique for each Keycloak cluster
-            - name: KC_CACHE_EMBEDDED_NETWORK_BIND_ADDRESS
-              value: '$(POD_IP)'
             - name: 'KC_DB_URL_DATABASE'
               value: 'keycloak'
             - name: 'KC_DB_URL_HOST'
@@ -220,6 +203,19 @@ spec:
       volumes:
         - name: postgres-data
           emptyDir: {}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: keycloak-cluster-admin
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- apiGroup: rbac.authorization.k8s.io
+  kind: Group
+  name: kubernetes:admin
 ---
 apiVersion: v1
 kind: Service

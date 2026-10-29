@@ -26,9 +26,10 @@ In order to deploy keycloak, we need to define:
 
 - a `Service` to accept incoming HTTP connections (remember that HTTPS is terminated earlier by envoy, so we don't have to worry about certificates here)
 - an `HTTPRoute`, that allows route `keycloak.crownlabs.local` traffic towards the service
-- a discovery `Service`
 - a `StatefulSet` to deploy all the containers required by keycloak
 - a `Deployment` and a `Service` for a deployment, ephemeral PostgreSQL database.
+- a `ClusterRoleBinding`, adding a sample admin from the Keycloak dump (Sample Admin) to the group of K3s admins.
+  _(More details on this later)_
 
 All these components are prepared in the `manifest/keycloak.yaml` configuration file.
 
@@ -65,7 +66,12 @@ You will therefore not reach the page, and have a `ERR_CERT_AUTHORITY_INVALID` e
 You can safely continue on the website ("Advanced" &rarr; "Proceed").
 This should be remembered by your browser, so when you open other websites signed with the same certificate, you will not get the error anymore._
 
-On top of the admin account, the imported realm includes three other credential sets:
+On top of the admin account, the imported realm another credential sets:
+
+- a CrownLabs manager `sample.admin`/`admin123`.
+  This will be used in this guide to check that an authorized, non-root user is correctly authorized to execute kubectl commands.
+
+Moreover, three extra users will be added with the operators' setup (next step, reported here for convenience):
 
 - a user account (`john.doe`/`johndoe123`, with already verified email, in the `crownlabs` realm).
   At [this link ](https://keycloak.crownlabs.local:8443/realms/crownlabs/account/) you can check that the credentials are accepted.
@@ -98,11 +104,11 @@ The full rationale, verification steps and troubleshooting table can be found in
 ### 3.0. Checking that user authorization is currently not setup
 
 _Note: in this step, nothing fundamental will be achieved.
-We will setup a kubeconfig to access the cluster as user, and then we will see that it is not authorized to execute any command.
+We will setup a kubeconfig to access the cluster as non-cluster admin, and then we will see that it is not authorized to execute any command.
 Feel free to skip this step if you don't want to set it up, or do not need to check the before and after._
 
 As for the real CrownLabs instance, our local setup can be accessed also via kubectl commands.
-To test this, we can create a new kubeconfig, to login as John Doe.
+To test this, we can create a new kubeconfig, to login as Sample Admin.
 Please refer to [the base k3s guide, section 2.3](../base-k3s/README.md#23-instructing-kubectl-to-use-the-file-single-kubeconfig) if you need help to have multiple kubeconfigs available at the same time.
 
 With the official "[Accessing a CrownLabs Sandbox Namespace](https://crownlabs.polito.it/resources/sandbox/)" guide, we can set up everything needed to connect.
@@ -117,16 +123,16 @@ kind: Config
 clusters:
 - cluster:
     server: https://apiserver.crownlabs.local:8443
-  name: k3s_JohnDoe
+  name: k3s_nonClusterAdmin
 contexts:
 - context:
-    cluster: k3s_JohnDoe
-    namespace: tenant-john-doe
-    user: k3s_JohnDoe-oidc
-  name: k3s_JohnDoe
-current-context: k3s_JohnDoe
+    cluster: k3s_nonClusterAdmin
+    namespace: tenant-sample-admin
+    user: k3s_nonClusterAdmin-oidc
+  name: k3s_nonClusterAdmin
+current-context: k3s_nonClusterAdmin
 users:
-- name: k3s_JohnDoe-oidc
+- name: k3s_nonClusterAdmin-oidc
   user:
     exec:
       apiVersion: client.authentication.k8s.io/v1beta1
@@ -136,8 +142,8 @@ users:
       - --oidc-issuer-url=https://keycloak.crownlabs.local:8443/realms/crownlabs
       - --oidc-client-id=k8s
       - --skip-open-browser
-      - --username=john.doe
-      - --password=johndoe123
+      - --username=sample.admin
+      - --password=admin123
       command: kubectl
 ```
 
@@ -145,22 +151,21 @@ users:
 
 _Note: while working with this new kubeconfig context, remember that the main k3s context (likely called `default`) must be active when launching `WSL_bridge.sh`._
 
-As normal user (not cluster admin), you are very limted in the kubectl commands you can execute.
-One of the commands allowed in the main CrownLabs instance is the one to get info about your own tenant:
+If authorization works correctly, Sample Admin will be able to execute every command on the k3s cluster.
+For instance, it can get all the running pods:
 
 ```bash
-kubectl get tenant.crownlabs.polito.it john.doe
+kubectl get po -A
 ```
 
 If you try to execute it now (with this new kubeconfig), you will get the following error:
 
 ```
-E1011 11:15:35.526873   47433 memcache.go:265] "Unhandled Error" err="couldn't get current server API group list: the server has asked for the client to provide credentials"
-Unable to connect to the server: getting credentials: exec: executable kubectl failed with exit code 1
+error: You must be logged in to the server (Unauthorized)
 ```
 
-This is because the k3s api needs to authenticate you, but _does not know_ a John Doe, which you are claiming to be.
-At the moment, John Doe only _lives_ inside Keycloak, which is an application _inside_ k3s, of which k3s does not know anything.
+This is because the k3s api needs to authenticate you, but _does not know_ a Sample Admin, which you are claiming to be.
+At the moment, Sample Admin only _lives_ inside Keycloak, which is an application _inside_ k3s, of which k3s does not know anything.
 
 ### 3.1. Considering the root certificate as trusted
 
@@ -230,22 +235,15 @@ Now, everything should be setup for having Keycloak handle the authentication fo
 Running the same command as before should now not result in an authentication error:
 
 ```bash
-# make sure you are using the john.doe kubeconfig
+# make sure you are using the sample.admin kubeconfig
 
-kubectl get tenant.crownlabs.polito.it john.doe
+kubectl get po -A
 ```
 
-If everything was correct, you should receive another kind of error:
+If everything was correct, you should be presented with the list of running pods.
 
-```
-error: the server doesn't have a resource type "tenant"
-```
-
-This is normal behaviour for the moment.
-The k3s successfully authenticated our user using Keycloak, hence the error is not "provide credentials" anymore.
-
-This new error is caused by the fact that "tenant" is a custom resource, created in a future guide (operators): at the moment, k3s is not able to provide it for us.
-Still, the authentication was successful &ndash; which is what we care about right now.
+_Note: sometimes you may still get the same error as before on the first runs of the command.
+Try launching it a couple of times to check if it fixes itself automatically._
 
 ## Exporting the realm
 

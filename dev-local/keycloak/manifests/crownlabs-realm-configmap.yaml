@@ -254,49 +254,9 @@ data:
           } ],
           "security-admin-console" : [ ],
           "k8s" : [ {
-            "id" : "473b9934-64f3-4603-abad-0255432742dc",
-            "name" : "workspace-coffee:user",
-            "description" : "Just coffee User Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "9f765e91-5162-44a9-91cc-085ddea22dff",
-            "attributes" : { }
-          }, {
-            "id" : "65372e2a-ca09-4ace-90cc-64a0799eff51",
-            "name" : "workspace-chill-pepper:user",
-            "description" : "A bit spicy User Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "9f765e91-5162-44a9-91cc-085ddea22dff",
-            "attributes" : { }
-          }, {
-            "id" : "3eb94b99-4690-4d2f-b5f7-43002e68697b",
-            "name" : "workspace-tea:manager",
-            "description" : "A cup of tea from the queen Manager Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "9f765e91-5162-44a9-91cc-085ddea22dff",
-            "attributes" : { }
-          }, {
-            "id" : "c86dde56-3c46-486d-abbb-54a8629a8bce",
-            "name" : "workspace-chill-pepper:manager",
-            "description" : "A bit spicy Manager Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "9f765e91-5162-44a9-91cc-085ddea22dff",
-            "attributes" : { }
-          }, {
-            "id" : "27b31488-131c-4a75-ac4f-0fd218ce8d68",
-            "name" : "workspace-coffee:manager",
-            "description" : "Just coffee Manager Role",
-            "composite" : false,
-            "clientRole" : true,
-            "containerId" : "9f765e91-5162-44a9-91cc-085ddea22dff",
-            "attributes" : { }
-          }, {
-            "id" : "6d89122c-6997-4303-8198-aedfef7ed712",
-            "name" : "workspace-tea:user",
-            "description" : "A cup of tea from the queen User Role",
+            "id" : "a1bf73f1-ef74-4ba4-bdd1-f52ff1695faf",
+            "name" : "admin",
+            "description" : "",
             "composite" : false,
             "clientRole" : true,
             "containerId" : "9f765e91-5162-44a9-91cc-085ddea22dff",
@@ -433,27 +393,28 @@ data:
       "webAuthnPolicyPasswordlessAcceptableAaguids" : [ ],
       "webAuthnPolicyPasswordlessExtraOrigins" : [ ],
       "users" : [ {
-        "id" : "a34101d3-7c98-4226-bb5c-41b783a8a9b1",
-        "username" : "john.doe",
-        "firstName" : "John",
-        "lastName" : "Doe",
-        "email" : "jonh.doe@email.com",
+        "id" : "f8ae64b6-9c61-4436-8b8e-544fa73e192d",
+        "username" : "sample.admin",
+        "firstName" : "Sample",
+        "lastName" : "Admin",
+        "email" : "sample.admin@crownlabs.local",
         "emailVerified" : true,
         "enabled" : true,
-        "createdTimestamp" : 1774007497397,
+        "createdTimestamp" : 1791997832610,
         "totp" : false,
         "credentials" : [ {
-          "id" : "c3645a97-47e3-47e6-a70d-ff207e2c7314",
+          "id" : "28131cff-5622-40ee-8446-97f87f9d82ae",
           "type" : "password",
-          "createdDate" : 1783329319966,
-          "secretData" : "{\"value\":\"iB6huiiwqHBQykaONudeC9U519cdyyTeRO2r22FfIIw=\",\"salt\":\"a265LCeSNKkCfUFHSC9r8Q==\",\"additionalParameters\":{}}",
+          "userLabel" : "My password",
+          "createdDate" : 1791997884464,
+          "secretData" : "{\"value\":\"RWHXql2Tnf8F86OYMeFJ18gxvGqLR3dbfyKr8ga9/Sc=\",\"salt\":\"+6Bla/kFaw3QXpHayO2CZw==\",\"additionalParameters\":{}}",
           "credentialData" : "{\"hashIterations\":5,\"algorithm\":\"argon2\",\"additionalParameters\":{\"hashLength\":[\"32\"],\"memory\":[\"7168\"],\"type\":[\"id\"],\"version\":[\"1.3\"],\"parallelism\":[\"1\"]}}"
         } ],
         "disableableCredentialTypes" : [ ],
         "requiredActions" : [ ],
         "realmRoles" : [ "default-roles-crownlabs" ],
         "clientRoles" : {
-          "k8s" : [ "workspace-tea:user", "workspace-coffee:manager" ]
+          "k8s" : [ "admin" ]
         },
         "notBefore" : 0,
         "groups" : [ ]
@@ -656,6 +617,56 @@ data:
         "authenticationFlowBindingOverrides" : { },
         "fullScopeAllowed" : true,
         "nodeReRegistrationTimeout" : -1,
+        "protocolMappers" : [ {
+          "id" : "52ccbfcb-cadb-450b-ab8f-143770579325",
+          "name" : "email",
+          "protocol" : "openid-connect",
+          "protocolMapper" : "oidc-usermodel-property-mapper",
+          "consentRequired" : false,
+          "config" : {
+            "introspection.token.claim" : "true",
+            "userinfo.token.claim" : "true",
+            "user.attribute" : "email",
+            "id.token.claim" : "true",
+            "lightweight.claim" : "false",
+            "access.token.claim" : "true",
+            "claim.name" : "user_email",
+            "jsonType.label" : "String"
+          }
+        }, {
+          "id" : "22d57ae5-341a-462e-81b3-e1e42b330431",
+          "name" : "username",
+          "protocol" : "openid-connect",
+          "protocolMapper" : "oidc-usermodel-property-mapper",
+          "consentRequired" : false,
+          "config" : {
+            "introspection.token.claim" : "true",
+            "userinfo.token.claim" : "true",
+            "user.attribute" : "username",
+            "id.token.claim" : "true",
+            "lightweight.claim" : "false",
+            "access.token.claim" : "true",
+            "claim.name" : "preferred_username",
+            "jsonType.label" : "String"
+          }
+        }, {
+          "id" : "dcc17bd1-07ee-4102-ba7d-5b6e2a68901f",
+          "name" : "groups",
+          "protocol" : "openid-connect",
+          "protocolMapper" : "oidc-usermodel-client-role-mapper",
+          "consentRequired" : false,
+          "config" : {
+            "introspection.token.claim" : "true",
+            "multivalued" : "true",
+            "userinfo.token.claim" : "true",
+            "id.token.claim" : "true",
+            "lightweight.claim" : "false",
+            "access.token.claim" : "true",
+            "claim.name" : "groups",
+            "jsonType.label" : "String",
+            "usermodel.clientRoleMapping.clientId" : "k8s"
+          }
+        } ],
         "defaultClientScopes" : [ "web-origins", "acr", "roles", "profile", "k8s-audience", "groups", "api", "basic", "email" ],
         "optionalClientScopes" : [ "address", "phone", "organization", "offline_access", "microprofile-jwt" ]
       }, {
