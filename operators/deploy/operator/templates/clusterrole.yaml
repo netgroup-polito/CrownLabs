@@ -44,3 +44,83 @@ rules:
 - apiGroups: ["coordination.k8s.io"]
   resources: ["leases"]
   verbs: ["get", "create", "update", "delete"]
+
+# The CrownJobs, also when the CrownJob controllers are disabled: the operator does not create or delete them, but it
+# binds crownlabs-manage-instances (tenant namespaces, workspace managers), which grants these verbs, and RBAC refuses
+# a binding that grants more than the binder holds.
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["crownjobs"]
+  verbs: ["get", "list", "watch", "create", "delete", "deletecollection"]
+{{- if .Values.configurations.features.crownJob }}
+
+# CrownJob controllers (--enable-crownjob). Each rule lists the verbs their code uses, even if a rule above grants
+# them too; the Instances (get, list, watch, and patch for the finalizer), Templates, Workspaces, Tenants and
+# Namespaces they read are covered by the rules above.
+# The status of the CrownJobs, written by the crownjob and crownjob-instance controllers.
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["crownjobs/status"]
+  verbs: ["patch"]
+
+# The Jobs are owned by their CrownJob, and the ClusterQueues and LocalQueues by their Workspace, with
+# blockOwnerDeletion: with the OwnerReferencesPermissionEnforcement admission plugin, this needs update on the
+# finalizers of the owner.
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["crownjobs/finalizers", "workspaces/finalizers"]
+  verbs: ["update"]
+
+# The Job of each CrownJob and its log helpers: watched, created, annotated, and deleted when a job is canceled.
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch", "create", "patch", "delete"]
+
+# The pods of the Jobs are listed without cache. get on pods and pods/log are not used by the operator: they are
+# granted by the Role crownjob-log-reader that it creates for the log helpers, and RBAC refuses a Role that grants
+# more than its creator holds.
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+
+# The events of a starting job pod (is its image being downloaded?), listed without cache, and the events of the
+# CrownJobs.
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["list", "create", "patch"]
+
+# The Deployment and the disk of the instance, read before the Job is created and before each log helper.
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["persistentvolumeclaims"]
+  verbs: ["get"]
+
+# The ServiceAccount, Role and RoleBinding crownjob-log-reader of each tenant namespace. They are written with
+# server-side apply, which needs create when the object does not exist yet, and patch afterwards.
+- apiGroups: [""]
+  resources: ["serviceaccounts"]
+  verbs: ["create", "patch"]
+- apiGroups: ["rbac.authorization.k8s.io"]
+  resources: ["roles", "rolebindings"]
+  verbs: ["create", "patch"]
+
+# Kueue: the ClusterQueue of each Workspace (watched, to restore it) and its LocalQueues, written with server-side
+# apply (create and patch), the shared ResourceFlavor; the Workloads and the priority classes are only read.
+- apiGroups: ["kueue.x-k8s.io"]
+  resources: ["clusterqueues"]
+  verbs: ["get", "list", "watch", "create", "patch", "delete"]
+- apiGroups: ["kueue.x-k8s.io"]
+  resources: ["localqueues"]
+  verbs: ["create", "patch"]
+- apiGroups: ["kueue.x-k8s.io"]
+  resources: ["resourceflavors"]
+  verbs: ["get", "create"]
+- apiGroups: ["kueue.x-k8s.io"]
+  resources: ["workloads"]
+  verbs: ["list"]
+- apiGroups: ["kueue.x-k8s.io"]
+  resources: ["workloadpriorityclasses"]
+  verbs: ["get"]
+{{- end }}
