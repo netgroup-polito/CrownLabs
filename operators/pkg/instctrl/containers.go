@@ -56,13 +56,14 @@ func (r *InstanceReconciler) enforcePVC(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
+	template := clctx.TemplateFrom(ctx)
 
 	pvc := corev1.PersistentVolumeClaim{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &pvc, func() error {
 		// PVC's spec is immutable, it has to be set at creation
 		if pvc.CreationTimestamp.IsZero() {
-			pvc.Spec = forge.InstancePVCSpec(environment)
+			pvc.Spec = forge.InstancePVCSpec(template, environment, r.JobStorageClassName)
 		}
 		pvc.SetLabels(forge.EnvironmentObjectLabels(pvc.GetLabels(), instance, environment))
 		return ctrl.SetControllerReference(instance, &pvc, r.Scheme)

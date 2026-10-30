@@ -87,6 +87,7 @@ func main() {
 	var enablePmp bool
 	var enableKeycloak bool
 	var enableImageList bool
+	var enableCrownJob bool
 	flag.BoolVar(&enableTenant, "enable-tenant", false, "Enable the tenant controller.")
 	flag.BoolVar(&enableWorkspace, "enable-workspace", false, "Enable the workspace controller.")
 	flag.BoolVar(&enableInstance, "enable-instance", false, "Enable the instance controller.")
@@ -95,6 +96,7 @@ func main() {
 	flag.BoolVar(&enablePmp, "enable-pmp", false, "Enable the PVC mirror provisioner.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", false, "Enable the Keycloak integration.")
 	flag.BoolVar(&enableImageList, "enable-imagelist", false, "Enable the image list updater.")
+	flag.BoolVar(&enableCrownJob, "enable-crownjob", false, "Enable the CrownJob controllers (they require Kueue).")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
@@ -183,6 +185,14 @@ func main() {
 		err := setupSharedVolume(mgr, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create sharedvolume controller")
+		}
+	}
+
+	if enableCrownJob {
+		log.Info("Starting the crownjob controllers")
+		err := setupCrownJob(mgr, targetLabel)
+		if err != nil {
+			klog.Fatal(err, "Unable to create crownjob controllers")
 		}
 	}
 

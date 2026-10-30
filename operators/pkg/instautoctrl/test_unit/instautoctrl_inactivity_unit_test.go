@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
@@ -652,6 +653,46 @@ var _ = Describe("Instautoctrl inactivity unit test", func() {
 
 			Expect(err).To(HaveOccurred())
 			Expect(output).To(Equal("0"))
+		})
+	})
+
+	Describe("Reconciling an instance that is being deleted", func() {
+		It("should skip it, while it initializes the annotations of an instance that is not (control)", func() {
+			r := &instautoctrl.InstanceInactiveTerminationReconciler{
+				Client:             k8sClient,
+				NamespaceWhitelist: metav1.LabelSelector{MatchLabels: whiteListMap},
+			}
+			controlKey := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+			deletedKey := types.NamespacedName{Name: PersistentInstanceName, Namespace: tenantNs.Name}
+
+			By("Reconciling the instance that is not being deleted (control)")
+			_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: controlKey})
+			Expect(err).ToNot(HaveOccurred())
+			controlInstance := &clv1alpha2.Instance{}
+			Expect(k8sClient.Get(ctx, controlKey, controlInstance)).To(Succeed())
+			Expect(controlInstance.Annotations).To(HaveKey(forge.AlertAnnotationNum))
+
+			By("Deleting the other instance, kept by a finalizer")
+			deletedInstance := &clv1alpha2.Instance{}
+			Expect(k8sClient.Get(ctx, deletedKey, deletedInstance)).To(Succeed())
+			deletedInstance.Finalizers = append(deletedInstance.Finalizers, "crownlabs.polito.it/crownjobs")
+			Expect(k8sClient.Update(ctx, deletedInstance)).To(Succeed())
+			DeferCleanup(func() {
+				Expect(k8sClient.Get(ctx, deletedKey, deletedInstance)).To(Succeed())
+				deletedInstance.Finalizers = nil
+				Expect(k8sClient.Update(ctx, deletedInstance)).To(Succeed())
+			})
+			Expect(k8sClient.Delete(ctx, deletedInstance)).To(Succeed())
+			Expect(k8sClient.Get(ctx, deletedKey, deletedInstance)).To(Succeed())
+			resourceVersion := deletedInstance.ResourceVersion
+
+			By("Reconciling the instance being deleted: it is neither requeued nor changed")
+			result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: deletedKey})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(result).To(Equal(ctrl.Result{}))
+			Expect(k8sClient.Get(ctx, deletedKey, deletedInstance)).To(Succeed())
+			Expect(deletedInstance.ResourceVersion).To(Equal(resourceVersion))
+			Expect(deletedInstance.Annotations).ToNot(HaveKey(forge.AlertAnnotationNum))
 		})
 	})
 

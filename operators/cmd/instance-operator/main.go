@@ -67,6 +67,7 @@ func main() {
 	publicExposureCommonAnnotationRaw := ""
 	publicExposureCommonLabelsRaw := ""
 	mirrorStorageClass := ""
+	jobStorageClass := ""
 	enableAuth := true
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
@@ -94,6 +95,8 @@ func main() {
 	flag.StringVar(&publicExposureOpts.LoadBalancerIPsKey, "public-exposure-loadbalancer-ips-key", "metallb.universe.tf/loadBalancerIPs", "Annotation key for specifying LoadBalancer IPs")
 
 	flag.StringVar(&mirrorStorageClass, "mirror-storage-class", "pvc-mirror", "The StorageClass to be used for all PVCs which are going to be mirrors")
+	flag.StringVar(&jobStorageClass, "job-storage-class", "", "If set, the disk of the environment where the jobs of a template run is created ReadWriteMany, "+
+		"with this StorageClass unless the environment sets its own (empty: every disk is ReadWriteOnce)")
 
 	flag.BoolVar(&enableAuth, "enable-auth", true, "Enable adding authentication on the exposed resources")
 	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
@@ -195,6 +198,7 @@ func main() {
 		WebSSHMasterPublicKey:     pubKeyBytes,
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
+		JobStorageClassName:       jobStorageClass,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

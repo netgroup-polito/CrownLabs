@@ -21,6 +21,7 @@ import (
 	. "github.com/onsi/gomega"
 	corev1 "k8s.io/api/core/v1"
 	netv1 "k8s.io/api/networking/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
@@ -134,6 +135,27 @@ var _ = Describe("Tenant forging", func() {
 
 			Expect(rq.Labels).To(HaveKeyWithValue("existing-label", "existing-value"))
 			Expect(rq.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+		})
+	})
+
+	var _ = Describe("ConfigureTenantInstancesResourceQuota", func() {
+		It("Should set the labels, the CPU and memory limits and the scope NotTerminating", func() {
+			rq := &corev1.ResourceQuota{}
+			quota := &apicommon.WorkspaceResourceQuota{ResourceSpec: apicommon.ResourceSpec{CPU: 2, Memory: resource.MustParse("4Gi")}}
+			labels := map[string]string{
+				"custom-label": "custom-value",
+			}
+
+			forge.ConfigureTenantInstancesResourceQuota(rq, quota, labels)
+
+			Expect(rq.Labels).To(HaveKeyWithValue("custom-label", "custom-value"))
+			Expect(rq.Spec.Scopes).To(ConsistOf(corev1.ResourceQuotaScopeNotTerminating))
+			Expect(rq.Spec.Hard).To(Equal(corev1.ResourceList{
+				corev1.ResourceRequestsCPU:    *resource.NewQuantity(2, resource.DecimalSI),
+				corev1.ResourceLimitsCPU:      *resource.NewQuantity(2, resource.DecimalSI),
+				corev1.ResourceRequestsMemory: resource.MustParse("4Gi"),
+				corev1.ResourceLimitsMemory:   resource.MustParse("4Gi"),
+			}))
 		})
 	})
 

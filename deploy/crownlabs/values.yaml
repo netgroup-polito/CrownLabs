@@ -124,6 +124,19 @@ operator:
       webhooks: true
       imageList: true
       instanceSnapshot: true
+      # The CrownJob controllers ("Run job"): they need Kueue, serving kueue.x-k8s.io/v1beta2.
+      crownJob: false
+    # Used only when features.crownJob is true.
+    crownJob:
+      # The RuntimeClass of the jobs that request a resource, as resource=runtimeClass,... (e.g. nvidia.com/gpu=nvidia).
+      runtimeClasses: ""
+      # The maximum run time of a job when neither its Template nor its Workspace sets one.
+      defaultMaxRunTime: "2h"
+      # How long a finished Job, and each log helper, is kept with its pods (the CrownJob is kept).
+      finishedJobTTL: "10m"
+      # The image of the Jobs that save the log of each job pod: it must contain /go-runner and /bin/kubectl.
+      logHelperImage: "registry.k8s.io/kubectl:v1.34.1"
+      maxConcurrentReconciles: 1
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -265,6 +278,9 @@ instance-operator:
       contentUploaderImage: crownlabs/content-uploader
     maxConcurrentReconciles: 1
     maxAutomationConcurrentReconciles: 1
+    # The storage class of the ReadWriteMany disk of the environments that run jobs, when the environment sets none.
+    # Empty: every disk is created as before.
+    jobStorageClass: ""
 
     monitoring:
       prometheusURL: http://kube-prometheus-stack-prometheus.monitoring:9090
