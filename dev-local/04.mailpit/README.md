@@ -55,7 +55,7 @@ It is also already setup to work automatically, without any required setup.
 
 If you need to develop a feature that needs to send emails, please refer to the `Crownmail` go library (inside the `operators` library)
 
-## Next
+## 4. More customization
 
-- [`../envoy/README.md`](../envoy/README.md): the shared Gateway this routes through.
-- [Mailpit's runtime options](https://mailpit.axllent.org/docs/configuration/runtime-options/), if you need to tweak retention, add basic authentication, and so on.
+Please refer to [Mailpit's runtime options docs](https://mailpit.axllent.org/docs/configuration/runtime-options/) if you need to tweak change the Mailpit configuration.
+Examples of fields you can change are retention time and authentication.
