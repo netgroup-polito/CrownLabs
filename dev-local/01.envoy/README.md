@@ -119,7 +119,7 @@ All these things are done automatically by applying the manifest in this folder.
 Furthermore, the gateway needs to be restarted so that the changes take effect:
 
 ```bash
-kubectl apply -f dev-local/envoy/manifests
+kubectl apply -f dev-local/01.envoy/manifests
 kubectl wait --for=condition=Ready certificate/crownlabs-tls -n default --timeout=30s
 kubectl rollout restart deployment -n envoy-gateway-system envoy-gateway
 ```

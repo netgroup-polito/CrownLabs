@@ -19,7 +19,7 @@ kubectl exec keycloak-0 -- cat /tmp/export/crownlabs-realm.json > /tmp/crownlabs
   echo "# See regenerating-the-realm-export.md to refresh this file."
   kubectl create configmap keycloak-realm-import \
     --from-file=crownlabs-realm.json=/tmp/crownlabs-realm.json --dry-run=client -o yaml
-} > dev-local/keycloak/manifests/crownlabs-realm-configmap.yaml
+} > dev-local/02.keycloak/manifests/crownlabs-realm-configmap.yaml
 rm /tmp/crownlabs-realm.json
 ```
 
@@ -34,12 +34,12 @@ Now, the `manifests/crownlabs-realm-configmap.yaml` file should be updated with 
 **Before you commit a new export**, always check that any newly auto-generated Keycloak client secret is pinned to a known value, the same way `operator-local-dev-secret` is, instead of ending up in the repository as a random string:
 
 ```bash
-TOKEN=$(curl -sk -X POST https://keycloak.crownlabs.local/realms/master/protocol/openid-connect/token \
+TOKEN=$(curl -sk -X POST https://keycloak.crownlabs.local:8443/realms/master/protocol/openid-connect/token \
   -d "client_id=admin-cli" -d "username=admin" -d "password=admin" -d "grant_type=password" \
   | python3 -c "import json,sys; print(json.load(sys.stdin)['access_token'])")
-CLIENT_UUID=$(curl -sk "https://keycloak.crownlabs.local/admin/realms/crownlabs/clients?clientId=<client-id>" \
+CLIENT_UUID=$(curl -sk "https://keycloak.crownlabs.local:8443/admin/realms/crownlabs/clients?clientId=<client-id>" \
   -H "Authorization: Bearer $TOKEN" | python3 -c "import json,sys; print(json.load(sys.stdin)[0]['id'])")
-curl -sk -X PUT "https://keycloak.crownlabs.local/admin/realms/crownlabs/clients/$CLIENT_UUID" \
+curl -sk -X PUT "https://keycloak.crownlabs.local:8443/admin/realms/crownlabs/clients/$CLIENT_UUID" \
   -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
   -d '{"secret": "<your-chosen-known-value>"}'
 ```

@@ -18,7 +18,7 @@ We need to create:
 All these components can be set up with the following commands:
 
 ```bash
-kubectl apply -f dev-local/mailpit/manifests
+kubectl apply -f dev-local/04.mailpit/manifests
 kubectl rollout status deployment/mailpit
 ```
 

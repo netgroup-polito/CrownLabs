@@ -44,7 +44,7 @@ This file should therefore be applied before the previous.
 Both files can be applied together using the following command:
 
 ```bash
-kubectl apply -f dev-local/keycloak/manifests
+kubectl apply -f dev-local/02.keycloak/manifests
 ```
 
 You can check that keycloak has been deployed correctly with the following command:
