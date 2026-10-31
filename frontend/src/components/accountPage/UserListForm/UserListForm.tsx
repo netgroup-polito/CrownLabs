@@ -13,7 +13,7 @@ export interface IUserListFormProps {
 
 // Keycloak validation (person-name-prohibited-characters)
 // eslint-disable-next-line no-control-regex
-const PERSON_NAME_REGEX = /^[^<>&"$%!#?§;*~\/\\|^=\[\]{}()\x00-\x1F\x7F\x85\u2028\u2029]+$/;
+const PERSON_NAME_REGEX = /^[^<>&"$%!#?§;*~/\\|^=[\]{}()\p{Cc}\u2028\u2029]+$/u;
 
 const { Option } = AutoComplete;
 
