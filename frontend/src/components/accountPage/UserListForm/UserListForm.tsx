@@ -11,6 +11,10 @@ export interface IUserListFormProps {
   users: UserAccountPage[];
 }
 
+// Keycloak validation (person-name-prohibited-characters)
+// eslint-disable-next-line no-control-regex
+const PERSON_NAME_REGEX = /^[^<>&"$%!#?§;*~\/\\|^=\[\]{}()\x00-\x1F\x7F\x85\u2028\u2029]+$/;
+
 const { Option } = AutoComplete;
 
 const UserListForm: FC<IUserListFormProps> = props => {
@@ -50,6 +54,10 @@ const UserListForm: FC<IUserListFormProps> = props => {
   const requiredFieldRule = {
     required: true,
     message: 'This field cannot be empty',
+  };
+  const personNameRule = {
+    pattern: PERSON_NAME_REGEX,
+    message: 'Contains invalid characters: < > & " $ % ! # ? § ; * ~ / \\ | ^ = [ ] { } ( )',
   };
 
   const handleSearch = (value: string) => {
@@ -125,7 +133,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
         name="name"
         label="Name"
         validateTrigger="onBlur"
-        rules={[requiredFieldRule]}
+        rules={[requiredFieldRule, personNameRule]}
       >
         <Input disabled={searched} />
       </Form.Item>
@@ -133,7 +141,7 @@ const UserListForm: FC<IUserListFormProps> = props => {
         name="surname"
         label="Surname"
         validateTrigger="onBlur"
-        rules={[requiredFieldRule]}
+        rules={[requiredFieldRule, personNameRule]}
       >
         <Input disabled={searched} />
       </Form.Item>
