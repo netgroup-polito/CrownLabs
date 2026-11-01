@@ -124,6 +124,10 @@ operator:
       webhooks: true
       imageList: true
       instanceSnapshot: true
+      activityTracking: true
+    activityTracking:
+      debounceInterval: "15m"
+      alsPort: 9000
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs

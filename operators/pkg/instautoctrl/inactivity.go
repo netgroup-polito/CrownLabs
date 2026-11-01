@@ -174,22 +174,20 @@ func (r *InstanceInactiveTerminationReconciler) Reconcile(ctx context.Context, r
 		return r.HandlePoweredOffInstance(ctx, &instance, &deleteInstance)
 	}
 
-	// ── 6. Instance running, Prometheus not available → exit ──
-	if r.Prometheus == nil {
-		dbgLog.Info("Prometheus not configured, skipping activity tracking")
-		return ctrl.Result{}, nil
-	}
+	// ── 6. Update last activity from Prometheus if configured (runs for ALL running instances) ──
+	if r.Prometheus != nil {
+		if r.ShouldSkipDueToThreshold(ctx, &instance) {
+			return ctrl.Result{RequeueAfter: r.LastActivityCheckThreshold}, nil
+		}
 
-	// ── 7. Update last activity from Prometheus (runs for ALL running instances) ──
-	if r.ShouldSkipDueToThreshold(ctx, &instance) {
-		return ctrl.Result{RequeueAfter: r.LastActivityCheckThreshold}, nil
+		if updateErr := r.UpdateLastActivity(ctx); updateErr != nil {
+			log.Error(updateErr, "failed to update last activity annotation")
+			return ctrl.Result{}, updateErr
+		}
+		tracer.Step("last activity checked")
+	} else {
+		dbgLog.Info("Prometheus not configured, relying on direct activity annotations")
 	}
-
-	if updateErr := r.UpdateLastActivity(ctx); updateErr != nil {
-		log.Error(updateErr, "failed to update last activity annotation")
-		return ctrl.Result{}, updateErr
-	}
-	tracer.Step("last activity checked")
 
 	// ── 8. Check namespace label to skip inactivity termination ──
 	skip, skipErr := r.CheckSkipInactivityByNSLabel(ctx, req.Namespace)
@@ -407,12 +405,18 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 	lookback := r.MaxLastActivityRequeueTime
 	var queryErrors []error
 
-	// Query Nginx activity
-	queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
-	lastActivityNginx, errNginx := r.Prometheus.GetLastActivityTime(queryNginx, lookback)
-	if errNginx != nil {
-		log.Error(errNginx, "failed querying Nginx activity")
-		queryErrors = append(queryErrors, fmt.Errorf("failed querying Nginx activity: %w", errNginx))
+	// Query Nginx activity if query is configured
+	var (
+		lastActivityNginx time.Time
+		errNginx          error
+	)
+	if r.Prometheus.GetQueryNginxData() != "" {
+		queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
+		lastActivityNginx, errNginx = r.Prometheus.GetLastActivityTime(queryNginx, lookback)
+		if errNginx != nil {
+			log.Error(errNginx, "failed querying Nginx activity")
+			queryErrors = append(queryErrors, fmt.Errorf("failed querying Nginx activity: %w", errNginx))
+		}
 	}
 
 	// Query WebSSH activity across all environments (find maximum)

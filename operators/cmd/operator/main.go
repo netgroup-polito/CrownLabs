@@ -30,9 +30,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/server"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/activity"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
@@ -53,6 +55,7 @@ func init() {
 	utilruntime.Must(clv1alpha2.AddToScheme(rscheme))
 	utilruntime.Must(virtv1.AddToScheme(rscheme))
 	utilruntime.Must(cdiv1beta1.AddToScheme(rscheme))
+	utilruntime.Must(gatewayv1.Install(rscheme))
 }
 
 func main() {
@@ -95,6 +98,13 @@ func main() {
 	flag.BoolVar(&enablePmp, "enable-pmp", false, "Enable the PVC mirror provisioner.")
 	flag.BoolVar(&enableKeycloak, "enable-keycloak", false, "Enable the Keycloak integration.")
 	flag.BoolVar(&enableImageList, "enable-imagelist", false, "Enable the image list updater.")
+
+	var enableActivityTracking bool
+	var activityDebounceInterval time.Duration
+	var activityALSBindAddr string
+	flag.BoolVar(&enableActivityTracking, "enable-activity-tracking", false, "Enable tracking user activity via Envoy Access Log Service.")
+	flag.DurationVar(&activityDebounceInterval, "activity-debounce-interval", activity.DefaultDebounceInterval, "Debounce interval for activity updates.")
+	flag.StringVar(&activityALSBindAddr, "activity-als-bind-addr", ":9000", "The bind address for Envoy gRPC Access Log Service.")
 
 	flag.BoolVar(&enableWebhooks, "enable-webhooks", true, "Enable the webhooks server.")
 
@@ -198,6 +208,15 @@ func main() {
 		err := setupPmp(ctx, mgr, log, targetLabel)
 		if err != nil {
 			klog.Fatal(err, "Unable to create PVC mirror provisioner")
+		}
+	}
+
+	if enableActivityTracking {
+		log.Info("Activity Tracking via Envoy ALS enabled", "bindAddr", activityALSBindAddr, "debounceInterval", activityDebounceInterval)
+		activityTracker := activity.NewTracker(mgr.GetClient(), activityDebounceInterval).WithLogger(log)
+		alsServer := activity.NewALSServer(activityTracker, activityALSBindAddr, log)
+		if err := mgr.Add(alsServer); err != nil {
+			klog.Fatal(err, "Unable to add ALS server to manager")
 		}
 	}
 
