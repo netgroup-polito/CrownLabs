@@ -1,4 +1,3 @@
-{{- if .Values.global.gateway.gatewayApiMode }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -29,4 +28,3 @@ spec:
           name: {{ include "qlkube.fullname" . }}
           port: {{ .Values.service.port }}
           weight: 1
-{{- end }}

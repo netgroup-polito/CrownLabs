@@ -86,7 +86,22 @@ In the following, both types of challenges are configured and made available. In
 
 ## Use cert-manager
 
-### Secure Ingress Resources
+### Secure Gateway Resources (Gateway API)
+
+`cert-manager` can watch `Gateway` resources and automatically create the `Certificate` and target TLS `Secret` referenced in `spec.listeners[].tls.certificateRefs`.
+
+To request certificates for a `Gateway`, add an annotation in `metadata.annotations`:
+
+```yaml
+annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-production-gateway
+```
+
+Additional requirements:
+* For ACME HTTP-01, the `Gateway` should expose an HTTP listener on port 80 reachable from the Internet.
+* The ACME challenge `HTTPRoute` must be allowed to attach to that HTTP listener.
+
+### [DEPRECATED] Secure Ingress Resources
 
 A common use-case for cert-manager is requesting TLS signed certificates to secure `Ingress` resources. This operation can be performed automatically adding an ad-hoc annotation to the `Ingress` resource pointing to the `ClusterIssuer` resource of interest:
 
@@ -98,23 +113,6 @@ annotations:
 ```
 
 A valid certificate associated with the `Ingress` host is automatically generated and stored within the secret pointed by the `tls.secretName` field of the `Ingress` resource.
-
-### Secure Gateway Resources (Gateway API)
-
-`cert-manager` can also watch `Gateway` resources and automatically create the `Certificate` and target TLS `Secret` referenced in `spec.listeners[].tls.certificateRefs`.
-
-To request certificates for a `Gateway`, add an annotation in `metadata.annotations`:
-
-```yaml
-annotations:
-    cert-manager.io/cluster-issuer: letsencrypt-production-gateway
-```
-
-Additional requirements:
-
-* `cert-manager` Gateway API support must be enabled (`config.enableGatewayAPI: true`).
-* For ACME HTTP-01, the `Gateway` should expose an HTTP listener on port 80 reachable from the Internet.
-* The ACME challenge `HTTPRoute` must be allowed to attach to that HTTP listener.
 
 ### Certificate Resources
 
@@ -130,6 +128,7 @@ labels:
 ```
 ## Synchronize digital certificates between namespaces
 ❗❗ `Kubed is no longer available and has been superseded by ConfigSyncer` 
+❗❗ `Since Ingress is deprecated and Gateways are cluster-wide the problem no longer exists` 
 
 In different scenarios, it may happen to have different `Ingress` resources in different namespaces which refer to the same domain (with different paths). Unfortunately, annotating all these ingresses with the `cert-manager.io/cluster-issuer` annotation soon leads to hitting the Let's Encrypt rate limits. Hence, it is necessary to introduce some mechanism to synchronize the secret generated between multiple namespaces. One of the projects currently providing a solution to this problem is [kubed](https://github.com/appscode/kubed).
 

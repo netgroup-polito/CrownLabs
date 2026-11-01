@@ -1,4 +1,3 @@
-{{- if .Values.global.gateway.gatewayApiMode }}
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -26,4 +25,3 @@ spec:
           name: {{ include "frontend-app.fullname" . }}
           port: {{ .Values.service.port }}
           weight: 1
-{{- end }}
