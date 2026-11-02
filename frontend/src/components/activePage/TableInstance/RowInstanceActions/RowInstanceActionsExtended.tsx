@@ -7,8 +7,6 @@ import { SelectOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
 import { EnvironmentType, Phase2 } from '../../../../generated-types';
-import { Link } from 'react-router-dom';
-import { ExportOutlined } from '@ant-design/icons';
 const { Text } = Typography;
 
 const getSSHTooltipText = (
@@ -62,17 +60,6 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     return 'Manage Public Exposure';
   };
 
-  const getFirstEnvironmentName = () => {
-    return instance.environments?.[0]?.name || 'env';
-  };
-
-  const buildSSHLink = (envName: string) => {
-    if (envName) {
-      return `/instance/${instance.tenantNamespace}/${instance.name}/${envName}/ssh`;
-    }
-    return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
-  };
-
   const infoContent = (
     <>
       <p className="m-0">
@@ -123,14 +110,14 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
   );
   return (
     <>
-      <div className="hidden sm:flex items-center border-box justify-center xl:pl-4 sm:w-12 xl:w-56">
+      <div className="hidden sm:flex items-center gap-3 justify-center sm:w-12 xl:w-40">
         <Popover placement="top" content={infoContent} trigger="click">
-          <Button shape="circle" className="hidden sm:block mr-3">
+          <Button shape="circle" className="hidden sm:block">
             <InfoOutlined />
           </Button>
         </Popover>
 
-        <span className="hidden mr-3 xl:inline-flex items-center">
+        <span className="hidden xl:inline-flex items-center">
           <Tooltip
             title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
           >
@@ -145,83 +132,18 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               </Button>
             </span>
           </Tooltip>
-          {!instance.environments || instance.environments.length === 1 ? (
-            <Tooltip
-              title={
-                sshDisabled
-                  ? getSSHTooltipText(status === Phase2.Ready, environmentType!)
-                  : 'Direct SSH Connection'
-              }
-            >
-              <span
-                className={`ml-1 ${sshDisabled ? 'cursor-not-allowed inline-block' : 'inline-block'}`}
-              >
-                <Button
-                  disabled={sshDisabled}
-                  type="link"
-                  className={`${sshDisabled ? 'pointer-events-none' : ''}`}
-                  color="primary"
-                  variant="solid"
-                  shape="circle"
-                  size="small"
-                  icon={
-                    <Link
-                      to={buildSSHLink(getFirstEnvironmentName())}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={e => e.stopPropagation()}
-                      style={{
-                        color: 'inherit',
-                        display: 'flex',
-                        alignItems: 'center',
-                      }}
-                    >
-                      <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
-                        <ExportOutlined style={{ fontSize: 15 }} />
-                      </span>
-                    </Link>
-                  }
-                ></Button>
-              </span>
-            </Tooltip>
-          ) : (
-            <Tooltip title="Direct link not supported for multiple environments (yet!)">
-              <span className="inline-block cursor-not-allowed ml-1">
-                <Button
-                  disabled
-                  type="link"
-                  className="pointer-events-none"
-                  color="primary"
-                  variant="solid"
-                  shape="circle"
-                  size="small"
-                  icon={
-                    <span
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        color: 'gray',
-                      }}
-                    >
-                      <ExportOutlined style={{ fontSize: 15 }} />
-                    </span>
-                  }
-                ></Button>
-              </span>
-            </Tooltip>
-          )}
         </span>
 
-        {instance.allowPublicExposure && (
+        {instance.allowPublicExposure ? (
           <Tooltip title={getPublicExposureTooltipText()}>
             <Badge
               count={(instance.publicExposure?.ports ?? []).length}
               showZero={false}
               size="small"
-              offset={[-8, 8]}
+              offset={[4, 8]}
             >
               <Button
-                className="hidden mr-3 xl:inline-block"
+                className="hidden xl:inline-block"
                 shape="circle"
                 icon={<SelectOutlined style={{ fontSize: '16px' }} />}
                 onClick={() =>
@@ -233,6 +155,9 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
               />
             </Badge>
           </Tooltip>
+        ) : (
+          // Reserve the public exposure button slot to keep the column aligned across rows
+          <span className="hidden xl:inline-block w-8" />
         )}
       </div>
       {instance.allowPublicExposure && showExposureModal && (
