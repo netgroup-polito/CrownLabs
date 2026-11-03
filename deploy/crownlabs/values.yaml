@@ -23,6 +23,22 @@ global:
         stringData:
           client-secret: "dummy"
       spec:
+        jwt:
+          # Requests carrying no JWT fall through to the OIDC flow below
+          optional: true
+          providers:
+            - name: crownlabs-keycloak
+              issuer: "https://auth.ng.crownlabs.polito.it/realms/crownlabs"
+              remoteJWKS:
+                uri: "https://auth.ng.crownlabs.polito.it/realms/crownlabs/protocol/openid-connect/certs"
+              extractFrom:
+                headers:
+                  - name: Authorization
+                    valuePrefix: "Bearer "
+                  # A WebSocket handshake cannot carry an Authorization header, so the
+                  # native-VNC client passes the token as its last WebSocket subprotocol.
+                  - name: Sec-WebSocket-Protocol
+                    valuePrefix: "binary,"
         oidc:
           provider:
             issuer: "https://auth.ng.crownlabs.polito.it/realms/crownlabs"
@@ -30,6 +46,9 @@ global:
           clientSecret:
             name: "envoy-secpol-dummy-secret"
           redirectURL: "%REQ(x-forwarded-proto)%://%REQ(:authority)%/app/instauth/callback"
+          # Skip the OIDC redirect when a JWT is present: a WebSocket cannot follow it.
+          passThroughAuthHeader: true
+          refreshToken: true
 
 createClusterRoles: true
 

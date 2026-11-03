@@ -1,0 +1,30 @@
+apiVersion: plugin.kubevirt.io/v1alpha1
+kind: Plugin
+metadata:
+  name: {{ include "instance-operator.fullname" . }}-native-vnc
+  labels:
+    {{- include "instance-operator.labels" . | nindent 4 }}
+spec:
+  domainHooks:
+  - condition: >-
+      "crownlabs.polito.it/native-vnc" in vmi.Labels &&
+      vmi.Labels['crownlabs.polito.it/native-vnc'] == 'true'
+      {{- range splitList "&" .Values.configurations.generic.whitelistLabels }}
+      {{- $label := splitList "=" . }} &&
+      "{{ index $label 0 }}" in vmi.Labels &&
+      vmi.Labels['{{ index $label 0 }}'] == '{{ index $label 1 }}'
+      {{- end }}
+    # -vnc: QEMU's built-in VNC server, reachable over websocket on port 5901.
+    # -chardev/-device: a qemu-vdagent channel on the existing virtio-serial controller,
+    # sharing the clipboard with spice-vdagent in the guest; mouse=off leaves the pointer
+    # to the virtio tablet.
+    cel:
+      expression: >-
+        Domain{QEMUCommandline: DomainQEMUCommandline{Args: [
+          DomainQEMUCommandlineArg{Value: "-vnc"},
+          DomainQEMUCommandlineArg{Value: "0.0.0.0:0,websocket=5901"},
+          DomainQEMUCommandlineArg{Value: "-chardev"},
+          DomainQEMUCommandlineArg{Value: "qemu-vdagent,id=vdagent,clipboard=on,mouse=off"},
+          DomainQEMUCommandlineArg{Value: "-device"},
+          DomainQEMUCommandlineArg{Value: '{"driver":"virtserialport","chardev":"vdagent","name":"com.redhat.spice.0"}'}
+        ]}}
