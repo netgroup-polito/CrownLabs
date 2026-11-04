@@ -28,11 +28,7 @@ export interface ITableWorkspaceLogicProps {
   filter: string;
   showAdvanced: boolean;
   showCheckbox: boolean;
-  collapseAll: boolean;
-  expandAll: boolean;
   destroySelectedTrigger: boolean;
-  setCollapseAll: Dispatch<SetStateAction<boolean>>;
-  setExpandAll: Dispatch<SetStateAction<boolean>>;
   setDestroySelectedTrigger: Dispatch<SetStateAction<boolean>>;
   setSelectedPersistent: Dispatch<SetStateAction<boolean>>;
   selectiveDestroy: string[];
@@ -44,10 +40,6 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     workspaces,
     user,
     filter,
-    collapseAll,
-    expandAll,
-    setExpandAll,
-    setCollapseAll,
     showAdvanced,
     showCheckbox,
     destroySelectedTrigger,
@@ -137,10 +129,6 @@ const TableWorkspaceLogic: FC<ITableWorkspaceLogicProps> = ({ ...props }) => {
     <TableWorkspace
       instances={instancesMapped}
       workspaces={workspacesMapped}
-      collapseAll={collapseAll}
-      expandAll={expandAll}
-      setCollapseAll={setCollapseAll}
-      setExpandAll={setExpandAll}
       showAdvanced={showAdvanced}
       showCheckbox={showCheckbox}
       handleManagerSorting={handleManagerSorting}

@@ -14,8 +14,6 @@ const { Search } = Input;
 
 export interface IToolboxProps {
   setSearchField: Dispatch<SetStateAction<string>>;
-  setExpandAll: Dispatch<SetStateAction<boolean>>;
-  setCollapseAll: Dispatch<SetStateAction<boolean>>;
   showAdvanced: boolean;
   setShowAdvanced: Dispatch<SetStateAction<boolean>>;
   showCheckbox: boolean;
@@ -28,8 +26,6 @@ export interface IToolboxProps {
 const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
   const {
     setSearchField,
-    setExpandAll,
-    setCollapseAll,
     showAdvanced,
     setShowAdvanced,
     showCheckbox,
@@ -44,7 +40,7 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
   const mobileContent = (
     <div className="flex flex-col justify-center gap-2">
       <div className="flex justify-between gap-2 md:hidden">
-        <Button
+        {/* <Button
           type="primary"
           shape="round"
           size="middle"
@@ -61,7 +57,7 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
           onClick={() => setCollapseAll(true)}
         >
           Collapse
-        </Button>
+        </Button> */}
       </div>
       <Divider type="horizontal" className="my-2 md:hidden" />
       <div className="flex flex-col justify-start gap-2 xl:hidden">
@@ -147,7 +143,7 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
         />
       </Popover>
       <Divider type="vertical" className="hidden md:block" />
-      <Button
+      {/* <Button
         className="hidden md:block"
         type="primary"
         shape="round"
@@ -166,7 +162,7 @@ const Toolbox: FC<IToolboxProps> = ({ ...props }) => {
         onClick={() => setCollapseAll(true)}
       >
         Collapse
-      </Button>
+      </Button> */}
       <Divider type="vertical" className="hidden xl:block" />
       <div className="flex flex-col justify-start gap-2 hidden xl:block">
         <div className="flex items-center w-36 gap-2">
