@@ -221,18 +221,60 @@ var _ = Describe("Saving the log of the job pods (P10)", func() {
 			}
 		})
 		reconcileCrownJob(cj)
+		expectPhase(cj, clv1alpha2.CrownJobPhaseSucceeded, crownjob.ReasonCompleted, "Your job finished successfully.")
+
+		By("The helper of the first pod completes: the sentence names log.txt")
+		for i := range helpers {
+			if helpers[i].Annotations[forge.AnnotationCrownJobPodKey] == job.Name+"-a" {
+				completeHelper(&helpers[i])
+			}
+		}
+		reconcileCrownJob(cj)
 		expectPhase(cj, clv1alpha2.CrownJobPhaseSucceeded, crownjob.ReasonCompleted,
 			fmt.Sprintf("Your job finished successfully. The output is saved in runs/%s/log.txt.", cj.Name))
 	})
 
-	It("Should save the log of a pod that ended before it was seen running, and say so in the terminal message", func() {
+	It("Should write the terminal status at once, and append the log sentence once its helper has completed (S1-3)", func() {
 		cj, job := startJob("inst", sh)
 		createNodePod(job, job.Name+"-a", "node-1", terminated(envName, 3))
 		failJob(job, "PodFailurePolicy", "Container "+envName+" for pod tenant-student/x failed with exit code 3 matching FailJob rule at index 1")
 		reconcileCrownJob(cj)
-		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonExitCode,
-			fmt.Sprintf("Your command ended with exit code 3. The output is saved in runs/%s/log.txt.", cj.Name))
-		Expect(helpersOf(cj)).To(HaveLen(1))
+		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonExitCode, "Your command ended with exit code 3.")
+		Expect(drainEvents()).To(ConsistOf("Normal InQueue Your job is waiting in the queue of workspace ws.",
+			"Warning ExitCode Your command ended with exit code 3."))
+		helpers := helpersOf(cj)
+		Expect(helpers).To(HaveLen(1), "the helper of a pod that ended before it was seen running is created at the end")
+
+		By("Reconciled again while the helper runs: unchanged")
+		reconcileCrownJob(cj)
+		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonExitCode, "Your command ended with exit code 3.")
+
+		By("The helper completes: the sentence is appended once, with no event")
+		completeHelper(&helpers[0])
+		reconcileCrownJob(cj)
+		message := fmt.Sprintf("Your command ended with exit code 3. The output is saved in runs/%s/log.txt.", cj.Name)
+		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonExitCode, message)
+		reconcileCrownJob(cj)
+		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonExitCode, message)
+		Expect(drainEvents()).To(BeEmpty())
+	})
+
+	It("Should append the log sentence to a job deleted before it ended, once its helper has completed", func() {
+		cj, job := startJob("inst", sh)
+		createNodePod(job, job.Name+"-a", "node-1", running(envName))
+		setReady(job, 1)
+		reconcileCrownJob(cj)
+		helpers := helpersOf(cj)
+		Expect(helpers).To(HaveLen(1))
+
+		Expect(k8sClient.Delete(ctx, job, client.PropagationPolicy(metav1.DeletePropagationBackground))).To(Succeed())
+		reconcileCrownJob(cj)
+		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonError, "The job was deleted before it ended.")
+
+		completeHelper(&helpers[0])
+		reconcileCrownJob(cj)
+		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonError,
+			fmt.Sprintf("The job was deleted before it ended. The output is saved in runs/%s/log.txt.", cj.Name))
 	})
 
 	It("Should create no helper for a pod that never started, and not mention a log", func() {
@@ -279,12 +321,16 @@ var _ = Describe("Saving the log of the job pods (P10)", func() {
 		Expect(crownJobStatus(cj2).Phase).To(Equal(clv1alpha2.CrownJobPhaseSucceeded))
 		helpers2 := helpersOf(cj2)
 		Expect(helpers2).To(HaveLen(1))
+		expectPhase(cj2, clv1alpha2.CrownJobPhaseSucceeded, crownjob.ReasonCompleted, "Your job finished successfully.")
 		drainEvents()
 		failHelper(&helpers2[0])
 		reconcileCrownJob(cj2)
-		Expect(crownJobStatus(cj2).Phase).To(Equal(clv1alpha2.CrownJobPhaseSucceeded))
+		expectPhase(cj2, clv1alpha2.CrownJobPhaseSucceeded, crownjob.ReasonCompleted, "Your job finished successfully. The output could not be saved.")
 		Expect(drainEvents()).To(ConsistOf(fmt.Sprintf(
 			"Warning LogsNotSaved The output of the job could not be saved in runs/%s/log.txt: Job has reached the specified backoff limit.", cj2.Name)))
+		reconcileCrownJob(cj2)
+		expectPhase(cj2, clv1alpha2.CrownJobPhaseSucceeded, crownjob.ReasonCompleted, "Your job finished successfully. The output could not be saved.")
+		Expect(drainEvents()).To(BeEmpty())
 	})
 
 	Context("When the finished Jobs are deleted after their TTL (P11)", func() {
@@ -361,6 +407,11 @@ var _ = Describe("Saving the log of the job pods (P10)", func() {
 			Expect(k8sClient.Status().Update(ctx, first)).To(Succeed())
 			setReady(job, 0)
 			completeHelper(&helpers[0])
+			// The end of the helper triggers a reconcile (an owned Job): it is recorded on the main Job.
+			reconcileCrownJob(cj)
+			mainJob, err := getJob(cj.Name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(mainJob.Annotations).To(HaveKeyWithValue(forge.AnnotationCrownJobLogSavedKey, "true"))
 			Expect(k8sClient.Delete(ctx, &helpers[0], client.PropagationPolicy(metav1.DeletePropagationBackground))).To(Succeed())
 			Expect(helpersOf(cj)).To(BeEmpty())
 
@@ -374,7 +425,7 @@ var _ = Describe("Saving the log of the job pods (P10)", func() {
 			Expect(helpers[0].Name).To(Equal(forge.CrownJobLogHelperName(current(cj), 2)))
 			Expect(helpers[0].Annotations).To(HaveKeyWithValue(forge.AnnotationCrownJobPodKey, job.Name+"-b"))
 			Expect(helpers[0].Annotations).To(HaveKeyWithValue(forge.AnnotationCrownJobLogFileKey, "runs/"+cj.Name+"/log-2.txt"))
-			mainJob, err := getJob(cj.Name)
+			mainJob, err = getJob(cj.Name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(mainJob.Annotations).To(HaveKeyWithValue(forge.AnnotationCrownJobLogFilesKey, "2"))
 

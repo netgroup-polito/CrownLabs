@@ -130,7 +130,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 	}
 	// A terminal phase never changes again: only its log helpers are still looked at.
 	if isTerminal(crownJob.Status.Phase) {
-		return ctrl.Result{}, r.reconcileTerminal(ctx, &crownJob)
+		return r.reconcileTerminal(ctx, &crownJob)
 	}
 
 	// Defer the function to update the CrownJob status depending on what is observed below,
@@ -177,7 +177,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (result ct
 			if err != nil {
 				return ctrl.Result{}, err
 			}
-			setStatus(&crownJob, clv1alpha2.CrownJobPhaseFailed, ReasonError, msgJobDeleted+logSavedSuffix(&crownJob, nil, helpers))
+			setStatus(&crownJob, clv1alpha2.CrownJobPhaseFailed, ReasonError, msgJobDeleted+logSentence(&crownJob, nil, helpers))
 			return ctrl.Result{}, nil
 		} else if err != nil {
 			log.Error(err, "failed retrieving the job")
@@ -318,27 +318,31 @@ func (r *Reconciler) addInstanceFinalizer(ctx context.Context, instance *clv1alp
 	return r.Patch(ctx, instance, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}))
 }
 
-// reconcileTerminal handles a CrownJob in a terminal phase, whose status never changes again: the Job of a CrownJob
-// canceled before its admission is deleted (it may have been created just before the cancellation), and the failures
-// of its log helpers are reported.
-func (r *Reconciler) reconcileTerminal(ctx context.Context, crownJob *clv1alpha2.CrownJob) error {
+// reconcileTerminal handles a CrownJob in a terminal phase, whose phase and reason never change again: the Job of a
+// CrownJob canceled before its admission is deleted (it may have been created just before the cancellation), the
+// failures of its log helpers are reported, and the sentence about the log of its first pod is appended to its
+// message once that log helper has ended.
+func (r *Reconciler) reconcileTerminal(ctx context.Context, crownJob *clv1alpha2.CrownJob) (ctrl.Result, error) {
 	if crownJob.Status.Reason == ReasonCanceled {
 		var job batchv1.Job
 		if err := r.Get(ctx, client.ObjectKeyFromObject(crownJob), &job); err == nil && metav1.IsControlledBy(&job, crownJob) {
 			if err := r.Delete(ctx, &job, client.PropagationPolicy(metav1.DeletePropagationBackground)); err != nil && !kerrors.IsNotFound(err) {
 				ctrl.LoggerFrom(ctx).Error(err, "failed to delete the job of a canceled crownjob", "job", klog.KObj(&job))
-				return err
+				return ctrl.Result{}, err
 			}
 		} else if client.IgnoreNotFound(err) != nil {
-			return err
+			return ctrl.Result{}, err
 		}
 	}
 
 	helpers, err := r.logHelpers(ctx, crownJob)
 	if err != nil {
-		return err
+		return ctrl.Result{}, err
 	}
-	return r.reportFailedLogHelpers(ctx, crownJob, helpers)
+	if err := r.reportFailedLogHelpers(ctx, crownJob, helpers); err != nil {
+		return ctrl.Result{}, err
+	}
+	return r.appendLogSentence(ctx, crownJob, helpers)
 }
 
 // isTerminal returns whether the given phase is terminal.
