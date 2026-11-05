@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
@@ -368,6 +369,42 @@ var _ = Describe("Instautoctrl-expiration-unit", func() {
 
 		By("Verifying the ExpiringWarningNotificationTimestampAnnotation annotation has been added to the instance")
 		Expect(currentInstance.Annotations[forge.ExpiringWarningNotificationTimestampAnnotation]).ToNot(BeEmpty())
+	})
+
+	It("Should skip an instance that is being deleted", func() {
+		r := &instautoctrl.InstanceExpirationReconciler{
+			Client:             k8sClient,
+			NamespaceWhitelist: metav1.LabelSelector{MatchLabels: map[string]string{"crownlabs.polito.it/operator-selector": "test-suite"}},
+			MarginTime:         time.Minute,
+		}
+		key := types.NamespacedName{Name: NonPersistentInstanceName, Namespace: tenantNs.Name}
+
+		By("Checking that the instance is requeued at its expiration while it is not being deleted (control)")
+		result, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result.RequeueAfter).To(BeNumerically(">", time.Minute))
+
+		By("Deleting the instance, kept by a finalizer")
+		currentInstance := &clv1alpha2.Instance{}
+		Expect(k8sClient.Get(ctx, key, currentInstance)).To(Succeed())
+		currentInstance.Finalizers = append(currentInstance.Finalizers, "crownlabs.polito.it/crownjobs")
+		Expect(k8sClient.Update(ctx, currentInstance)).To(Succeed())
+		DeferCleanup(func() {
+			Expect(k8sClient.Get(ctx, key, currentInstance)).To(Succeed())
+			currentInstance.Finalizers = nil
+			Expect(k8sClient.Update(ctx, currentInstance)).To(Succeed())
+		})
+		Expect(k8sClient.Delete(ctx, currentInstance)).To(Succeed())
+		Expect(k8sClient.Get(ctx, key, currentInstance)).To(Succeed())
+		Expect(currentInstance.DeletionTimestamp).ToNot(BeNil())
+		resourceVersion := currentInstance.ResourceVersion
+
+		By("Checking that the instance is neither requeued nor changed")
+		result, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+		Expect(err).ToNot(HaveOccurred())
+		Expect(result).To(Equal(ctrl.Result{}))
+		Expect(k8sClient.Get(ctx, key, currentInstance)).To(Succeed())
+		Expect(currentInstance.ResourceVersion).To(Equal(resourceVersion))
 	})
 
 })

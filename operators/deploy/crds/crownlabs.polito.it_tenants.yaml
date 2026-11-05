@@ -150,6 +150,12 @@ spec:
                     TenantWorkspaceEntry contains the information regarding one of the Workspaces
                     the Tenant is subscribed to, including his/her role.
                   properties:
+                    jobPriorityClass:
+                      description: |-
+                        The name of the Kueue WorkloadPriorityClass assigned to the jobs of the
+                        Tenant in this Workspace. If empty, the priorityClass set in the
+                        jobPolicy of the Workspace applies.
+                      type: string
                     name:
                       description: The Workspace the Tenant is subscribed to.
                       type: string

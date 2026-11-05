@@ -30,6 +30,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
@@ -52,6 +53,74 @@ func init() {
 }
 
 var _ = Describe("Namespace management", func() {
+	Context("When the resource quota was created before the quota split", func() {
+		type quotaWrite struct {
+			op, name string
+			keys     int
+		}
+		var writes []quotaWrite
+
+		BeforeEach(func() {
+			writes = nil
+			tnResource.Spec.PersonalWorkspace = &apicommon.WorkspaceResourceQuota{
+				Instances: 2,
+				ResourceSpec: apicommon.ResourceSpec{
+					CPU: 4, Memory: resource.MustParse("8Gi"), Disk: resource.MustParse("20Gi"),
+					OtherResources: map[string]resource.Quantity{"nvidia.com/gpu": resource.MustParse("1")},
+				},
+			}
+			// The single quota of the code before the split, with every key and no scope.
+			addObjToObjectsList(&corev1.ResourceQuota{
+				ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: tnPersonalNamespace},
+				Spec: corev1.ResourceQuotaSpec{Hard: corev1.ResourceList{
+					corev1.ResourceLimitsCPU: resource.MustParse("4"), corev1.ResourceRequestsCPU: resource.MustParse("4"),
+					corev1.ResourceLimitsMemory: resource.MustParse("8Gi"), corev1.ResourceRequestsMemory: resource.MustParse("8Gi"),
+					corev1.ResourceName(forge.InstancesCountKey): resource.MustParse("2"), corev1.ResourceRequestsStorage: resource.MustParse("20Gi"),
+					"nvidia.com/gpu": resource.MustParse("1"),
+				}},
+			})
+			record := func(op string, obj client.Object) {
+				if rq, ok := obj.(*corev1.ResourceQuota); ok {
+					writes = append(writes, quotaWrite{op: op, name: rq.Name, keys: len(rq.Spec.Hard)})
+				}
+			}
+			builder = *builder.WithInterceptorFuncs(interceptor.Funcs{
+				Create: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.CreateOption) error {
+					record("create", obj)
+					return c.Create(ctx, obj, opts...)
+				},
+				Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+					record("update", obj)
+					return c.Update(ctx, obj, opts...)
+				},
+			})
+		})
+
+		AfterEach(func() {
+			removeObjFromObjectsList(&corev1.ResourceQuota{ObjectMeta: metav1.ObjectMeta{Name: "crownlabs-resource-quota", Namespace: tnPersonalNamespace}})
+		})
+
+		It("Should create the instances quota before removing CPU and memory from the old one", func() {
+			Expect(writes).To(Equal([]quotaWrite{
+				{op: "create", name: "crownlabs-resource-quota-instances", keys: 5},
+				{op: "update", name: "crownlabs-resource-quota", keys: 2},
+			}))
+
+			old := &corev1.ResourceQuota{}
+			Expect(cl.Get(ctx, client.ObjectKey{Name: "crownlabs-resource-quota", Namespace: tnPersonalNamespace}, old)).To(Succeed())
+			Expect(old.Spec.Hard).To(HaveLen(2))
+			Expect(ptr.To(old.Spec.Hard[corev1.ResourceName(forge.InstancesCountKey)]).String()).To(Equal("2"))
+			Expect(ptr.To(old.Spec.Hard[corev1.ResourceRequestsStorage]).String()).To(Equal("20Gi"))
+
+			scoped := &corev1.ResourceQuota{}
+			Expect(cl.Get(ctx, client.ObjectKey{Name: "crownlabs-resource-quota-instances", Namespace: tnPersonalNamespace}, scoped)).To(Succeed())
+			Expect(scoped.Spec.Scopes).To(ConsistOf(corev1.ResourceQuotaScopeNotTerminating))
+			Expect(ptr.To(scoped.Spec.Hard[corev1.ResourceLimitsCPU]).String()).To(Equal("4"))
+			Expect(ptr.To(scoped.Spec.Hard[corev1.ResourceRequestsMemory]).String()).To(Equal("8Gi"))
+			Expect(ptr.To(scoped.Spec.Hard["nvidia.com/gpu"]).String()).To(Equal("1"))
+		})
+	})
+
 	Context("When tenant needs namespace resources", func() {
 		It("Should create the personal namespace", func() {
 			namespace := &corev1.Namespace{}
@@ -74,7 +143,29 @@ var _ = Describe("Namespace management", func() {
 
 			Expect(rq.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
 			Expect(rq.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
-			Expect(rq.Spec.Hard).ToNot(BeEmpty())
+			Expect(rq.Spec.Scopes).To(BeEmpty())
+			Expect(rq.Spec.Hard).To(HaveKey(corev1.ResourceName(forge.InstancesCountKey)))
+			Expect(rq.Spec.Hard).To(HaveKey(corev1.ResourceRequestsStorage))
+			Expect(rq.Spec.Hard).To(HaveLen(2))
+		})
+
+		It("Should create the instances resource quota, which skips the pods with a deadline", func() {
+			rq := &corev1.ResourceQuota{}
+			DoesEventuallyExists(ctx, cl, client.ObjectKey{
+				Name:      "crownlabs-resource-quota-instances",
+				Namespace: "tenant-" + tnName,
+			}, rq, BeTrue(), 10*time.Second, 250*time.Millisecond)
+
+			Expect(rq.Labels).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "tenant"))
+			Expect(rq.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
+			Expect(rq.OwnerReferences).To(HaveLen(1))
+			Expect(rq.OwnerReferences[0].Name).To(Equal(tnName))
+			Expect(rq.Spec.Scopes).To(ConsistOf(corev1.ResourceQuotaScopeNotTerminating))
+			Expect(rq.Spec.Hard).To(HaveKey(corev1.ResourceRequestsCPU))
+			Expect(rq.Spec.Hard).To(HaveKey(corev1.ResourceLimitsCPU))
+			Expect(rq.Spec.Hard).To(HaveKey(corev1.ResourceRequestsMemory))
+			Expect(rq.Spec.Hard).To(HaveKey(corev1.ResourceLimitsMemory))
+			Expect(rq.Spec.Hard).To(HaveLen(4))
 		})
 
 		It("Should create the role binding", func() {
@@ -214,6 +305,14 @@ var _ = Describe("Namespace management", func() {
 			}, rq, BeFalse(), 10*time.Second, 250*time.Millisecond)
 		})
 
+		It("Should delete the instances resource quota", func() {
+			rq := &corev1.ResourceQuota{}
+			DoesEventuallyExists(ctx, cl, client.ObjectKey{
+				Name:      "crownlabs-resource-quota-instances",
+				Namespace: "tenant-" + tnName,
+			}, rq, BeFalse(), 10*time.Second, 250*time.Millisecond)
+		})
+
 		It("Should delete the role binding", func() {
 			rb := &rbacv1.RoleBinding{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{
@@ -287,6 +386,14 @@ var _ = Describe("Namespace management", func() {
 			rq := &corev1.ResourceQuota{}
 			DoesEventuallyExists(ctx, cl, client.ObjectKey{
 				Name:      "crownlabs-resource-quota",
+				Namespace: "tenant-" + tnName,
+			}, rq, BeTrue(), 10*time.Second, 250*time.Millisecond)
+		})
+
+		It("Should keep the instances resource quota when instances are running", func() {
+			rq := &corev1.ResourceQuota{}
+			DoesEventuallyExists(ctx, cl, client.ObjectKey{
+				Name:      "crownlabs-resource-quota-instances",
 				Namespace: "tenant-" + tnName,
 			}, rq, BeTrue(), 10*time.Second, 250*time.Millisecond)
 		})

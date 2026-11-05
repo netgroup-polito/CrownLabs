@@ -12,6 +12,8 @@ rules:
     resources:
       - instances
       - instances/status
+      - crownjobs
+      - crownjobs/status
     verbs:
       - get
       - list
@@ -38,6 +40,19 @@ rules:
       - create
       - update
       - patch
+      - delete
+      - deletecollection
+  # The jobs run from the instances ("Run job"). No update or patch: the spec of a CrownJob is immutable, and its
+  # status is written by the operator only.
+  - apiGroups:
+      - crownlabs.polito.it
+    resources:
+      - crownjobs
+    verbs:
+      - get
+      - list
+      - watch
+      - create
       - delete
       - deletecollection
 

@@ -74,6 +74,14 @@ spec:
             - "--image-list-config-file={{ .Values.configurations.imageList.configFile }}"
             - "--image-list-update-interval={{ .Values.configurations.imageList.updateInterval }}"
             {{- end }}
+            {{- if .Values.configurations.features.crownJob }}
+            - "--enable-crownjob=true"
+            - "--crownjob-runtime-classes={{ .Values.configurations.crownJob.runtimeClasses }}"
+            - "--crownjob-default-max-run-time={{ .Values.configurations.crownJob.defaultMaxRunTime }}"
+            - "--crownjob-finished-job-ttl={{ .Values.configurations.crownJob.finishedJobTTL }}"
+            - "--crownjob-log-helper-image={{ .Values.configurations.crownJob.logHelperImage }}"
+            - "--crownjob-max-concurrent-reconciles={{ .Values.configurations.crownJob.maxConcurrentReconciles }}"
+            {{- end }}
           ports:
             - name: metrics
               containerPort: 8080

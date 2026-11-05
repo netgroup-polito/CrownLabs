@@ -86,7 +86,8 @@ func CleanTenantName(name string) string {
 	return strings.Trim(name, "_")
 }
 
-// ConfigureTenantResourceQuota configures a ResourceQuota for a tenant namespace.
+// ConfigureTenantResourceQuota configures the ResourceQuota of a tenant namespace that limits the number of instances
+// and the requested storage (no scope).
 func ConfigureTenantResourceQuota(rq *corev1.ResourceQuota, quota *apicommon.WorkspaceResourceQuota, labels map[string]string) {
 	// Set the labels
 	if rq.Labels == nil {
@@ -98,6 +99,22 @@ func ConfigureTenantResourceQuota(rq *corev1.ResourceQuota, quota *apicommon.Wor
 
 	// Configure the resource quota spec
 	rq.Spec.Hard = TenantResourceQuotaSpec(quota)
+}
+
+// ConfigureTenantInstancesResourceQuota configures the ResourceQuota of a tenant namespace that limits the resources
+// of the pods of the instances (scope NotTerminating).
+func ConfigureTenantInstancesResourceQuota(rq *corev1.ResourceQuota, quota *apicommon.WorkspaceResourceQuota, labels map[string]string) {
+	// Set the labels
+	if rq.Labels == nil {
+		rq.Labels = make(map[string]string)
+	}
+
+	// Copy the provided labels
+	maps.Copy(rq.Labels, labels)
+
+	// Configure the resource quota spec
+	rq.Spec.Hard = TenantInstancesResourceQuotaSpec(quota)
+	rq.Spec.Scopes = []corev1.ResourceQuotaScope{corev1.ResourceQuotaScopeNotTerminating}
 }
 
 // ConfigureTenantDenyNetworkPolicy configures a NetworkPolicy that denies all ingress traffic.

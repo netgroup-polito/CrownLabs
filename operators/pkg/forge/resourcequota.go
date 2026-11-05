@@ -25,6 +25,13 @@ import (
 const (
 	// InstancesCountKey -> The key for accessing at the total number of instances in the corev1.ResourceList map.
 	InstancesCountKey = "count/instances.crownlabs.polito.it"
+
+	// TenantResourceQuotaName -> The name of the ResourceQuota of a tenant namespace that limits the number of instances
+	// and the requested storage, for every object of the namespace.
+	TenantResourceQuotaName = "crownlabs-resource-quota"
+	// TenantInstancesResourceQuotaName -> The name of the ResourceQuota of a tenant namespace that limits CPU, memory and
+	// extended resources, only for the pods without a pod-level activeDeadlineSeconds (scope NotTerminating).
+	TenantInstancesResourceQuotaName = "crownlabs-resource-quota-instances"
 )
 
 var (
@@ -78,15 +85,25 @@ func TenantResourceList(workspaces []clv1alpha1.Workspace, personalWorkspaceQuot
 	return quota
 }
 
-// TenantResourceQuotaSpec converts a WorkspaceResourceQuota to a ResourceQuota's resource list.
+// TenantResourceQuotaSpec forges the hard limits of the ResourceQuota of a tenant namespace that has no scope:
+// the number of instances and the requested storage.
 func TenantResourceQuotaSpec(quota *apicommon.WorkspaceResourceQuota) corev1.ResourceList {
-	resList := corev1.ResourceList{
-		corev1.ResourceLimitsCPU:       *resource.NewQuantity(quota.CPU, resource.DecimalSI),
-		corev1.ResourceLimitsMemory:    quota.Memory,
-		corev1.ResourceRequestsCPU:     *resource.NewQuantity(quota.CPU, resource.DecimalSI),
-		corev1.ResourceRequestsMemory:  quota.Memory,
+	return corev1.ResourceList{
 		InstancesCountKey:              *resource.NewQuantity(quota.Instances, resource.DecimalSI),
 		corev1.ResourceRequestsStorage: quota.Disk,
+	}
+}
+
+// TenantInstancesResourceQuotaSpec forges the hard limits of the ResourceQuota of a tenant namespace with scope
+// NotTerminating: CPU, memory and the extended resources. The scope counts every pod without a pod-level
+// activeDeadlineSeconds, i.e., the pods of the instances, and leaves out the pods of the jobs, which carry one
+// and are limited by the Kueue queue of their Workspace instead.
+func TenantInstancesResourceQuotaSpec(quota *apicommon.WorkspaceResourceQuota) corev1.ResourceList {
+	resList := corev1.ResourceList{
+		corev1.ResourceLimitsCPU:      *resource.NewQuantity(quota.CPU, resource.DecimalSI),
+		corev1.ResourceLimitsMemory:   quota.Memory,
+		corev1.ResourceRequestsCPU:    *resource.NewQuantity(quota.CPU, resource.DecimalSI),
+		corev1.ResourceRequestsMemory: quota.Memory,
 	}
 
 	// Inject dynamic extended resources (e.g., nvidia.com/gpu)

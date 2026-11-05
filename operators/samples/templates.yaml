@@ -61,7 +61,7 @@ spec:
       mountMyDriveVolume: false
       resources:
         cpu: 4
-        memory: 1G
+        memory: 1Gi
         disk: 1G
         reservedCPUPercentage: 50
   workspace.crownlabs.polito.it/WorkspaceRef:
@@ -121,6 +121,11 @@ spec:
       persistent: true
   workspace.crownlabs.polito.it/WorkspaceRef:
     name: standalone
+  job:
+    environmentName: vscode-env
+    commandPolicy: Editable
+    command: ["make", "run"]
+    maxRunTime: 2h
 ---
 apiVersion: crownlabs.polito.it/v1alpha2
 kind: Template

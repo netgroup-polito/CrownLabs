@@ -97,7 +97,18 @@ func PVCSpec(accessMode corev1.PersistentVolumeAccessMode, storageClass *string,
 
 // InstancePVCSpec forges a ReadWriteOnce PersistentVolumeClaimSpec
 // with requests set as in environment.Resources.Disk.
-func InstancePVCSpec(environment *clv1alpha2.Environment) corev1.PersistentVolumeClaimSpec {
+// If jobStorageClass is set and the environment is the one the jobs of the template run in (job.environmentName),
+// the claim is ReadWriteMany instead, so that a job can run on another node while the instance is running:
+// its storage class is the one of the environment, if set, or else jobStorageClass.
+// The spec of a PVC is immutable: an existing PVC keeps its access mode when the flag or the template change.
+func InstancePVCSpec(template *clv1alpha2.Template, environment *clv1alpha2.Environment, jobStorageClass string) corev1.PersistentVolumeClaimSpec {
+	if jobStorageClass != "" && template.Spec.Job != nil && template.Spec.Job.EnvironmentName == environment.Name {
+		storageClass := jobStorageClass
+		if environment.StorageClassName != "" {
+			storageClass = environment.StorageClassName
+		}
+		return PVCSpec(corev1.ReadWriteMany, ptr.To(storageClass), &environment.Resources.Disk)
+	}
 	return PVCSpec(corev1.ReadWriteOnce, InstancePVCStorageClassName(environment), &environment.Resources.Disk)
 }
 
@@ -127,7 +138,12 @@ func PodSecurityContext() *corev1.PodSecurityContext {
 
 // ReplicasCount returns an int32 pointer to 1 if the instance is not persistent
 // or, if persistent, in case environment spec is set as running; 0 otherwise.
+// An instance being deleted always gets 0: a finalizer may keep it (e.g., while its jobs run), and its
+// container is stopped meanwhile, while its disk is kept.
 func ReplicasCount(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment, isNew bool) *int32 {
+	if !instance.DeletionTimestamp.IsZero() {
+		return ptr.To[int32](0)
+	}
 	if (!isNew && !environment.Persistent) || instance.Spec.Running {
 		return ptr.To[int32](1)
 	}
