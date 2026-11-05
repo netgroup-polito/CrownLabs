@@ -595,13 +595,13 @@ var _ = Describe("The CrownJob controller", func() {
 			},
 			Entry("the Job reached its activeDeadlineSeconds (no pod left)", failureCase{
 				jobReason: batchv1.JobReasonDeadlineExceeded, jobMessage: "Job was active longer than specified deadline",
-				reason: crownjob.ReasonTimeLimit, message: "Your job was stopped because it reached its time limit (1h)."}),
+				reason: crownjob.ReasonTimeLimit, message: "Your job was stopped because it reached its time limit (1h, set-up included)."}),
 			Entry("the pod reached its activeDeadlineSeconds (its container killed with 137)", failureCase{
 				jobReason: batchv1.JobReasonPodFailurePolicy, jobMessage: "Container app for pod x failed with exit code 137 matching FailJob rule at index 1",
 				pod: &corev1.PodStatus{Phase: corev1.PodFailed, Reason: "DeadlineExceeded", Message: "Pod was active on the node longer than the specified deadline",
 					InitContainerStatuses: []corev1.ContainerStatus{terminated(forge.CrownJobRunFolderContainerName, 0)},
 					ContainerStatuses:     []corev1.ContainerStatus{terminated(envName, 137)}},
-				reason: crownjob.ReasonTimeLimit, message: "Your job was stopped because it reached its time limit (1h)."}),
+				reason: crownjob.ReasonTimeLimit, message: "Your job was stopped because it reached its time limit (1h, set-up included)."}),
 			Entry("the pod was evicted (its container killed with 137): not an exit code of the command (P2-5)", failureCase{
 				jobReason: batchv1.JobReasonPodFailurePolicy, jobMessage: "Container app for pod x failed with exit code 137 matching FailJob rule at index 1",
 				pod: &corev1.PodStatus{Phase: corev1.PodFailed, Reason: "Evicted", Message: "The node was low on resource: memory.",

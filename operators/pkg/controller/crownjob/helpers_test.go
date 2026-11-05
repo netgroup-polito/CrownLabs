@@ -284,7 +284,7 @@ var _ = Describe("Saving the log of the job pods (P10)", func() {
 		Expect(crownJobStatus(cj).Phase).To(Equal(clv1alpha2.CrownJobPhaseStarting))
 		failJob(job, "DeadlineExceeded", "Job was active longer than specified deadline")
 		reconcileCrownJob(cj)
-		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonTimeLimit, "Your job was stopped because it reached its time limit (1h).")
+		expectPhase(cj, clv1alpha2.CrownJobPhaseFailed, crownjob.ReasonTimeLimit, "Your job was stopped because it reached its time limit (1h, set-up included).")
 		Expect(helpersOf(cj)).To(BeEmpty())
 	})
 

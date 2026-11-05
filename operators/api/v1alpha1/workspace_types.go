@@ -120,10 +120,11 @@ type QueueLimits struct {
 	Guaranteed map[string]resource.Quantity `json:"guaranteed,omitempty"`
 
 	// +kubebuilder:validation:Pattern="^[1-9][0-9]{0,3}[mhd]$"
-	// The maximum time a single job may run, as a positive number of at most
-	// four digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d).
-	// A job still running after this time is stopped. If absent in a window's
-	// overrides, the value in queueLimits applies.
+	// The maximum time a single job may run, counted from the start of its pod:
+	// its set-up (mounting the disk, downloading the image) is included. It is a
+	// positive number of at most four digits followed by a unit among m, h and d
+	// (e.g., 30m, 6h, 2d). A job still running after this time is stopped. If
+	// absent in a window's overrides, the value in queueLimits applies.
 	MaxRunTime string `json:"maxRunTime,omitempty"`
 
 	// The limits that apply to each member of the Workspace. If set in a

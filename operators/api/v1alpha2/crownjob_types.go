@@ -32,10 +32,12 @@ type CrownJobSpec struct {
 	// +kubebuilder:validation:items:MaxLength=8192
 	Command []string `json:"command,omitempty"`
 
-	// MaxRunTime is the maximum time this job may run, as a positive number of
-	// at most four digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d).
-	// It can only lower the maxRunTime of the Template (this is checked by the
-	// operator). If empty, the maxRunTime of the Template applies.
+	// MaxRunTime is the maximum time the job may run, counted from the start of
+	// its pod: its set-up (mounting the disk, downloading the image) is included.
+	// It is a positive number of at most four digits followed by a unit among m,
+	// h and d (e.g., 30m, 6h, 2d). It can only lower the maxRunTime of the
+	// Template (this is checked by the operator). If empty, the maxRunTime of the
+	// Template applies.
 	// +optional
 	// +kubebuilder:validation:Pattern="^[1-9][0-9]{0,3}[mhd]$"
 	MaxRunTime string `json:"maxRunTime,omitempty"`
@@ -77,7 +79,8 @@ type CrownJobStatus struct {
 	// +optional
 	QueuePosition *int32 `json:"queuePosition,omitempty"`
 
-	// Deadline is the time at which the job will be stopped if it is still running.
+	// Deadline is the time at which the job will be stopped if it is still running:
+	// the start of its pod plus its maximum run time.
 	// +optional
 	Deadline *metav1.Time `json:"deadline,omitempty"`
 

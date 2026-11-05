@@ -111,10 +111,12 @@ type TemplateJob struct {
 	OtherResources map[string]resource.Quantity `json:"otherResources,omitempty"`
 
 	// +kubebuilder:validation:Pattern="^[1-9][0-9]{0,3}[mhd]$"
-	// The maximum time a job started from this Template may run, as a positive
-	// number of at most four digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d).
-	// It cannot exceed the maxRunTime of the job queue of the Workspace (this
-	// is checked by the operator). If empty, the maxRunTime of the Workspace applies.
+	// The maximum time a job started from this Template may run, counted from the
+	// start of its pod: its set-up (mounting the disk, downloading the image) is
+	// included. It is a positive number of at most four digits followed by a unit
+	// among m, h and d (e.g., 30m, 6h, 2d). It cannot exceed the maxRunTime of the
+	// job queue of the Workspace (this is checked by the operator). If empty, the
+	// maxRunTime of the Workspace applies.
 	MaxRunTime string `json:"maxRunTime,omitempty"`
 }
 

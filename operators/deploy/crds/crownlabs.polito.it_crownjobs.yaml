@@ -82,10 +82,12 @@ spec:
                 type: object
               maxRunTime:
                 description: |-
-                  MaxRunTime is the maximum time this job may run, as a positive number of
-                  at most four digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d).
-                  It can only lower the maxRunTime of the Template (this is checked by the
-                  operator). If empty, the maxRunTime of the Template applies.
+                  MaxRunTime is the maximum time the job may run, counted from the start of
+                  its pod: its set-up (mounting the disk, downloading the image) is included.
+                  It is a positive number of at most four digits followed by a unit among m,
+                  h and d (e.g., 30m, 6h, 2d). It can only lower the maxRunTime of the
+                  Template (this is checked by the operator). If empty, the maxRunTime of the
+                  Template applies.
                 pattern: ^[1-9][0-9]{0,3}[mhd]$
                 type: string
             required:
@@ -98,8 +100,9 @@ spec:
             description: CrownJobStatus defines the observed state of CrownJob.
             properties:
               deadline:
-                description: Deadline is the time at which the job will be stopped
-                  if it is still running.
+                description: |-
+                  Deadline is the time at which the job will be stopped if it is still running:
+                  the start of its pod plus its maximum run time.
                 format: date-time
                 type: string
               message:
