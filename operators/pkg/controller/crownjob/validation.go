@@ -22,6 +22,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/apimachinery/pkg/util/validation"
@@ -36,7 +37,8 @@ import (
 var (
 	// errInstanceNotReady is returned when the Deployment of the Instance, or its disk, does not exist yet.
 	errInstanceNotReady = errors.New("the deployment of the instance does not exist yet")
-	// errDiskInUse is returned when the disk of the Instance is not ReadWriteMany and its container is running.
+	// errDiskInUse is returned when the disk of the Instance is not ReadWriteMany and its container is running, or
+	// still stopping.
 	errDiskInUse = errors.New("the disk of the instance is in use")
 	// errQueueNotReady is returned when the ClusterQueue of the Workspace does not exist yet.
 	errQueueNotReady = errors.New("the job queue of the workspace does not exist yet")
@@ -148,7 +150,8 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 	}
 
 	// The disk: one that is not ReadWriteMany can be used by one node at a time, so the job waits while the container
-	// of the instance runs. It is checked only before the Job exists: an instance started later waits for the disk.
+	// of the instance runs, or still stops. It is checked only before the Job exists: an instance started later waits
+	// for the disk.
 	if claimName := persistentClaimName(&deployment.Spec.Template.Spec); claimName != "" {
 		var pvc corev1.PersistentVolumeClaim
 		if found, err := r.read(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: claimName}, &pvc); err != nil {
@@ -156,8 +159,12 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 		} else if !found {
 			return &jobInputs{instance: &instance}, errInstanceNotReady
 		}
-		if !forge.IsReadWriteMany(pvc.Spec.AccessModes) && containerRunning(&deployment) {
-			return &jobInputs{instance: &instance}, errDiskInUse
+		if !forge.IsReadWriteMany(pvc.Spec.AccessModes) {
+			if state, err := r.instanceContainer(ctx, &deployment); err != nil {
+				return nil, err
+			} else if state != containerStopped {
+				return &jobInputs{instance: &instance}, errDiskInUse
+			}
 		}
 	}
 
@@ -259,9 +266,47 @@ func persistentClaimName(spec *corev1.PodSpec) string {
 	return ""
 }
 
-// containerRunning returns whether the container of the instance is running, or still stopping.
-func containerRunning(deployment *appsv1.Deployment) bool {
-	return ptr.Deref(deployment.Spec.Replicas, 1) > 0 || deployment.Status.Replicas > 0
+// containerState tells whether the container of an instance uses its disk.
+type containerState int
+
+const (
+	// containerStopped -> the Deployment wants no replica, and each pod it selects is gone, or has ended without being deleted.
+	containerStopped containerState = iota
+	// containerRunning -> the Deployment wants a replica: the instance is running, or starting.
+	containerRunning
+	// containerStopping -> the Deployment wants no replica, but one of its pods is being deleted, or has not ended yet.
+	containerStopping
+)
+
+// instanceContainer returns the state of the container of the instance of the given Deployment. A pod being deleted
+// still uses the disk, but status.replicas does not count it, and status.terminatingReplicas is set only where the
+// feature gate DeploymentReplicaSetTerminatingReplicas is enabled: when the counters say "stopped", the pods selected
+// by the Deployment are listed with the API reader, and one that is being deleted, or has neither succeeded nor
+// failed, keeps the disk in use. A pod being deleted counts until it is gone, whatever its phase: the kubelet sets it
+// to Failed when its container stops, and deletes it once its volumes are unmounted.
+func (r *Reconciler) instanceContainer(ctx context.Context, deployment *appsv1.Deployment) (containerState, error) {
+	if ptr.Deref(deployment.Spec.Replicas, 1) > 0 {
+		return containerRunning, nil
+	}
+	if deployment.Status.Replicas > 0 || ptr.Deref(deployment.Status.TerminatingReplicas, 0) > 0 {
+		return containerStopping, nil
+	}
+
+	selector, err := metav1.LabelSelectorAsSelector(deployment.Spec.Selector)
+	if err != nil {
+		return containerStopped, fmt.Errorf("invalid selector of deployment %s/%s: %w", deployment.Namespace, deployment.Name, err)
+	}
+	var pods corev1.PodList
+	if err := r.APIReader.List(ctx, &pods, client.InNamespace(deployment.Namespace), client.MatchingLabelsSelector{Selector: selector}); err != nil {
+		return containerStopped, fmt.Errorf("failed retrieving the pods of deployment %s/%s: %w", deployment.Namespace, deployment.Name, err)
+	}
+	for i := range pods.Items {
+		pod := &pods.Items[i]
+		if phase := pod.Status.Phase; !pod.DeletionTimestamp.IsZero() || (phase != corev1.PodSucceeded && phase != corev1.PodFailed) {
+			return containerStopping, nil
+		}
+	}
+	return containerStopped, nil
 }
 
 // read gets the given object with the API reader, and returns whether it exists.

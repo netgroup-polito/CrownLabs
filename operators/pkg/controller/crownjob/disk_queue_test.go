@@ -25,6 +25,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -96,6 +97,88 @@ var _ = Describe("The CrownJob controller, before the Job exists (P10)", func() 
 			deployment.Spec.Replicas = ptr.To[int32](1)
 			Expect(k8sClient.Update(ctx, &deployment)).To(Succeed())
 			Expect(reconcileCrownJob(cj)).To(Equal(ctrl.Result{RequeueAfter: 30 * time.Second}))
+			Expect(crownJobStatus(cj).Reason).To(Equal(crownjob.ReasonInQueue))
+		})
+
+		It("Should wait with DiskInUse while a pod of the instance is still terminating, with the counters of the Deployment at 0 (S1-2)", func() {
+			inst := newInstanceWithDisk("inst-rwo-term", corev1.ReadWriteOnce)
+			var deployment appsv1.Deployment
+			Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(inst, envName), &deployment)).To(Succeed())
+
+			By("The pod of the instance is being deleted: bound to a node, so it is kept until its container has stopped")
+			instancePod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: deployment.Name + "-0", Namespace: tenantNamespace, Labels: deployment.Spec.Template.Labels},
+				Spec:       *deployment.Spec.Template.Spec.DeepCopy(),
+			}
+			instancePod.Spec.NodeName = "node-1"
+			create(instancePod)
+			instancePod.Status.Phase = corev1.PodRunning
+			Expect(k8sClient.Status().Update(ctx, instancePod)).To(Succeed())
+			Expect(k8sClient.Delete(ctx, instancePod)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(instancePod), instancePod)).To(Succeed())
+			Expect(instancePod.DeletionTimestamp).ToNot(BeNil())
+
+			By("The Deployment wants 0 replicas and counts none: what PR #2 read as a stopped container")
+			stopInstanceContainer(inst)
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(&deployment), &deployment)).To(Succeed())
+			Expect(deployment.Spec.Replicas).To(PointTo(BeNumerically("==", 0)))
+			Expect(deployment.Status.Replicas).To(BeNumerically("==", 0))
+			Expect(deployment.Status.TerminatingReplicas).To(BeNil())
+
+			cj := newCrownJob("inst-rwo-term", sh, "")
+			reconcileCrownJob(cj)
+			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonDiskInUse,
+				"Your job will start when you stop the instance inst-rwo-term: its disk can be used by one machine at a time.")
+			_, err := getJob(cj.Name)
+			Expect(kerrors.IsNotFound(err)).To(BeTrue())
+
+			By("The container has stopped (Failed) but the pod is not gone yet: the kubelet deletes it once its volumes are unmounted")
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(instancePod), instancePod)).To(Succeed())
+			instancePod.Status.Phase = corev1.PodFailed
+			instancePod.Status.ContainerStatuses = []corev1.ContainerStatus{terminated(envName, 137)}
+			Expect(k8sClient.Status().Update(ctx, instancePod)).To(Succeed())
+			reconcileCrownJob(cj)
+			Expect(crownJobStatus(cj).Reason).To(Equal(crownjob.ReasonDiskInUse))
+			_, err = getJob(cj.Name)
+			Expect(kerrors.IsNotFound(err)).To(BeTrue())
+
+			By("The pod is gone: the Job is created")
+			Expect(k8sClient.Delete(ctx, instancePod, client.GracePeriodSeconds(0))).To(Succeed())
+			Eventually(func() bool {
+				return kerrors.IsNotFound(k8sClient.Get(ctx, client.ObjectKeyFromObject(instancePod), &corev1.Pod{}))
+			}).Should(BeTrue())
+			reconcileCrownJob(cj)
+			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue, "Your job is waiting in the queue of workspace ws.")
+			_, err = getJob(cj.Name)
+			Expect(err).ToNot(HaveOccurred())
+		})
+
+		It("Should wait with DiskInUse while the Deployment counts a terminating replica, and not for a pod that has ended", func() {
+			inst := newInstanceWithDisk("inst-rwo-termcount", corev1.ReadWriteOnce)
+			stopInstanceContainer(inst)
+			var deployment appsv1.Deployment
+			Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(inst, envName), &deployment)).To(Succeed())
+			deployment.Status.TerminatingReplicas = ptr.To[int32](1)
+			Expect(k8sClient.Status().Update(ctx, &deployment)).To(Succeed())
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(&deployment), &deployment)).To(Succeed())
+			Expect(deployment.Status.TerminatingReplicas).To(PointTo(BeNumerically("==", 1)),
+				"the API server must keep status.terminatingReplicas for this test to mean anything")
+
+			cj := newCrownJob("inst-rwo-termcount", sh, "")
+			reconcileCrownJob(cj)
+			Expect(crownJobStatus(cj).Reason).To(Equal(crownjob.ReasonDiskInUse))
+
+			By("No terminating replica, and the only pod of the instance has ended (Failed): the Job is created")
+			deployment.Status.TerminatingReplicas = ptr.To[int32](0)
+			Expect(k8sClient.Status().Update(ctx, &deployment)).To(Succeed())
+			endedPod := &corev1.Pod{
+				ObjectMeta: metav1.ObjectMeta{Name: deployment.Name + "-0", Namespace: tenantNamespace, Labels: deployment.Spec.Template.Labels},
+				Spec:       *deployment.Spec.Template.Spec.DeepCopy(),
+			}
+			create(endedPod)
+			endedPod.Status.Phase = corev1.PodFailed
+			Expect(k8sClient.Status().Update(ctx, endedPod)).To(Succeed())
+			reconcileCrownJob(cj)
 			Expect(crownJobStatus(cj).Reason).To(Equal(crownjob.ReasonInQueue))
 		})
 
