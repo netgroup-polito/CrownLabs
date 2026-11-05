@@ -68,7 +68,7 @@ const (
 	msgStartingPullFail = "Your job is starting (the image cannot be downloaded: retrying)."
 	msgRunning          = "Your job is running."
 	msgCompleted        = "Your job finished successfully."
-	msgTimeLimit        = "Your job was stopped because it reached its time limit (%s)."
+	msgTimeLimit        = "Your job was stopped because it reached its time limit (%s, set-up included)."
 	msgExitCode         = "Your command ended with exit code %d."
 	msgRunFolder        = "The folder %s could not be created on the disk of the instance (exit code %d)."
 	msgPodRejected      = "The job could not start: %s."
