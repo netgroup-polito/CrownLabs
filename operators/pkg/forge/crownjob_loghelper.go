@@ -49,6 +49,10 @@ const (
 	// AnnotationCrownJobLogFilesKey -> the annotation of the main Job of a CrownJob with the number of log helpers
 	// created for its pods. The helpers are deleted some time after they end, while the main Job lives longer.
 	AnnotationCrownJobLogFilesKey = CrownJobLabelPrefix + "log-files"
+	// AnnotationCrownJobLogSavedKey -> the annotation of the main Job of a CrownJob telling whether the log helper of its
+	// first pod completed ("true") or failed ("false"), set once that helper has ended: the helper is deleted some time
+	// after it ends, possibly before the main Job ends.
+	AnnotationCrownJobLogSavedKey = CrownJobLabelPrefix + "log-saved"
 
 	// CrownJobLogReaderName -> the name of the ServiceAccount, Role and RoleBinding of the log helpers of a namespace.
 	CrownJobLogReaderName = "crownjob-log-reader"

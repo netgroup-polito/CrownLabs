@@ -44,7 +44,7 @@ func (r *Reconciler) observeJob(ctx context.Context, crownJob *clv1alpha2.CrownJ
 		if err != nil {
 			return ctrl.Result{}, err
 		}
-		setStatus(crownJob, clv1alpha2.CrownJobPhaseSucceeded, ReasonCompleted, msgCompleted+logSavedSuffix(crownJob, job, helpers))
+		setStatus(crownJob, clv1alpha2.CrownJobPhaseSucceeded, ReasonCompleted, msgCompleted+logSentence(crownJob, job, helpers))
 		return ctrl.Result{}, nil
 	}
 
@@ -54,7 +54,7 @@ func (r *Reconciler) observeJob(ctx context.Context, crownJob *clv1alpha2.CrownJ
 			return ctrl.Result{}, err
 		}
 		reason, message := failureStatus(job, failed, pod)
-		setStatus(crownJob, clv1alpha2.CrownJobPhaseFailed, reason, message+logSavedSuffix(crownJob, job, helpers))
+		setStatus(crownJob, clv1alpha2.CrownJobPhaseFailed, reason, message+logSentence(crownJob, job, helpers))
 		return ctrl.Result{}, nil
 	}
 
@@ -111,8 +111,8 @@ func (r *Reconciler) observeJob(ctx context.Context, crownJob *clv1alpha2.CrownJ
 	return ctrl.Result{RequeueAfter: requeueWaiting}, nil
 }
 
-// observePod reads the newest pod of the Job, creates its log helper if needed, reports the failed log helpers, and
-// returns the log helpers of the CrownJob and the pod.
+// observePod reads the newest pod of the Job, creates its log helper if needed, records the end of the log helper of
+// the first pod, reports the failed log helpers, and returns the log helpers of the CrownJob and the pod.
 func (r *Reconciler) observePod(ctx context.Context, crownJob *clv1alpha2.CrownJob, job *batchv1.Job) ([]batchv1.Job, *corev1.Pod, error) {
 	pod, err := r.jobPod(ctx, job)
 	if err != nil {
@@ -120,6 +120,9 @@ func (r *Reconciler) observePod(ctx context.Context, crownJob *clv1alpha2.CrownJ
 	}
 	helpers, err := r.ensureLogHelper(ctx, crownJob, job, pod)
 	if err != nil {
+		return nil, nil, err
+	}
+	if err := r.recordFirstLogSaved(ctx, crownJob, job, helpers); err != nil {
 		return nil, nil, err
 	}
 	return helpers, pod, r.reportFailedLogHelpers(ctx, crownJob, helpers)

@@ -61,6 +61,7 @@ const (
 	msgQueueNotReady    = "The job queue of workspace %s is not ready yet: your job will start when it is."
 	msgCanceled         = "The instance %s was deleted before your job started."
 	msgLogSaved         = " The output is saved in %s."
+	msgLogNotSaved      = " The output could not be saved."
 	msgLogsNotSaved     = "The output of the job could not be saved in %s: %s."
 	msgStarting         = "Your job is starting."
 	msgStartingDownload = "Your job is starting (downloading the image)."

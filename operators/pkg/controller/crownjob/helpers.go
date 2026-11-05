@@ -36,9 +36,10 @@ import (
 // The log of every job pod is saved into the run folder by a helper Job, created when the app container of the pod is
 // first seen started (running, or already ended for a short job). The helper follows the log from the start of the
 // container, so that nothing is lost when the kubelet rotates its files. A helper never changes the phase of the
-// CrownJob: its failure is recorded as a LogsNotSaved event. A helper is deleted some time after it ends (see
-// FinishedJobTTL), possibly while the main Job still runs a replacement pod: the number of helpers created is kept on
-// the main Job, which numbers the log files and tells whether the log of the first pod was saved.
+// CrownJob: its failure is recorded as a LogsNotSaved event, and the end of the helper of the first pod adds a sentence
+// to the terminal message (that the output is saved, or could not be saved), once both have ended. A helper is deleted
+// some time after it ends (see FinishedJobTTL), possibly while the main Job still runs a replacement pod: the number of
+// helpers created, which numbers the log files, and the end of the helper of the first pod are kept on the main Job.
 
 // logHelpers returns the log helper Jobs of the given CrownJob: those with its name and the log-helper component labels,
 // and controlled by it. The main Job carries the CrownJob label too, but not the component label.
@@ -197,20 +198,99 @@ func (r *Reconciler) reportFailedLogHelpers(ctx context.Context, crownJob *clv1a
 	return nil
 }
 
-// logSavedSuffix returns the sentence ending the terminal messages when a log helper was created for the first pod
-// of the job (the controller cannot read the disk, so it relies on the creation of the helper): as recorded on the
-// main Job (nil if it is gone), or as shown by the helper itself.
-func logSavedSuffix(crownJob *clv1alpha2.CrownJob, job *batchv1.Job, helpers []batchv1.Job) string {
-	first := forge.CrownJobLogFile(crownJob.Name, 1)
-	if job != nil && logHelpersCreated(job, nil) > 0 {
-		return fmt.Sprintf(msgLogSaved, first)
-	}
-	for i := range helpers {
-		if helpers[i].Annotations[forge.AnnotationCrownJobLogFileKey] == first {
-			return fmt.Sprintf(msgLogSaved, first)
+// logSentence returns the sentence ending the terminal message once the log helper of the first pod of the job has
+// ended (the controller cannot read the disk, so it relies on the end of the helper): that the output is saved in its
+// log file if the helper completed, or that it could not be saved if it failed. It is empty while the helper runs, or
+// if none was created. The end is read from the helper, or else as recorded on the main Job (nil if it is gone).
+func logSentence(crownJob *clv1alpha2.CrownJob, job *batchv1.Job, helpers []batchv1.Job) string {
+	saved, ended := firstLogSaved(crownJob, helpers)
+	if !ended && job != nil {
+		if recorded, err := strconv.ParseBool(job.Annotations[forge.AnnotationCrownJobLogSavedKey]); err == nil {
+			saved, ended = recorded, true
 		}
 	}
-	return ""
+	switch {
+	case !ended:
+		return ""
+	case saved:
+		return fmt.Sprintf(msgLogSaved, forge.CrownJobLogFile(crownJob.Name, 1))
+	default:
+		return msgLogNotSaved
+	}
+}
+
+// hasLogSentence returns whether the message of the given CrownJob already ends with the sentence about its log.
+func hasLogSentence(crownJob *clv1alpha2.CrownJob) bool {
+	message := crownJob.Status.Message
+	return strings.HasSuffix(message, fmt.Sprintf(msgLogSaved, forge.CrownJobLogFile(crownJob.Name, 1))) ||
+		strings.HasSuffix(message, msgLogNotSaved)
+}
+
+// firstLogSaved returns whether the log helper of the first pod of the job has ended, and if so whether it completed.
+func firstLogSaved(crownJob *clv1alpha2.CrownJob, helpers []batchv1.Job) (saved, ended bool) {
+	first := forge.CrownJobLogFile(crownJob.Name, 1)
+	for i := range helpers {
+		if helpers[i].Annotations[forge.AnnotationCrownJobLogFileKey] != first {
+			continue
+		}
+		switch {
+		case jobConditionTrue(&helpers[i], batchv1.JobComplete) != nil:
+			return true, true
+		case jobConditionTrue(&helpers[i], batchv1.JobFailed) != nil:
+			return false, true
+		}
+		return false, false
+	}
+	return false, false
+}
+
+// recordFirstLogSaved records on the main Job whether the log helper of its first pod completed, once it has ended.
+func (r *Reconciler) recordFirstLogSaved(ctx context.Context, crownJob *clv1alpha2.CrownJob, job *batchv1.Job, helpers []batchv1.Job) error {
+	saved, ended := firstLogSaved(crownJob, helpers)
+	if !ended || job.Annotations[forge.AnnotationCrownJobLogSavedKey] != "" {
+		return nil
+	}
+	original := job.DeepCopy()
+	if job.Annotations == nil {
+		job.Annotations = map[string]string{}
+	}
+	job.Annotations[forge.AnnotationCrownJobLogSavedKey] = strconv.FormatBool(saved)
+	if err := r.Patch(ctx, job, client.MergeFrom(original)); err != nil && !kerrors.IsNotFound(err) {
+		ctrl.LoggerFrom(ctx).Error(err, "failed to record the end of the first log helper on the job", "job", klog.KObj(job))
+		return err
+	}
+	return nil
+}
+
+// appendLogSentence appends to the message of a terminal CrownJob, once, the sentence about the log of its first pod,
+// as soon as the log helper of that pod has ended: the only change ever made to a terminal status.
+func (r *Reconciler) appendLogSentence(ctx context.Context, crownJob *clv1alpha2.CrownJob, helpers []batchv1.Job) (ctrl.Result, error) {
+	if hasLogSentence(crownJob) {
+		return ctrl.Result{}, nil
+	}
+	var job *batchv1.Job
+	var mainJob batchv1.Job
+	if err := r.Get(ctx, client.ObjectKeyFromObject(crownJob), &mainJob); err == nil && metav1.IsControlledBy(&mainJob, crownJob) {
+		job = &mainJob
+	} else if client.IgnoreNotFound(err) != nil {
+		return ctrl.Result{}, err
+	}
+	sentence := logSentence(crownJob, job, helpers)
+	if sentence == "" {
+		return ctrl.Result{}, nil
+	}
+
+	original := crownJob.DeepCopy()
+	crownJob.Status.Message += sentence
+	if err := r.Status().Patch(ctx, crownJob, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
+		if kerrors.IsConflict(err) {
+			return ctrl.Result{RequeueAfter: requeueConflict}, nil
+		}
+		ctrl.LoggerFrom(ctx).Error(err, "failed to add the log sentence to the crownjob status")
+		return ctrl.Result{}, err
+	}
+	ctrl.LoggerFrom(ctx).Info("log sentence added to the final status", "message", crownJob.Status.Message)
+	return ctrl.Result{}, nil
 }
 
 // appContainerStarted returns whether the app container of the given job pod is running, or has ended.
