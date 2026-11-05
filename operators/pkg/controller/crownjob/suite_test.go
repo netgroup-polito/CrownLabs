@@ -91,6 +91,8 @@ var _ = BeforeSuite(func() {
 	// The Kueue CRDs are in a subdirectory, which neither the other suites nor "kubectl apply -f tests/crds" read.
 	testEnv = tests.ForgeEnvtestEnv(true)
 	testEnv.CRDDirectoryPaths = append(testEnv.CRDDirectoryPaths, filepath.Join("..", "..", "..", "tests", "crds", "kueue"))
+	// Deployment.status.terminatingReplicas is an alpha field in Kubernetes 1.34: without the gate, the API server drops it.
+	testEnv.ControlPlane.GetAPIServer().Configure().Append("feature-gates", "DeploymentReplicaSetTerminatingReplicas=true")
 
 	cfg, err := testEnv.Start()
 	Expect(err).ToNot(HaveOccurred())
