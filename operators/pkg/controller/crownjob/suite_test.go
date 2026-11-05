@@ -314,8 +314,10 @@ func createDeployment(inst *clv1alpha2.Instance, tmpl string) {
 		ExpectWithOffset(2, kerrors.IsNotFound(err)).To(BeTrue())
 	}
 	environment := template.Spec.EnvironmentList[0]
+	objectMeta := forge.ObjectMetaWithSuffix(inst, environment.Name)
+	objectMeta.Labels = forge.EnvironmentObjectLabels(nil, inst, &environment)
 	deployment := appsv1.Deployment{
-		ObjectMeta: forge.ObjectMetaWithSuffix(inst, environment.Name),
+		ObjectMeta: objectMeta,
 		Spec: forge.DeploymentSpec(inst, &template, &environment, nil,
 			&forge.ContainerEnvOpts{ImagesTag: "v1", ContentToolsImg: "tools"}),
 	}

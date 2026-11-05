@@ -73,9 +73,9 @@ rules:
   resources: ["jobs"]
   verbs: ["get", "list", "watch", "create", "patch", "delete"]
 
-# The pods of the Jobs are listed without cache. get on pods and pods/log are not used by the operator: they are
-# granted by the Role crownjob-log-reader that it creates for the log helpers, and RBAC refuses a Role that grants
-# more than its creator holds.
+# The pods of the Jobs, and those of an instance whose container is stopping, are listed without cache. get on pods
+# and pods/log are not used by the operator: they are granted by the Role crownjob-log-reader that it creates for the
+# log helpers, and RBAC refuses a Role that grants more than its creator holds.
 - apiGroups: [""]
   resources: ["pods"]
   verbs: ["get", "list"]
@@ -89,10 +89,12 @@ rules:
   resources: ["events"]
   verbs: ["list", "create", "patch"]
 
-# The Deployment and the disk of the instance, read before the Job is created and before each log helper.
+# The Deployment and the disk of the instance, read before the Job is created and before each log helper. The
+# Deployments are also watched (metadata only), to wake up the jobs waiting for their instance: the informer needs
+# list and watch, and without them no controller of the operator starts.
 - apiGroups: ["apps"]
   resources: ["deployments"]
-  verbs: ["get"]
+  verbs: ["get", "list", "watch"]
 - apiGroups: [""]
   resources: ["persistentvolumeclaims"]
   verbs: ["get"]

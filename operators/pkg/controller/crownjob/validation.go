@@ -40,6 +40,9 @@ var (
 	// errDiskInUse is returned when the disk of the Instance is not ReadWriteMany and its container is running, or
 	// still stopping.
 	errDiskInUse = errors.New("the disk of the instance is in use")
+	// errInstanceStopping is returned when the container of the Instance has been stopped, but one of its pods still
+	// exists: the disk is still in use, for a short time.
+	errInstanceStopping = fmt.Errorf("%w: the container of the instance is stopping", errDiskInUse)
 	// errQueueNotReady is returned when the ClusterQueue of the Workspace does not exist yet.
 	errQueueNotReady = errors.New("the job queue of the workspace does not exist yet")
 )
@@ -52,8 +55,8 @@ type jobInputs struct {
 }
 
 // gatherJobInputs reads the objects a CrownJob refers to, and checks the rules a job must respect before its Job
-// is created. It returns a forge.CannotStartError if the job can never start; errInstanceNotReady, errDiskInUse or
-// errQueueNotReady if it has to wait (with the Instance and, for the queue, the Workspace in the inputs); and any
+// is created. It returns a forge.CannotStartError if the job can never start; errInstanceNotReady, errDiskInUse (or
+// errInstanceStopping, which wraps it) or errQueueNotReady if it has to wait (with the Instance and, for the queue, the Workspace in the inputs); and any
 // other error if an object could not be read.
 // The objects are read with the API reader (without cache), since they are needed only once per CrownJob.
 func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.CrownJob) (*jobInputs, error) {
@@ -152,20 +155,10 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 	// The disk: one that is not ReadWriteMany can be used by one node at a time, so the job waits while the container
 	// of the instance runs, or still stops. It is checked only before the Job exists: an instance started later waits
 	// for the disk.
-	if claimName := persistentClaimName(&deployment.Spec.Template.Spec); claimName != "" {
-		var pvc corev1.PersistentVolumeClaim
-		if found, err := r.read(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: claimName}, &pvc); err != nil {
-			return nil, err
-		} else if !found {
-			return &jobInputs{instance: &instance}, errInstanceNotReady
-		}
-		if !forge.IsReadWriteMany(pvc.Spec.AccessModes) {
-			if state, err := r.instanceContainer(ctx, &deployment); err != nil {
-				return nil, err
-			} else if state != containerStopped {
-				return &jobInputs{instance: &instance}, errDiskInUse
-			}
-		}
+	if err := r.checkDisk(ctx, &deployment); errors.Is(err, errInstanceNotReady) || errors.Is(err, errDiskInUse) {
+		return &jobInputs{instance: &instance}, err
+	} else if err != nil {
+		return nil, err
 	}
 
 	// The job queue of the Workspace: without its ClusterQueue, Kueue would keep the Job waiting with no explanation.
@@ -264,6 +257,34 @@ func persistentClaimName(spec *corev1.PodSpec) string {
 		}
 	}
 	return ""
+}
+
+// checkDisk returns errInstanceNotReady if the disk of the instance of the given Deployment does not exist yet, and
+// errDiskInUse (or errInstanceStopping, which wraps it) if the disk is not ReadWriteMany and the container of the
+// instance runs, or still stops.
+func (r *Reconciler) checkDisk(ctx context.Context, deployment *appsv1.Deployment) error {
+	claimName := persistentClaimName(&deployment.Spec.Template.Spec)
+	if claimName == "" {
+		return nil
+	}
+	var pvc corev1.PersistentVolumeClaim
+	if found, err := r.read(ctx, types.NamespacedName{Namespace: deployment.Namespace, Name: claimName}, &pvc); err != nil {
+		return err
+	} else if !found {
+		return errInstanceNotReady
+	} else if forge.IsReadWriteMany(pvc.Spec.AccessModes) {
+		return nil
+	}
+
+	switch state, err := r.instanceContainer(ctx, deployment); {
+	case err != nil:
+		return err
+	case state == containerRunning:
+		return errDiskInUse
+	case state == containerStopping:
+		return errInstanceStopping
+	}
+	return nil
 }
 
 // containerState tells whether the container of an instance uses its disk.

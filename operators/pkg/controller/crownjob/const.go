@@ -83,8 +83,12 @@ const (
 	requeueWaiting = 30 * time.Second
 	// requeueInstanceNotReady -> how often a job waiting for the Deployment of its Instance is checked again.
 	requeueInstanceNotReady = 15 * time.Second
-	// requeueDiskInUse -> how often a job waiting for its Instance to stop is checked again.
+	// requeueDiskInUse -> how often a job waiting for its Instance to stop is checked again (the watch on the Deployment of
+	// the instance wakes it up when the instance is stopped).
 	requeueDiskInUse = 30 * time.Second
+	// requeueDiskReleasing -> how often a job is checked again while the container of its Instance stops: when the last
+	// pod goes, the Deployment may not change (status.terminatingReplicas is set only where its feature gate is enabled).
+	requeueDiskReleasing = 2 * time.Second
 	// requeueQueueNotReady -> how often a job waiting for the ClusterQueue of its Workspace is checked again.
 	requeueQueueNotReady = 30 * time.Second
 	// requeueConflict -> how soon a CrownJob or Instance is reconciled again after a conflict on its write.

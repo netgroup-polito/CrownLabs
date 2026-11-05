@@ -32,6 +32,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -82,7 +83,7 @@ var _ = Describe("The CrownJob controller, before the Job exists (P10)", func() 
 			Expect(k8sClient.Update(ctx, &deployment)).To(Succeed())
 			deployment.Status.Replicas = 1
 			Expect(k8sClient.Status().Update(ctx, &deployment)).To(Succeed())
-			Expect(reconcileCrownJob(cj)).To(Equal(ctrl.Result{RequeueAfter: 30 * time.Second}))
+			Expect(reconcileCrownJob(cj)).To(Equal(ctrl.Result{RequeueAfter: 2 * time.Second}), "checked again soon while the pod stops")
 			Expect(crownJobStatus(cj).Reason).To(Equal(crownjob.ReasonDiskInUse))
 
 			By("Once the pod is gone, the Job is created")
@@ -126,7 +127,7 @@ var _ = Describe("The CrownJob controller, before the Job exists (P10)", func() 
 			Expect(deployment.Status.TerminatingReplicas).To(BeNil())
 
 			cj := newCrownJob("inst-rwo-term", sh, "")
-			reconcileCrownJob(cj)
+			Expect(reconcileCrownJob(cj)).To(Equal(ctrl.Result{RequeueAfter: 2 * time.Second}), "checked again soon while the pod stops")
 			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonDiskInUse,
 				"Your job will start when you stop the instance inst-rwo-term: its disk can be used by one machine at a time.")
 			_, err := getJob(cj.Name)
@@ -191,6 +192,54 @@ var _ = Describe("The CrownJob controller, before the Job exists (P10)", func() 
 			cj := newCrownJob("inst-rwx", sh, "")
 			reconcileCrownJob(cj)
 			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue, "Your job is waiting in the queue of workspace ws.")
+		})
+	})
+
+	Describe("Waking up the jobs that wait for an instance (the watch on its Deployment)", func() {
+		It("Should map an event of the Deployment of an instance only to the CrownJobs of that instance that have not started", func() {
+			// The map function lists the CrownJobs through the field index of the cache, as in the operator.
+			reconciler := crownJobReconciler
+			reconciler.Client = instanceReconciler.Client
+			setPhase := func(cj *clv1alpha2.CrownJob, phase clv1alpha2.CrownJobPhase, reason string) {
+				ExpectWithOffset(1, k8sClient.Get(ctx, client.ObjectKeyFromObject(cj), cj)).To(Succeed())
+				cj.Status.Phase, cj.Status.Reason, cj.Status.Message = phase, reason, reason
+				ExpectWithOffset(1, k8sClient.Status().Update(ctx, cj)).To(Succeed())
+			}
+
+			inst := newInstanceWithDisk("inst-wake", corev1.ReadWriteOnce)
+			diskInUse := newCrownJob("inst-wake", sh, "")
+			reconcileCrownJob(diskInUse)
+			Expect(crownJobStatus(diskInUse).Reason).To(Equal(crownjob.ReasonDiskInUse))
+			notReconciled := newCrownJob("inst-wake", sh, "")
+			running := newCrownJob("inst-wake", sh, "")
+			setPhase(running, clv1alpha2.CrownJobPhaseRunning, crownjob.ReasonRunning)
+			starting := newCrownJob("inst-wake", sh, "")
+			setPhase(starting, clv1alpha2.CrownJobPhaseStarting, crownjob.ReasonAdmitted)
+			ended := newCrownJob("inst-wake", sh, "")
+			setPhase(ended, clv1alpha2.CrownJobPhaseSucceeded, crownjob.ReasonCompleted)
+			otherInstance := newCrownJob("inst", sh, "")
+			setPhase(otherInstance, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue)
+			create(&clv1alpha2.CrownJob{
+				ObjectMeta: metav1.ObjectMeta{Name: "cj-wake-other-ns", Namespace: otherNamespace},
+				Spec:       clv1alpha2.CrownJobSpec{Instance: clv1alpha2.GenericRef{Name: "inst-wake"}},
+			})
+
+			var deployment appsv1.Deployment
+			Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(inst, envName), &deployment)).To(Succeed())
+			Expect(deployment.Labels).To(HaveKeyWithValue(forge.LabelInstanceKey, "inst-wake"))
+			// What a metadata-only watch delivers.
+			event := &metav1.PartialObjectMetadata{ObjectMeta: *deployment.ObjectMeta.DeepCopy()}
+			event.SetGroupVersionKind(appsv1.SchemeGroupVersion.WithKind("Deployment"))
+			expected := ConsistOf(
+				reconcile.Request{NamespacedName: client.ObjectKeyFromObject(diskInUse)},
+				reconcile.Request{NamespacedName: client.ObjectKeyFromObject(notReconciled)})
+			mapped := func() []reconcile.Request { return crownjob.InstanceDeploymentToCrownJobs(&reconciler, ctx, event) }
+			Eventually(mapped).WithTimeout(10 * time.Second).Should(expected)
+			Consistently(mapped).WithTimeout(time.Second).Should(expected)
+
+			By("A Deployment without the label of an instance is mapped to nothing")
+			delete(event.Labels, forge.LabelInstanceKey)
+			Expect(mapped()).To(BeEmpty())
 		})
 	})
 

@@ -23,6 +23,7 @@ import (
 	"reflect"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -31,9 +32,13 @@ import (
 	"k8s.io/klog/v2"
 	"k8s.io/utils/trace"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	ctrlutil "sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
+	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
@@ -65,13 +70,19 @@ type Reconciler struct {
 	ReconcileDeferHook func()
 }
 
-// SetupWithManager registers a new controller for CrownJob resources. It watches only the CrownJobs and their Jobs
-// (the main Job, with the name of the CrownJob, and the log helpers): pods and Workloads are read when needed, to keep
-// the cache of the operator small.
+// SetupWithManager registers a new controller for CrownJob resources. It watches the CrownJobs and their Jobs (the main
+// Job, with the name of the CrownJob, and the log helpers), and the metadata of the Deployments of the instances, to
+// wake up the jobs that wait for them: pods and Workloads are read when needed, to keep the cache of the operator small.
+// The field index of the CrownJobs on their Instance is registered by InstanceReconciler.SetupWithManager.
 func (r *Reconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&clv1alpha2.CrownJob{}).
 		Owns(&batchv1.Job{}).
+		Watches(&appsv1.Deployment{}, handler.EnqueueRequestsFromMapFunc(r.instanceDeploymentToCrownJobs), builder.OnlyMetadata,
+			builder.WithPredicates(predicate.NewPredicateFuncs(func(obj client.Object) bool {
+				_, found := obj.GetLabels()[forge.LabelInstanceKey]
+				return found
+			}))).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}).
@@ -197,6 +208,9 @@ func (r *Reconciler) createJob(ctx context.Context, crownJob *clv1alpha2.CrownJo
 		return ctrl.Result{RequeueAfter: requeueInstanceNotReady}, nil
 	case errors.Is(err, errDiskInUse):
 		setStatus(crownJob, clv1alpha2.CrownJobPhaseWaiting, ReasonDiskInUse, fmt.Sprintf(msgDiskInUse, inputs.instance.Name))
+		if errors.Is(err, errInstanceStopping) {
+			return ctrl.Result{RequeueAfter: requeueDiskReleasing}, nil
+		}
 		return ctrl.Result{RequeueAfter: requeueDiskInUse}, nil
 	case errors.Is(err, errQueueNotReady):
 		setStatus(crownJob, clv1alpha2.CrownJobPhaseWaiting, ReasonQueueNotReady, fmt.Sprintf(msgQueueNotReady, inputs.workspace.Name))
@@ -265,6 +279,33 @@ func (r *Reconciler) createJob(ctx context.Context, crownJob *clv1alpha2.CrownJo
 	crownJob.Status.RunFolder = forge.CrownJobRunFolder(crownJob.Name)
 	setStatus(crownJob, clv1alpha2.CrownJobPhaseWaiting, ReasonInQueue, fmt.Sprintf(msgInQueue, inputs.workspace.Name))
 	return ctrl.Result{RequeueAfter: requeueWaiting}, nil
+}
+
+// instanceDeploymentToCrownJobs maps (an event of) the Deployment of an instance to the CrownJobs of that instance that
+// have not started yet (no phase, or Waiting): among them, those waiting for its disk to be released (DiskInUse) or for
+// the Deployment to exist (InstanceNotReady). The CrownJobs are listed from the cache, through their field index.
+func (r *Reconciler) instanceDeploymentToCrownJobs(ctx context.Context, obj client.Object) []reconcile.Request {
+	instance := obj.GetLabels()[forge.LabelInstanceKey]
+	if instance == "" {
+		return nil
+	}
+	var crownJobs clv1alpha2.CrownJobList
+	if err := r.List(ctx, &crownJobs, client.InNamespace(obj.GetNamespace()), client.MatchingFields{CrownJobInstanceIndex: instance}); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "failed listing the crownjobs of the instance", "deployment", klog.KObj(obj))
+		return nil
+	}
+
+	var requests []reconcile.Request
+	for i := range crownJobs.Items {
+		crownJob := &crownJobs.Items[i]
+		if ns := crownJob.Spec.Instance.Namespace; ns != "" && ns != crownJob.Namespace {
+			continue
+		}
+		if crownJob.Status.Phase == "" || crownJob.Status.Phase == clv1alpha2.CrownJobPhaseWaiting {
+			requests = append(requests, reconcile.Request{NamespacedName: client.ObjectKeyFromObject(crownJob)})
+		}
+	}
+	return requests
 }
 
 // addInstanceFinalizer adds the CrownJob finalizer to the given Instance, if missing, with a metadata patch that is

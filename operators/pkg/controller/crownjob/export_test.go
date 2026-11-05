@@ -19,3 +19,6 @@ var JobEnvironment = jobEnvironment
 
 // CrownJobToInstance exposes crownJobToInstance to the tests.
 var CrownJobToInstance = crownJobToInstance
+
+// InstanceDeploymentToCrownJobs exposes the map function of the watch on the Deployments of the instances to the tests.
+var InstanceDeploymentToCrownJobs = (*Reconciler).instanceDeploymentToCrownJobs
