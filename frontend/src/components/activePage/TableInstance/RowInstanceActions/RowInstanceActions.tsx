@@ -12,6 +12,9 @@ import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent from '../SSHModalContent/SSHModalContent';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
+import RunJobModal from '../RunJob/RunJobModal';
+import { isRunJobAvailable } from '../RunJob/crownJobUtils';
+import { useInstanceCrownJobs } from '../RunJob/useInstanceCrownJobs';
 import {
   OwnedInstancesContext,
   type IQuota,
@@ -81,6 +84,20 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
 
   const [sshModal, setSshModal] = useState(false);
   const [showExposureModal, setShowExposureModal] = useState(false);
+  const [runJobOpen, setRunJobOpen] = useState(false);
+
+  // Only the user's own view: the manager view shows other users' instances.
+  const canRunJob =
+    viewMode === WorkspaceRole.user &&
+    !fileManager &&
+    isRunJobAvailable(instance);
+  const crownJobs = useInstanceCrownJobs(instance, {
+    skip: !canRunJob,
+    open: runJobOpen,
+  });
+  const { activeCount } = crownJobs;
+  const openRunJob = useCallback(() => setRunJobOpen(true), []);
+  const closeRunJob = useCallback(() => setRunJobOpen(false), []);
 
   const onEnablePublicExposure = useCallback(
     () => setShowExposureModal(true),
@@ -105,8 +122,18 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
       fileManager,
       extended,
       ...(allowPublic ? { onEnablePublicExposure } : {}),
+      ...(canRunJob ? { onRunJob: openRunJob, activeJobs: activeCount } : {}),
     }),
-    [instance, fileManager, extended, allowPublic, onEnablePublicExposure],
+    [
+      instance,
+      fileManager,
+      extended,
+      allowPublic,
+      onEnablePublicExposure,
+      canRunJob,
+      openRunJob,
+      activeCount,
+    ],
   );
 
   return (
@@ -162,6 +189,9 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
             extended={extended}
             instance={instance}
             viewMode={viewMode}
+            {...(canRunJob
+              ? { onRunJob: openRunJob, activeJobs: activeCount }
+              : {})}
           />
         </div>
       </div>
@@ -194,6 +224,18 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           instanceId={instance.name}
           instancePrettyName={instance.prettyName || instance.name}
           tenantNamespace={instance.tenantNamespace}
+        />
+      )}
+      {canRunJob && instance.job && (
+        <RunJobModal
+          instance={instance}
+          job={instance.job}
+          open={runJobOpen}
+          onClose={closeRunJob}
+          jobs={crownJobs.jobs}
+          usedNames={crownJobs.usedNames}
+          refreshError={crownJobs.error}
+          refresh={crownJobs.refetch}
         />
       )}
     </>
