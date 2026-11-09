@@ -1,0 +1,9 @@
+query workspaceJobLimit($name: String!) {
+  workspace: itPolitoCrownlabsV1alpha1Workspace(name: $name) {
+    spec {
+      queueLimits {
+        maxRunTime
+      }
+    }
+  }
+}

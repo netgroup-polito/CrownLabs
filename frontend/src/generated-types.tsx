@@ -4789,6 +4789,17 @@ export type ApplyWorkspaceMutationVariables = Exact<{
 
 export type ApplyWorkspaceMutation = { __typename?: 'Mutation', applyWorkspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null, spec?: { __typename?: 'Spec2', prettyName: string, autoEnroll?: AutoEnroll | null, quota: { __typename?: 'Quota', cpu: any, memory: any, instances: any, disk?: any | null, otherResources?: any | null } } | null } | null };
 
+export type CreateCrownJobMutationVariables = Exact<{
+  tenantNamespace: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  instanceName: Scalars['String']['input'];
+  command?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>> | InputMaybe<Scalars['String']['input']>>;
+  maxRunTime?: InputMaybe<Scalars['String']['input']>;
+}>;
+
+
+export type CreateCrownJobMutation = { __typename?: 'Mutation', createdCrownJob?: { __typename?: 'ItPolitoCrownlabsV1alpha2CrownJob', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null } | null } | null };
+
 export type CreateInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
   templateId: Scalars['String']['input'];
@@ -4857,6 +4868,14 @@ export type CreateWorkspaceImageMutationVariables = Exact<{
 
 export type CreateWorkspaceImageMutation = { __typename?: 'Mutation', createdImage?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null, labels?: any | null } | null, spec?: { __typename?: 'Spec5', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef2', name: string, namespace?: string | null } } | null, status?: { __typename?: 'Status5', phase: Phase5, artifact?: { __typename?: 'Artifact', volumeSize: any } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status6, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null } | null };
 
+export type DeleteCrownJobMutationVariables = Exact<{
+  tenantNamespace: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+}>;
+
+
+export type DeleteCrownJobMutation = { __typename?: 'Mutation', deletedCrownJob?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1Status', kind?: string | null } | null };
+
 export type DeleteInstanceMutationVariables = Exact<{
   tenantNamespace: Scalars['String']['input'];
   instanceId: Scalars['String']['input'];
@@ -4916,6 +4935,13 @@ export type AllTemplatesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type AllTemplatesQuery = { __typename?: 'Query', allTemplates?: { __typename?: 'ItPolitoCrownlabsV1alpha2TemplateList', items: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Template', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null } | null } | null> } | null };
 
+export type CrownJobsQueryVariables = Exact<{
+  tenantNamespace: Scalars['String']['input'];
+}>;
+
+
+export type CrownJobsQuery = { __typename?: 'Query', crownJobList?: { __typename?: 'ItPolitoCrownlabsV1alpha2CrownJobList', jobs: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2CrownJob', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, deletionTimestamp?: string | null } | null, spec: { __typename?: 'Spec3', instanceRef: { __typename?: 'InstanceRef', name: string } }, status?: { __typename?: 'Status3', phase?: Phase | null, reason?: string | null, message?: string | null, queuePosition?: number | null, deadline?: string | null } | null } | null> } | null };
+
 export type ImageListQueryVariables = Exact<{
   name: Scalars['String']['input'];
 }>;
@@ -4928,7 +4954,7 @@ export type OwnedInstancesQueryVariables = Exact<{
 }>;
 
 
-export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null, annotations?: any | null } | null, status?: { __typename?: 'Status4', phase?: Phase3 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null, publicExposure?: { __typename?: 'PublicExposure2', externalIP?: string | null, phase?: Phase4 | null, ports?: Array<{ __typename?: 'Ports2ListItem', name: string, port: number, protocol?: Protocol | null, targetPort: number } | null> | null } | null, environments?: Array<{ __typename?: 'EnvironmentsListItem', name: string, phase?: Phase2 | null, ip?: string | null, initialReadyTime?: string | null } | null> | null } | null, spec?: { __typename?: 'Spec4', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number, protocol?: Protocol | null } | null> } | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec7', prettyName: string, description: string, allowPublicExposure?: boolean | null, cleanup: { __typename?: 'Cleanup', deleteAfterCreation: string, stopAfterInactivity: string, deleteAfterInactivity: string }, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType, resources: { __typename?: 'Resources', cpu: any, memory: any, disk?: any | null, otherResources?: any | null } } | null> } | null } | null } | null } } | null } | null> } | null };
+export type OwnedInstancesQuery = { __typename?: 'Query', instanceList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceList', instances: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null, annotations?: any | null } | null, status?: { __typename?: 'Status4', phase?: Phase3 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null, publicExposure?: { __typename?: 'PublicExposure2', externalIP?: string | null, phase?: Phase4 | null, ports?: Array<{ __typename?: 'Ports2ListItem', name: string, port: number, protocol?: Protocol | null, targetPort: number } | null> | null } | null, environments?: Array<{ __typename?: 'EnvironmentsListItem', name: string, phase?: Phase2 | null, ip?: string | null, initialReadyTime?: string | null } | null> | null } | null, spec?: { __typename?: 'Spec4', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, targetPort: number, protocol?: Protocol | null } | null> } | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec7', prettyName: string, description: string, allowPublicExposure?: boolean | null, job?: { __typename?: 'Job', environmentName: string, commandPolicy?: CommandPolicy | null, command?: Array<string | null> | null, maxRunTime?: string | null } | null, cleanup: { __typename?: 'Cleanup', deleteAfterCreation: string, stopAfterInactivity: string, deleteAfterInactivity: string }, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType, resources: { __typename?: 'Resources', cpu: any, memory: any, disk?: any | null, otherResources?: any | null } } | null> } | null } | null } | null } } | null } | null> } | null };
 
 export type InstancesLabelSelectorQueryVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
@@ -4985,6 +5011,13 @@ export type WorkspaceImagesQueryVariables = Exact<{
 
 export type WorkspaceImagesQuery = { __typename?: 'Query', imageList?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshotList', images: Array<{ __typename?: 'ItPolitoCrownlabsV1alpha2InstanceSnapshot', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, uid?: string | null, creationTimestamp?: string | null, generation?: any | null, labels?: any | null } | null, spec?: { __typename?: 'Spec5', environment: string, imageName?: string | null, description?: string | null, instanceRef: { __typename?: 'InstanceRef2', name: string, namespace?: string | null } } | null, status?: { __typename?: 'Status5', phase: Phase5, artifact?: { __typename?: 'Artifact', volumeSize: any, dataVolumeRef: { __typename?: 'DataVolumeRef', name: string, namespace?: string | null } } | null, conditions?: Array<{ __typename?: 'ConditionsListItem', type: string, status: Status6, reason: string, message: string, observedGeneration?: any | null, lastTransitionTime: string } | null> | null } | null } | null> } | null };
 
+export type WorkspaceJobLimitQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type WorkspaceJobLimitQuery = { __typename?: 'Query', workspace?: { __typename?: 'ItPolitoCrownlabsV1alpha1Workspace', spec?: { __typename?: 'Spec2', queueLimits?: { __typename?: 'QueueLimits', maxRunTime?: string | null } | null } | null } | null };
+
 export type WorkspaceQuotasQueryVariables = Exact<{
   names?: InputMaybe<Array<Scalars['String']['input']> | Scalars['String']['input']>;
 }>;
@@ -5005,7 +5038,7 @@ export type UpdatedOwnedInstancesSubscriptionVariables = Exact<{
 }>;
 
 
-export type UpdatedOwnedInstancesSubscription = { __typename?: 'Subscription', updateInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: UpdateType | null, instance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null, annotations?: any | null } | null, status?: { __typename?: 'Status4', phase?: Phase3 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null, publicExposure?: { __typename?: 'PublicExposure2', externalIP?: string | null, phase?: Phase4 | null, ports?: Array<{ __typename?: 'Ports2ListItem', name: string, port: number, protocol?: Protocol | null, targetPort: number } | null> | null } | null, environments?: Array<{ __typename?: 'EnvironmentsListItem', name: string, phase?: Phase2 | null, ip?: string | null, initialReadyTime?: string | null } | null> | null } | null, spec?: { __typename?: 'Spec4', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, protocol?: Protocol | null, targetPort: number } | null> } | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec7', prettyName: string, description: string, allowPublicExposure?: boolean | null, cleanup: { __typename?: 'Cleanup', deleteAfterCreation: string, stopAfterInactivity: string, deleteAfterInactivity: string }, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType, resources: { __typename?: 'Resources', cpu: any, memory: any, disk?: any | null, otherResources?: any | null } } | null> } | null } | null } | null } } | null } | null } | null };
+export type UpdatedOwnedInstancesSubscription = { __typename?: 'Subscription', updateInstance?: { __typename?: 'ItPolitoCrownlabsV1alpha2InstanceUpdate', updateType?: UpdateType | null, instance?: { __typename?: 'ItPolitoCrownlabsV1alpha2Instance', metadata?: { __typename?: 'IoK8sApimachineryPkgApisMetaV1ObjectMeta', name?: string | null, namespace?: string | null, creationTimestamp?: string | null, labels?: any | null, annotations?: any | null } | null, status?: { __typename?: 'Status4', phase?: Phase3 | null, url?: string | null, nodeName?: string | null, nodeSelector?: any | null, publicExposure?: { __typename?: 'PublicExposure2', externalIP?: string | null, phase?: Phase4 | null, ports?: Array<{ __typename?: 'Ports2ListItem', name: string, port: number, protocol?: Protocol | null, targetPort: number } | null> | null } | null, environments?: Array<{ __typename?: 'EnvironmentsListItem', name: string, phase?: Phase2 | null, ip?: string | null, initialReadyTime?: string | null } | null> | null } | null, spec?: { __typename?: 'Spec4', running?: boolean | null, prettyName?: string | null, publicExposure?: { __typename?: 'PublicExposure', ports: Array<{ __typename?: 'PortsListItem', name: string, port: number, protocol?: Protocol | null, targetPort: number } | null> } | null, tenantCrownlabsPolitoItTenantRef: { __typename?: 'TenantCrownlabsPolitoItTenantRef', name: string }, templateCrownlabsPolitoItTemplateRef: { __typename?: 'TemplateCrownlabsPolitoItTemplateRef', name: string, namespace?: string | null, templateWrapper?: { __typename?: 'TemplateWrapper', itPolitoCrownlabsV1alpha2Template?: { __typename?: 'ItPolitoCrownlabsV1alpha2Template', spec?: { __typename?: 'Spec7', prettyName: string, description: string, allowPublicExposure?: boolean | null, job?: { __typename?: 'Job', environmentName: string, commandPolicy?: CommandPolicy | null, command?: Array<string | null> | null, maxRunTime?: string | null } | null, cleanup: { __typename?: 'Cleanup', deleteAfterCreation: string, stopAfterInactivity: string, deleteAfterInactivity: string }, environmentList: Array<{ __typename?: 'EnvironmentListListItem', name: string, guiEnabled?: boolean | null, persistent?: boolean | null, environmentType: EnvironmentType, resources: { __typename?: 'Resources', cpu: any, memory: any, disk?: any | null, otherResources?: any | null } } | null> } | null } | null } | null } } | null } | null } | null };
 
 export type UpdatedInstancesLabelSelectorSubscriptionVariables = Exact<{
   labels?: InputMaybe<Scalars['String']['input']>;
@@ -5486,6 +5519,50 @@ export function useApplyWorkspaceMutation(baseOptions?: Apollo.MutationHookOptio
 export type ApplyWorkspaceMutationHookResult = ReturnType<typeof useApplyWorkspaceMutation>;
 export type ApplyWorkspaceMutationResult = Apollo.MutationResult<ApplyWorkspaceMutation>;
 export type ApplyWorkspaceMutationOptions = Apollo.BaseMutationOptions<ApplyWorkspaceMutation, ApplyWorkspaceMutationVariables>;
+export const CreateCrownJobDocument = gql`
+    mutation createCrownJob($tenantNamespace: String!, $name: String!, $instanceName: String!, $command: [String], $maxRunTime: String) {
+  createdCrownJob: createCrownlabsPolitoItV1alpha2NamespacedCrownJob(
+    namespace: $tenantNamespace
+    itPolitoCrownlabsV1alpha2CrownJobInput: {kind: "CrownJob", apiVersion: "crownlabs.polito.it/v1alpha2", metadata: {name: $name}, spec: {instanceRef: {name: $instanceName}, command: $command, maxRunTime: $maxRunTime}}
+  ) {
+    metadata {
+      name
+      namespace
+      creationTimestamp
+    }
+  }
+}
+    `;
+export type CreateCrownJobMutationFn = Apollo.MutationFunction<CreateCrownJobMutation, CreateCrownJobMutationVariables>;
+
+/**
+ * __useCreateCrownJobMutation__
+ *
+ * To run a mutation, you first call `useCreateCrownJobMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useCreateCrownJobMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [createCrownJobMutation, { data, loading, error }] = useCreateCrownJobMutation({
+ *   variables: {
+ *      tenantNamespace: // value for 'tenantNamespace'
+ *      name: // value for 'name'
+ *      instanceName: // value for 'instanceName'
+ *      command: // value for 'command'
+ *      maxRunTime: // value for 'maxRunTime'
+ *   },
+ * });
+ */
+export function useCreateCrownJobMutation(baseOptions?: Apollo.MutationHookOptions<CreateCrownJobMutation, CreateCrownJobMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<CreateCrownJobMutation, CreateCrownJobMutationVariables>(CreateCrownJobDocument, options);
+      }
+export type CreateCrownJobMutationHookResult = ReturnType<typeof useCreateCrownJobMutation>;
+export type CreateCrownJobMutationResult = Apollo.MutationResult<CreateCrownJobMutation>;
+export type CreateCrownJobMutationOptions = Apollo.BaseMutationOptions<CreateCrownJobMutation, CreateCrownJobMutationVariables>;
 export const CreateInstanceDocument = gql`
     mutation createInstance($tenantNamespace: String!, $templateId: String!, $workspaceNamespace: String!, $tenantId: String!, $generateName: String = "instance-", $nodeSelector: JSON) {
   createdInstance: createCrownlabsPolitoItV1alpha2NamespacedInstance(
@@ -5818,6 +5895,43 @@ export function useCreateWorkspaceImageMutation(baseOptions?: Apollo.MutationHoo
 export type CreateWorkspaceImageMutationHookResult = ReturnType<typeof useCreateWorkspaceImageMutation>;
 export type CreateWorkspaceImageMutationResult = Apollo.MutationResult<CreateWorkspaceImageMutation>;
 export type CreateWorkspaceImageMutationOptions = Apollo.BaseMutationOptions<CreateWorkspaceImageMutation, CreateWorkspaceImageMutationVariables>;
+export const DeleteCrownJobDocument = gql`
+    mutation deleteCrownJob($tenantNamespace: String!, $name: String!) {
+  deletedCrownJob: deleteCrownlabsPolitoItV1alpha2NamespacedCrownJob(
+    namespace: $tenantNamespace
+    name: $name
+  ) {
+    kind
+  }
+}
+    `;
+export type DeleteCrownJobMutationFn = Apollo.MutationFunction<DeleteCrownJobMutation, DeleteCrownJobMutationVariables>;
+
+/**
+ * __useDeleteCrownJobMutation__
+ *
+ * To run a mutation, you first call `useDeleteCrownJobMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeleteCrownJobMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deleteCrownJobMutation, { data, loading, error }] = useDeleteCrownJobMutation({
+ *   variables: {
+ *      tenantNamespace: // value for 'tenantNamespace'
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useDeleteCrownJobMutation(baseOptions?: Apollo.MutationHookOptions<DeleteCrownJobMutation, DeleteCrownJobMutationVariables>) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useMutation<DeleteCrownJobMutation, DeleteCrownJobMutationVariables>(DeleteCrownJobDocument, options);
+      }
+export type DeleteCrownJobMutationHookResult = ReturnType<typeof useDeleteCrownJobMutation>;
+export type DeleteCrownJobMutationResult = Apollo.MutationResult<DeleteCrownJobMutation>;
+export type DeleteCrownJobMutationOptions = Apollo.BaseMutationOptions<DeleteCrownJobMutation, DeleteCrownJobMutationVariables>;
 export const DeleteInstanceDocument = gql`
     mutation deleteInstance($tenantNamespace: String!, $instanceId: String!) {
   deletedInstance: deleteCrownlabsPolitoItV1alpha2NamespacedInstance(
@@ -6116,6 +6230,70 @@ export type AllTemplatesQueryHookResult = ReturnType<typeof useAllTemplatesQuery
 export type AllTemplatesLazyQueryHookResult = ReturnType<typeof useAllTemplatesLazyQuery>;
 export type AllTemplatesSuspenseQueryHookResult = ReturnType<typeof useAllTemplatesSuspenseQuery>;
 export type AllTemplatesQueryResult = Apollo.QueryResult<AllTemplatesQuery, AllTemplatesQueryVariables>;
+export const CrownJobsDocument = gql`
+    query crownJobs($tenantNamespace: String!) {
+  crownJobList: listCrownlabsPolitoItV1alpha2NamespacedCrownJob(
+    namespace: $tenantNamespace
+  ) {
+    jobs: items {
+      metadata {
+        name
+        namespace
+        creationTimestamp
+        deletionTimestamp
+      }
+      spec {
+        instanceRef {
+          name
+        }
+      }
+      status {
+        phase
+        reason
+        message
+        queuePosition
+        deadline
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useCrownJobsQuery__
+ *
+ * To run a query within a React component, call `useCrownJobsQuery` and pass it any options that fit your needs.
+ * When your component renders, `useCrownJobsQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useCrownJobsQuery({
+ *   variables: {
+ *      tenantNamespace: // value for 'tenantNamespace'
+ *   },
+ * });
+ */
+export function useCrownJobsQuery(baseOptions: Apollo.QueryHookOptions<CrownJobsQuery, CrownJobsQueryVariables> & ({ variables: CrownJobsQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<CrownJobsQuery, CrownJobsQueryVariables>(CrownJobsDocument, options);
+      }
+export function useCrownJobsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CrownJobsQuery, CrownJobsQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<CrownJobsQuery, CrownJobsQueryVariables>(CrownJobsDocument, options);
+        }
+// @ts-ignore
+export function useCrownJobsSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<CrownJobsQuery, CrownJobsQueryVariables>): Apollo.UseSuspenseQueryResult<CrownJobsQuery, CrownJobsQueryVariables>;
+export function useCrownJobsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CrownJobsQuery, CrownJobsQueryVariables>): Apollo.UseSuspenseQueryResult<CrownJobsQuery | undefined, CrownJobsQueryVariables>;
+export function useCrownJobsSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<CrownJobsQuery, CrownJobsQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<CrownJobsQuery, CrownJobsQueryVariables>(CrownJobsDocument, options);
+        }
+export type CrownJobsQueryHookResult = ReturnType<typeof useCrownJobsQuery>;
+export type CrownJobsLazyQueryHookResult = ReturnType<typeof useCrownJobsLazyQuery>;
+export type CrownJobsSuspenseQueryHookResult = ReturnType<typeof useCrownJobsSuspenseQuery>;
+export type CrownJobsQueryResult = Apollo.QueryResult<CrownJobsQuery, CrownJobsQueryVariables>;
 export const ImageListDocument = gql`
     query imageList($name: String!) {
   imageList: itPolitoCrownlabsV1alpha1ImageList(name: $name) {
@@ -6231,6 +6409,12 @@ export const OwnedInstancesDocument = gql`
                 prettyName
                 description
                 allowPublicExposure
+                job {
+                  environmentName
+                  commandPolicy
+                  command
+                  maxRunTime
+                }
                 cleanup {
                   deleteAfterCreation
                   stopAfterInactivity
@@ -6862,6 +7046,53 @@ export type WorkspaceImagesQueryHookResult = ReturnType<typeof useWorkspaceImage
 export type WorkspaceImagesLazyQueryHookResult = ReturnType<typeof useWorkspaceImagesLazyQuery>;
 export type WorkspaceImagesSuspenseQueryHookResult = ReturnType<typeof useWorkspaceImagesSuspenseQuery>;
 export type WorkspaceImagesQueryResult = Apollo.QueryResult<WorkspaceImagesQuery, WorkspaceImagesQueryVariables>;
+export const WorkspaceJobLimitDocument = gql`
+    query workspaceJobLimit($name: String!) {
+  workspace: itPolitoCrownlabsV1alpha1Workspace(name: $name) {
+    spec {
+      queueLimits {
+        maxRunTime
+      }
+    }
+  }
+}
+    `;
+
+/**
+ * __useWorkspaceJobLimitQuery__
+ *
+ * To run a query within a React component, call `useWorkspaceJobLimitQuery` and pass it any options that fit your needs.
+ * When your component renders, `useWorkspaceJobLimitQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useWorkspaceJobLimitQuery({
+ *   variables: {
+ *      name: // value for 'name'
+ *   },
+ * });
+ */
+export function useWorkspaceJobLimitQuery(baseOptions: Apollo.QueryHookOptions<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables> & ({ variables: WorkspaceJobLimitQueryVariables; skip?: boolean; } | { skip: boolean; }) ) {
+        const options = {...defaultOptions, ...baseOptions}
+        return Apollo.useQuery<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>(WorkspaceJobLimitDocument, options);
+      }
+export function useWorkspaceJobLimitLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>) {
+          const options = {...defaultOptions, ...baseOptions}
+          return Apollo.useLazyQuery<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>(WorkspaceJobLimitDocument, options);
+        }
+// @ts-ignore
+export function useWorkspaceJobLimitSuspenseQuery(baseOptions?: Apollo.SuspenseQueryHookOptions<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>;
+export function useWorkspaceJobLimitSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>): Apollo.UseSuspenseQueryResult<WorkspaceJobLimitQuery | undefined, WorkspaceJobLimitQueryVariables>;
+export function useWorkspaceJobLimitSuspenseQuery(baseOptions?: Apollo.SkipToken | Apollo.SuspenseQueryHookOptions<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>) {
+          const options = baseOptions === Apollo.skipToken ? baseOptions : {...defaultOptions, ...baseOptions}
+          return Apollo.useSuspenseQuery<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>(WorkspaceJobLimitDocument, options);
+        }
+export type WorkspaceJobLimitQueryHookResult = ReturnType<typeof useWorkspaceJobLimitQuery>;
+export type WorkspaceJobLimitLazyQueryHookResult = ReturnType<typeof useWorkspaceJobLimitLazyQuery>;
+export type WorkspaceJobLimitSuspenseQueryHookResult = ReturnType<typeof useWorkspaceJobLimitSuspenseQuery>;
+export type WorkspaceJobLimitQueryResult = Apollo.QueryResult<WorkspaceJobLimitQuery, WorkspaceJobLimitQueryVariables>;
 export const WorkspaceQuotasDocument = gql`
     query workspaceQuotas($names: [String!]) {
   workspaces: itPolitoCrownlabsV1alpha1WorkspaceList {
@@ -7038,6 +7269,12 @@ export const UpdatedOwnedInstancesDocument = gql`
                 prettyName
                 description
                 allowPublicExposure
+                job {
+                  environmentName
+                  commandPolicy
+                  command
+                  maxRunTime
+                }
                 cleanup {
                   deleteAfterCreation
                   stopAfterInactivity
