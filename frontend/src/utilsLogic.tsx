@@ -20,6 +20,7 @@ import type {
 } from './generated-types';
 import {
   AutoEnroll,
+  CommandPolicy,
   EnvironmentType,
   Phase2,
   Phase6,
@@ -421,6 +422,8 @@ export const makeGuiInstance = (
 
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
+  const templateJob = templateSpec?.job;
+
   const publicExposureObj = buildPublicExposureObject(
     publicExposure,
     publicExposureStatus,
@@ -460,6 +463,16 @@ export const makeGuiInstance = (
     publicExposure: publicExposureObj,
     environments: environments,
     hasMultipleEnvironments,
+    job: templateJob?.environmentName
+      ? {
+          environmentName: templateJob.environmentName,
+          commandPolicy: templateJob.commandPolicy ?? CommandPolicy.Editable,
+          command: (templateJob.command ?? []).filter(
+            (arg): arg is string => arg != null,
+          ),
+          maxRunTime: templateJob.maxRunTime ?? undefined,
+        }
+      : undefined,
     resources: {
       cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
       memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),
