@@ -13,7 +13,7 @@ import {
   Empty,
 } from 'antd';
 import { useContext, useEffect, useState, type FC } from 'react';
-import { EnvironmentType, Phase4 } from '../../../generated-types';
+import { EnvironmentType, Phase5 } from '../../../generated-types';
 import { WorkspaceImagesContext } from '../../../contexts/WorkspaceImagesContext';
 import { SharedVolumeList } from './SharedVolumeList';
 import type { SharedVolume } from '../../../utils';
@@ -250,7 +250,7 @@ export const Environment: FC<EnvironmentProps> = ({
       const dataVolumeRef = image?.status?.artifact?.dataVolumeRef;
       const imageName = image?.spec?.imageName || image?.metadata?.name;
       if (
-        image?.status?.phase === Phase4.Completed &&
+        image?.status?.phase === Phase5.Completed &&
         dataVolumeRef?.name &&
         dataVolumeRef.namespace &&
         imageName
@@ -267,7 +267,7 @@ export const Environment: FC<EnvironmentProps> = ({
         const dataVolumeRef = image?.status?.artifact?.dataVolumeRef;
         const imageName = image?.spec?.imageName || image?.metadata?.name;
         if (
-          image?.status?.phase !== Phase4.Completed ||
+          image?.status?.phase !== Phase5.Completed ||
           !dataVolumeRef?.name ||
           !dataVolumeRef.namespace ||
           !imageName
