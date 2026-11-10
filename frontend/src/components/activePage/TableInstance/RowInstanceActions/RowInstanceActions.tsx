@@ -88,9 +88,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
 
   // Only the user's own view: the manager view shows other users' instances.
   const canRunJob =
-    viewMode === WorkspaceRole.user &&
-    !fileManager &&
-    isRunJobAvailable(instance);
+    viewMode === WorkspaceRole.user && isRunJobAvailable(instance);
   const crownJobs = useInstanceCrownJobs(instance, {
     skip: !canRunJob,
     open: runJobOpen,
