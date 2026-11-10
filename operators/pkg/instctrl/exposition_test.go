@@ -209,7 +209,7 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
 				})
 
-				DescribeTable("should skip creating the HTTPRoute for GUI-less VMs and mark ExpositionAccepted false",
+				DescribeTable("should create the HTTPRoute for GUI-less VMs too, pointing at native VNC, and mark ExpositionAccepted false until accepted",
 					func(envType clv1alpha2.EnvironmentType) {
 						environment.EnvironmentType = envType
 						environment.GuiEnabled = false
@@ -219,7 +219,7 @@ var _ = Describe("Exposition helpers", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
-						Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
+						Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
 						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
 					},
 					Entry("ClassVM", clv1alpha2.ClassVM),
@@ -313,7 +313,7 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
 				})
 
-				DescribeTable("should skip creating the Ingress for GUI-less VMs and mark ExpositionAccepted false",
+				DescribeTable("should create the Ingress for GUI-less VMs too, pointing at native VNC",
 					func(envType clv1alpha2.EnvironmentType) {
 						environment.EnvironmentType = envType
 						environment.GuiEnabled = false
@@ -323,8 +323,8 @@ var _ = Describe("Exposition helpers", func() {
 						Expect(err).ToNot(HaveOccurred())
 
 						Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
-						Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
-						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
+						Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(Succeed())
+						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
 					},
 					Entry("ClassVM", clv1alpha2.ClassVM),
 					Entry("ClassCloudVM", clv1alpha2.ClassCloudVM),

@@ -91,13 +91,14 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 
 	Describe("The forge.VirtualMachineSpec function", func() {
 		var spec virtv1.VirtualMachineSpec
+		operatorSelectorLabels := map[string]string{"crownlabs.polito.it/operator-selector": "test"}
 
 		JustBeforeEach(func() {
-			spec = forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)
+			spec = forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos, operatorSelectorLabels)
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentSelectorLabels(&instance, &environment), operatorSelectorLabels)))
 		})
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
@@ -283,7 +284,33 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
-			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+			Expect(domain.Devices.Video).To(Equal(&virtv1.VideoDevice{Type: "virtio"}))
+			Expect(domain.Devices.Inputs).To(ConsistOf(virtv1.Input{Name: "tablet", Type: virtv1.InputTypeTablet, Bus: virtv1.InputBusVirtio}))
+
+			// Without a pre-installed graphical desktop (GuiEnabled: false), the environment
+			// gets masquerade networking with every port forwarded to the guest except the
+			// native VNC one, so that KubeVirt's native VNC (QEMU) can be reached directly on the pod.
+			expectedIface := virtv1.DefaultMasqueradeNetworkInterface()
+			expectedIface.PortRanges = []virtv1.PortRange{
+				{Protocol: "TCP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+				{Protocol: "TCP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+				{Protocol: "UDP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+				{Protocol: "UDP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+			}
+			Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
+		})
+
+		When("the environment has the GUI enabled", func() {
+			BeforeEach(func() { environment.GuiEnabled = true })
+			It("Should set the bridge network interface", func() {
+				Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+			})
+			It("Should keep the default video device", func() {
+				Expect(domain.Devices.Video).To(BeNil())
+			})
+			It("Should keep the default input devices", func() {
+				Expect(domain.Devices.Inputs).To(BeEmpty())
+			})
 		})
 	})
 
@@ -429,30 +456,16 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 	})
 
 	Describe("The forge.VirtualMachineReadinessProbe function", func() {
-		type VMReadinessProbeCase struct {
-			Environment clv1alpha2.Environment
-			Port        int
-		}
+		It("Should probe the noVNC port when the GUI is enabled", func() {
+			output := forge.VirtualMachineReadinessProbe(&clv1alpha2.Environment{GuiEnabled: true})
+			Expect(output.Handler).To(Equal(virtv1.Handler{
+				TCPSocket: &corev1.TCPSocketAction{Port: intstr.FromInt(forge.GUIPortNumber)},
+			}))
+		})
 
-		DescribeTable("Correctly returns the expected readiness probe",
-			func(c VMReadinessProbeCase) {
-				output := forge.VirtualMachineReadinessProbe(&c.Environment)
-
-				Expect(output.Handler).To(Equal(virtv1.Handler{
-					TCPSocket: &corev1.TCPSocketAction{
-						Port: intstr.FromInt(c.Port),
-					},
-				}))
-
-			},
-			Entry("When the environment has the GUI enabled", VMReadinessProbeCase{
-				Environment: clv1alpha2.Environment{GuiEnabled: true},
-				Port:        forge.GUIPortNumber,
-			}),
-			Entry("When the environment has not the GUI enabled", VMReadinessProbeCase{
-				Environment: clv1alpha2.Environment{GuiEnabled: false},
-				Port:        forge.SSHPortNumber,
-			}),
-		)
+		It("Should return no probe when the GUI is disabled", func() {
+			Expect(forge.VirtualMachineReadinessProbe(&clv1alpha2.Environment{GuiEnabled: false})).To(BeNil())
+		})
 	})
+
 })
