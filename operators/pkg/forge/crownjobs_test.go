@@ -418,6 +418,76 @@ var _ = Describe("CrownJobs forging", func() {
 			})
 		})
 
+		Context("With zero requests of extended resources, as the Template editor of the dashboard writes them", func() {
+			BeforeEach(func() {
+				// The instance pod, as forge.SetContainerResourcesFromEnvironment forges it from the environment.
+				zeros := map[string]resource.Quantity{"amd.com/gpu": resource.MustParse("0"), gpu: resource.MustParse("0")}
+				app := &podTemplate.Spec.Containers[0]
+				forge.InjectOtherResources(zeros, app.Resources.Requests)
+				forge.InjectOtherResources(zeros, app.Resources.Limits)
+				// A standard resource at zero, which is kept.
+				app.Resources.Requests[corev1.ResourceEphemeralStorage] = resource.MustParse("0")
+				app.Resources.Limits[corev1.ResourceEphemeralStorage] = resource.MustParse("0")
+				// A zero in the job section too: the zeros are dropped after it is added.
+				opts.OtherResources = map[string]resource.Quantity{"example.com/fpga": resource.MustParse("0")}
+				opts.RuntimeClasses = map[string]string{gpu: "nvidia", "amd.com/gpu": "rocm", "example.com/fpga": "fpga"}
+			})
+
+			It("Should drop them from the requests and the limits, and keep the standard resources, even at zero", func() {
+				Expect(err).ToNot(HaveOccurred())
+				app := job.Spec.Template.Spec.Containers[0]
+				for _, list := range []corev1.ResourceList{app.Resources.Requests, app.Resources.Limits} {
+					Expect(list).To(HaveLen(3))
+					Expect(list).To(HaveKey(corev1.ResourceCPU))
+					Expect(list).To(HaveKey(corev1.ResourceMemory))
+					Expect(list).To(HaveKey(corev1.ResourceEphemeralStorage))
+					Expect(list.StorageEphemeral().IsZero()).To(BeTrue())
+				}
+				// The instance's container is unchanged.
+				Expect(podTemplate.Spec.Containers[0].Resources.Requests).To(HaveKey(corev1.ResourceName("amd.com/gpu")))
+				Expect(podTemplate.Spec.Containers[0].Resources.Limits).To(HaveKey(corev1.ResourceName(gpu)))
+			})
+
+			It("Should select no runtime class, and set CROWNLABS_JOB_GPUS to 0", func() {
+				Expect(err).ToNot(HaveOccurred())
+				Expect(job.Spec.Template.Spec.RuntimeClassName).To(BeNil())
+				app := &job.Spec.Template.Spec.Containers[0]
+				Expect(findEnv(app, forge.CrownJobEnvGPUs)).To(ConsistOf(corev1.EnvVar{Name: forge.CrownJobEnvGPUs, Value: "0"}))
+			})
+
+			When("The job section asks for one GPU that the instance requests at zero", func() {
+				BeforeEach(func() { opts.OtherResources[gpu] = resource.MustParse("1") })
+
+				It("Should keep that GPU, count it and select its runtime class, and drop the other zeros", func() {
+					Expect(err).ToNot(HaveOccurred())
+					app := &job.Spec.Template.Spec.Containers[0]
+					for _, list := range []corev1.ResourceList{app.Resources.Requests, app.Resources.Limits} {
+						Expect(list.Name(gpu, resource.DecimalSI).String()).To(Equal("1"))
+						Expect(list).ToNot(HaveKey(corev1.ResourceName("amd.com/gpu")))
+						Expect(list).ToNot(HaveKey(corev1.ResourceName("example.com/fpga")))
+					}
+					Expect(findEnv(app, forge.CrownJobEnvGPUs)).To(ConsistOf(corev1.EnvVar{Name: forge.CrownJobEnvGPUs, Value: "1"}))
+					Expect(job.Spec.Template.Spec.RuntimeClassName).To(Equal(ptr.To("nvidia")))
+				})
+			})
+
+			When("An extended resource is set in the limits only", func() {
+				BeforeEach(func() {
+					// Kubernetes sets a missing request to its limit: this asks for one, not for zero.
+					podTemplate.Spec.Containers[0].Resources.Limits["amd.com/gpu"] = resource.MustParse("1")
+					delete(podTemplate.Spec.Containers[0].Resources.Requests, "amd.com/gpu")
+				})
+
+				It("Should keep it", func() {
+					Expect(err).ToNot(HaveOccurred())
+					app := job.Spec.Template.Spec.Containers[0]
+					Expect(app.Resources.Limits.Name("amd.com/gpu", resource.DecimalSI).String()).To(Equal("1"))
+					Expect(app.Resources.Requests).ToNot(HaveKey(corev1.ResourceName("amd.com/gpu")))
+					Expect(app.Resources.Limits).ToNot(HaveKey(corev1.ResourceName(gpu)))
+				})
+			})
+		})
+
 		Context("When the pod template has no container named like the environment", func() {
 			BeforeEach(func() { opts.EnvironmentName = "other" })
 
@@ -608,6 +678,40 @@ var _ = Describe("CrownJobs forging", func() {
 			expectCannotStart(forge.CrownJobCheckQueueLimits(workspaceName, &clv1alpha1.QueueLimits{}, corev1.ResourceList{
 				gpu: resource.MustParse("1"),
 			}), "The job queue of workspace ws does not allow nvidia.com/gpu.")
+		})
+
+		It("Should ignore a zero request, of a resource that the queue covers or not", func() {
+			Expect(forge.CrownJobCheckQueueLimits(workspaceName, &limits, corev1.ResourceList{
+				"cpu": resource.MustParse("1"), "amd.com/gpu": resource.MustParse("0"), gpu: resource.MustParse("0"),
+			})).To(Succeed())
+		})
+
+		It("Should still refuse a non-zero request of a resource that the queue does not cover, next to a zero one", func() {
+			expectCannotStart(forge.CrownJobCheckQueueLimits(workspaceName, &limits, corev1.ResourceList{
+				"amd.com/gpu": resource.MustParse("0"), "example.com/fpga": resource.MustParse("1"),
+			}), "The job queue of workspace ws does not allow example.com/fpga.")
+		})
+	})
+
+	Describe("The runtime class and the GPU count of the requested resources", func() {
+		mapping := map[string]string{gpu: "nvidia", "amd.com/gpu": "rocm"}
+
+		It("Should select a runtime class for non-zero requests only", func() {
+			Expect(forge.CrownJobRuntimeClass(corev1.ResourceList{
+				gpu: resource.MustParse("0"), "amd.com/gpu": resource.MustParse("0"),
+			}, mapping)).To(BeEmpty())
+			Expect(forge.CrownJobRuntimeClass(corev1.ResourceList{
+				gpu: resource.MustParse("0"), "amd.com/gpu": resource.MustParse("1"),
+			}, mapping)).To(Equal("rocm"))
+		})
+
+		It("Should count the requested GPUs, a zero adding nothing", func() {
+			Expect(forge.CrownJobGPUCount(corev1.ResourceList{
+				gpu: resource.MustParse("0"), "amd.com/gpu": resource.MustParse("0"),
+			})).To(BeZero())
+			Expect(forge.CrownJobGPUCount(corev1.ResourceList{
+				gpu: resource.MustParse("0"), "amd.com/gpu": resource.MustParse("3"), "cpu": resource.MustParse("2"),
+			})).To(Equal(int64(3)))
 		})
 	})
 })

@@ -21,6 +21,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -416,6 +417,33 @@ var _ = Describe("The CrownJob controller", func() {
 			Expect(app.Resources.Limits).To(HaveKeyWithValue(corev1.ResourceName(gpu), resource.MustParse("1")))
 			Expect(app.Env).To(ContainElement(corev1.EnvVar{Name: forge.CrownJobEnvGPUs, Value: "1"}))
 			Expect(job.Spec.Template.Spec.RuntimeClassName).To(Equal(ptr.To("nvidia")))
+		})
+
+		It("Should ignore zero requests of extended resources: the job passes the queue check, and its Job has none", func() {
+			// The instance's container requests 0 amd.com/gpu, which the queue does not cover, and 0 nvidia.com/gpu, which
+			// is mapped to a runtime class.
+			var deployment appsv1.Deployment
+			Expect(k8sClient.Get(ctx, forge.NamespacedNameWithSuffix(instance(tenantNamespace, "inst-zerogpu", "", ""), envName), &deployment)).To(Succeed())
+			instanceResources := deployment.Spec.Template.Spec.Containers[0].Resources
+			for _, list := range []corev1.ResourceList{instanceResources.Requests, instanceResources.Limits} {
+				Expect(list).To(HaveKeyWithValue(corev1.ResourceName("amd.com/gpu"), resource.MustParse("0")))
+				Expect(list).To(HaveKeyWithValue(corev1.ResourceName(gpu), resource.MustParse("0")))
+			}
+
+			cj := newCrownJob("inst-zerogpu", sh, "")
+			reconcileCrownJob(cj)
+			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue, "Your job is waiting in the queue of workspace ws.")
+			job, err := getJob(cj.Name)
+			Expect(err).ToNot(HaveOccurred())
+			app := job.Spec.Template.Spec.Containers[0]
+			for _, list := range []corev1.ResourceList{app.Resources.Requests, app.Resources.Limits} {
+				Expect(list).ToNot(HaveKey(corev1.ResourceName("amd.com/gpu")))
+				Expect(list).ToNot(HaveKey(corev1.ResourceName(gpu)))
+				Expect(list).To(HaveKey(corev1.ResourceCPU))
+				Expect(list).To(HaveKey(corev1.ResourceMemory))
+			}
+			Expect(app.Env).To(ContainElement(corev1.EnvVar{Name: forge.CrownJobEnvGPUs, Value: "0"}))
+			Expect(job.Spec.Template.Spec.RuntimeClassName).To(BeNil())
 		})
 
 		It("Should use the template command with commandPolicy Fixed, and no command with ImageDefault", func() {
