@@ -260,9 +260,7 @@ The public exposure configuration is in the instance-operator values chart under
     publicExposure:
       # IP pool used to assign public IPs to Services (single IPs, ranges or CIDRs)
       ipPool:
-        - "130.192.77.92"
-        - "130.192.77.94"
-        - "130.192.77.95"
+        - "130.192.77.93-130.192.77.95"
       # Common annotations applied to all LoadBalancers (format: key1=val1,key2=val2)
       commonAnnotations: "lbipam.cilium.io/sharing-key=crownlabs-pe,lbipam.cilium.io/sharing-cross-namespace=*"
       # Common labels applied to all LoadBalancers (format: key1=val1,key2=val2)
@@ -271,7 +269,7 @@ The public exposure configuration is in the instance-operator values chart under
       loadBalancerIPsKey: "lbipam.cilium.io/ips"
   ```
 
-With Cilium LB-IPAM, a sharing key is scoped to a single namespace: Instances of different tenants requesting the same IP stay pending unless cross-namespace sharing is allowed on all the Services sharing it. Since the annotations are comma-separated, only the `*` value is supported. The pool must not include addresses of LoadBalancer Services that cannot be shared, such as the SSH bastion.
+With Cilium LB-IPAM, a sharing key is scoped to a single namespace: Instances of different tenants requesting the same IP stay pending unless cross-namespace sharing is allowed on all the Services sharing it. Since the annotations are comma-separated, only the `*` value is supported. The pool must not include addresses of LoadBalancer Services that cannot be shared, such as the SSH bastion. The operator only considers the public exposure Services when looking for free IPs and ports, hence the bastion should be pinned to an address outside the pool (e.g., `lbipam.cilium.io/ips: "130.192.77.92"` in `bastion.serviceAnnotations`), otherwise Cilium may assign it one of the pool addresses.
 
 With MetalLB (e.g., on a local kind cluster), the configuration becomes:
   ```yaml

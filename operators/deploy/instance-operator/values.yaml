@@ -56,8 +56,7 @@ configurations:
     # Specify IPs as single addresses, ranges or CIDRs, e.g., "172.18.0.240-172.18.0.249" or "172.18.0.250/30".
     # Do not include addresses of LoadBalancer services that cannot be shared (e.g., the SSH bastion).
     ipPool:
-      - "172.18.0.240-172.18.0.249"
-      - "172.18.0.250/30"
+      - "130.192.77.93-130.192.77.95"
     # Common annotations to be added to all LoadBalancer services
     # Format: "key1=val1,key2=val2"
     # Cilium LB-IPAM shares an IP only within a namespace, unless cross-namespace sharing is allowed (only "*" is supported here).
@@ -68,6 +67,9 @@ configurations:
     # Annotation key for specifying LoadBalancer IPs
     loadBalancerIPsKey: "lbipam.cilium.io/ips"
     # Previous defaults, for MetalLB (e.g., on a local kind cluster):
+    # ipPool:
+    #   - "172.18.0.240-172.18.0.249"
+    #   - "172.18.0.250/30"
     # commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
     # commonLabels: ""   # e.g., "metallb.universe.tf/ip-pool=public"
     # loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
