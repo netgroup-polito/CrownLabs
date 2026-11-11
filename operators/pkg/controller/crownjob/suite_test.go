@@ -209,6 +209,10 @@ func createFixtures() {
 		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{"cpu": resource.MustParse("2"), "memory": resource.MustParse("3Gi")}}}, 1, 50)
 	createTemplate("tpl-bigcpu", workspaceName, editable, 8, 100)
 	createTemplate("tpl-prio", prioWorkspace, editable, 1, 50)
+	// An environment with zero GPUs, as the Template editor of the dashboard writes it.
+	zeroGPUs := jobEnvironment(1, 50)
+	zeroGPUs.Resources.OtherResources = map[string]resource.Quantity{"amd.com/gpu": resource.MustParse("0"), gpu: resource.MustParse("0")}
+	createTemplateWithEnvironment("tpl-zerogpu", workspaceName, editable, &zeroGPUs)
 	createTemplate("tpl-noqueue", noQueueWorkspace, editable, 1, 50)
 	createTemplate("tpl-nows", "", editable, 1, 50)
 	createTemplate("tpl-ghostws", "ghost", editable, 1, 50)
@@ -217,6 +221,7 @@ func createFixtures() {
 		"inst": "tpl", "inst-nojob": "tpl-nojob", "inst-fixed": "tpl-fixed", "inst-image": "tpl-image", "inst-default": "tpl-default",
 		"inst-gpu": "tpl-gpu", "inst-amd": "tpl-amd", "inst-conflict": "tpl-conflict", "inst-resources": "tpl-resources",
 		"inst-bigcpu": "tpl-bigcpu", "inst-prio": "tpl-prio",
+		"inst-zerogpu": "tpl-zerogpu",
 		"inst-noqueue": "tpl-noqueue", "inst-nows": "tpl-nows", "inst-ghostws": "tpl-ghostws", "inst-ghosttpl": "ghost",
 	} {
 		createInstance(tenantNamespace, name, tmpl, tenantName, true)
@@ -276,13 +281,18 @@ func jobEnvironment(cpu int64, reservedCPUPercentage uint32) clv1alpha2.Environm
 }
 
 func createTemplate(name, ws string, job *clv1alpha2.TemplateJob, cpu int64, reservedCPUPercentage uint32) {
+	environment := jobEnvironment(cpu, reservedCPUPercentage)
+	createTemplateWithEnvironment(name, ws, job, &environment)
+}
+
+func createTemplateWithEnvironment(name, ws string, job *clv1alpha2.TemplateJob, environment *clv1alpha2.Environment) {
 	create(&clv1alpha2.Template{
 		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: workspaceNamespace},
 		Spec: clv1alpha2.TemplateSpec{
 			PrettyName:      name,
 			Description:     name,
 			WorkspaceRef:    clv1alpha2.GenericRef{Name: ws},
-			EnvironmentList: []clv1alpha2.Environment{jobEnvironment(cpu, reservedCPUPercentage)},
+			EnvironmentList: []clv1alpha2.Environment{*environment},
 			Cleanup:         clv1alpha2.CleanupOptions{DeleteAfterCreation: "never", StopAfterInactivity: "never", DeleteAfterInactivity: "never"},
 			Job:             job,
 		},

@@ -143,6 +143,9 @@ func CrownJobBatchJob(crownJob *clv1alpha2.CrownJob, opts *CrownJobJobOpts) (*ba
 	app.Ports = nil
 
 	setJobResources(&app.Resources, opts.Resources)
+	// A zero request asks for nothing: it is left out of the Job (the Template editor of the dashboard writes 0 GPUs in
+	// the environment, and the job section of a Template lists 0 of a resource that its jobs must not ask for).
+	dropZeroExtendedResources(&app.Resources)
 
 	setEnvVariable(app, CrownJobEnvJob, strconv.FormatBool(true))
 	setEnvVariable(app, CrownJobEnvJobName, crownJob.Name)
@@ -327,7 +330,7 @@ func PodEffectiveRequests(spec *corev1.PodSpec) corev1.ResourceList {
 
 // CrownJobCheckQueueLimits checks the requests of a job against the job queue of the given Workspace: every requested
 // resource must be covered by the queue (see KueueQueueQuotas), and no request may exceed maxAtOnce, or the job could
-// never start.
+// never start. A zero request asks for nothing, and is ignored.
 func CrownJobCheckQueueLimits(workspace string, limits *clv1alpha1.QueueLimits, requests corev1.ResourceList) error {
 	quotas := map[corev1.ResourceName]resource.Quantity{}
 	for _, quota := range KueueQueueQuotas(limits) {
@@ -342,6 +345,9 @@ func CrownJobCheckQueueLimits(workspace string, limits *clv1alpha1.QueueLimits, 
 
 	for _, name := range names {
 		requested := requests[corev1.ResourceName(name)]
+		if requested.IsZero() {
+			continue
+		}
 		quota, found := quotas[corev1.ResourceName(name)]
 		if !found {
 			return NewCannotStartError("The job queue of workspace %s does not allow %s.", workspace, name)
@@ -356,9 +362,13 @@ func CrownJobCheckQueueLimits(workspace string, limits *clv1alpha1.QueueLimits, 
 
 // crownJobRuntimeClass returns the RuntimeClass required by the requested resources, according to the given mapping
 // from resource names to RuntimeClasses: empty if no requested resource matches, an error if two match different ones.
+// A zero request matches nothing.
 func crownJobRuntimeClass(requests corev1.ResourceList, runtimeClasses map[string]string) (string, error) {
 	matches := map[string]struct{}{}
-	for name := range requests {
+	for name, quantity := range requests {
+		if quantity.IsZero() {
+			continue
+		}
 		if runtimeClass, found := runtimeClasses[name.String()]; found {
 			matches[runtimeClass] = struct{}{}
 		}
@@ -389,6 +399,20 @@ func gpuCount(requests corev1.ResourceList) int64 {
 		}
 	}
 	return total
+}
+
+// dropZeroExtendedResources removes every extended resource (a name with a "/", e.g., nvidia.com/gpu) that is zero,
+// or absent, in both the requests and the limits. Standard resources (cpu, memory, ...) are kept, even at zero.
+func dropZeroExtendedResources(resources *corev1.ResourceRequirements) {
+	for _, list := range []corev1.ResourceList{resources.Requests, resources.Limits} {
+		for name := range list {
+			request, limit := resources.Requests[name], resources.Limits[name]
+			if strings.Contains(name.String(), "/") && request.IsZero() && limit.IsZero() {
+				delete(resources.Requests, name)
+				delete(resources.Limits, name)
+			}
+		}
+	}
 }
 
 // setJobCommand sets the command of a job in its app container, whose disk is mounted at the given path. An empty
