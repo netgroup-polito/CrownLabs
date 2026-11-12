@@ -16,6 +16,8 @@
 package forge_test
 
 import (
+	"fmt"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -118,11 +120,16 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 		container = corev1.Container{}
 	})
 
-	Describe("The forge.PVCSpec function", func() {
-		var spec corev1.PersistentVolumeClaimSpec
+	Describe("The forge.InstancePVCSpec function", func() {
+		var (
+			spec            corev1.PersistentVolumeClaimSpec
+			jobStorageClass string
+		)
+
+		BeforeEach(func() { jobStorageClass = "" })
 
 		JustBeforeEach(func() {
-			spec = forge.InstancePVCSpec(&environment)
+			spec = forge.InstancePVCSpec(&template, &environment, jobStorageClass)
 		})
 
 		It("Should set the correct access mode", func() {
@@ -139,6 +146,54 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			BeforeEach(func() { environment.StorageClassName = "foo" })
 			It("Should set the storage class name", func() {
 				Expect(spec.StorageClassName).To(PointTo(Equal("foo")))
+			})
+		})
+
+		When("The jobs of the template run in this environment, and no job storage class is set", func() {
+			BeforeEach(func() { template.Spec.Job = &clv1alpha2.TemplateJob{EnvironmentName: environment.Name} })
+			It("Should forge the same ReadWriteOnce claim as without jobs", func() {
+				Expect(spec).To(Equal(forge.PVCSpec(corev1.ReadWriteOnce, nil, &environment.Resources.Disk)))
+			})
+		})
+
+		When("The jobs of the template run in this environment, and a job storage class is set", func() {
+			BeforeEach(func() {
+				template.Spec.Job = &clv1alpha2.TemplateJob{EnvironmentName: environment.Name}
+				jobStorageClass = "rwx"
+			})
+			It("Should set the ReadWriteMany access mode only", func() {
+				Expect(spec.AccessModes).To(Equal([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany}))
+			})
+			It("Should set the job storage class", func() {
+				Expect(spec.StorageClassName).To(PointTo(Equal("rwx")))
+			})
+			It("Should set the correct resources", func() {
+				Expect(spec.Resources.Requests.Storage()).To(PointTo(Equal(environment.Resources.Disk)))
+			})
+
+			When("The environment specifies its own storage class", func() {
+				BeforeEach(func() { environment.StorageClassName = "foo" })
+				It("Should set the storage class of the environment", func() {
+					Expect(spec.StorageClassName).To(PointTo(Equal("foo")))
+					Expect(spec.AccessModes).To(Equal([]corev1.PersistentVolumeAccessMode{corev1.ReadWriteMany}))
+				})
+			})
+		})
+
+		When("A job storage class is set, and the template has no jobs", func() {
+			BeforeEach(func() { jobStorageClass = "rwx" })
+			It("Should forge a ReadWriteOnce claim without storage class", func() {
+				Expect(spec).To(Equal(forge.PVCSpec(corev1.ReadWriteOnce, nil, &environment.Resources.Disk)))
+			})
+		})
+
+		When("A job storage class is set, and the jobs of the template run in another environment", func() {
+			BeforeEach(func() {
+				template.Spec.Job = &clv1alpha2.TemplateJob{EnvironmentName: "another-environment"}
+				jobStorageClass = "rwx"
+			})
+			It("Should forge a ReadWriteOnce claim without storage class", func() {
+				Expect(spec).To(Equal(forge.PVCSpec(corev1.ReadWriteOnce, nil, &environment.Resources.Disk)))
 			})
 		})
 	})
@@ -216,6 +271,25 @@ var _ = Describe("Containers and Deployment spec forging", func() {
 			Running:        true,
 			ExpectedOutput: 1,
 		}))
+
+		When("the instance is being deleted", func() {
+			BeforeEach(func() {
+				instance.DeletionTimestamp = ptr.To(metav1.Now())
+				instance.Finalizers = []string{"crownlabs.polito.it/crownjobs"}
+			})
+
+			for _, c := range []ReplicasCountCase{
+				{Persistent: true, Running: true},
+				{Persistent: false, Running: true},
+				{Persistent: false, Running: false, IsNew: false},
+			} {
+				It(fmt.Sprintf("Should return 0 (persistent: %t, running: %t, new: %t)", c.Persistent, c.Running, c.IsNew), func() {
+					instance.Spec.Running = c.Running
+					environment.Persistent = c.Persistent
+					Expect(forge.ReplicasCount(&instance, &environment, c.IsNew)).To(PointTo(BeNumerically("==", 0)))
+				})
+			}
+		})
 	})
 
 	Describe("The forge.DeploymentSpec function", func() {

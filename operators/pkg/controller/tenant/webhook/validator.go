@@ -227,6 +227,7 @@ func (tv *TenantValidator) ValidateDelete(
 // HandleSelfEdit checks every field but public keys for changes:
 // - LastLogin must be within a certain tolerance;
 // - Workspaces can be changed only if autoenroll is enabled and within the allowed roles;
+// - The jobPriorityClass of a workspace can never be set or changed (only a manager of the workspace can);
 // - Other fields must be unchanged.
 func (tv *TenantValidator) HandleSelfEdit(
 	ctx context.Context,
@@ -260,6 +261,18 @@ func (tv *TenantValidator) HandleSelfEdit(
 
 	newTenant.Spec.Workspaces = newWorkspaces
 	oldTenant.Spec.Workspaces = oldWorkspaces
+
+	// a tenant cannot set their own job priority: a new entry must not have it, and an existing entry must keep it
+	oldJobPriorityClasses := make(map[string]string, len(oldWorkspaces))
+	for _, ws := range oldWorkspaces {
+		oldJobPriorityClasses[ws.Name] = ws.JobPriorityClass
+	}
+	for _, ws := range newWorkspaces {
+		if ws.JobPriorityClass != oldJobPriorityClasses[ws.Name] {
+			log.Info("denied: jobPriorityClass change in own tenant", "workspace", ws.Name)
+			return nil, kerrors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you cannot change jobPriorityClass in your own tenant (workspace %s): ask a manager of the workspace", ws.Name))
+		}
+	}
 
 	res, err := tv.checkValidWorkspaces(ctx, newTenant, oldTenant)
 	if err != nil {
@@ -345,16 +358,21 @@ func (tv *TenantValidator) HandleWorkspaceEdit(
 }
 
 func calculateWorkspacesOneWayDiff(a, b *clv1alpha2.Tenant, changes map[string]bool) map[string]bool {
-	aAsMap := mapFromWorkspacesList(a)
+	aAsMap := make(map[string]clv1alpha2.TenantWorkspaceEntry, len(a.Spec.Workspaces))
+	for _, v := range a.Spec.Workspaces {
+		aAsMap[v.Name] = v
+	}
 	for _, v := range b.Spec.Workspaces {
-		if aAsMap[v.Name] != v.Role {
+		// comparing the whole entry covers the role, the jobPriorityClass and any field added later
+		if old, ok := aAsMap[v.Name]; !ok || old != v {
 			changes[v.Name] = true
 		}
 	}
 	return changes
 }
 
-// CalculateWorkspacesDiff returns the list of workspaces that are different between two tenants.
+// CalculateWorkspacesDiff returns the list of workspaces that are different between two tenants:
+// added, removed, or with a different role or jobPriorityClass.
 func CalculateWorkspacesDiff(a, b *clv1alpha2.Tenant) map[string]bool {
 	changes := calculateWorkspacesOneWayDiff(a, b, map[string]bool{})
 

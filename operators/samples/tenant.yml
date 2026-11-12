@@ -15,6 +15,7 @@ spec:
       role: manager
     - name: standalone
       role: manager
+      jobPriorityClass: crownlabs-thesis
   publicKeys:
     - type1 key1 comment1
     - type2 key2 comment3

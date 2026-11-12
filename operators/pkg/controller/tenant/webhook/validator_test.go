@@ -324,6 +324,74 @@ var _ = Describe("Validator webhook", func() {
 				Expect(response.Result.Reason).NotTo(BeEmpty())
 			})
 		})
+
+		Describe("the jobPriorityClass of a workspace", func() {
+			forgeEntry := func(wsName, jobPriorityClass string) clv1alpha2.TenantWorkspaceEntry {
+				return clv1alpha2.TenantWorkspaceEntry{Name: wsName, Role: clv1alpha2.User, JobPriorityClass: jobPriorityClass}
+			}
+			WhenBody := func(oldEntries, newEntries []clv1alpha2.TenantWorkspaceEntry, shouldSucceed bool) func() {
+				return func() {
+					BeforeEach(func() {
+						oldTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: oldEntries, PublicKeys: []string{"some-key"}}}
+						newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: newEntries, PublicKeys: []string{"other-key"}}}
+					})
+
+					if shouldSucceed {
+						It("should allow the change", func() {
+							Expect(response.Allowed).To(BeTrue())
+						})
+					} else {
+						It("should deny the change", func() {
+							Expect(response.Allowed).To(BeFalse())
+							Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+							Expect(response.Result.Message).To(ContainSubstring("jobPriorityClass"))
+						})
+					}
+				}
+			}
+
+			When("it is set on an existing workspace", WhenBody(
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "")},
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "researcher")},
+				false,
+			))
+
+			When("it is changed on an existing workspace", WhenBody(
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "student")},
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "researcher")},
+				false,
+			))
+
+			When("it is removed from an existing workspace", WhenBody(
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "student")},
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "")},
+				false,
+			))
+
+			When("it is set while self-enrolling in a workspace", WhenBody(
+				nil,
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "researcher")},
+				false,
+			))
+
+			When("it is not set while self-enrolling in a workspace", WhenBody(
+				nil,
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "")},
+				true,
+			))
+
+			When("it is kept unchanged while other fields change", WhenBody(
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "student")},
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "student")},
+				true,
+			))
+
+			When("the workspace that has it is removed", WhenBody(
+				[]clv1alpha2.TenantWorkspaceEntry{forgeEntry(workspaceIMName, "student")},
+				nil,
+				true,
+			))
+		})
 	})
 
 	Describe("The TenantValidator.HandleWorkspaceEdit", func() {
@@ -404,6 +472,38 @@ var _ = Describe("Validator webhook", func() {
 				Expect(response.Allowed).To(BeTrue())
 			})
 		})
+
+		When("manager sets the jobPriorityClass in a workspace he manages", func() {
+			BeforeEach(func() {
+				oldTenant = forgeTenantWithWorkspaceUser(testWorkspace)
+				newTenant = forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
+					Name:             testWorkspace,
+					Role:             clv1alpha2.User,
+					JobPriorityClass: "researcher",
+				})
+				operation = admissionv1.Update
+			})
+			It("should allow the change", func() {
+				Expect(response.Allowed).To(BeTrue())
+			})
+		})
+
+		When("manager sets the jobPriorityClass in a workspace he doesn't manage", func() {
+			BeforeEach(func() {
+				oldTenant = forgeTenantWithWorkspaceUser("invalid-workspace")
+				newTenant = forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{
+					Name:             "invalid-workspace",
+					Role:             clv1alpha2.User,
+					JobPriorityClass: "researcher",
+				})
+				operation = admissionv1.Update
+			})
+			It("should deny the change", func() {
+				Expect(response.Allowed).To(BeFalse())
+				Expect(response.Result.Code).To(BeNumerically("==", http.StatusForbidden))
+				Expect(response.Result.Message).To(ContainSubstring("you are not a manager for workspace invalid-workspace"))
+			})
+		})
 	})
 
 	Describe("The CalculateWorkspacesDiff function", func() {
@@ -454,6 +554,18 @@ var _ = Describe("Validator webhook", func() {
 			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.User)},
 			b:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.Manager)},
 			expectedChanges: []string{"test-a"},
+		}))
+
+		When("There is a difference in jobPriorityClass only", WhenBody(CalcWsDiffCase{
+			a:               []clv1alpha2.TenantWorkspaceEntry{makeWs("test-a", clv1alpha2.User)},
+			b:               []clv1alpha2.TenantWorkspaceEntry{{Name: "test-a", Role: clv1alpha2.User, JobPriorityClass: "researcher"}},
+			expectedChanges: []string{"test-a"},
+		}))
+
+		When("The two tenants have the same jobPriorityClass", WhenBody(CalcWsDiffCase{
+			a:               []clv1alpha2.TenantWorkspaceEntry{{Name: "test-a", Role: clv1alpha2.User, JobPriorityClass: "researcher"}},
+			b:               []clv1alpha2.TenantWorkspaceEntry{{Name: "test-a", Role: clv1alpha2.User, JobPriorityClass: "researcher"}},
+			expectedChanges: nil,
 		}))
 
 	})
