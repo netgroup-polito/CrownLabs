@@ -87,6 +87,10 @@ func (r *Reconciler) obtainWantedRoles(
 		wantedRoles = append(wantedRoles, workspaceRoleName(ws))
 	}
 
+	if tn.Spec.ImagePublisher {
+		wantedRoles = append(wantedRoles, clv1alpha2.ImagePublisherRoleName)
+	}
+
 	return wantedRoles
 }
 
@@ -101,10 +105,10 @@ func (r *Reconciler) obtainCurrentRoles(
 		return nil, err
 	}
 
-	// filter roles to only those related to workspaces
+	// filter roles to only those managed by the controller (workspaces and image-publisher)
 	filteredRoles := make([]*gocloak13.Role, 0)
 	for _, role := range currentRoles {
-		if strings.HasPrefix(*role.Name, "workspace-") {
+		if role.Name != nil && (strings.HasPrefix(*role.Name, "workspace-") || *role.Name == clv1alpha2.ImagePublisherRoleName) {
 			filteredRoles = append(filteredRoles, role)
 		}
 	}

@@ -288,6 +288,71 @@ var _ = Describe("Authorization", func() {
 			})
 		})
 
+		Context("When tenant is an image publisher and role is missing in Keycloak", func() {
+			BeforeEach(func() {
+				tnResource.Spec.ImagePublisher = true
+
+				keycloakActor.EXPECT().GetUserRoles(gomock.Any(), "user-id").Return([]*gocloak13.Role{}, nil).AnyTimes()
+
+				keycloakActor.EXPECT().GetRole(gomock.Any(), clv1alpha2.ImagePublisherRoleName).Return(&gocloak13.Role{
+					ID:   gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+					Name: gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+				}, nil).AnyTimes()
+
+				keycloakActor.EXPECT().AddUserToRoles(gomock.Any(), "user-id", []*gocloak13.Role{
+					{
+						ID:   gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+						Name: gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+					},
+				}).Return(nil).Times(1)
+			})
+
+			It("Should add the image publisher role to Keycloak", func() {
+				// Expected call to add image-publisher role
+			})
+		})
+
+		Context("When tenant is not an image publisher and role is present in Keycloak", func() {
+			BeforeEach(func() {
+				tnResource.Spec.ImagePublisher = false
+
+				keycloakActor.EXPECT().GetUserRoles(gomock.Any(), "user-id").Return([]*gocloak13.Role{
+					{
+						ID:   gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+						Name: gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+					},
+				}, nil).AnyTimes()
+
+				keycloakActor.EXPECT().RemoveUserFromRoles(gomock.Any(), "user-id", []*gocloak13.Role{
+					{
+						ID:   gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+						Name: gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+					},
+				}).Return(nil).Times(1)
+			})
+
+			It("Should remove the image publisher role from Keycloak", func() {
+				// Expected call to remove image-publisher role
+			})
+		})
+
+		Context("When tenant is an image publisher and role is already present in Keycloak", func() {
+			BeforeEach(func() {
+				tnResource.Spec.ImagePublisher = true
+
+				keycloakActor.EXPECT().GetUserRoles(gomock.Any(), "user-id").Return([]*gocloak13.Role{
+					{
+						ID:   gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+						Name: gocloak13.StringP(clv1alpha2.ImagePublisherRoleName),
+					},
+				}, nil).AnyTimes()
+			})
+
+			It("Should not add nor remove the image publisher role", func() {
+				// Expected no call to add or remove role
+			})
+		})
+
 		Context("When there is an error getting current user roles from Keycloak", func() {
 			BeforeEach(func() {
 				keycloakActor.EXPECT().GetUserRoles(gomock.Any(), "user-id").Return(nil, fmt.Errorf("some error")).AnyTimes()

@@ -43,6 +43,9 @@ const (
 
 	// SVCTenantName -> name of a system/service tenant to which other resources might belong.
 	SVCTenantName string = "service-tenant"
+
+	// ImagePublisherRoleName -> the Keycloak role required to build and publish container images.
+	ImagePublisherRoleName string = "image-publisher"
 )
 
 // TenantWorkspaceEntry contains the information regarding one of the Workspaces
@@ -92,6 +95,11 @@ type TenantSpec struct {
 
 	// The amount of resources associated with the Tenant's personal workspace. If defined, the personal workspace is enabled.
 	PersonalWorkspace *apicommon.WorkspaceResourceQuota `json:"personalWorkspace,omitempty"`
+
+	// +kubebuilder:default=false
+
+	// Whether the Tenant has the image publisher role to build and upload container images.
+	ImagePublisher bool `json:"imagePublisher,omitempty"`
 }
 
 // KeycloakStatus defines the status of the authentication flow with Keycloak.
