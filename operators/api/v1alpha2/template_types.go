@@ -17,6 +17,7 @@ package v1alpha2
 import (
 	"encoding/json"
 
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	apicommon "github.com/netgroup-polito/CrownLabs/operators/api/common"
@@ -65,7 +66,61 @@ type CleanupOptions struct {
 	DeleteAfterInactivity string `json:"deleteAfterInactivity"`
 }
 
+// +kubebuilder:validation:Enum=Fixed;Editable;ImageDefault
+
+// JobCommandPolicy is an enumeration of the ways the command of a job started
+// from a Template can be chosen.
+type JobCommandPolicy string
+
+const (
+	// JobCommandFixed -> the job runs the command of the Template, and the user cannot change it.
+	JobCommandFixed JobCommandPolicy = "Fixed"
+	// JobCommandEditable -> the user types the command when starting the job; the command of the Template, if any, pre-fills it.
+	JobCommandEditable JobCommandPolicy = "Editable"
+	// JobCommandImageDefault -> the job has no command, and the entrypoint of the image runs.
+	JobCommandImageDefault JobCommandPolicy = "ImageDefault"
+)
+
+// TemplateJob defines how a batch job is started from an Instance of the Template.
+// +kubebuilder:validation:XValidation:rule="!has(self.commandPolicy) || self.commandPolicy != 'Fixed' || (has(self.command) && size(self.command) > 0)",message="commandPolicy Fixed requires a non-empty command"
+// +kubebuilder:validation:XValidation:rule="!has(self.commandPolicy) || self.commandPolicy != 'ImageDefault' || !has(self.command) || size(self.command) == 0",message="commandPolicy ImageDefault requires no command: the entrypoint of the image runs"
+type TemplateJob struct {
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
+	// The name of the environment (in environmentList) whose instance is copied
+	// to run the job. It must be a persistent environment of type Container or
+	// Standalone.
+	EnvironmentName string `json:"environmentName"`
+
+	// +kubebuilder:default=Editable
+	// How the command of the job is chosen:
+	// Fixed: the job runs command, and the user cannot change it;
+	// Editable: the user types the command when starting the job, and command, if set, pre-fills it;
+	// ImageDefault: the job has no command, and the entrypoint of the image runs
+	// (it can detect the job through the environment variable CROWNLABS_JOB=true).
+	CommandPolicy JobCommandPolicy `json:"commandPolicy,omitempty"`
+
+	// +kubebuilder:validation:MaxItems:=64
+	// +kubebuilder:validation:items:MaxLength:=8192
+	// The command of the job, as a list of arguments (e.g., ["python", "train.py"]).
+	// It is required if commandPolicy is Fixed, optional if Editable, and must
+	// be omitted (or empty) if ImageDefault. An empty list is the same as no command.
+	Command []string `json:"command,omitempty"`
+
+	// The extended resources the job requests in addition to those of the
+	// environment, by resource name (e.g., nvidia.com/gpu: 1).
+	OtherResources map[string]resource.Quantity `json:"otherResources,omitempty"`
+
+	// +kubebuilder:validation:Pattern="^[1-9][0-9]{0,3}[mhd]$"
+	// The maximum time a job started from this Template may run, as a positive
+	// number of at most four digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d).
+	// It cannot exceed the maxRunTime of the job queue of the Workspace (this
+	// is checked by the operator). If empty, the maxRunTime of the Workspace applies.
+	MaxRunTime string `json:"maxRunTime,omitempty"`
+}
+
 // TemplateSpec is the specification of the desired state of the Template.
+// +kubebuilder:validation:XValidation:rule="!has(self.job) || self.environmentList.exists(e, e.name == self.job.environmentName)",message="job.environmentName must be the name of an environment in environmentList"
+// +kubebuilder:validation:XValidation:rule="!has(self.job) || self.environmentList.all(e, e.name != self.job.environmentName || (has(e.persistent) && e.persistent && (e.environmentType == 'Container' || e.environmentType == 'Standalone')))",message="job.environmentName must name a persistent environment of type Container or Standalone"
 type TemplateSpec struct {
 	// The human-readable name of the Template.
 	PrettyName string `json:"prettyName"`
@@ -95,6 +150,10 @@ type TemplateSpec struct {
 	// +kubebuilder:default=false
 	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
 	AllowPublicExposure bool `json:"allowPublicExposure,omitempty"`
+
+	// How batch jobs are started from the Instances of this Template.
+	// If omitted, no job can be started from this Template.
+	Job *TemplateJob `json:"job,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.

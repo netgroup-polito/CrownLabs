@@ -298,6 +298,71 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
+              job:
+                description: |-
+                  How batch jobs are started from the Instances of this Template.
+                  If omitted, no job can be started from this Template.
+                properties:
+                  command:
+                    description: |-
+                      The command of the job, as a list of arguments (e.g., ["python", "train.py"]).
+                      It is required if commandPolicy is Fixed, optional if Editable, and must
+                      be omitted (or empty) if ImageDefault. An empty list is the same as no command.
+                    items:
+                      maxLength: 8192
+                      type: string
+                    maxItems: 64
+                    type: array
+                  commandPolicy:
+                    default: Editable
+                    description: |-
+                      How the command of the job is chosen:
+                      Fixed: the job runs command, and the user cannot change it;
+                      Editable: the user types the command when starting the job, and command, if set, pre-fills it;
+                      ImageDefault: the job has no command, and the entrypoint of the image runs
+                      (it can detect the job through the environment variable CROWNLABS_JOB=true).
+                    enum:
+                    - Fixed
+                    - Editable
+                    - ImageDefault
+                    type: string
+                  environmentName:
+                    description: |-
+                      The name of the environment (in environmentList) whose instance is copied
+                      to run the job. It must be a persistent environment of type Container or
+                      Standalone.
+                    pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
+                    type: string
+                  maxRunTime:
+                    description: |-
+                      The maximum time a job started from this Template may run, as a positive
+                      number of at most four digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d).
+                      It cannot exceed the maxRunTime of the job queue of the Workspace (this
+                      is checked by the operator). If empty, the maxRunTime of the Workspace applies.
+                    pattern: ^[1-9][0-9]{0,3}[mhd]$
+                    type: string
+                  otherResources:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      The extended resources the job requests in addition to those of the
+                      environment, by resource name (e.g., nvidia.com/gpu: 1).
+                    type: object
+                required:
+                - environmentName
+                type: object
+                x-kubernetes-validations:
+                - message: commandPolicy Fixed requires a non-empty command
+                  rule: '!has(self.commandPolicy) || self.commandPolicy != ''Fixed''
+                    || (has(self.command) && size(self.command) > 0)'
+                - message: 'commandPolicy ImageDefault requires no command: the entrypoint
+                    of the image runs'
+                  rule: '!has(self.commandPolicy) || self.commandPolicy != ''ImageDefault''
+                    || !has(self.command) || size(self.command) == 0'
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -330,6 +395,14 @@ spec:
             - environmentList
             - prettyName
             type: object
+            x-kubernetes-validations:
+            - message: job.environmentName must be the name of an environment in environmentList
+              rule: '!has(self.job) || self.environmentList.exists(e, e.name == self.job.environmentName)'
+            - message: job.environmentName must name a persistent environment of type
+                Container or Standalone
+              rule: '!has(self.job) || self.environmentList.all(e, e.name != self.job.environmentName
+                || (has(e.persistent) && e.persistent && (e.environmentType == ''Container''
+                || e.environmentType == ''Standalone'')))'
           status:
             description: TemplateStatus reflects the most recently observed status
               of the Template.

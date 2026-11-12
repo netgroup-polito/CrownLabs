@@ -53,6 +53,11 @@ type TenantWorkspaceEntry struct {
 
 	// The role of the Tenant in the context of the Workspace.
 	Role WorkspaceUserRole `json:"role"`
+
+	// The name of the Kueue WorkloadPriorityClass assigned to the jobs of the
+	// Tenant in this Workspace. If empty, the priorityClass set in the
+	// jobPolicy of the Workspace applies.
+	JobPriorityClass string `json:"jobPriorityClass,omitempty"`
 }
 
 // TenantSpec is the specification of the desired state of the Tenant.
