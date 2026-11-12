@@ -16,6 +16,7 @@ package forge
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -83,14 +84,13 @@ func LoadBalancerServiceSpec(instance *clv1alpha2.Instance, ports []clv1alpha2.P
 	}
 }
 
-// LoadBalancerServiceAnnotations forges the annotations for a LoadBalancer service using the provided options.
-func LoadBalancerServiceAnnotations(externalIP string, opts *PublicExposureOpts) map[string]string {
-	annotations := make(map[string]string)
+// LoadBalancerServiceAnnotations receives in input a set of annotations and returns the updated set for a LoadBalancer service,
+// including the common annotations and the requested external IP. Annotations not managed by the operator are preserved.
+func LoadBalancerServiceAnnotations(annotations map[string]string, externalIP string, opts *PublicExposureOpts) map[string]string {
+	annotations = deepCopyLabels(annotations)
 
 	// Add common annotations first
-	for key, value := range opts.CommonAnnotations {
-		annotations[key] = value
-	}
+	maps.Copy(annotations, opts.CommonAnnotations)
 
 	// Add the LoadBalancer IP annotation using the configured key
 	annotations[opts.LoadBalancerIPsKey] = externalIP
@@ -98,8 +98,16 @@ func LoadBalancerServiceAnnotations(externalIP string, opts *PublicExposureOpts)
 	return annotations
 }
 
-// LoadBalancerServiceLabels forges the labels for a LoadBalancer service.
-// It always includes the component label and merges any common labels from opts.
+// LoadBalancerServiceObjectLabels receives in input a set of labels and returns the updated set for a LoadBalancer service.
+// Labels not managed by the operator are preserved.
+func LoadBalancerServiceObjectLabels(labels map[string]string, opts *PublicExposureOpts) map[string]string {
+	labels = deepCopyLabels(labels)
+	maps.Copy(labels, LoadBalancerServiceLabels(opts))
+	return labels
+}
+
+// LoadBalancerServiceLabels returns the set of labels identifying the LoadBalancer services for public exposure,
+// suitable also as selector. It always includes the component label and merges any common labels from opts.
 func LoadBalancerServiceLabels(opts *PublicExposureOpts) map[string]string {
 	labels := map[string]string{
 		LabelComponentKey: LabelPublicExposureValue,
