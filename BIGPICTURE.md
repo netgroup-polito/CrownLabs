@@ -28,16 +28,18 @@ Login["Login Page"]:::FrontendStyle
 Frontend["`Front-end
     _crownlabs.polito.it/app_`"]:::FrontendStyle
 Remote["Remote Desktop"]
-OIDC["`OIDC Server
-    (Authentication)`"]
+Keycloak["`Keycloak
+    (OIDC Authentication)`"]
 Graph["`GraphQL
     _crownlabs.polito.it/graph_`"]:::FrontendStyle
 GWAPI["Gateway (Balancer)"]
 
 Home --> Login
-Login --> Frontend
-Login --> OIDC
-Frontend --> Graph
+Login -. OIDC sign-in request .-> Keycloak
+Keycloak -. redirects back with authorization code .-> Frontend
+Frontend -. exchanges code for tokens .-> Keycloak
+Frontend -. GraphQL requests with access token .-> Graph
+Graph -. routes through .-> GWAPI
 Frontend -. connects .-> Remote
 Frontend -. connects .-> GWAPI
 Remote --> GWAPI
