@@ -6,11 +6,12 @@ CrownLabs uses [*Envoy Gateway*](https://gateway.envoyproxy.io/) implementing th
 
 CrownLabs originally relied on a legacy NGINX Ingress Controller setup using custom annotations for L7 ingress routing.
 
-During the transition to the Kubernetes Gateway API, an implementation based on **Cilium** was evaluated following an initial Proof of Concept (PoC). While Cilium offers efficient eBPF-based kernel networking, testing revealed critical L7 policy limitations:
+During the transition to the Kubernetes Gateway API, an implementation based on **Cilium** was evaluated following an initial Proof of Concept (PoC) in summer 2026.
+While Cilium offers efficient eBPF-based kernel networking, testing revealed critical L7 policy limitations:
 * **Lack of `SecurityPolicy` Resource Support**: When native Kubernetes `SecurityPolicy` custom resources were applied, Cilium did not support or recognize them at all, forcing access control rules to rely on fragmented annotation-based workarounds.
 * **Focused Ingress vs CNI Scope**: Cilium's Gateway API controller is tightly coupled with its CNI networking engine rather than acting as a dedicated, pure application-level proxy controller.
 
-To achieve a clean, maintainable, and standards-compliant architecture, CrownLabs selected **Envoy Gateway**, which provides the following key advantages:
+To achieve a clean, maintainable, and standards-compliant architecture, CrownLabs selected the **Envoy Gateway**, which provides the following key advantages:
 * **Native `SecurityPolicy` Support**: Full native recognition and processing of `SecurityPolicy` custom resources, enabling a clean two-level security policy model (Global Gateway policy + per-route overrides).
 * **CNCF Reference Standard**: As the official CNCF reference controller for the Kubernetes Gateway API project, it adheres strictly to upstream standards without vendor lock-in or proprietary CRD extensions.
 * **High Performance & Low Latency**: Powered directly by Envoy Proxy (the industry-standard C++ data plane), providing high request throughput, low latency, and efficient memory usage.
@@ -22,6 +23,128 @@ To achieve a clean, maintainable, and standards-compliant architecture, CrownLab
 The gateway architecture separates the control plane from the data plane:
 * **Gateway Controller**: Reconciles `Gateway`, `HTTPRoute`, and `SecurityPolicy` resources, programming the underlying proxy configuration.
 * **Envoy Proxy**: Data plane proxies dispatching incoming HTTPS traffic to target services.
+
+The following diagrams describe the same Gateway architecture from two complementary
+perspectives. The **data plane flow** shows how requests travel through the deployed
+data-plane components: users and the frontend reach the Envoy load balancer, which
+forwards traffic through the Envoy proxy to the target service. The **control plane and
+routing flow** shows how the Kubernetes Gateway API resources work together: the Gateway
+routes requests to the appropriate HTTPRoutes, applies the configured Security Policies,
+and is continuously reconciled by the Envoy Gateway Controller, which watches these
+resources and updates the proxy configuration.
+
+Solid arrows represent data-plane request or forwarding paths, while dashed arrows
+represent control-plane and routing relationships.
+
+### Data Plane Flow
+
+```mermaid
+flowchart LR
+
+User@{shape: trap-b, label: "User Browser"}
+
+subgraph ReleaseNS["CL Release Namespace"]
+    FrontendApp["Frontend-app"]:::FrontendStyle
+end
+subgraph EnvoyNS["`envoy-gateway-system Namespace`"]
+    LoadBalancer["LoadBalancer"]
+    EnvoyGatewayController["Envoy Gateway Controller"]
+    Proxy["Proxy"]
+end
+subgraph TenantNS["`Tenant Namespace: 
+    _tenant-xyz_`"]
+    TargetService["Target Service"]
+end
+
+User --> FrontendApp
+User --> LoadBalancer
+FrontendApp --> LoadBalancer
+LoadBalancer --> Proxy
+Proxy --> TargetService
+
+EnvoyGatewayController -. creates/updates .-> Proxy
+
+classDef ReleaseNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef EnvoyNSStyle stroke:#38677B,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantNSStyle stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantStyle stroke:#2222FF,rx:12,ry:12,fill:none
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
+
+class ReleaseNS ReleaseNSStyle
+class EnvoyNS EnvoyNSStyle
+class TenantNS TenantNSStyle
+class TargetService TenantStyle
+```
+
+### Control Plane and Routing Flow
+
+```mermaid
+flowchart LR
+
+User@{shape: trap-b, label: "User Browser"}
+
+subgraph ReleaseNS["CL Release Namespace"]
+    Gateway["`Gateway
+        (Envoy Gateway API)`"]
+    FrontendApp["Frontend-app"]:::FrontendStyle
+
+    subgraph SecPols["Security Policies"]
+        SecPolG["Security Policy"]
+        SecPolDummy["Dummy Security Policy"]
+    end
+
+    subgraph Routes["HTTPRoutes"]
+        CallbackRoute["`callback HTTPRoute
+            _/app/instauth/callback_`"]
+        subgraph PublicRoutes["Public Routes"]
+            FrontendRoute["`Frontend-app HTTPRoute
+                _/_`"]
+            WebSSHRoute["`WebSSH HTTPRoute
+                _/webssh_`"]
+            QLKubeRoute["`QLKube HTTPRoute
+                _/graph_`"]
+        end
+    end
+end
+subgraph EnvoyNS["`envoy-gateway-system Namespace`"]
+    EnvoyGatewayController["Envoy Gateway Controller"]
+end
+subgraph TenantNS["`Tenant Namespace: _tenant-xyz_`"]
+    OtherRoute["`another HTTPRoute
+        _/instance/{uuid}/{env-name}_`"]
+    TargetService["Target Service"]
+end
+
+User -.-> FrontendApp
+User -.-> Gateway
+FrontendApp -.-> Gateway
+Gateway -.-> Routes
+Gateway -.-> OtherRoute
+Gateway -. authenticated through .-> SecPols
+SecPolG -.-> CallbackRoute
+SecPolG -.-> OtherRoute
+SecPolDummy -.-> PublicRoutes
+
+EnvoyGatewayController -. watches .-> Gateway
+EnvoyGatewayController -. watches .-> Routes
+EnvoyGatewayController -. watches .-> SecPols
+EnvoyGatewayController -. watches .-> OtherRoute
+Routes -.-> TargetService
+OtherRoute -.-> TargetService
+
+classDef ReleaseNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef EnvoyNSStyle stroke:#38677B,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef TenantNSStyle stroke:#2222FF,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef GenericDomainStyle fill:none,rx:12,ry:12,stroke-dasharray:8
+classDef TenantStyle stroke:#2222FF,rx:12,ry:12,fill:none
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
+
+class ReleaseNS ReleaseNSStyle
+class EnvoyNS EnvoyNSStyle
+class TenantNS TenantNSStyle
+class Routes,PublicRoutes,SecPols GenericDomainStyle
+class OtherRoute,TargetService TenantStyle
+```
 
 ### Single Global Gateway Model
 
@@ -44,7 +167,7 @@ CrownLabs consolidates all core web services under a single primary domain (e.g.
 | Service | Sub-chart | Path Prefix | Description |
 | :--- | :--- | :--- | :--- |
 | **Frontend** | `frontend-app` | `/` | CrownLabs Dashboard UI |
-| **QL Cube** | `qlkube` | `/graph` | GraphQL API |
+| **QLKube** | `qlkube` | `/graph` | GraphQL API |
 | **Web SSH** | `bastion` | `/webssh` | Command-line Web SSH interface |
 
 Per-user VM and container instances generated by the Instance Operator receive dynamic `HTTPRoute` resources appended under unique instance path prefixes.
@@ -52,7 +175,7 @@ Per-user VM and container instances generated by the Instance Operator receive d
 ## Route Logic Optimization
 
 ### Timeouts
-Two separate timeout values are configured to prevent resource hangs:
+Two separate timeout values are configured to prevent resource hangings:
 * **Static Routes (e.g. WebSSH, QLKube, Frontend)**: Both `request` (maximum time for the gateway to process the request) and `backend request` (time the gateway waits for the backend service to respond) timeouts are set to **600 seconds** via Helm values.
 * **Dynamic Routes (e.g. Interactive Virtual Machine Sessions)**: For dynamic routes (like the ones for interactive virtual machine sessions), the timeout is set to **3600 seconds** (1 hour).
 
