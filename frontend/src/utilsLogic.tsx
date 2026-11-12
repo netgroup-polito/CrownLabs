@@ -20,10 +20,10 @@ import type {
 } from './generated-types';
 import {
   AutoEnroll,
+  CommandPolicy,
   EnvironmentType,
-  Phase,
   Phase2,
-  Phase5,
+  Phase6,
   Role,
   UpdateType,
 } from './generated-types';
@@ -231,16 +231,16 @@ export function getInstanceTemplateName(
 }
 
 // Helper functions for type conversions
-const safePhaseConversion = (phase: unknown): Phase => {
-  return (phase as Phase) || Phase.Starting;
+const safePhaseConversion = (phase: unknown): Phase2 => {
+  return (phase as Phase2) || Phase2.Starting;
 };
 
 const safePhase2Conversion = (phase: unknown): Phase2 => {
   return (phase as Phase2) || Phase2.Running;
 };
 
-const safePhase5Conversion = (phase: unknown): Phase5 => {
-  return (phase as Phase5) || Phase5.Pending;
+const safePhase5Conversion = (phase: unknown): Phase6 => {
+  return (phase as Phase6) || Phase6.Pending;
 };
 
 const safeWorkspaceRoleConversion = (role: unknown): WorkspaceRole => {
@@ -261,7 +261,7 @@ interface PublicExposureSpec {
 
 interface PublicExposureStatus {
   externalIP?: string;
-  phase?: Phase;
+  phase?: Phase2;
   ports?: PublicExposurePort[];
 }
 
@@ -276,7 +276,7 @@ const hasActivePublicExposure = (
     (spec?.ports && spec.ports.length > 0) ||
       (status?.ports &&
         status.ports.length > 0 &&
-        safePhaseConversion(status.phase) !== Phase.Off),
+        safePhaseConversion(status.phase) !== Phase2.Off),
   );
 };
 
@@ -422,6 +422,8 @@ export const makeGuiInstance = (
 
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
+  const templateJob = templateSpec?.job;
+
   const publicExposureObj = buildPublicExposureObject(
     publicExposure,
     publicExposureStatus,
@@ -461,6 +463,16 @@ export const makeGuiInstance = (
     publicExposure: publicExposureObj,
     environments: environments,
     hasMultipleEnvironments,
+    job: templateJob?.environmentName
+      ? {
+          environmentName: templateJob.environmentName,
+          commandPolicy: templateJob.commandPolicy ?? CommandPolicy.Editable,
+          command: (templateJob.command ?? []).filter(
+            (arg): arg is string => arg != null,
+          ),
+          maxRunTime: templateJob.maxRunTime ?? undefined,
+        }
+      : undefined,
     resources: {
       cpu: environments.reduce((acc, env) => acc + env.quota.cpu, 0),
       memory: environments.reduce((acc, env) => acc + env.quota.memory, 0),

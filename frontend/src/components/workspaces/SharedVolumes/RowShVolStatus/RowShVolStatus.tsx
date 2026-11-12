@@ -6,11 +6,11 @@ import {
   CloseCircleOutlined,
   StopOutlined,
 } from '@ant-design/icons';
-import { Phase5 } from '../../../../generated-types';
+import { Phase6 } from '../../../../generated-types';
 import { findKeyByValue } from '../../../../utils';
 
 export interface IRowShVolStatusProps {
-  status: Phase5;
+  status: Phase6;
 }
 
 const RowShVolStatus: FC<IRowShVolStatusProps> = ({ ...props }) => {
@@ -18,33 +18,33 @@ const RowShVolStatus: FC<IRowShVolStatusProps> = ({ ...props }) => {
 
   const font20px = { fontSize: '20px' };
   const statusIcon = {
-    [Phase5.Empty]: (
+    [Phase6.Empty]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase5.Pending]: (
+    [Phase6.Pending]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase5.Provisioning]: (
+    [Phase6.Provisioning]: (
       <LoadingOutlined className="warning-color-fg" style={font20px} />
     ),
-    [Phase5.Ready]: (
+    [Phase6.Ready]: (
       <CheckCircleOutlined className="success-color-fg" style={font20px} />
     ),
-    [Phase5.Deleting]: (
+    [Phase6.Deleting]: (
       <StopOutlined className="danger-color-fg" style={font20px} />
     ),
-    [Phase5.ResourceQuotaExceeded]: (
+    [Phase6.ResourceQuotaExceeded]: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
-    [Phase5.Error]: (
+    [Phase6.Error]: (
       <CloseCircleOutlined className="danger-color-fg" style={font20px} />
     ),
   };
 
   return (
     <div className="flex gap-4 items-center">
-      <Tooltip title={findKeyByValue(Phase5, status || Phase5.Pending)}>
-        {statusIcon[status || Phase5.Pending]}
+      <Tooltip title={findKeyByValue(Phase6, status || Phase6.Pending)}>
+        {statusIcon[status || Phase6.Pending]}
       </Tooltip>
     </div>
   );
