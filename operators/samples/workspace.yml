@@ -49,3 +49,40 @@ spec:
     cpu: 8
     memory: "15Gi"
     instances: 3
+  jobOptions:
+    priority: 100
+    queueLimits:
+      limits:
+        cpu: "8"
+        memory: "16Gi"
+        nvidia.com/gpu: "2"
+      requests:
+        cpu: "2"
+        memory: "4Gi"
+      jobLimits:
+        maxRunTime: 6h
+        resources:
+          cpu: "4"
+          memory: "8Gi"
+          nvidia.com/gpu: "1"
+      perUser:
+        resources:
+          cpu: "4"
+          memory: "8Gi"
+          nvidia.com/gpu: "1"
+        maxActiveJobs: 2
+    overrideWindows:
+      - days: [Sat, Sun]
+        start: "07:00"
+        end: "19:00"
+        overrides:
+          limits:
+            cpu: "16"
+            memory: "32Gi"
+            nvidia.com/gpu: "4"
+          jobLimits:
+            maxRunTime: 12h
+            resources:
+              cpu: "4"
+              memory: "8Gi"
+              nvidia.com/gpu: "1"
