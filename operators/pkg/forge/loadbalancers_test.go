@@ -169,11 +169,13 @@ var _ = Describe("LoadBalancers forging", func() {
 
 	Describe("The forge.LoadBalancerServiceAnnotations function", func() {
 		var (
+			existing    map[string]string
 			annotations map[string]string
 			opts        forge.PublicExposureOpts
 		)
 
 		BeforeEach(func() {
+			existing = nil
 			opts = forge.PublicExposureOpts{
 				CommonAnnotations: map[string]string{
 					"metallb.universe.tf/shared-ip":    "public-exposure",
@@ -184,7 +186,7 @@ var _ = Describe("LoadBalancers forging", func() {
 		})
 
 		JustBeforeEach(func() {
-			annotations = forge.LoadBalancerServiceAnnotations(externalIP, &opts)
+			annotations = forge.LoadBalancerServiceAnnotations(existing, externalIP, &opts)
 		})
 
 		When("Forging the LoadBalancer service annotations", func() {
@@ -218,7 +220,7 @@ var _ = Describe("LoadBalancers forging", func() {
 			const differentIP = "172.18.0.241"
 
 			JustBeforeEach(func() {
-				annotations = forge.LoadBalancerServiceAnnotations(differentIP, &opts)
+				annotations = forge.LoadBalancerServiceAnnotations(existing, differentIP, &opts)
 			})
 
 			It("Should use the provided external IP", func() {
@@ -226,6 +228,38 @@ var _ = Describe("LoadBalancers forging", func() {
 					"metallb.universe.tf/loadBalancerIPs",
 					differentIP,
 				))
+			})
+		})
+
+		When("Existing annotations are provided", func() {
+			BeforeEach(func() {
+				existing = map[string]string{
+					"metallb.universe.tf/loadBalancerIPs": "172.18.0.249",
+					"metallb.universe.tf/address-pool":    "private",
+					"example.com/unmanaged":               "value",
+				}
+			})
+
+			It("Should preserve the annotations not managed by the operator", func() {
+				Expect(annotations).To(HaveKeyWithValue("example.com/unmanaged", "value"))
+			})
+
+			It("Should override the common annotations", func() {
+				Expect(annotations).To(HaveKeyWithValue("metallb.universe.tf/address-pool", "public"))
+			})
+
+			It("Should override the loadBalancerIPs annotation", func() {
+				Expect(annotations).To(HaveKeyWithValue("metallb.universe.tf/loadBalancerIPs", externalIP))
+			})
+
+			It("Should add the missing common annotations", func() {
+				Expect(annotations).To(HaveKeyWithValue("metallb.universe.tf/shared-ip", "public-exposure"))
+				Expect(annotations).To(HaveLen(4))
+			})
+
+			It("Should not modify the input map", func() {
+				Expect(existing).To(HaveLen(3))
+				Expect(existing).To(HaveKeyWithValue("metallb.universe.tf/loadBalancerIPs", "172.18.0.249"))
 			})
 		})
 
@@ -307,6 +341,60 @@ var _ = Describe("LoadBalancers forging", func() {
 
 			It("Should contain exactly 2 labels", func() {
 				Expect(labels).To(HaveLen(2))
+			})
+		})
+	})
+
+	Describe("The forge.LoadBalancerServiceObjectLabels function", func() {
+		var (
+			existing map[string]string
+			labels   map[string]string
+			opts     forge.PublicExposureOpts
+		)
+
+		BeforeEach(func() {
+			existing = nil
+			opts = forge.PublicExposureOpts{
+				CommonLabels: map[string]string{
+					"lb-ipam.cilium.io/pool": "public",
+				},
+			}
+		})
+
+		JustBeforeEach(func() {
+			labels = forge.LoadBalancerServiceObjectLabels(existing, &opts)
+		})
+
+		When("No existing labels are provided", func() {
+			It("Should match the LoadBalancer service labels", func() {
+				Expect(labels).To(Equal(forge.LoadBalancerServiceLabels(&opts)))
+			})
+		})
+
+		When("Existing labels are provided", func() {
+			BeforeEach(func() {
+				existing = map[string]string{
+					"lb-ipam.cilium.io/pool": "private",
+					"example.com/unmanaged":  "value",
+				}
+			})
+
+			It("Should preserve the labels not managed by the operator", func() {
+				Expect(labels).To(HaveKeyWithValue("example.com/unmanaged", "value"))
+			})
+
+			It("Should override the common labels", func() {
+				Expect(labels).To(HaveKeyWithValue("lb-ipam.cilium.io/pool", "public"))
+			})
+
+			It("Should add the component label", func() {
+				Expect(labels).To(HaveKeyWithValue("crownlabs.polito.it/component", "pe"))
+				Expect(labels).To(HaveLen(3))
+			})
+
+			It("Should not modify the input map", func() {
+				Expect(existing).To(HaveLen(2))
+				Expect(existing).To(HaveKeyWithValue("lb-ipam.cilium.io/pool", "private"))
 			})
 		})
 	})

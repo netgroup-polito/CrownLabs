@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { Dropdown, Badge, Space, Tooltip } from 'antd';
 import { Button } from 'antd';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import {
   SelectOutlined,
   CodeOutlined,
@@ -17,7 +17,6 @@ import {
   PoweroffOutlined,
   CaretRightOutlined,
   ExclamationCircleOutlined,
-  ExportOutlined,
   CameraOutlined,
 } from '@ant-design/icons';
 import type { Instance } from '../../../../utils';
@@ -244,17 +243,6 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
 
   const connectDisabled = status !== Phase2.Ready || (isContainer && !gui);
 
-  const getFirstEnvironmentName = () => {
-    return instance.environments?.[0]?.name || 'env';
-  };
-
-  const buildSSHLink = (envName: string) => {
-    if (envName) {
-      return `/instance/${instance.tenantNamespace}/${instance.name}/${envName}/ssh`;
-    }
-    return `/instance/${instance.tenantNamespace}/${instance.name}/env/ssh`;
-  };
-
   const defaultImageName = `image-of-${instance.name}`
     .slice(0, 47)
     .replace(/-+$/, '');
@@ -470,41 +458,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               key: 'ssh',
               icon: <CodeOutlined style={font20px} />,
               disabled: sshDisabled,
-              label: (
-                <>
-                  SSH
-                  {/* Only show direct link button if there's exactly one environment */}
-                  {(!instance.environments ||
-                    instance.environments.length === 1) && (
-                    <Button
-                      disabled={sshDisabled}
-                      type="link"
-                      className="ml-3"
-                      color="primary"
-                      variant="solid"
-                      shape="circle"
-                      size="small"
-                      icon={
-                        <Link
-                          to={buildSSHLink(getFirstEnvironmentName())}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={e => e.stopPropagation()}
-                          style={{
-                            color: 'inherit',
-                            display: 'flex',
-                            alignItems: 'center',
-                          }}
-                        >
-                          <span style={{ filter: 'drop-shadow(0 0 0 black)' }}>
-                            <ExportOutlined style={{ fontSize: 15 }} />
-                          </span>
-                        </Link>
-                      }
-                    ></Button>
-                  )}
-                </>
-              ),
+              label: 'SSH',
               onClick: () => setSshModal(true),
               className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
             },

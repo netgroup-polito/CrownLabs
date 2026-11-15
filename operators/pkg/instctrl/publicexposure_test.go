@@ -19,9 +19,12 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
@@ -134,6 +137,63 @@ var _ = Describe("PublicExposure", func() {
 		}
 		err := instctrl.ValidatePublicExposureRequest(instance.Spec.PublicExposure.Ports)
 		Expect(err).ToNot(HaveOccurred())
+	})
+
+	When("The LoadBalancer service already has the requested IP and ports", func() {
+		const currentIP = "192.168.100.2"
+		var existing *corev1.Service
+
+		BeforeEach(func() {
+			reconciler.PublicExposureOpts.IPPool = []string{"192.168.100.1", currentIP}
+			reconciler.PublicExposureOpts.CommonLabels = map[string]string{"lb-ipam.cilium.io/pool": "public"}
+
+			// The CRD defaults the protocol to TCP, which is also the one reported by the service.
+			instance.Spec.PublicExposure.Ports[0].Protocol = corev1.ProtocolTCP
+			instance.Status.PublicExposure = &clv1alpha2.InstancePublicExposureStatus{
+				Ports: instance.Spec.PublicExposure.Ports,
+			}
+
+			// A service created before the current common labels and annotations were configured.
+			existing = &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      forge.LoadBalancerServiceName(instance),
+					Namespace: instance.Namespace,
+					Labels:    map[string]string{"example.com/unmanaged": "value"},
+					Annotations: map[string]string{
+						"metallb.universe.tf/loadBalancerIPs": currentIP,
+						"example.com/unmanaged":               "value",
+					},
+				},
+				Spec: corev1.ServiceSpec{
+					Type: corev1.ServiceTypeLoadBalancer,
+					Ports: []corev1.ServicePort{{
+						Name: "http", Port: 8080, TargetPort: intstr.FromInt32(80), Protocol: corev1.ProtocolTCP,
+					}},
+				},
+			}
+			reconciler.Client = fake.NewClientBuilder().WithObjects(existing).Build()
+		})
+
+		It("Should keep the IP and ports and enforce the common labels and annotations", func() {
+			ctx1, _ := clctx.InstanceInto(ctx, instance)
+			ctx1, _ = clctx.TemplateInto(ctx1, template)
+			Expect(reconciler.EnforcePublicExposure(ctx1)).To(Succeed())
+
+			var service corev1.Service
+			Expect(reconciler.Get(ctx, client.ObjectKeyFromObject(existing), &service)).To(Succeed())
+
+			Expect(service.Annotations).To(HaveKeyWithValue("metallb.universe.tf/loadBalancerIPs", currentIP))
+			Expect(service.Annotations).To(HaveKeyWithValue("metallb.universe.tf/allow-shared-ip", "public-exposure"))
+			Expect(service.Annotations).To(HaveKeyWithValue("metallb.universe.tf/address-pool", "public"))
+			Expect(service.Annotations).To(HaveKeyWithValue("example.com/unmanaged", "value"))
+
+			Expect(service.Labels).To(HaveKeyWithValue(forge.LabelComponentKey, forge.LabelPublicExposureValue))
+			Expect(service.Labels).To(HaveKeyWithValue("lb-ipam.cilium.io/pool", "public"))
+			Expect(service.Labels).To(HaveKeyWithValue("example.com/unmanaged", "value"))
+
+			Expect(service.Spec.Ports).To(Equal(existing.Spec.Ports))
+			Expect(instance.Status.PublicExposure.Ports).To(ConsistOf(instance.Spec.PublicExposure.Ports))
+		})
 	})
 
 	It("Should not define Status if public exposure in Spec is not set", func() {
