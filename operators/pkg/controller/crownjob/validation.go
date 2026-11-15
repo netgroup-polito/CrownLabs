@@ -24,8 +24,8 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -43,7 +43,8 @@ var (
 	// errInstanceStopping is returned when the container of the Instance has been stopped, but one of its pods still
 	// exists: the disk is still in use, for a short time.
 	errInstanceStopping = fmt.Errorf("%w: the container of the instance is stopping", errDiskInUse)
-	// errQueueNotReady is returned when the ClusterQueue of the Workspace does not exist yet.
+	// errQueueNotReady is returned when the ClusterQueue of the Workspace, or the WorkloadPriorityClass of its jobs, does
+	// not exist yet.
 	errQueueNotReady = errors.New("the job queue of the workspace does not exist yet")
 )
 
@@ -98,8 +99,8 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 	if workspaceName == "" {
 		return nil, cannotStart("The template %s does not belong to a workspace.", template.Name)
 	}
-	if msgs := validation.IsValidLabelValue(forge.CrownJobQueueName(workspaceName)); len(msgs) > 0 {
-		return nil, cannotStart("The name of the workspace %s is too long for a job queue.", workspaceName)
+	if err := forge.CrownJobCheckWorkspaceName(workspaceName); err != nil {
+		return nil, err
 	}
 	var workspace clv1alpha1.Workspace
 	if found, err := r.read(ctx, types.NamespacedName{Name: workspaceName}, &workspace); err != nil {
@@ -130,18 +131,12 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 		return nil, err
 	}
 
-	// 8. The priority class of the jobs of the Workspace, if it exists.
-	priorityClass, err := r.jobPriorityClass(ctx, workspaceName)
-	if err != nil {
-		return nil, err
-	}
-
 	// The Instance must not be being deleted: its finalizer would keep it, and its disk, for the whole run of the job.
 	if !instance.DeletionTimestamp.IsZero() {
 		return nil, cannotStart(msgInstanceDeleting, instance.Name)
 	}
 
-	// 9. The Deployment of the Instance, whose pod template the Job copies. It may not exist yet (not terminal).
+	// 8. The Deployment of the Instance, whose pod template the Job copies. It may not exist yet (not terminal).
 	var deployment appsv1.Deployment
 	if found, err := r.read(ctx, forge.NamespacedNameWithSuffix(&instance, environment.Name), &deployment); err != nil {
 		return nil, err
@@ -158,13 +153,23 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 		return nil, err
 	}
 
-	// The job queue of the Workspace: without its ClusterQueue, Kueue would keep the Job waiting with no explanation.
-	clusterQueue := &unstructured.Unstructured{}
-	clusterQueue.SetGroupVersionKind(forge.KueueClusterQueueGVK)
-	if found, err := r.read(ctx, types.NamespacedName{Name: forge.CrownJobQueueName(workspaceName)}, clusterQueue); err != nil {
-		return nil, err
-	} else if !found {
-		return &jobInputs{instance: &instance, workspace: &workspace}, errQueueNotReady
+	// The job queue of the Workspace, created by the queue controller: without its ClusterQueue, Kueue would keep the Job
+	// waiting with no explanation; and for a Job that names a missing WorkloadPriorityClass, Kueue creates no Workload
+	// and records no event, so the Job is never created before its class exists.
+	for _, queueObject := range []struct {
+		gvk  schema.GroupVersionKind
+		name string
+	}{
+		{forge.KueueClusterQueueGVK, forge.CrownJobQueueName(workspaceName)},
+		{forge.KueueWorkloadPriorityClassGVK, forge.CrownJobPriorityClassName(workspaceName)},
+	} {
+		obj := &unstructured.Unstructured{}
+		obj.SetGroupVersionKind(queueObject.gvk)
+		if found, err := r.read(ctx, types.NamespacedName{Name: queueObject.name}, obj); err != nil {
+			return nil, err
+		} else if !found {
+			return &jobInputs{instance: &instance, workspace: &workspace}, errQueueNotReady
+		}
 	}
 
 	// Rule 7 (resources) is checked on the forged Job, by the caller: it needs the pod template of the Deployment.
@@ -178,7 +183,6 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 			Command:         command,
 			Resources:       templateJob.Resources,
 			MaxRunTime:      maxRunTime,
-			PriorityClass:   priorityClass,
 			RuntimeClasses:  r.RuntimeClasses,
 			FinishedJobTTL:  r.FinishedJobTTL,
 		},
@@ -201,19 +205,6 @@ func (r *Reconciler) checkWorkspaceMembership(ctx context.Context, tenantName, w
 		}
 	}
 	return forge.NewCannotStartError("The tenant %s is not a member of the workspace %s.", tenantName, workspaceName)
-}
-
-// jobPriorityClass returns the name of the Kueue WorkloadPriorityClass of the jobs of the given Workspace
-// (workspace-<name>) if it exists, and no name otherwise: a Job that names a missing class would never be admitted,
-// while Kueue gives priority 0 to a Job that names none.
-func (r *Reconciler) jobPriorityClass(ctx context.Context, workspaceName string) (string, error) {
-	priorityClass := forge.CrownJobPriorityClassName(workspaceName)
-	wpc := &unstructured.Unstructured{}
-	wpc.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
-	if found, err := r.read(ctx, types.NamespacedName{Name: priorityClass}, wpc); err != nil || !found {
-		return "", err
-	}
-	return priorityClass, nil
 }
 
 // jobEnvironment returns the environment of the Template named by its job section, which must be persistent

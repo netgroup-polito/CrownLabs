@@ -271,6 +271,53 @@ var _ = Describe("The CrownJob controller, before the Job exists (P10)", func() 
 			_, err = getJob(cj.Name)
 			Expect(err).ToNot(HaveOccurred())
 		})
+
+		It("Should wait with QueueNotReady while the WorkloadPriorityClass does not exist, then create the Job", func() {
+			create(workspace("ws-noclass", &clv1alpha1.QueueLimits{MaxAtOnce: map[string]resource.Quantity{"cpu": resource.MustParse("2")}}))
+			createTemplate("tpl-noclass", "ws-noclass", &clv1alpha2.TemplateJob{EnvironmentName: envName, Editable: true}, 1, 50)
+			createInstance(tenantNamespace, "inst-noclass", "tpl-noclass", "student-noclass", true)
+			create(tenant("student-noclass", clv1alpha2.TenantWorkspaceEntry{Name: "ws-noclass", Role: clv1alpha2.User}))
+			key := types.NamespacedName{Name: "ws-noclass"}
+			_, err := queueReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+			Expect(err).ToNot(HaveOccurred())
+
+			class := &unstructured.Unstructured{}
+			class.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
+			classKey := types.NamespacedName{Name: "workspace-ws-noclass"}
+			Expect(k8sClient.Get(ctx, classKey, class)).To(Succeed())
+
+			By("The control: with its class, a job of the workspace is created at once")
+			control := newCrownJob("inst-noclass", sh, "")
+			Expect(reconcileCrownJob(control)).To(Equal(ctrl.Result{RequeueAfter: 30 * time.Second}))
+			expectPhase(control, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue, "Your job is waiting in the queue of workspace ws-noclass.")
+
+			By("Deleting the class by hand: the ClusterQueue still exists")
+			Expect(k8sClient.Delete(ctx, class)).To(Succeed())
+			queue := &unstructured.Unstructured{}
+			queue.SetGroupVersionKind(forge.KueueClusterQueueGVK)
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "crownlabs-ws-noclass"}, queue)).To(Succeed())
+
+			cj := newCrownJob("inst-noclass", sh, "")
+			Expect(reconcileCrownJob(cj)).To(Equal(ctrl.Result{RequeueAfter: 30 * time.Second}))
+			// Not CannotStart: the class comes back, so the job waits, and no Job names a missing class.
+			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonQueueNotReady,
+				"The job queue of workspace ws-noclass is not ready yet: your job will start when it is.")
+			Expect(crownJobStatus(cj).RunFolder).To(BeEmpty())
+			_, err = getJob(cj.Name)
+			Expect(kerrors.IsNotFound(err)).To(BeTrue(), "no Job before its class exists")
+			Expect(reconcileCrownJob(cj)).To(Equal(ctrl.Result{RequeueAfter: 30 * time.Second}))
+			Expect(crownJobStatus(cj).Reason).To(Equal(crownjob.ReasonQueueNotReady))
+
+			By("Restoring the class, as the queue controller does when it is deleted")
+			_, err = queueReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+			Expect(err).ToNot(HaveOccurred())
+			Expect(k8sClient.Get(ctx, classKey, class)).To(Succeed())
+			Expect(reconcileCrownJob(cj)).To(Equal(ctrl.Result{RequeueAfter: 30 * time.Second}))
+			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue, "Your job is waiting in the queue of workspace ws-noclass.")
+			job, err := getJob(cj.Name)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(job.Labels).To(HaveKeyWithValue(forge.KueuePriorityClassLabel, "workspace-ws-noclass"))
+		})
 	})
 
 	Describe("The finalizer of the instance", func() {

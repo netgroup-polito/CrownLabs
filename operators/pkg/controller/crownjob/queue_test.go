@@ -21,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -45,6 +46,12 @@ var _ = Describe("The CrownJob queue controller", func() {
 		queue := &unstructured.Unstructured{}
 		queue.SetGroupVersionKind(forge.KueueClusterQueueGVK)
 		return queue, getKueueObject(queue, name)
+	}
+
+	priorityClass := func(name string) (*unstructured.Unstructured, error) {
+		class := &unstructured.Unstructured{}
+		class.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
+		return class, getKueueObject(class, name)
 	}
 
 	nominalQuotas := func(queue *unstructured.Unstructured) map[string]string {
@@ -113,11 +120,103 @@ var _ = Describe("The CrownJob queue controller", func() {
 		Expect(nominalQuotas(queue)).To(Equal(map[string]string{"cpu": "1", "memory": "100Ti"}))
 	})
 
-	It("Should not create a ClusterQueue for a Workspace without jobOptions", func() {
+	It("Should create neither a ClusterQueue nor a WorkloadPriorityClass for a Workspace without jobOptions", func() {
 		create(workspace("ws-queue-none", nil))
 		reconcileWorkspace("ws-queue-none")
 		_, err := clusterQueue("crownlabs-ws-queue-none")
 		Expect(kerrors.IsNotFound(err)).To(BeTrue())
+		_, err = priorityClass("workspace-ws-queue-none")
+		Expect(kerrors.IsNotFound(err)).To(BeTrue())
+	})
+
+	It("Should create, update, restore and delete the WorkloadPriorityClass of a Workspace with jobOptions", func() {
+		ws := workspace("ws-class", &clv1alpha1.QueueLimits{MaxAtOnce: map[string]resource.Quantity{"cpu": resource.MustParse("2")}})
+		create(ws)
+		// A class of another name, which the controller must never touch.
+		other := &unstructured.Unstructured{}
+		other.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
+		other.SetName("workspace-ws-class-other")
+		other.Object["value"] = int64(7)
+		create(other)
+		otherVersion := other.GetResourceVersion()
+
+		By("Creating the class with the ClusterQueue: the default priority, owned by the Workspace")
+		reconcileWorkspace("ws-class")
+		_, err := clusterQueue("crownlabs-ws-class")
+		Expect(err).ToNot(HaveOccurred())
+		class, err := priorityClass("workspace-ws-class")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(class.Object["value"]).To(BeEquivalentTo(100))
+		Expect(class.Object["description"]).To(Equal("The priority of the jobs of the CrownLabs workspace ws-class."))
+		Expect(class.GetLabels()).To(HaveKeyWithValue("crownlabs.polito.it/managed-by", "crownjob"))
+		Expect(class.GetOwnerReferences()).To(HaveLen(1))
+		Expect(class.GetOwnerReferences()[0].Kind).To(Equal("Workspace"))
+		Expect(class.GetOwnerReferences()[0].Name).To(Equal("ws-class"))
+		Expect(class.GetOwnerReferences()[0].UID).To(Equal(ws.UID))
+		Expect(ptr.Deref(class.GetOwnerReferences()[0].Controller, false)).To(BeTrue())
+		Expect(class.GetManagedFields()).To(ContainElement(HaveField("Manager", forge.CrownJobFieldManager)))
+		uid := class.GetUID()
+
+		By("Changing its value when the priority of the Workspace changes, in place")
+		for _, priority := range []int32{500, 0} {
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(ws), ws)).To(Succeed())
+			ws.Spec.JobOptions.Priority = ptr.To(priority)
+			Expect(k8sClient.Update(ctx, ws)).To(Succeed())
+			reconcileWorkspace("ws-class")
+			class, err = priorityClass("workspace-ws-class")
+			Expect(err).ToNot(HaveOccurred())
+			Expect(class.Object["value"]).To(BeEquivalentTo(priority))
+			Expect(class.GetUID()).To(Equal(uid))
+		}
+
+		By("Undoing a change made by hand")
+		class.Object["value"] = int64(9999)
+		class.Object["description"] = "changed by hand"
+		Expect(k8sClient.Update(ctx, class)).To(Succeed())
+		reconcileWorkspace("ws-class")
+		class, err = priorityClass("workspace-ws-class")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(class.Object["value"]).To(BeEquivalentTo(0))
+		Expect(class.Object["description"]).To(Equal("The priority of the jobs of the CrownLabs workspace ws-class."))
+
+		By("Restoring it after a deletion by hand")
+		Expect(k8sClient.Delete(ctx, class)).To(Succeed())
+		_, err = priorityClass("workspace-ws-class")
+		Expect(kerrors.IsNotFound(err)).To(BeTrue())
+		reconcileWorkspace("ws-class")
+		class, err = priorityClass("workspace-ws-class")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(class.Object["value"]).To(BeEquivalentTo(0))
+		Expect(class.GetUID()).ToNot(Equal(uid))
+
+		By("Deleting it, with the ClusterQueue, when jobOptions is removed")
+		Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(ws), ws)).To(Succeed())
+		ws.Spec.JobOptions = nil
+		Expect(k8sClient.Update(ctx, ws)).To(Succeed())
+		reconcileWorkspace("ws-class")
+		_, err = priorityClass("workspace-ws-class")
+		Expect(kerrors.IsNotFound(err)).To(BeTrue())
+		_, err = clusterQueue("crownlabs-ws-class")
+		Expect(kerrors.IsNotFound(err)).To(BeTrue())
+
+		By("Never touching the class of another name")
+		Expect(getKueueObject(other, "workspace-ws-class-other")).To(Succeed())
+		Expect(other.GetResourceVersion()).To(Equal(otherVersion))
+		Expect(other.Object["value"]).To(BeEquivalentTo(7))
+	})
+
+	It("Should not delete a WorkloadPriorityClass with the same name that the Workspace does not control", func() {
+		create(workspace("ws-class-foreign", nil))
+		foreign := &unstructured.Unstructured{}
+		foreign.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
+		foreign.SetName("workspace-ws-class-foreign")
+		foreign.Object["value"] = int64(42)
+		create(foreign)
+
+		reconcileWorkspace("ws-class-foreign")
+		class, err := priorityClass("workspace-ws-class-foreign")
+		Expect(err).ToNot(HaveOccurred())
+		Expect(class.Object["value"]).To(BeEquivalentTo(42))
 	})
 
 	It("Should ignore a Workspace without the target label", func() {

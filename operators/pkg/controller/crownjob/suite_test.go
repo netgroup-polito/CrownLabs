@@ -18,6 +18,7 @@ package crownjob_test
 import (
 	"context"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -28,7 +29,6 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/client-go/kubernetes/scheme"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/klog/v2/textlogger"
@@ -78,6 +78,9 @@ var (
 	stopManager        context.CancelFunc
 
 	targetLabel = ctrlcommon.NewLabel("crownlabs.polito.it/operator-selector", "test")
+
+	// longWorkspace is one character too long: crownlabs-<name> and workspace-<name> would have 64 characters.
+	longWorkspace = strings.Repeat("w", 54)
 )
 
 func TestCrownJob(t *testing.T) {
@@ -171,19 +174,14 @@ func createFixtures() {
 		JobLimits: apicommon.JobLimits{MaxRunTime: "6h"},
 	}))
 	create(workspace(noQueueWorkspace, nil))
-	create(workspace(prioWorkspace, &clv1alpha1.QueueLimits{}))
-	// The ClusterQueues of the workspaces, as the queue controller creates them.
+	prio := workspace(prioWorkspace, &clv1alpha1.QueueLimits{})
+	prio.Spec.JobOptions.Priority = ptr.To[int32](500)
+	create(prio)
+	// The ClusterQueue and the WorkloadPriorityClass of each workspace, as the queue controller creates them.
 	for _, name := range []string{workspaceName, prioWorkspace} {
 		_, err := queueReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: name}})
 		Expect(err).ToNot(HaveOccurred())
 	}
-
-	// Only one workspace has the WorkloadPriorityClass of its jobs.
-	wpc := &unstructured.Unstructured{}
-	wpc.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
-	wpc.SetName(forge.CrownJobPriorityClassName(prioWorkspace))
-	wpc.Object["value"] = int64(500)
-	create(wpc)
 
 	create(tenant(tenantName, clv1alpha2.TenantWorkspaceEntry{Name: workspaceName, Role: clv1alpha2.User},
 		clv1alpha2.TenantWorkspaceEntry{Name: noQueueWorkspace, Role: clv1alpha2.Manager},
@@ -216,6 +214,7 @@ func createFixtures() {
 	createTemplate("tpl-noqueue", noQueueWorkspace, editable, 1, 50)
 	createTemplate("tpl-nows", "", editable, 1, 50)
 	createTemplate("tpl-ghostws", "ghost", editable, 1, 50)
+	createTemplate("tpl-longws", longWorkspace, editable, 1, 50)
 
 	for name, tmpl := range map[string]string{
 		"inst": "tpl", "inst-nojob": "tpl-nojob", "inst-fixed": "tpl-fixed", "inst-image": "tpl-image", "inst-default": "tpl-default",
@@ -223,6 +222,7 @@ func createFixtures() {
 		"inst-bigcpu": "tpl-bigcpu", "inst-prio": "tpl-prio",
 		"inst-zerogpu": "tpl-zerogpu",
 		"inst-noqueue": "tpl-noqueue", "inst-nows": "tpl-nows", "inst-ghostws": "tpl-ghostws", "inst-ghosttpl": "ghost",
+		"inst-longws": "tpl-longws",
 	} {
 		createInstance(tenantNamespace, name, tmpl, tenantName, true)
 	}

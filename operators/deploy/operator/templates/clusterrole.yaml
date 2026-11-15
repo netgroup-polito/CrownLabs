@@ -61,9 +61,9 @@ rules:
   resources: ["crownjobs/status"]
   verbs: ["patch"]
 
-# The Jobs are owned by their CrownJob, and the ClusterQueues and LocalQueues by their Workspace, with
-# blockOwnerDeletion: with the OwnerReferencesPermissionEnforcement admission plugin, this needs update on the
-# finalizers of the owner.
+# The Jobs are owned by their CrownJob, and the ClusterQueues, WorkloadPriorityClasses and LocalQueues by their
+# Workspace, with blockOwnerDeletion: with the OwnerReferencesPermissionEnforcement admission plugin, this needs update
+# on the finalizers of the owner.
 - apiGroups: ["crownlabs.polito.it"]
   resources: ["crownjobs/finalizers", "workspaces/finalizers"]
   verbs: ["update"]
@@ -108,10 +108,11 @@ rules:
   resources: ["roles", "rolebindings"]
   verbs: ["create", "patch"]
 
-# Kueue: the ClusterQueue of each Workspace (watched, to restore it) and its LocalQueues, written with server-side
-# apply (create and patch), the shared ResourceFlavor; the Workloads and the priority classes are only read.
+# Kueue: the ClusterQueue of each Workspace and the WorkloadPriorityClass of its jobs (watched, to restore them, and
+# deleted when the Workspace no longer runs jobs) and its LocalQueues, written with server-side apply (create and
+# patch), the shared ResourceFlavor; the Workloads are only read.
 - apiGroups: ["kueue.x-k8s.io"]
-  resources: ["clusterqueues"]
+  resources: ["clusterqueues", "workloadpriorityclasses"]
   verbs: ["get", "list", "watch", "create", "patch", "delete"]
 - apiGroups: ["kueue.x-k8s.io"]
   resources: ["localqueues"]
@@ -122,7 +123,4 @@ rules:
 - apiGroups: ["kueue.x-k8s.io"]
   resources: ["workloads"]
   verbs: ["list"]
-- apiGroups: ["kueue.x-k8s.io"]
-  resources: ["workloadpriorityclasses"]
-  verbs: ["get"]
 {{- end }}

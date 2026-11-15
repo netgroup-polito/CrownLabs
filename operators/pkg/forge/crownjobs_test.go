@@ -166,11 +166,17 @@ var _ = Describe("CrownJobs forging", func() {
 				}))
 			})
 
-			It("Should set the Kueue queue label and the crownjob label, and no priority-class label", func() {
+			It("Should set the Kueue queue and priority-class labels of the workspace, and the crownjob label", func() {
 				Expect(job.Labels).To(Equal(map[string]string{
-					forge.KueueQueueNameLabel: "crownlabs-ws",
-					forge.LabelCrownJobKey:    crownJobName,
+					forge.KueueQueueNameLabel:     "crownlabs-ws",
+					forge.KueuePriorityClassLabel: "workspace-ws",
+					forge.LabelCrownJobKey:        crownJobName,
 				}))
+			})
+
+			It("Should not set the Kueue labels on the pods", func() {
+				Expect(job.Spec.Template.Labels).ToNot(HaveKey(forge.KueueQueueNameLabel))
+				Expect(job.Spec.Template.Labels).ToNot(HaveKey(forge.KueuePriorityClassLabel))
 			})
 
 			It("Should rewrite every crownlabs.polito.it/ pod label into job.crownlabs.polito.it/, and add crownjob and workspace", func() {
@@ -307,16 +313,6 @@ var _ = Describe("CrownJobs forging", func() {
 			It("Should set ttlSecondsAfterFinished to the TTL, in seconds", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(job.Spec.TTLSecondsAfterFinished).To(Equal(ptr.To[int32](600)))
-			})
-		})
-
-		Context("With a priority class", func() {
-			BeforeEach(func() { opts.PriorityClass = "high" })
-
-			It("Should set the Kueue priority-class label", func() {
-				Expect(err).ToNot(HaveOccurred())
-				Expect(job.Labels).To(HaveKeyWithValue(forge.KueuePriorityClassLabel, "high"))
-				Expect(job.Labels).To(HaveKeyWithValue(forge.KueueQueueNameLabel, "crownlabs-ws"))
 			})
 		})
 

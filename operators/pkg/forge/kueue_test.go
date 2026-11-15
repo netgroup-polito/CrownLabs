@@ -15,6 +15,9 @@
 package forge_test
 
 import (
+	"errors"
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -151,6 +154,54 @@ var _ = Describe("Kueue objects forging", func() {
 		It("Should use prefixes of the same length, so that one length check of the workspace name covers both names", func() {
 			Expect(forge.CrownJobPriorityClassPrefix).To(HaveLen(len(forge.CrownJobQueuePrefix)))
 		})
+	})
+
+	Describe("The forge.CrownJobCheckWorkspaceName function", func() {
+		It("Should accept a workspace name of at most 53 characters: both names then fit in a label value", func() {
+			name := strings.Repeat("w", 53)
+			Expect(forge.CrownJobQueueName(name)).To(HaveLen(63))
+			Expect(forge.CrownJobPriorityClassName(name)).To(HaveLen(63))
+			Expect(forge.CrownJobCheckWorkspaceName(name)).To(Succeed())
+			Expect(forge.CrownJobCheckWorkspaceName("ws")).To(Succeed())
+		})
+
+		It("Should refuse a longer workspace name, with a message that names the job queue and the priority class", func() {
+			name := strings.Repeat("w", 54)
+			err := forge.CrownJobCheckWorkspaceName(name)
+			var cannotStart *forge.CannotStartError
+			Expect(errors.As(err, &cannotStart)).To(BeTrue())
+			Expect(err).To(MatchError("The name of the workspace " + name + " is too long for its job queue (crownlabs-" + name +
+				") and its job priority class (workspace-" + name + ")."))
+		})
+	})
+
+	Describe("The forge.KueueWorkloadPriorityClass function", func() {
+		It("Should forge the class workspace-<name>, owned by the workspace, with the managed-by label and a description", func() {
+			class := forge.KueueWorkloadPriorityClass(&workspace)
+			Expect(class.GroupVersionKind()).To(Equal(forge.KueueWorkloadPriorityClassGVK))
+			Expect(class.GetName()).To(Equal("workspace-ws"))
+			Expect(class.GetNamespace()).To(BeEmpty())
+			Expect(class.GetLabels()).To(Equal(map[string]string{"crownlabs.polito.it/managed-by": "crownjob"}))
+			Expect(class.GetOwnerReferences()).To(ConsistOf(workspaceOwner))
+			Expect(class.Object["description"]).To(Equal("The priority of the jobs of the CrownLabs workspace ws."))
+			// The class has no spec: only these fields, and the value.
+			Expect(class.Object).To(HaveLen(5))
+		})
+
+		It("Should use 100, the default of the CRD, when the jobOptions set no priority", func() {
+			Expect(workspace.Spec.JobOptions.Priority).To(BeNil())
+			Expect(forge.KueueWorkloadPriorityClass(&workspace).Object["value"]).To(Equal(int64(100)))
+		})
+
+		DescribeTable("Using the priority of the jobOptions as the value",
+			func(priority int32) {
+				workspace.Spec.JobOptions.Priority = ptr.To(priority)
+				Expect(forge.KueueWorkloadPriorityClass(&workspace).Object["value"]).To(Equal(int64(priority)))
+			},
+			Entry("0, which is not the same as no priority", int32(0)),
+			Entry("500", int32(500)),
+			Entry("10000, the maximum", int32(10000)),
+		)
 	})
 
 	Describe("The forge.KueueLocalQueue function", func() {

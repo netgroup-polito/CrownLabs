@@ -21,6 +21,7 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/klog/v2"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -35,8 +36,9 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
-// QueueReconciler reconciles the job queue of a Workspace: the ResourceFlavor shared by every job queue and the
-// ClusterQueue of the Workspace. The LocalQueues are applied by the CrownJob controller, right before each Job.
+// QueueReconciler reconciles the job queue of a Workspace: the ResourceFlavor shared by every job queue, the
+// WorkloadPriorityClass of the jobs of the Workspace and its ClusterQueue. The LocalQueues are applied by the CrownJob
+// controller, right before each Job.
 type QueueReconciler struct {
 	client.Client
 	TargetLabel ctrlcommon.KVLabel
@@ -49,7 +51,8 @@ type QueueReconciler struct {
 
 // SetupWithManager registers a new controller for the job queues of the Workspaces. It is named explicitly,
 // since the Workspace controller already takes the default name derived from the Workspace kind. The ClusterQueues
-// are watched to restore them if changed or deleted, but not on the status updates written by Kueue.
+// and the WorkloadPriorityClasses are watched to restore them if changed or deleted; the ClusterQueues, not on the
+// status updates written by Kueue.
 func (r *QueueReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) error {
 	pred, err := r.TargetLabel.GetPredicate()
 	if err != nil {
@@ -58,11 +61,14 @@ func (r *QueueReconciler) SetupWithManager(mgr ctrl.Manager, concurrency int) er
 
 	clusterQueue := &unstructured.Unstructured{}
 	clusterQueue.SetGroupVersionKind(forge.KueueClusterQueueGVK)
+	priorityClass := &unstructured.Unstructured{}
+	priorityClass.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
 
 	return ctrl.NewControllerManagedBy(mgr).
 		Named("crownjob-queue").
 		For(&clv1alpha1.Workspace{}, builder.WithPredicates(pred)).
 		Owns(clusterQueue, builder.WithPredicates(predicate.GenerationChangedPredicate{})).
+		Owns(priorityClass).
 		WithOptions(controller.Options{
 			MaxConcurrentReconciles: concurrency,
 		}).
@@ -97,12 +103,23 @@ func (r *QueueReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl
 	}
 
 	if workspace.Spec.JobOptions == nil {
-		return ctrl.Result{}, r.enforceClusterQueueAbsence(ctx, &workspace)
+		if err := r.enforceAbsence(ctx, &workspace, forge.KueueClusterQueueGVK, forge.CrownJobQueueName(workspace.Name)); err != nil {
+			return ctrl.Result{}, err
+		}
+		return ctrl.Result{}, r.enforceAbsence(ctx, &workspace, forge.KueueWorkloadPriorityClassGVK, forge.CrownJobPriorityClassName(workspace.Name))
 	}
 
 	if err := r.enforceResourceFlavor(ctx); err != nil {
 		return ctrl.Result{}, err
 	}
+
+	// The priority class is applied before the queue: Kueue never admits a Job that names a missing class.
+	priorityClass := forge.KueueWorkloadPriorityClass(&workspace)
+	if err := r.Patch(ctx, priorityClass, client.Apply, client.FieldOwner(forge.CrownJobFieldManager), client.ForceOwnership); err != nil {
+		log.Error(err, "failed to apply the priority class", "workloadpriorityclass", klog.KObj(priorityClass))
+		return ctrl.Result{}, err
+	}
+	log.Info("priority class enforced", "workloadpriorityclass", klog.KObj(priorityClass), "value", priorityClass.Object["value"])
 
 	clusterQueue := forge.KueueClusterQueue(&workspace)
 	if err := r.Patch(ctx, clusterQueue, client.Apply, client.FieldOwner(forge.CrownJobFieldManager), client.ForceOwnership); err != nil {
@@ -130,27 +147,28 @@ func (r *QueueReconciler) enforceResourceFlavor(ctx context.Context) error {
 	return nil
 }
 
-// enforceClusterQueueAbsence deletes the ClusterQueue of a Workspace without jobOptions, if it is controlled by it.
-func (r *QueueReconciler) enforceClusterQueueAbsence(ctx context.Context, workspace *clv1alpha1.Workspace) error {
-	log := ctrl.LoggerFrom(ctx)
+// enforceAbsence deletes the given Kueue object (the ClusterQueue or the WorkloadPriorityClass) of a Workspace without
+// jobOptions, if it is controlled by the Workspace.
+func (r *QueueReconciler) enforceAbsence(ctx context.Context, workspace *clv1alpha1.Workspace, gvk schema.GroupVersionKind, name string) error {
+	log := ctrl.LoggerFrom(ctx).WithValues("kind", gvk.Kind, "name", name)
 
-	clusterQueue := &unstructured.Unstructured{}
-	clusterQueue.SetGroupVersionKind(forge.KueueClusterQueueGVK)
-	if err := r.Get(ctx, types.NamespacedName{Name: forge.CrownJobQueueName(workspace.Name)}, clusterQueue); err != nil {
+	obj := &unstructured.Unstructured{}
+	obj.SetGroupVersionKind(gvk)
+	if err := r.Get(ctx, types.NamespacedName{Name: name}, obj); err != nil {
 		return client.IgnoreNotFound(err)
 	}
-	if !metav1.IsControlledBy(clusterQueue, workspace) {
-		log.Info("cluster queue not controlled by the workspace, not deleting it", "clusterqueue", clusterQueue.GetName())
+	if !metav1.IsControlledBy(obj, workspace) {
+		log.Info("object not controlled by the workspace, not deleting it")
 		return nil
 	}
-	if !clusterQueue.GetDeletionTimestamp().IsZero() {
+	if !obj.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 
-	if err := r.Delete(ctx, clusterQueue); err != nil && !kerrors.IsNotFound(err) {
-		log.Error(err, "failed to delete the cluster queue", "clusterqueue", clusterQueue.GetName())
+	if err := r.Delete(ctx, obj); err != nil && !kerrors.IsNotFound(err) {
+		log.Error(err, "failed to delete the object")
 		return err
 	}
-	log.Info("cluster queue deleted", "clusterqueue", clusterQueue.GetName())
+	log.Info("object deleted")
 	return nil
 }

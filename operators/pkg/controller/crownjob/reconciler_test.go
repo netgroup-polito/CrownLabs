@@ -222,6 +222,10 @@ var _ = Describe("The CrownJob controller", func() {
 			Entry("3. a missing workspace", cannotStartCase{
 				instance: "inst-ghostws", command: []string{"true"},
 				message: "The workspace ghost does not exist."}),
+			Entry("3. a workspace whose name is too long for the names of its job queue and of its priority class", cannotStartCase{
+				instance: "inst-longws", command: []string{"true"},
+				message: "The name of the workspace " + longWorkspace + " is too long for its job queue (crownlabs-" + longWorkspace +
+					") and its job priority class (workspace-" + longWorkspace + ")."}),
 			Entry("3. a workspace without jobOptions", cannotStartCase{
 				instance: "inst-noqueue", command: []string{"true"},
 				message: "The workspace ws-noqueue has no job queue."}),
@@ -355,7 +359,7 @@ var _ = Describe("The CrownJob controller", func() {
 			Expect(err).ToNot(HaveOccurred())
 			Expect(job.Labels).To(HaveKeyWithValue(forge.KueueQueueNameLabel, "crownlabs-ws"))
 			Expect(job.Labels).To(HaveKeyWithValue(forge.LabelCrownJobKey, cj.Name))
-			Expect(job.Labels).ToNot(HaveKey(forge.KueuePriorityClassLabel))
+			Expect(job.Labels).To(HaveKeyWithValue(forge.KueuePriorityClassLabel, "workspace-ws"))
 			Expect(job.OwnerReferences).To(HaveLen(1))
 			Expect(job.OwnerReferences[0].UID).To(Equal(crownJobUID(cj)))
 			Expect(ptr.Deref(job.OwnerReferences[0].Controller, false)).To(BeTrue())
@@ -396,13 +400,18 @@ var _ = Describe("The CrownJob controller", func() {
 			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue, "Your job is waiting in the queue of workspace ws.")
 		})
 
-		It("Should set the priority-class label when the WorkloadPriorityClass of the workspace exists", func() {
+		It("Should name the WorkloadPriorityClass of the workspace of the job, which holds its priority", func() {
 			cj := newCrownJob("inst-prio", sh, "")
 			reconcileCrownJob(cj)
 			job, err := getJob(cj.Name)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(job.Labels).To(HaveKeyWithValue(forge.KueuePriorityClassLabel, "workspace-ws-prio"))
 			Expect(job.Labels).To(HaveKeyWithValue(forge.KueueQueueNameLabel, "crownlabs-ws-prio"))
+
+			class := &unstructured.Unstructured{}
+			class.SetGroupVersionKind(forge.KueueWorkloadPriorityClassGVK)
+			Expect(k8sClient.Get(ctx, types.NamespacedName{Name: job.Labels[forge.KueuePriorityClassLabel]}, class)).To(Succeed())
+			Expect(class.Object["value"]).To(BeEquivalentTo(500))
 		})
 
 		It("Should set the resources of the template job, the GPU count and the runtime class", func() {

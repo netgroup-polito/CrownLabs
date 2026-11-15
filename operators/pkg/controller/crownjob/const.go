@@ -26,7 +26,7 @@ const (
 	ReasonInstanceNotReady = "InstanceNotReady"
 	// ReasonDiskInUse -> the job is waiting for the Instance to stop, since its disk can be used by one node at a time.
 	ReasonDiskInUse = "DiskInUse"
-	// ReasonQueueNotReady -> the job is waiting for the ClusterQueue of the Workspace to exist.
+	// ReasonQueueNotReady -> the job is waiting for the ClusterQueue of the Workspace, and for the priority class of its jobs, to exist.
 	ReasonQueueNotReady = "QueueNotReady"
 	// ReasonAdmitted -> the job has been admitted by the queue, and its pod is not running yet.
 	ReasonAdmitted = "Admitted"
@@ -90,7 +90,7 @@ const (
 	// requeueDiskReleasing -> how often a job is checked again while the container of its Instance stops: when the last
 	// pod goes, the Deployment may not change (status.terminatingReplicas is set only where its feature gate is enabled).
 	requeueDiskReleasing = 2 * time.Second
-	// requeueQueueNotReady -> how often a job waiting for the ClusterQueue of its Workspace is checked again.
+	// requeueQueueNotReady -> how often a job waiting for the ClusterQueue or the priority class of its Workspace is checked again.
 	requeueQueueNotReady = 30 * time.Second
 	// requeueConflict -> how soon a CrownJob or Instance is reconciled again after a conflict on its write.
 	requeueConflict = time.Second

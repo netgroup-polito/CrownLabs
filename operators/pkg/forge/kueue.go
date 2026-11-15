@@ -15,6 +15,7 @@
 package forge
 
 import (
+	"fmt"
 	"sort"
 
 	corev1 "k8s.io/api/core/v1"
@@ -22,6 +23,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/validation"
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 )
@@ -51,6 +53,8 @@ const (
 	CrownJobQueuePrefix = "crownlabs-"
 	// CrownJobPriorityClassPrefix -> the prefix of the name of the WorkloadPriorityClass of the jobs of a Workspace.
 	CrownJobPriorityClassPrefix = "workspace-"
+	// CrownJobDefaultPriority -> the priority of the jobs of a Workspace whose jobOptions set none (the default of the CRD).
+	CrownJobDefaultPriority int32 = 100
 	// CrownJobResourceFlavor -> the name of the ResourceFlavor used by every job queue.
 	CrownJobResourceFlavor = "crownlabs-default"
 	// CrownJobTenantNamespaceSelectorValue -> the value of the type label of the namespaces that can use a job queue.
@@ -93,6 +97,18 @@ func CrownJobQueueName(workspace string) string {
 // CrownJobPriorityClassName returns the name of the WorkloadPriorityClass of the jobs of the given Workspace.
 func CrownJobPriorityClassName(workspace string) string {
 	return CrownJobPriorityClassPrefix + workspace
+}
+
+// CrownJobCheckWorkspaceName checks that the names of the job queue and of the priority class of the given Workspace can
+// be label values, since each Job names both in a label: the name of the Workspace must not be too long.
+func CrownJobCheckWorkspaceName(workspace string) error {
+	for _, name := range []string{CrownJobQueueName(workspace), CrownJobPriorityClassName(workspace)} {
+		if msgs := validation.IsValidLabelValue(name); len(msgs) > 0 {
+			return NewCannotStartError("The name of the workspace %s is too long for its job queue (%s) and its job priority class (%s).",
+				workspace, CrownJobQueueName(workspace), CrownJobPriorityClassName(workspace))
+		}
+	}
+	return nil
 }
 
 // KueueQueueQuotas returns the resources covered by a job queue with the given limits, with their nominal quota:
@@ -177,6 +193,22 @@ func KueueClusterQueue(workspace *clv1alpha1.Workspace) *unstructured.Unstructur
 		},
 	}
 	return queue
+}
+
+// KueueWorkloadPriorityClass forges the WorkloadPriorityClass of the jobs of the given Workspace: its value is the
+// priority of the jobOptions of the Workspace, or CrownJobDefaultPriority if they set none. It orders the jobs in the
+// queues of Kueue only: the priority of their pods does not change.
+func KueueWorkloadPriorityClass(workspace *clv1alpha1.Workspace) *unstructured.Unstructured {
+	priority := CrownJobDefaultPriority
+	if workspace.Spec.JobOptions != nil && workspace.Spec.JobOptions.Priority != nil {
+		priority = *workspace.Spec.JobOptions.Priority
+	}
+
+	class := kueueObject(KueueWorkloadPriorityClassGVK, CrownJobPriorityClassName(workspace.Name), "")
+	class.SetOwnerReferences([]metav1.OwnerReference{*metav1.NewControllerRef(workspace, clv1alpha1.GroupVersion.WithKind("Workspace"))})
+	class.Object["value"] = int64(priority)
+	class.Object["description"] = fmt.Sprintf("The priority of the jobs of the CrownLabs workspace %s.", workspace.Name)
+	return class
 }
 
 // KueueLocalQueue forges the LocalQueue of the job queue of the given Workspace, in the given (tenant) namespace.

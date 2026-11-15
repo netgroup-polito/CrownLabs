@@ -98,8 +98,6 @@ type CrownJobJobOpts struct {
 	Resources map[string]resource.Quantity
 	// MaxRunTime is the maximum time the job may run, chosen by CrownJobMaxRunTime.
 	MaxRunTime time.Duration
-	// PriorityClass is the name of the Kueue WorkloadPriorityClass of the job (empty if none).
-	PriorityClass string
 	// RuntimeClasses maps a resource name to the RuntimeClass that a pod requesting it must use.
 	RuntimeClasses map[string]string
 	// FinishedJobTTL is how long the Job is kept after it ends, with its pods and its Workload (0: no limit).
@@ -172,19 +170,15 @@ func CrownJobBatchJob(crownJob *clv1alpha2.CrownJob, opts *CrownJobJobOpts) (*ba
 	podTemplate.Spec.RestartPolicy = corev1.RestartPolicyNever
 	podTemplate.Spec.ActiveDeadlineSeconds = ptr.To(int64(opts.MaxRunTime / time.Second))
 
-	labels := map[string]string{
-		KueueQueueNameLabel: CrownJobQueueName(opts.Workspace),
-		LabelCrownJobKey:    crownJob.Name,
-	}
-	if opts.PriorityClass != "" {
-		labels[KueuePriorityClassLabel] = opts.PriorityClass
-	}
-
 	return &batchv1.Job{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:            crownJob.Name,
-			Namespace:       crownJob.Namespace,
-			Labels:          labels,
+			Name:      crownJob.Name,
+			Namespace: crownJob.Namespace,
+			Labels: map[string]string{
+				KueueQueueNameLabel:     CrownJobQueueName(opts.Workspace),
+				KueuePriorityClassLabel: CrownJobPriorityClassName(opts.Workspace),
+				LabelCrownJobKey:        crownJob.Name,
+			},
 			OwnerReferences: []metav1.OwnerReference{*metav1.NewControllerRef(crownJob, clv1alpha2.GroupVersion.WithKind("CrownJob"))},
 		},
 		Spec: batchv1.JobSpec{
