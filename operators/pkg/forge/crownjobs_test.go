@@ -777,6 +777,121 @@ var _ = Describe("CrownJobs forging", func() {
 		})
 	})
 
+	Describe("The forge.CrownJobCheckTemplateResources function", func() {
+		quantities := func(pairs ...string) map[string]resource.Quantity {
+			resources := map[string]resource.Quantity{}
+			for i := 0; i < len(pairs); i += 2 {
+				resources[pairs[i]] = resource.MustParse(pairs[i+1])
+			}
+			return resources
+		}
+
+		It("Should accept no resources, positive quantities, and 0 of an extended resource", func() {
+			Expect(forge.CrownJobCheckTemplateResources("tpl", nil)).To(Succeed())
+			Expect(forge.CrownJobCheckTemplateResources("tpl", quantities("cpu", "500m", "memory", "1Gi", gpu, "1"))).To(Succeed())
+			Expect(forge.CrownJobCheckTemplateResources("tpl", quantities("cpu", "1", gpu, "0", "amd.com/gpu", "0"))).To(Succeed())
+		})
+
+		DescribeTable("Refusing a quantity that no job can have, with a message that names the template and the resource",
+			func(resources map[string]resource.Quantity, message string) {
+				expectCannotStart(forge.CrownJobCheckTemplateResources("tpl", resources), message)
+			},
+			Entry("a negative cpu", quantities("cpu", "-1"), "The template tpl sets a negative quantity of cpu for its jobs (-1)."),
+			Entry("a negative memory", quantities("cpu", "1", "memory", "-1Gi"), "The template tpl sets a negative quantity of memory for its jobs (-1Gi)."),
+			Entry("a negative extended resource", quantities(gpu, "-1"), "The template tpl sets a negative quantity of nvidia.com/gpu for its jobs (-1)."),
+			Entry("0 of cpu", quantities("cpu", "0", "memory", "1Gi"),
+				"The template tpl sets 0 of cpu for its jobs: only an extended resource (e.g., nvidia.com/gpu) can be 0."),
+			Entry("0 of memory", quantities("cpu", "1", "memory", "0"),
+				"The template tpl sets 0 of memory for its jobs: only an extended resource (e.g., nvidia.com/gpu) can be 0."),
+			Entry("0 of another standard resource", quantities("ephemeral-storage", "0"),
+				"The template tpl sets 0 of ephemeral-storage for its jobs: only an extended resource (e.g., nvidia.com/gpu) can be 0."),
+			Entry("two of them: the first by name", quantities("memory", "0", "cpu", "-2"),
+				"The template tpl sets a negative quantity of cpu for its jobs (-2)."),
+		)
+	})
+
+	Describe("The forge.CrownJobCheckJobResources function", func() {
+		var (
+			limits clv1alpha1.QueueLimits
+			spec   corev1.PodSpec
+		)
+
+		// podSpec forges the pod of a job: the run-folder init container, and the app container with the given resources.
+		podSpec := func(requests, limits corev1.ResourceList) corev1.PodSpec {
+			return corev1.PodSpec{
+				InitContainers: []corev1.Container{{Name: forge.CrownJobRunFolderContainerName, Resources: corev1.ResourceRequirements{
+					Requests: corev1.ResourceList{"cpu": resource.MustParse("10m"), "memory": resource.MustParse("16Mi")},
+					Limits:   corev1.ResourceList{"cpu": resource.MustParse("100m"), "memory": resource.MustParse("64Mi")},
+				}}},
+				Containers: []corev1.Container{{Name: "app", Resources: corev1.ResourceRequirements{Requests: requests, Limits: limits}}},
+			}
+		}
+
+		BeforeEach(func() {
+			limits = clv1alpha1.QueueLimits{JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{
+				"cpu": resource.MustParse("8"), "memory": resource.MustParse("32Gi"), gpu: resource.MustParse("1"),
+			}}}
+			spec = podSpec(
+				corev1.ResourceList{"cpu": resource.MustParse("4"), "memory": resource.MustParse("16Gi"), gpu: resource.MustParse("1")},
+				corev1.ResourceList{"cpu": resource.MustParse("8"), "memory": resource.MustParse("16Gi"), gpu: resource.MustParse("1")})
+		})
+
+		It("Should accept a job within the bounds, and exactly at them", func() {
+			Expect(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec)).To(Succeed())
+			atTheBound := podSpec(
+				corev1.ResourceList{"cpu": resource.MustParse("8"), "memory": resource.MustParse("32Gi"), gpu: resource.MustParse("1")},
+				corev1.ResourceList{"cpu": resource.MustParse("8"), "memory": resource.MustParse("32Gi"), gpu: resource.MustParse("1")})
+			Expect(forge.CrownJobCheckJobResources(workspaceName, &limits, &atTheBound)).To(Succeed())
+		})
+
+		It("Should refuse a request above the bound", func() {
+			spec = podSpec(corev1.ResourceList{"cpu": resource.MustParse("16")}, corev1.ResourceList{"cpu": resource.MustParse("16")})
+			expectCannotStart(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec),
+				"The job asks for 16 of cpu, but one job of workspace ws may ask for at most 8.")
+		})
+
+		It("Should refuse a limit above the bound, also when the request is within it", func() {
+			spec = podSpec(corev1.ResourceList{"cpu": resource.MustParse("4")}, corev1.ResourceList{"cpu": resource.MustParse("9")})
+			expectCannotStart(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec),
+				"The job asks for 9 of cpu, but one job of workspace ws may ask for at most 8.")
+		})
+
+		It("Should refuse a request above the bound when the container sets no limit", func() {
+			spec = podSpec(corev1.ResourceList{gpu: resource.MustParse("2")}, nil)
+			expectCannotStart(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec),
+				"The job asks for 2 of nvidia.com/gpu, but one job of workspace ws may ask for at most 1.")
+		})
+
+		It("Should count the request of the pod as Kueue does: an init container larger than the app container", func() {
+			limits.Resources = map[string]resource.Quantity{"memory": resource.MustParse("8Mi")}
+			spec = podSpec(corev1.ResourceList{"memory": resource.MustParse("4Mi")}, corev1.ResourceList{"memory": resource.MustParse("4Mi")})
+			expectCannotStart(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec),
+				"The job asks for 16Mi of memory, but one job of workspace ws may ask for at most 8Mi.")
+		})
+
+		It("Should not bound a resource that the limits do not list, nor anything when they list none", func() {
+			spec = podSpec(corev1.ResourceList{"cpu": resource.MustParse("1"), "amd.com/gpu": resource.MustParse("64")}, nil)
+			Expect(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec)).To(Succeed())
+			huge := podSpec(corev1.ResourceList{"cpu": resource.MustParse("1000")}, corev1.ResourceList{"cpu": resource.MustParse("1000")})
+			Expect(forge.CrownJobCheckJobResources(workspaceName, &clv1alpha1.QueueLimits{}, &huge)).To(Succeed())
+			Expect(forge.CrownJobCheckJobResources(workspaceName, nil, &huge)).To(Succeed())
+		})
+
+		It("Should accept a bound of 0 for a job that does not ask for the resource, and refuse one that does", func() {
+			limits.Resources[gpu] = resource.MustParse("0")
+			expectCannotStart(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec),
+				"The job asks for 1 of nvidia.com/gpu, but one job of workspace ws may ask for at most 0.")
+			spec = podSpec(corev1.ResourceList{"cpu": resource.MustParse("1")}, corev1.ResourceList{"cpu": resource.MustParse("1")})
+			Expect(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec)).To(Succeed())
+		})
+
+		It("Should refuse a negative bound, with a message that names the workspace and the resource", func() {
+			limits.Resources["memory"] = resource.MustParse("-1Gi")
+			expectCannotStart(forge.CrownJobCheckJobResources(workspaceName, &limits, &spec),
+				"The job queue of workspace ws sets a negative quantity of memory for one job (-1Gi).")
+		})
+	})
+
 	Describe("The forge.CrownJobCheckQueueLimits function", func() {
 		var limits clv1alpha1.QueueLimits
 

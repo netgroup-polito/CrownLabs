@@ -222,9 +222,12 @@ func (r *Reconciler) createJob(ctx context.Context, crownJob *clv1alpha2.CrownJo
 
 	job, err := forge.CrownJobBatchJob(crownJob, &inputs.opts)
 	if err == nil {
-		// 7. Every resource the pod requests must be covered by the queue, within maxAtOnce.
-		err = forge.CrownJobCheckQueueLimits(inputs.workspace.Name, &inputs.workspace.Spec.JobOptions.QueueLimits,
-			forge.PodEffectiveRequests(&job.Spec.Template.Spec))
+		// 7. The resources of the pod must be within what one job of the Workspace may ask for; then every resource it
+		// requests must be covered by the queue, within maxAtOnce.
+		queueLimits := &inputs.workspace.Spec.JobOptions.QueueLimits
+		if err = forge.CrownJobCheckJobResources(inputs.workspace.Name, queueLimits, &job.Spec.Template.Spec); err == nil {
+			err = forge.CrownJobCheckQueueLimits(inputs.workspace.Name, queueLimits, forge.PodEffectiveRequests(&job.Spec.Template.Spec))
+		}
 	}
 	if errors.As(err, &cannotStart) {
 		setStatus(crownJob, clv1alpha2.CrownJobPhaseFailed, ReasonCannotStart, cannotStart.Error())

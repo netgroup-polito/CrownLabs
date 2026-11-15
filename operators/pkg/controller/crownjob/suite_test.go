@@ -58,6 +58,8 @@ const (
 	workspaceName       = "ws"
 	noQueueWorkspace    = "ws-noqueue"
 	prioWorkspace       = "ws-prio"
+	perJobWorkspace     = "ws-perjob"
+	negativeWorkspace   = "ws-negative"
 	tenantName          = "student"
 	envName             = "work"
 	image               = "harbor.example.com/standalone:v1"
@@ -177,15 +179,26 @@ func createFixtures() {
 	prio := workspace(prioWorkspace, &clv1alpha1.QueueLimits{})
 	prio.Spec.JobOptions.Priority = ptr.To[int32](500)
 	create(prio)
+	// One job of this workspace may ask for at most 2 cpu and 3Gi of memory; all its jobs together, for 4 cpu.
+	create(workspace(perJobWorkspace, &clv1alpha1.QueueLimits{
+		MaxAtOnce: map[string]resource.Quantity{"cpu": resource.MustParse("4")},
+		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{"cpu": resource.MustParse("2"), "memory": resource.MustParse("3Gi")}},
+	}))
+	// A negative bound, which the API accepts.
+	create(workspace(negativeWorkspace, &clv1alpha1.QueueLimits{
+		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{"cpu": resource.MustParse("-1")}},
+	}))
 	// The ClusterQueue and the WorkloadPriorityClass of each workspace, as the queue controller creates them.
-	for _, name := range []string{workspaceName, prioWorkspace} {
+	for _, name := range []string{workspaceName, prioWorkspace, perJobWorkspace, negativeWorkspace} {
 		_, err := queueReconciler.Reconcile(ctx, ctrl.Request{NamespacedName: client.ObjectKey{Name: name}})
 		Expect(err).ToNot(HaveOccurred())
 	}
 
 	create(tenant(tenantName, clv1alpha2.TenantWorkspaceEntry{Name: workspaceName, Role: clv1alpha2.User},
 		clv1alpha2.TenantWorkspaceEntry{Name: noQueueWorkspace, Role: clv1alpha2.Manager},
-		clv1alpha2.TenantWorkspaceEntry{Name: prioWorkspace, Role: clv1alpha2.User}))
+		clv1alpha2.TenantWorkspaceEntry{Name: prioWorkspace, Role: clv1alpha2.User},
+		clv1alpha2.TenantWorkspaceEntry{Name: perJobWorkspace, Role: clv1alpha2.User},
+		clv1alpha2.TenantWorkspaceEntry{Name: negativeWorkspace, Role: clv1alpha2.User}))
 	create(tenant("candidate", clv1alpha2.TenantWorkspaceEntry{Name: workspaceName, Role: clv1alpha2.Candidate}))
 
 	editable := &clv1alpha2.TemplateJob{EnvironmentName: envName, Editable: true, JobLimits: apicommon.JobLimits{MaxRunTime: "1h"}}
@@ -207,6 +220,19 @@ func createFixtures() {
 		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{"cpu": resource.MustParse("2"), "memory": resource.MustParse("3Gi")}}}, 1, 50)
 	createTemplate("tpl-bigcpu", workspaceName, editable, 8, 100)
 	createTemplate("tpl-prio", prioWorkspace, editable, 1, 50)
+	// Quantities that the API accepts and no job can have.
+	createTemplate("tpl-negative", workspaceName, &clv1alpha2.TemplateJob{EnvironmentName: envName, Editable: true,
+		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{gpu: resource.MustParse("-1")}}}, 1, 50)
+	createTemplate("tpl-zerocpu", workspaceName, &clv1alpha2.TemplateJob{EnvironmentName: envName, Editable: true,
+		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{"cpu": resource.MustParse("0")}}}, 1, 50)
+	// Against the per-job bounds of their workspace (2 cpu, 3Gi): exactly at them, above with the request, and above with
+	// the limit only (the instance requests 2 of its 4 cpu).
+	createTemplate("tpl-perjob-at", perJobWorkspace, &clv1alpha2.TemplateJob{EnvironmentName: envName, Editable: true,
+		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{"cpu": resource.MustParse("2"), "memory": resource.MustParse("3Gi")}}}, 1, 50)
+	createTemplate("tpl-perjob-over", perJobWorkspace, &clv1alpha2.TemplateJob{EnvironmentName: envName, Editable: true,
+		JobLimits: apicommon.JobLimits{Resources: map[string]resource.Quantity{"cpu": resource.MustParse("3")}}}, 1, 50)
+	createTemplate("tpl-perjob-limit", perJobWorkspace, editable, 4, 50)
+	createTemplate("tpl-negbound", negativeWorkspace, editable, 1, 50)
 	// An environment with zero GPUs, as the Template editor of the dashboard writes it.
 	zeroGPUs := jobEnvironment(1, 50)
 	zeroGPUs.Resources.OtherResources = map[string]resource.Quantity{"amd.com/gpu": resource.MustParse("0"), gpu: resource.MustParse("0")}
@@ -222,7 +248,9 @@ func createFixtures() {
 		"inst-bigcpu": "tpl-bigcpu", "inst-prio": "tpl-prio",
 		"inst-zerogpu": "tpl-zerogpu",
 		"inst-noqueue": "tpl-noqueue", "inst-nows": "tpl-nows", "inst-ghostws": "tpl-ghostws", "inst-ghosttpl": "ghost",
-		"inst-longws": "tpl-longws",
+		"inst-longws": "tpl-longws", "inst-negative": "tpl-negative", "inst-zerocpu": "tpl-zerocpu",
+		"inst-perjob-at": "tpl-perjob-at", "inst-perjob-over": "tpl-perjob-over", "inst-perjob-limit": "tpl-perjob-limit",
+		"inst-negbound": "tpl-negbound",
 	} {
 		createInstance(tenantNamespace, name, tmpl, tenantName, true)
 	}

@@ -247,6 +247,21 @@ var _ = Describe("The CrownJob controller", func() {
 			Entry("6. a maxRunTime above the template's", cannotStartCase{
 				instance: "inst", command: []string{"true"}, maxRunTime: "2h",
 				message: "The job asks for a time limit of 2h, but at most 1h is allowed."}),
+			Entry("7. a negative quantity in the resources of the template job", cannotStartCase{
+				instance: "inst-negative", command: []string{"true"},
+				message: "The template tpl-negative sets a negative quantity of nvidia.com/gpu for its jobs (-1)."}),
+			Entry("7. 0 of cpu in the resources of the template job", cannotStartCase{
+				instance: "inst-zerocpu", command: []string{"true"},
+				message: "The template tpl-zerocpu sets 0 of cpu for its jobs: only an extended resource (e.g., nvidia.com/gpu) can be 0."}),
+			Entry("7. a request above what one job of the workspace may ask for", cannotStartCase{
+				instance: "inst-perjob-over", command: []string{"true"},
+				message: "The job asks for 3 of cpu, but one job of workspace ws-perjob may ask for at most 2."}),
+			Entry("7. a limit above what one job of the workspace may ask for, with a request within it", cannotStartCase{
+				instance: "inst-perjob-limit", command: []string{"true"},
+				message: "The job asks for 4 of cpu, but one job of workspace ws-perjob may ask for at most 2."}),
+			Entry("7. a negative quantity in the resources of the queue limits of the workspace", cannotStartCase{
+				instance: "inst-negbound", command: []string{"true"},
+				message: "The job queue of workspace ws-negative sets a negative quantity of cpu for one job (-1)."}),
 			Entry("7. a resource the queue does not cover", cannotStartCase{
 				instance: "inst-amd", command: []string{"true"},
 				message: "The job queue of workspace ws does not allow amd.com/gpu."}),
@@ -469,6 +484,17 @@ var _ = Describe("The CrownJob controller", func() {
 			job, err = getJob(cj.Name)
 			Expect(err).ToNot(HaveOccurred())
 			app = job.Spec.Template.Spec.Containers[0]
+			Expect(app.Resources.Requests).To(Equal(corev1.ResourceList{"cpu": resource.MustParse("2"), "memory": resource.MustParse("3Gi")}))
+			Expect(app.Resources.Limits).To(Equal(app.Resources.Requests))
+		})
+
+		It("Should accept a job that asks for exactly what one job of its workspace may ask for", func() {
+			cj := newCrownJob("inst-perjob-at", sh, "")
+			reconcileCrownJob(cj)
+			expectPhase(cj, clv1alpha2.CrownJobPhaseWaiting, crownjob.ReasonInQueue, "Your job is waiting in the queue of workspace ws-perjob.")
+			job, err := getJob(cj.Name)
+			Expect(err).ToNot(HaveOccurred())
+			app := job.Spec.Template.Spec.Containers[0]
 			Expect(app.Resources.Requests).To(Equal(corev1.ResourceList{"cpu": resource.MustParse("2"), "memory": resource.MustParse("3Gi")}))
 			Expect(app.Resources.Limits).To(Equal(app.Resources.Requests))
 		})

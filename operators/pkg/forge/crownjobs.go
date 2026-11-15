@@ -322,6 +322,56 @@ func PodEffectiveRequests(spec *corev1.PodSpec) corev1.ResourceList {
 	return requests
 }
 
+// CrownJobCheckTemplateResources checks the resources of the job section of the given Template (job.resources), which
+// the API accepts whatever their quantity: a negative quantity is refused, and so is 0 of a standard resource (a name
+// without a "/", e.g., cpu and memory), which no job can do without. 0 of an extended resource (e.g., nvidia.com/gpu)
+// is accepted: it means that the job does not ask for it.
+func CrownJobCheckTemplateResources(template string, resources map[string]resource.Quantity) error {
+	for _, name := range sortedResourceNames(resources) {
+		quantity := resources[name]
+		switch {
+		case quantity.Sign() < 0:
+			return NewCannotStartError("The template %s sets a negative quantity of %s for its jobs (%s).", template, name, quantity.String())
+		case quantity.IsZero() && !strings.Contains(name, "/"):
+			return NewCannotStartError("The template %s sets 0 of %s for its jobs: only an extended resource (e.g., nvidia.com/gpu) can be 0.",
+				template, name)
+		}
+	}
+	return nil
+}
+
+// CrownJobCheckJobResources checks the pod of a job against the resources of the queue limits of the given Workspace
+// (queueLimits.resources), which are the most that one job may ask for. For each resource they list, neither the
+// request of the pod (as PodEffectiveRequests counts it) nor the limit of its containers (a job pod has one: the app
+// container) may exceed it. A resource they do not list has no bound for one job. A negative bound is refused.
+func CrownJobCheckJobResources(workspace string, limits *clv1alpha1.QueueLimits, spec *corev1.PodSpec) error {
+	if limits == nil {
+		return nil
+	}
+	requests := PodEffectiveRequests(spec)
+	containerLimits := corev1.ResourceList{}
+	for i := range spec.Containers {
+		containerLimits = addResourceList(containerLimits, spec.Containers[i].Resources.Limits)
+	}
+
+	for _, name := range sortedResourceNames(limits.Resources) {
+		bound := limits.Resources[name]
+		if bound.Sign() < 0 {
+			return NewCannotStartError("The job queue of workspace %s sets a negative quantity of %s for one job (%s).", workspace, name, bound.String())
+		}
+		// What the job asks for: the larger of its request and its limit.
+		asked := requests[corev1.ResourceName(name)]
+		if limit := containerLimits[corev1.ResourceName(name)]; limit.Cmp(asked) > 0 {
+			asked = limit
+		}
+		if asked.Cmp(bound) > 0 {
+			return NewCannotStartError("The job asks for %s of %s, but one job of workspace %s may ask for at most %s.",
+				asked.String(), name, workspace, bound.String())
+		}
+	}
+	return nil
+}
+
 // CrownJobCheckQueueLimits checks the requests of a job against the job queue of the given Workspace: every requested
 // resource must be covered by the queue (see KueueQueueQuotas), and no request may exceed maxAtOnce, or the job could
 // never start. A zero request asks for nothing, and is ignored.
@@ -453,6 +503,17 @@ func addResourceList(list, other corev1.ResourceList) corev1.ResourceList {
 		result[name] = sum
 	}
 	return result
+}
+
+// sortedResourceNames returns the names of the given resources, sorted, so that the first refusal does not depend on
+// the order of a map.
+func sortedResourceNames(resources map[string]resource.Quantity) []string {
+	names := make([]string, 0, len(resources))
+	for name := range resources {
+		names = append(names, name)
+	}
+	sort.Strings(names)
+	return names
 }
 
 // setEnvVariable sets an environment variable of the given container, replacing its value if it is already present.

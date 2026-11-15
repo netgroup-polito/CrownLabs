@@ -818,7 +818,13 @@ The command of a job comes from the `job` section of its Template (`editable`, `
 
 "The image" means that the container runs as in the instance: its `command`, `args` and working directory are unchanged (CrownLabs sets no `command`, and the `args` are the `startupArgs` of the environment, if any). A command, of the Template or of the CrownJob, replaces the `command` of the container, clears its `args`, and runs in the folder of the persistent disk.
 
-Of the `queueLimits` of a Workspace, the controllers apply `maxAtOnce` (the quota of its ClusterQueue) and `maxRunTime`. Its `guaranteed`, `perUser` and `resources`, and the `overrideWindows`, are not applied yet.
+The resources of a job are checked before its Job is created, and a failed check is final (`CannotStart`):
+
+- In the `job.resources` of the Template, a negative quantity is refused, and so is 0 of a standard resource (a name without a `/`, e.g., `cpu`, `memory`). 0 of an extended resource means that the job does not ask for it.
+- The `queueLimits.resources` of the Workspace are the most that one job may ask for. For each resource they list, neither the request of the pod of the job nor the limit of its container may exceed it, e.g. "The job asks for 16 of cpu, but one job of workspace ml may ask for at most 8.". A resource they do not list has no bound for one job. A negative quantity there is refused too.
+- Every resource the job requests must be covered by the job queue, within `maxAtOnce`: otherwise the job could never start.
+
+Of the `queueLimits` of a Workspace, the controllers apply `maxAtOnce` (the quota of its ClusterQueue), `maxRunTime` and `resources`. Its `guaranteed` and `perUser`, and the `overrideWindows`, are not applied: they are left to the follow-up pull request on queue policies.
 
 ### Status
 

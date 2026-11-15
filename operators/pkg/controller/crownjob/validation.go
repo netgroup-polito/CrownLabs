@@ -136,6 +136,12 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 		return nil, cannotStart(msgInstanceDeleting, instance.Name)
 	}
 
+	// 7. The resources of the job section of the Template. Those of the forged Job are checked against the Workspace by
+	// the caller: they need the pod template of the Deployment.
+	if err := forge.CrownJobCheckTemplateResources(template.Name, templateJob.Resources); err != nil {
+		return nil, err
+	}
+
 	// 8. The Deployment of the Instance, whose pod template the Job copies. It may not exist yet (not terminal).
 	var deployment appsv1.Deployment
 	if found, err := r.read(ctx, forge.NamespacedNameWithSuffix(&instance, environment.Name), &deployment); err != nil {
@@ -172,7 +178,6 @@ func (r *Reconciler) gatherJobInputs(ctx context.Context, crownJob *clv1alpha2.C
 		}
 	}
 
-	// Rule 7 (resources) is checked on the forged Job, by the caller: it needs the pod template of the Deployment.
 	return &jobInputs{
 		instance:  &instance,
 		workspace: &workspace,
