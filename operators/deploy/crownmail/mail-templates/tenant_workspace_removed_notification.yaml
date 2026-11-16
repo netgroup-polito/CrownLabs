@@ -1,0 +1,10 @@
+to: |-
+  { tenantEmail }
+subject: |-
+  CrownLabs: You have been removed from workspace { workspacePrettyName }
+plaintext_content: |-
+  You have been removed from the workspace { workspacePrettyName }.
+  If you think this is a mistake, please contact the managers of the workspace.
+html_content: |-
+  <p>You have been removed from the workspace <strong>{ workspacePrettyName }</strong>.</p>
+  <p>If you think this is a mistake, please contact the managers of the workspace.</p>

@@ -444,6 +444,7 @@ The actions performed by the operator are the following:
   - check if the tenant subscribed to non-existing workspaces, in case some are found add to the tenant status
   - append a label for each subscribed workspace that exists
   - create or update the corresponding user in keycloak and assign him/her a role for each subscribed workspace
+  - send an email to the tenant when it is added to or removed from a workspace ([details](#workspace-notifications))
   - delete all managed resources upon tenant deletion
 - `Workspace` ([details](pkg/controller/workspace/))
   - create or update some cluster resources
@@ -474,6 +475,19 @@ In other words, a user can consume a quota Q1 for all the pods belonging to work
 Furthermore, a further quota (e.g., QP) is specified for the pods belonging to his Personal Workspace.
 
 To increase the resources available to a Tenant in their personal workspace, you must modify the `personalWorkspace` field in the Tenant CR.
+
+### Workspace notifications
+With `--enable-workspace-notifications`, the operator emails a tenant when it becomes a `user` or `manager` of a workspace, and when it is removed from it, using the `tenant_workspace_added_notification.yaml` and `tenant_workspace_removed_notification.yaml` [crownmail](pkg/utils/mail/README.md) templates.
+Candidates are not notified until their request is approved (nor if it is rejected), and base workspaces (`--base-workspaces`) are never notified.
+Deleting a workspace removes all its tenants, so each of them receives a removal email.
+
+The workspaces already notified are listed in the `crownlabs.polito.it/notified-workspaces` annotation of the Tenant:
+
+- A workspace is added once the email about joining it has been sent, and dropped once the email about leaving it has been sent, so being added again sends a new email.
+- A failed email leaves the annotation unchanged for that workspace, so it is retried at the next reconcile, without affecting the tenant readiness.
+- The annotation is kept up to date even when notifications are disabled, so enabling them never sends emails for earlier changes.
+- The mutating webhook sets the annotation to an empty list when a tenant is created. Tenants without it were created before this feature: their current workspaces are recorded without sending any email.
+  If webhooks are disabled, new tenants are treated the same way, so they are only notified about the workspaces they are added to later.
 
 ### Usage
 
@@ -514,6 +528,12 @@ Arguments:
                 Enable the instance controller
   --enable-webhooks
                 Enable webhook endpoints in the operator
+  --enable-workspace-notifications
+                Send an email to tenants when they are added to or removed from a workspace
+  --mail-config-dir
+                The directory containing the SMTP configuration (smtp-config.yaml)
+  --mail-template-dir
+                The directory containing the email templates
   --mydrive-pvcs-size
                 The dimension of the user's personal space
   --mydrive-pvcs-storage-class-name

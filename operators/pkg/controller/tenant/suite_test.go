@@ -61,6 +61,7 @@ var (
 
 	tnResource             *clv1alpha2.Tenant
 	tnReconcileErrExpected gomegaTypes.GomegaMatcher
+	notificationMailer     tenant.Mailer
 
 	objects []client.Object
 
@@ -102,6 +103,7 @@ var _ = BeforeEach(func() {
 		},
 	}
 	tnReconcileErrExpected = Not(HaveOccurred())
+	notificationMailer = nil
 })
 
 var _ = AfterEach(func() {
@@ -133,6 +135,7 @@ var _ = JustBeforeEach(func() {
 		MyDrivePVCsNamespace:        "mydrive-pvcs",
 		MyDrivePVCsSize:             resource.MustParse("5Gi"),
 		MyDrivePVCsStorageClassName: "nfs",
+		Mailer:                      notificationMailer,
 	}
 
 	if !runReconcile {

@@ -16,6 +16,8 @@ package tenant
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/go-logr/logr"
 
@@ -39,4 +41,22 @@ func (r *Reconciler) enforcePreservingStatus(
 	tn.Status = prevStatus
 
 	return nil
+}
+
+// parseWorkspaceList parses a comma-separated list of workspace names, skipping duplicates.
+func parseWorkspaceList(raw string) []string {
+	var names []string
+	for name := range strings.SplitSeq(raw, ",") {
+		if name = strings.TrimSpace(name); name != "" && !slices.Contains(names, name) {
+			names = append(names, name)
+		}
+	}
+	return names
+}
+
+// formatWorkspaceList returns a sorted, de-duplicated, comma-separated list of workspace names.
+func formatWorkspaceList(names []string) string {
+	sorted := slices.Clone(names)
+	slices.Sort(sorted)
+	return strings.Join(slices.Compact(sorted), ",")
 }
