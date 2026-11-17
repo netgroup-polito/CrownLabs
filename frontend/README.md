@@ -2,6 +2,47 @@
 
 This file describes the structure and general coding guidelines of the CrownLabs frontend.
 
+## Frontend Logic
+
+The diagram summarizes the frontend's main authentication and service interactions. 
+
+Sign-in starts from the login page and is handled by *Keycloak* through OIDC. After a successful authentication, it redirects the browser to the frontend with an authorization code, which the frontend exchanges for tokens.
+
+Depending on the type of interaction, the frontend can use different paths to reach instance-related virtual environments:
+
+- **GraphQL API:** The frontend sends GraphQL queries or mutations with the access token. 
+- **Interactive remote desktop:** The frontend opens a connection to the Remote Desktop so the user can interact with an instance. 
+- **Direct service route:** When a service is exposed through a Gateway API route, the frontend can connect to that route directly.
+
+```mermaid
+flowchart LR
+
+Home["`Home Page
+    _crownlabs.polito.it_`"]:::FrontendStyle
+Login["Login Page"]:::FrontendStyle
+Frontend["`Front-end
+    _crownlabs.polito.it/app_`"]:::FrontendStyle
+Remote["Remote Desktop"]
+Keycloak["`Keycloak
+    (OIDC Authentication)`"]
+Graph["`GraphQL
+    _crownlabs.polito.it/graph_`"]:::FrontendStyle
+GWAPI["Gateway (Balancer)"]
+
+Home --> Login
+Login -. OIDC sign-in request .-> Keycloak
+Keycloak -. redirects back with authorization code .-> Frontend
+Frontend -. exchanges code for tokens .-> Keycloak
+Frontend -. GraphQL requests with access token .-> Graph
+Graph -. routes through .-> GWAPI
+Frontend -. connects .-> Remote
+Frontend -. connects .-> GWAPI
+Remote --> GWAPI
+
+classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
+```
+
+
 ## Setup
 
 Before starting set the necessary environment variables either using a `.env` file (preferred on windows) or by defining them on your local machine. To setup the repo, use the following commands.
@@ -25,6 +66,7 @@ After the setup is complete, if you start the app locally and see the apiserver 
 Our frontend is a [React](https://it.reactjs.org/) application. We use [antd](https://ant.design/) as the main component library and [Tailwind](https://tailwindcss.com/) utilities to handle specific css scenarios (padding and margin). We chose to use [Typescript](https://www.typescriptlang.org/) to have a bettere development experience.
 
 The application is made to be deployed using docker and can be hosted on a custom subroute. The application takes some environment variables, each needs to have the `REACT_APP_CROWNLABS` prefix. In order to define environment variables at container run-time they need to be defined on the `window` object in the `public/config.js` file.
+
 
 ## CI checks
 
