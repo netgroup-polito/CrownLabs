@@ -1,3 +1,82 @@
+# CrownLabs Releases
+
+The CrownLabs deployment is managed through the parent Helm chart in this directory, while ArgoCD creates a release for each target environment. The `operator-selector` label selects the release value and determines which CrownLabs components are installed in the **CrownLabs Release Namespace**.
+
+The following diagram gives the architectural context for the
+deployment steps described below, using the `production` release selected by
+the `operator-selector` label as an example.
+
+```mermaid
+flowchart TB
+
+ArgoHelm["Helm / ArgoCD"]
+ProdDeploy["`_crownlabs-production_
+    Production`"]
+PreProdDeploy["`_crownlabs-pre-production_
+    Pre-production`"]
+StagingDeploy["`_crownlabs-staging-123_
+    Staging (PR-associated)`"]
+
+subgraph Controllers["CL Release Namespace"]
+    direction TB
+
+    subgraph Operator["`CL Operator
+    (_operator-selector = prod_)`"]
+        TenantController["Tenant Controller"]
+        WorkspaceController["Workspace Controller"]
+        ShVolController["Shared Volume Controller"]
+        PMPController["PMP Controller"]
+    end
+
+    subgraph InstOp["`Instance Operator
+    (_operator-selector = prod_)`"]
+        InstanceController["Instance Controller"]
+        InstanceSnapshotController["Instance Snapshot Controller"]
+    end
+
+    subgraph InstAutOp["`Instance Automation Controller
+    (_operator-selector = prod_)`"]
+        ExpirationController["Expiration Controller"]
+        InactivityController["Inactivity Controller"]
+        SubmissionController["Submission Controller"]
+        TerminationController["Termination Controller"]
+    end
+
+    subgraph BastionOp["Bastion Operator"]
+        SSHController["SSH Bastion"]
+        BastionController["Bastion Controller"]
+    end
+
+    subgraph Others[" "]
+        FrontendController["CrownLabs Frontend"]
+        WebSSHController["WebSSH"]
+        QLKubeController["QLKube"]
+    end
+
+    subgraph Others2[" "]
+        RBAC@{shape: docs, label: "RBAC
+        _when enabled_
+        Shared Cluster Roles"}
+        Gateway@{shape: docs, label: "Gateway/Exposition Related Resources¹"}
+    end
+end
+
+ArgoHelm --> ProdDeploy
+ArgoHelm --> PreProdDeploy
+ArgoHelm --> StagingDeploy
+ProdDeploy -- becomes --> Controllers
+
+classDef ReleasesNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
+classDef OperatorStyle stroke:#38677B,fill:none
+classDef InvisibleStyle stroke:none,fill:none
+
+class Controllers ReleasesNSStyle
+class Others,Others2 InvisibleStyle
+class Operator,InstOp,InstAutOp,BastionOp,FrontendController,WebSSHController,QLKubeController OperatorStyle
+```
+
+¹More about the Gateway API architecture [here](docs/gateway-architecture-and-routing.md).  
+
 # How to deploy CrownLabs
 
 The CrownLabs business logic is composed of multiple containerized components, which are necessary to implement the desired services.
