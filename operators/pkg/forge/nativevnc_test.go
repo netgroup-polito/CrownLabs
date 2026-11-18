@@ -41,8 +41,11 @@ var _ = Describe("Native VNC forging", func() {
 				map[string]string{operatorSelectorKey: "staging-1184"})
 		})
 
-		When("the environment has not the GUI enabled", func() {
-			BeforeEach(func() { environment.GuiEnabled = false })
+		When("the environment is served by native VNC", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+				environment.GuiMode = clv1alpha2.GuiModeNative
+			})
 
 			It("Should mark the VMI for native VNC and scope it to the operator", func() {
 				Expect(labels).To(Equal(map[string]string{
@@ -53,12 +56,53 @@ var _ = Describe("Native VNC forging", func() {
 			})
 		})
 
-		When("the environment has the GUI enabled", func() {
-			BeforeEach(func() { environment.GuiEnabled = true })
+		When("the environment has the web desktop", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+				environment.GuiMode = clv1alpha2.GuiModeWeb
+			})
 
 			It("Should leave the labels untouched", func() {
 				Expect(labels).To(Equal(map[string]string{"foo": "bar"}))
 			})
 		})
+
+		When("the environment has no graphical desktop", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+			})
+
+			It("Should leave the labels untouched", func() {
+				Expect(labels).To(Equal(map[string]string{"foo": "bar"}))
+			})
+		})
+	})
+
+	Describe("The forge.EnvironmentGuiMode function", func() {
+		DescribeTable("Returns how the graphical desktop is reached",
+			func(environment clv1alpha2.Environment, expected clv1alpha2.GuiMode) {
+				Expect(forge.EnvironmentGuiMode(&environment)).To(Equal(expected))
+			},
+			Entry("guiMode takes precedence over guiEnabled",
+				clv1alpha2.Environment{GuiMode: clv1alpha2.GuiModeNative, GuiEnabled: true}, clv1alpha2.GuiModeNative),
+			Entry("guiMode Web", clv1alpha2.Environment{GuiMode: clv1alpha2.GuiModeWeb}, clv1alpha2.GuiModeWeb),
+			Entry("unset guiMode, guiEnabled true", clv1alpha2.Environment{GuiEnabled: true}, clv1alpha2.GuiModeWeb),
+			Entry("unset guiMode, guiEnabled false", clv1alpha2.Environment{}, clv1alpha2.GuiMode("")),
+		)
+	})
+
+	Describe("The forge.NativeVNCEnabled function", func() {
+		DescribeTable("Tells whether QEMU's VNC server serves the desktop",
+			func(envType clv1alpha2.EnvironmentType, mode clv1alpha2.GuiMode, expected bool) {
+				environment := clv1alpha2.Environment{EnvironmentType: envType, GuiMode: mode}
+				Expect(forge.NativeVNCEnabled(&environment)).To(Equal(expected))
+			},
+			Entry("VM with native VNC", clv1alpha2.ClassVM, clv1alpha2.GuiModeNative, true),
+			Entry("CloudVM with native VNC", clv1alpha2.ClassCloudVM, clv1alpha2.GuiModeNative, true),
+			Entry("LocalVM with native VNC", clv1alpha2.ClassLocalVM, clv1alpha2.GuiModeNative, true),
+			Entry("VM with the web desktop", clv1alpha2.ClassVM, clv1alpha2.GuiModeWeb, false),
+			Entry("VM with no graphical desktop", clv1alpha2.ClassVM, clv1alpha2.GuiMode(""), false),
+			Entry("Container with native VNC", clv1alpha2.ClassContainer, clv1alpha2.GuiModeNative, false),
+		)
 	})
 })

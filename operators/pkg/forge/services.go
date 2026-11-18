@@ -46,15 +46,14 @@ func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environm
 	// Do not add the ssh port on container-based instances, since no deamon is present.
 	if isVMFamily {
 		ports = append(ports, serviceSpecTCPPort(SSHPortName, SSHPortNumber))
+	}
 
-		// VM-family environments always get a GUI-named port: the legacy TigerVNC/noVNC one
-		// when GuiEnabled, or KubeVirt's native VNC otherwise.
-		var guiPort int32 = NativeVNCPortNumber
-		if environment.GuiEnabled {
-			guiPort = GUIPortNumber
-		}
-		ports = append(ports, serviceSpecTCPPort(GUIPortName, guiPort))
-	} else if environment.GuiEnabled {
+	// Add the GUI port only if the environment has a graphical desktop: QEMU's native VNC
+	// or the TigerVNC/noVNC stack installed in the image.
+	switch {
+	case NativeVNCEnabled(environment):
+		ports = append(ports, serviceSpecTCPPort(GUIPortName, NativeVNCPortNumber))
+	case EnvironmentGuiMode(environment) == clv1alpha2.GuiModeWeb:
 		ports = append(ports, serviceSpecTCPPort(GUIPortName, GUIPortNumber))
 	}
 

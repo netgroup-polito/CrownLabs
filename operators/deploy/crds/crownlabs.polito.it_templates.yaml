@@ -163,6 +163,7 @@ spec:
                       default: true
                       description: |-
                         Whether the environment is characterized by a graphical desktop or not.
+
                         Deprecated: use guiMode, which takes precedence when set.
                       type: boolean
                     guiMode:

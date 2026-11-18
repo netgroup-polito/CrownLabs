@@ -284,24 +284,26 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("root")))
 			Expect(domain.Devices.Disks).To(ContainElement(forge.VolumeDiskTarget("cloud-init")))
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
-
-			// Without a pre-installed graphical desktop (GuiEnabled: false), the environment
-			// gets masquerade networking with every port forwarded to the guest except the
-			// native VNC one, so that KubeVirt's native VNC (QEMU) can be reached directly on the pod.
-			expectedIface := virtv1.DefaultMasqueradeNetworkInterface()
-			expectedIface.PortRanges = []virtv1.PortRange{
-				{Protocol: "TCP", Start: 1, End: forge.NativeVNCPortNumber - 1},
-				{Protocol: "TCP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
-				{Protocol: "UDP", Start: 1, End: forge.NativeVNCPortNumber - 1},
-				{Protocol: "UDP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
-			}
-			Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
+			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
 		})
 
-		When("the environment has the GUI enabled", func() {
-			BeforeEach(func() { environment.GuiEnabled = true })
-			It("Should set the bridge network interface", func() {
-				Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
+		When("the environment is served by native VNC", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+				environment.GuiMode = clv1alpha2.GuiModeNative
+			})
+
+			It("Should set the masquerade network interface", func() {
+				// Every port is forwarded to the guest except the native VNC one, so that
+				// QEMU's VNC server can be reached directly on the pod.
+				expectedIface := virtv1.DefaultMasqueradeNetworkInterface()
+				expectedIface.PortRanges = []virtv1.PortRange{
+					{Protocol: "TCP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+					{Protocol: "TCP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+					{Protocol: "UDP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+					{Protocol: "UDP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+				}
+				Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
 			})
 		})
 	})
@@ -448,15 +450,35 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 	})
 
 	Describe("The forge.VirtualMachineReadinessProbe function", func() {
-		It("Should probe the noVNC port when the GUI is enabled", func() {
-			output := forge.VirtualMachineReadinessProbe(&clv1alpha2.Environment{GuiEnabled: true})
-			Expect(output.Handler).To(Equal(virtv1.Handler{
-				TCPSocket: &corev1.TCPSocketAction{Port: intstr.FromInt(forge.GUIPortNumber)},
-			}))
-		})
+		type VMReadinessProbeCase struct {
+			Environment clv1alpha2.Environment
+			Port        int
+		}
 
-		It("Should return no probe when the GUI is disabled", func() {
-			Expect(forge.VirtualMachineReadinessProbe(&clv1alpha2.Environment{GuiEnabled: false})).To(BeNil())
+		DescribeTable("Correctly returns the expected readiness probe",
+			func(c VMReadinessProbeCase) {
+				output := forge.VirtualMachineReadinessProbe(&c.Environment)
+
+				Expect(output.Handler).To(Equal(virtv1.Handler{
+					TCPSocket: &corev1.TCPSocketAction{
+						Port: intstr.FromInt(c.Port),
+					},
+				}))
+
+			},
+			Entry("When the environment has the GUI enabled", VMReadinessProbeCase{
+				Environment: clv1alpha2.Environment{GuiEnabled: true},
+				Port:        forge.GUIPortNumber,
+			}),
+			Entry("When the environment has not the GUI enabled", VMReadinessProbeCase{
+				Environment: clv1alpha2.Environment{GuiEnabled: false},
+				Port:        forge.SSHPortNumber,
+			}),
+		)
+
+		It("Should return no probe when the environment is served by native VNC", func() {
+			environment := clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassVM, GuiMode: clv1alpha2.GuiModeNative}
+			Expect(forge.VirtualMachineReadinessProbe(&environment)).To(BeNil())
 		})
 	})
 

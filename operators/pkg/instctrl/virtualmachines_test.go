@@ -279,6 +279,21 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
 					Expect(instance.Status.Environments[0].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
 				})
+
+				It("The VMI should not be marked for native VNC", func() {
+					Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
+					Expect(vmi.GetLabels()).ToNot(HaveKey(forge.LabelNativeVNCKey))
+				})
+
+				When("the environment is served by native VNC", func() {
+					BeforeEach(func() { environment.GuiMode = clv1alpha2.GuiModeNative })
+
+					It("The VMI should be marked for native VNC and scoped to the operator", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vmi)).To(Succeed())
+						Expect(vmi.GetLabels()).To(HaveKeyWithValue(forge.LabelNativeVNCKey, "true"))
+						Expect(vmi.GetLabels()).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
+					})
+				})
 			})
 
 			When("the instance is not running", func() {
@@ -492,6 +507,21 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 				It("Should leave the instance phase unset", func() {
 					Expect(instance.Status.Environments).ToNot(BeEmpty())
 					Expect(instance.Status.Environments[index].Phase).To(BeIdenticalTo(clv1alpha2.EnvironmentPhaseUnset))
+				})
+
+				It("The VMI template should not be marked for native VNC", func() {
+					Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+					Expect(vm.Spec.Template.ObjectMeta.Labels).ToNot(HaveKey(forge.LabelNativeVNCKey))
+				})
+
+				When("the environment is served by native VNC", func() {
+					BeforeEach(func() { environment.GuiMode = clv1alpha2.GuiModeNative })
+
+					It("The VMI template should be marked for native VNC and scoped to the operator", func() {
+						Expect(reconciler.Get(ctx, objectNameEnv, &vm)).To(Succeed())
+						Expect(vm.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue(forge.LabelNativeVNCKey, "true"))
+						Expect(vm.Spec.Template.ObjectMeta.Labels).To(HaveKeyWithValue("crownlabs.polito.it/operator-selector", "test"))
+					})
 				})
 			})
 

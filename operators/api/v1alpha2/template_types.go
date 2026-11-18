@@ -131,6 +131,7 @@ type Environment struct {
 	// +kubebuilder:default=true
 
 	// Whether the environment is characterized by a graphical desktop or not.
+	//
 	// Deprecated: use guiMode, which takes precedence when set.
 	GuiEnabled bool `json:"guiEnabled,omitempty"`
 

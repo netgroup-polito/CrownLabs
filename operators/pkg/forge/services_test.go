@@ -85,7 +85,16 @@ var _ = Describe("Services forging", func() {
 			Entry("When the Environment is of type VM, without GUI", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassVM
-					env.GuiEnabled = false
+					return env
+				},
+				Expected: []corev1.ServicePort{
+					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
+				},
+			}),
+			Entry("When the Environment is of type VM, with native VNC", ServiceSpecCase{
+				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
+					env.EnvironmentType = clv1alpha2.ClassVM
+					env.GuiMode = clv1alpha2.GuiModeNative
 					return env
 				},
 				Expected: []corev1.ServicePort{
@@ -93,10 +102,10 @@ var _ = Describe("Services forging", func() {
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.NativeVNCPortNumber, TargetPort: intstr.FromInt(forge.NativeVNCPortNumber)},
 				},
 			}),
-			Entry("When the Environment is of type VM, with GUI", ServiceSpecCase{
+			Entry("When the Environment is of type VM, with the web desktop", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassVM
-					env.GuiEnabled = true
+					env.GuiMode = clv1alpha2.GuiModeWeb
 					return env
 				},
 				Expected: []corev1.ServicePort{
@@ -107,7 +116,16 @@ var _ = Describe("Services forging", func() {
 			Entry("When the Environment is of type CloudVM, without GUI", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassCloudVM
-					env.GuiEnabled = false
+					return env
+				},
+				Expected: []corev1.ServicePort{
+					{Name: forge.SSHPortName, Protocol: corev1.ProtocolTCP, Port: forge.SSHPortNumber, TargetPort: intstr.FromInt(forge.SSHPortNumber)},
+				},
+			}),
+			Entry("When the Environment is of type CloudVM, with native VNC", ServiceSpecCase{
+				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
+					env.EnvironmentType = clv1alpha2.ClassCloudVM
+					env.GuiMode = clv1alpha2.GuiModeNative
 					return env
 				},
 				Expected: []corev1.ServicePort{
@@ -115,10 +133,10 @@ var _ = Describe("Services forging", func() {
 					{Name: forge.GUIPortName, Protocol: corev1.ProtocolTCP, Port: forge.NativeVNCPortNumber, TargetPort: intstr.FromInt(forge.NativeVNCPortNumber)},
 				},
 			}),
-			Entry("When the Environment is of type CloudVM, with GUI", ServiceSpecCase{
+			Entry("When the Environment is of type CloudVM, with the web desktop", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassCloudVM
-					env.GuiEnabled = true
+					env.GuiMode = clv1alpha2.GuiModeWeb
 					return env
 				},
 				Expected: []corev1.ServicePort{
@@ -129,17 +147,16 @@ var _ = Describe("Services forging", func() {
 			Entry("When the Environment is of type Container, without GUI", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassContainer
-					env.GuiEnabled = false
 					return env
 				},
 				Expected: []corev1.ServicePort{
 					{Name: forge.MetricsPortName, Protocol: corev1.ProtocolTCP, Port: forge.MetricsPortNumber, TargetPort: intstr.FromInt(forge.MetricsPortNumber)},
 				},
 			}),
-			Entry("When the Environment is of type Container, with GUI", ServiceSpecCase{
+			Entry("When the Environment is of type Container, with the web desktop", ServiceSpecCase{
 				Mutator: func(env *clv1alpha2.Environment) *clv1alpha2.Environment {
 					env.EnvironmentType = clv1alpha2.ClassContainer
-					env.GuiEnabled = true
+					env.GuiMode = clv1alpha2.GuiModeWeb
 					return env
 				},
 				Expected: []corev1.ServicePort{

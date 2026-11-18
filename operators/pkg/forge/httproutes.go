@@ -163,7 +163,7 @@ func HTTPRouteRuleFilters(environment *clv1alpha2.Environment) []gatewayv1.HTTPR
 			return filters
 		}
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
-		if !environment.GuiEnabled {
+		if NativeVNCEnabled(environment) {
 			filters = append(filters, StripCookieHeaderFilter())
 		}
 		return filters

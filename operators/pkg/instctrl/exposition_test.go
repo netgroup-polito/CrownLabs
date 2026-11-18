@@ -209,22 +209,48 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(instance.Status.Environments[index].IP).To(Equal(clusterIP))
 				})
 
-				DescribeTable("should create the HTTPRoute for GUI-less VMs too, pointing at native VNC, and mark ExpositionAccepted false until accepted",
+				DescribeTable("should skip creating the HTTPRoute for GUI-less VMs and mark ExpositionAccepted false",
 					func(envType clv1alpha2.EnvironmentType) {
 						environment.EnvironmentType = envType
-						environment.GuiEnabled = false
 						ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 
 						err := reconciler.EnforceInstanceExposition(ctx)
 						Expect(err).ToNot(HaveOccurred())
 
 						Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
-						Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(Succeed())
+						Expect(reconciler.Client.Get(ctx, httpRouteName, &gatewayv1.HTTPRoute{})).To(HaveOccurred())
 						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
 					},
 					Entry("ClassVM", clv1alpha2.ClassVM),
 					Entry("ClassCloudVM", clv1alpha2.ClassCloudVM),
 					Entry("ClassLocalVM", clv1alpha2.ClassLocalVM),
+				)
+
+				DescribeTable("should create the HTTPRoute for VMs with a graphical desktop, routed to the port serving it, and mark ExpositionAccepted false until accepted",
+					func(envType clv1alpha2.EnvironmentType, guiMode clv1alpha2.GuiMode, expectedPort int) {
+						environment.EnvironmentType = envType
+						environment.GuiMode = guiMode
+						ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+
+						err := reconciler.EnforceInstanceExposition(ctx)
+						Expect(err).ToNot(HaveOccurred())
+
+						httpRoute := gatewayv1.HTTPRoute{}
+						Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
+						Expect(reconciler.Client.Get(ctx, httpRouteName, &httpRoute)).To(Succeed())
+						Expect(httpRoute.Spec.Rules).To(HaveLen(1))
+						Expect(httpRoute.Spec.Rules[0].BackendRefs).To(HaveLen(1))
+						backendPort := httpRoute.Spec.Rules[0].BackendRefs[0].Port
+						Expect(backendPort).ToNot(BeNil())
+						Expect(*backendPort).To(Equal(gatewayv1.PortNumber(expectedPort)))
+						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
+					},
+					Entry("ClassVM, native VNC", clv1alpha2.ClassVM, clv1alpha2.GuiModeNative, forge.NativeVNCPortNumber),
+					Entry("ClassCloudVM, native VNC", clv1alpha2.ClassCloudVM, clv1alpha2.GuiModeNative, forge.NativeVNCPortNumber),
+					Entry("ClassLocalVM, native VNC", clv1alpha2.ClassLocalVM, clv1alpha2.GuiModeNative, forge.NativeVNCPortNumber),
+					Entry("ClassVM, web desktop", clv1alpha2.ClassVM, clv1alpha2.GuiModeWeb, forge.GUIPortNumber),
+					Entry("ClassCloudVM, web desktop", clv1alpha2.ClassCloudVM, clv1alpha2.GuiModeWeb, forge.GUIPortNumber),
+					Entry("ClassLocalVM, web desktop", clv1alpha2.ClassLocalVM, clv1alpha2.GuiModeWeb, forge.GUIPortNumber),
 				)
 
 				It("should leave the HTTPRoute present and mark ExpositionAccepted false if it is not yet accepted", func() {
@@ -313,10 +339,27 @@ var _ = Describe("Exposition helpers", func() {
 					Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeTrue())
 				})
 
-				DescribeTable("should create the Ingress for GUI-less VMs too, pointing at native VNC",
+				DescribeTable("should skip creating the Ingress for GUI-less VMs and mark ExpositionAccepted false",
 					func(envType clv1alpha2.EnvironmentType) {
 						environment.EnvironmentType = envType
-						environment.GuiEnabled = false
+						ctx, _ = clctx.EnvironmentInto(ctx, &environment)
+
+						err := reconciler.EnforceInstanceExposition(ctx)
+						Expect(err).ToNot(HaveOccurred())
+
+						Expect(reconciler.Client.Get(ctx, serviceName, &corev1.Service{})).To(Succeed())
+						Expect(reconciler.Client.Get(ctx, ingressName, &netv1.Ingress{})).To(HaveOccurred())
+						Expect(instance.Status.Environments[index].ExpositionAccepted).To(BeFalse())
+					},
+					Entry("ClassVM", clv1alpha2.ClassVM),
+					Entry("ClassCloudVM", clv1alpha2.ClassCloudVM),
+					Entry("ClassLocalVM", clv1alpha2.ClassLocalVM),
+				)
+
+				DescribeTable("should create the Ingress for native VNC VMs",
+					func(envType clv1alpha2.EnvironmentType) {
+						environment.EnvironmentType = envType
+						environment.GuiMode = clv1alpha2.GuiModeNative
 						ctx, _ = clctx.EnvironmentInto(ctx, &environment)
 
 						err := reconciler.EnforceInstanceExposition(ctx)
