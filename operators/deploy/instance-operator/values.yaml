@@ -17,6 +17,10 @@ configurations:
     tag: ""
     contentToolsImg: crownlabs/content-tools
   maxConcurrentReconciles: 1
+  # The storage class of the ReadWriteMany disk of the environments that run jobs (job.environmentName of a Template),
+  # when the environment sets none. Empty: every disk is created as before, and a job waits for a running instance to
+  # stop (its disk can be used by one node at a time).
+  jobStorageClass: ""
 
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090

@@ -65,7 +65,38 @@ type CleanupOptions struct {
 	DeleteAfterInactivity string `json:"deleteAfterInactivity"`
 }
 
+// TemplateJob defines how a batch job is started from an Instance of the Template.
+type TemplateJob struct {
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
+	// The name of the environment (in environmentList) whose instance is copied
+	// to run the job. It must be a persistent environment of type Container or
+	// Standalone.
+	EnvironmentName string `json:"environmentName"`
+
+	// +kubebuilder:validation:MaxItems:=64
+	// +kubebuilder:validation:items:MaxLength:=8192
+	// The command of the jobs, as a list of arguments (e.g., ["python", "train.py"]).
+	// An empty list is the same as no command. If editable is false, every job
+	// runs this command, or the entrypoint of the image if there is none. If
+	// editable is true, it is the default: a job that sets no command runs it,
+	// or the entrypoint of the image if there is none. When the entrypoint of
+	// the image runs, it can detect the job through the environment variable
+	// CROWNLABS_JOB=true.
+	Command []string `json:"command,omitempty"`
+
+	// +kubebuilder:default=false
+	// Whether a job may set its own command (spec.command of the CrownJob).
+	// If false, the command of the jobs is fixed by this Template. If true, the
+	// command of this Template, if any, is only the default.
+	Editable bool `json:"editable,omitempty"`
+
+	// The time limit (maxRunTime) and the resources of the jobs.
+	apicommon.JobLimits `json:",inline"`
+}
+
 // TemplateSpec is the specification of the desired state of the Template.
+// +kubebuilder:validation:XValidation:rule="!has(self.job) || self.environmentList.exists(e, e.name == self.job.environmentName)",message="job.environmentName must be the name of an environment in environmentList"
+// +kubebuilder:validation:XValidation:rule="!has(self.job) || self.environmentList.all(e, e.name != self.job.environmentName || (has(e.persistent) && e.persistent && (e.environmentType == 'Container' || e.environmentType == 'Standalone')))",message="job.environmentName must name a persistent environment of type Container or Standalone"
 type TemplateSpec struct {
 	// The human-readable name of the Template.
 	PrettyName string `json:"prettyName"`
@@ -95,6 +126,10 @@ type TemplateSpec struct {
 	// +kubebuilder:default=false
 	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
 	AllowPublicExposure bool `json:"allowPublicExposure,omitempty"`
+
+	// How batch jobs are started from the Instances of this Template.
+	// If omitted, no job can be started from this Template.
+	Job *TemplateJob `json:"job,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.
