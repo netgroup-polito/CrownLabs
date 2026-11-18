@@ -22,6 +22,7 @@ import (
 	"github.com/go-logr/logr"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -43,20 +44,21 @@ func (r *Reconciler) enforcePreservingStatus(
 	return nil
 }
 
-// parseWorkspaceList parses a comma-separated list of workspace names, skipping duplicates.
-func parseWorkspaceList(raw string) []string {
+// notifiedWorkspaceAnnotation returns the key of the annotation recording that the tenant
+// has been notified about being added to the given workspace.
+func notifiedWorkspaceAnnotation(workspace string) string {
+	return forge.NotifiedWorkspaceAnnotationPrefix + workspace
+}
+
+// notifiedWorkspaces returns the sorted names of the workspaces the tenant has been notified about,
+// as recorded in the given annotations.
+func notifiedWorkspaces(annotations map[string]string) []string {
 	var names []string
-	for name := range strings.SplitSeq(raw, ",") {
-		if name = strings.TrimSpace(name); name != "" && !slices.Contains(names, name) {
+	for key := range annotations {
+		if name, ok := strings.CutPrefix(key, forge.NotifiedWorkspaceAnnotationPrefix); ok && name != "" {
 			names = append(names, name)
 		}
 	}
+	slices.Sort(names)
 	return names
-}
-
-// formatWorkspaceList returns a sorted, de-duplicated, comma-separated list of workspace names.
-func formatWorkspaceList(names []string) string {
-	sorted := slices.Clone(names)
-	slices.Sort(sorted)
-	return strings.Join(slices.Compact(sorted), ",")
 }

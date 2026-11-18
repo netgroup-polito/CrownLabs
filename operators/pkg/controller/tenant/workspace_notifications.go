@@ -18,7 +18,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
+	"time"
 
 	"github.com/go-logr/logr"
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
@@ -26,7 +28,6 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
 )
 
@@ -53,39 +54,24 @@ const (
 )
 
 // syncWorkspaceNotifications emails the tenant about each workspace it has been added to or
-// removed from, and records the notified workspaces in the NotifiedWorkspacesAnnotation:
-// a workspace is added once the tenant has been told it joined it, and dropped once the
+// removed from, and records the notified workspaces with one annotation each (see
+// forge.NotifiedWorkspaceAnnotationPrefix): the annotation is created, with the current
+// timestamp, once the tenant has been told it joined the workspace, and deleted once the
 // tenant has been told it left it.
 //
-// The annotation is kept up to date even when no Mailer is configured (i.e., notifications
-// are disabled): this way, enabling notifications never sends emails for changes that happened
-// in the meantime. A failed email leaves that workspace unchanged in the annotation, so it is
-// sent again at the next reconcile.
+// The annotations are kept up to date in the same way even when no Mailer is configured (i.e.,
+// notifications are disabled).
 func (r *Reconciler) syncWorkspaceNotifications(
 	ctx context.Context,
 	log logr.Logger,
 	tn *clv1alpha2.Tenant,
 ) error {
-	raw, tracked := tn.Annotations[forge.NotifiedWorkspacesAnnotation]
-	if !tracked {
-		// The tenant was created before workspace notifications were introduced (new
-		// tenants get an empty annotation from the mutating webhook): record its current
-		// workspaces without sending any email, as it is already aware of them.
-		var current []string
-		for _, ws := range tn.Spec.Workspaces {
-			if r.isNotifiableRole(ws) {
-				current = append(current, ws.Name)
-			}
-		}
-		log.Info("Recording current workspaces as already notified", "workspaces", current, "for tenant", tn.Name)
-		return r.patchNotifiedWorkspaces(ctx, log, tn, current)
-	}
-
-	notified := parseWorkspaceList(raw)
+	notified := notifiedWorkspaces(tn.Annotations)
 
 	var (
-		next []string
-		errs []error
+		set    = map[string]string{}
+		remove []string
+		errs   []error
 	)
 
 	// Removals: notified workspaces that are no longer in the spec. Failing workspaces
@@ -94,14 +80,14 @@ func (r *Reconciler) syncWorkspaceNotifications(
 		if slices.ContainsFunc(tn.Spec.Workspaces, func(ws clv1alpha2.TenantWorkspaceEntry) bool {
 			return ws.Name == name
 		}) {
-			next = append(next, name)
 			continue
 		}
 
 		if err := r.notifyWorkspaceChange(ctx, log, tn, workspaceRemoved, clv1alpha2.TenantWorkspaceEntry{Name: name}); err != nil {
 			errs = append(errs, err)
-			next = append(next, name) // kept, so that the removal is notified again
+			continue // the annotation is kept, so that the removal is notified again
 		}
+		remove = append(remove, notifiedWorkspaceAnnotation(name))
 	}
 
 	// Additions: workspaces in the spec that deserve a notification and have not been notified yet.
@@ -115,11 +101,11 @@ func (r *Reconciler) syncWorkspaceNotifications(
 			errs = append(errs, err)
 			continue // not recorded, so that the addition is notified again
 		}
-		next = append(next, ws.Name)
+		set[notifiedWorkspaceAnnotation(ws.Name)] = time.Now().UTC().Format(time.RFC3339)
 	}
 
-	if formatWorkspaceList(next) != raw {
-		if err := r.patchNotifiedWorkspaces(ctx, log, tn, next); err != nil {
+	if len(set) > 0 || len(remove) > 0 {
+		if err := r.patchNotifiedWorkspaces(ctx, log, tn, set, remove); err != nil {
 			errs = append(errs, err)
 		}
 	}
@@ -193,22 +179,26 @@ func (r *Reconciler) sendWorkspaceNotification(
 	})
 }
 
+// patchNotifiedWorkspaces sets the given annotations and deletes the ones in remove, in a single patch.
 func (r *Reconciler) patchNotifiedWorkspaces(
 	ctx context.Context,
 	log logr.Logger,
 	tn *clv1alpha2.Tenant,
-	workspaces []string,
+	set map[string]string,
+	remove []string,
 ) error {
-	value := formatWorkspaceList(workspaces)
 	if err := r.enforcePreservingStatus(ctx, log, tn, func(t *clv1alpha2.Tenant) *clv1alpha2.Tenant {
 		if t.Annotations == nil {
 			t.Annotations = map[string]string{}
 		}
-		t.Annotations[forge.NotifiedWorkspacesAnnotation] = value
+		maps.Copy(t.Annotations, set)
+		for _, key := range remove {
+			delete(t.Annotations, key)
+		}
 		return t
 	}); err != nil {
-		log.Error(err, "Error updating notified workspaces annotation")
-		return fmt.Errorf("error updating notified workspaces annotation: %w", err)
+		log.Error(err, "Error updating notified workspaces annotations")
+		return fmt.Errorf("error updating notified workspaces annotations: %w", err)
 	}
 	return nil
 }

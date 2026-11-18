@@ -481,13 +481,16 @@ With `--enable-workspace-notifications`, the operator emails a tenant when it be
 Candidates are not notified until their request is approved (nor if it is rejected), and base workspaces (`--base-workspaces`) are never notified.
 Deleting a workspace removes all its tenants, so each of them receives a removal email.
 
-The workspaces already notified are listed in the `crownlabs.polito.it/notified-workspaces` annotation of the Tenant:
+Each workspace the tenant has been notified about has its own annotation on the Tenant, `notified-workspace.crownlabs.polito.it/<workspace>`, whose value is the time the addition was recorded (RFC 3339, e.g., `2026-11-18T10:30:00Z`):
 
-- A workspace is added once the email about joining it has been sent, and dropped once the email about leaving it has been sent, so being added again sends a new email.
-- A failed email leaves the annotation unchanged for that workspace, so it is retried at the next reconcile, without affecting the tenant readiness.
-- The annotation is kept up to date even when notifications are disabled, so enabling them never sends emails for earlier changes.
-- The mutating webhook sets the annotation to an empty list when a tenant is created. Tenants without it were created before this feature: their current workspaces are recorded without sending any email.
-  If webhooks are disabled, new tenants are treated the same way, so they are only notified about the workspaces they are added to later.
+- The annotation is created once the email about joining the workspace has been sent, and deleted once the email about leaving it has been sent, so being added again sends a new email (and records a new time).
+- A failed email leaves the annotation of that workspace unchanged, so it is retried at the next reconcile, without affecting the tenant readiness.
+- The annotations are kept up to date in the same way even when notifications are disabled, without sending emails, so enabling them never sends emails for earlier changes.
+  In that case, the timestamp is when the operator detected the addition (shortly after the tenant was added, as the change triggers a reconcile).
+- Any workspace without an annotation is notified, including those of the tenants created before this feature. To avoid emailing all of them, deploy the first version with notifications disabled, so that the operator records their current workspaces without sending any email, and enable notifications afterwards.
+  Only the tenants the operator manages to reconcile in the meantime are recorded: the others (e.g., not yet verified) are notified about all their workspaces once reconciled.
+  The timestamp of these workspaces is the time of that first deployment, as the time the tenants actually joined them is not stored anywhere.
+- Annotations are limited to 256 KiB in total per object: with the longest workspace names (53 characters, as the `crownlabs.polito.it/workspace-<workspace>` label allows), a tenant can be notified about up to roughly 2,300 workspaces.
 
 ### Usage
 

@@ -17,9 +17,14 @@ package tenant_test
 import (
 	"context"
 	"errors"
+	"maps"
+	"slices"
+	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	gomegatypes "github.com/onsi/gomega/types"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -52,6 +57,9 @@ func (m *fakeMailer) SendCrownLabsMail(_ context.Context, template string, ph *m
 }
 
 var _ = Describe("Workspace notifications", func() {
+	// oldTimestamp is the value of the annotations of the workspaces notified before each test.
+	const oldTimestamp = "2026-01-01T00:00:00Z"
+
 	ws1 := &clv1alpha1.Workspace{
 		ObjectMeta: metav1.ObjectMeta{Name: "ws1"},
 		Spec: clv1alpha1.WorkspaceSpec{
@@ -99,11 +107,29 @@ var _ = Describe("Workspace notifications", func() {
 		return tn
 	}
 
-	// notifiedAnnotation returns the notified workspaces annotation, failing if it is missing.
-	notifiedAnnotation := func() string {
-		annotations := getTenant().Annotations
-		ExpectWithOffset(1, annotations).To(HaveKey(forge.NotifiedWorkspacesAnnotation))
-		return annotations[forge.NotifiedWorkspacesAnnotation]
+	// notified returns the notified workspaces, with the values of their annotations.
+	notified := func() map[string]string {
+		workspaces := map[string]string{}
+		for key, value := range getTenant().Annotations {
+			if name, ok := strings.CutPrefix(key, forge.NotifiedWorkspaceAnnotationPrefix); ok {
+				workspaces[name] = value
+			}
+		}
+		return workspaces
+	}
+
+	// haveWorkspaces matches the notified workspaces by name, whatever the values of their annotations.
+	haveWorkspaces := func(names ...string) gomegatypes.GomegaMatcher {
+		return WithTransform(func(workspaces map[string]string) []string {
+			return slices.Sorted(maps.Keys(workspaces))
+		}, Equal(names))
+	}
+
+	// recentTimestamp matches an RFC 3339 timestamp of the last minute, i.e., of an addition recorded by the test.
+	recentTimestamp := func() gomegatypes.GomegaMatcher {
+		return WithTransform(func(value string) (time.Time, error) {
+			return time.Parse(time.RFC3339, value)
+		}, BeTemporally("~", time.Now(), time.Minute))
 	}
 
 	setWorkspaces := func(workspaces ...clv1alpha2.TenantWorkspaceEntry) {
@@ -119,8 +145,12 @@ var _ = Describe("Workspace notifications", func() {
 		return err
 	}
 
-	markAsNew := func(notified string) {
-		tnResource.Annotations = map[string]string{forge.NotifiedWorkspacesAnnotation: notified}
+	// markAsNotified marks the tenant as already notified about the given workspaces, before each test.
+	markAsNotified := func(notifiedWorkspaces ...string) {
+		tnResource.Annotations = map[string]string{}
+		for _, name := range notifiedWorkspaces {
+			tnResource.Annotations[forge.NotifiedWorkspaceAnnotationPrefix+name] = oldTimestamp
+		}
 	}
 
 	BeforeEach(func() {
@@ -138,24 +168,9 @@ var _ = Describe("Workspace notifications", func() {
 		removeObjFromObjectsList(bws1)
 	})
 
-	Context("When the tenant was created before notifications were introduced", func() {
-		BeforeEach(func() {
-			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
-				{Name: "ws1", Role: clv1alpha2.User},
-				{Name: "ws2", Role: clv1alpha2.Manager},
-				{Name: "base-ws1", Role: clv1alpha2.User},
-			}
-		})
-
-		It("Should record its current workspaces without sending any email", func() {
-			Expect(mailer.sent).To(BeEmpty())
-			Expect(notifiedAnnotation()).To(Equal("ws1,ws2"))
-		})
-	})
-
 	Context("When a new tenant is enrolled in some workspaces", func() {
 		BeforeEach(func() {
-			markAsNew("")
+			tnResource.Annotations = map[string]string{"other": "value"}
 			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
 				{Name: "ws1", Role: clv1alpha2.User},
 				{Name: "ws2", Role: clv1alpha2.Manager},
@@ -170,19 +185,49 @@ var _ = Describe("Workspace notifications", func() {
 			))
 		})
 
-		It("Should record the notified workspaces", func() {
-			Expect(notifiedAnnotation()).To(Equal("ws1,ws2"))
+		It("Should record the notified workspaces with the time of the email", func() {
+			Expect(notified()).To(SatisfyAll(
+				HaveLen(2),
+				HaveKeyWithValue("ws1", recentTimestamp()),
+				HaveKeyWithValue("ws2", recentTimestamp()),
+			))
 		})
 
 		It("Should not send the emails again at the next reconcile", func() {
 			Expect(reconcileTenant()).To(Succeed())
 			Expect(mailer.sent).To(HaveLen(2))
 		})
+
+		It("Should preserve the other annotations", func() {
+			Expect(getTenant().Annotations).To(HaveKeyWithValue("other", "value"))
+		})
+	})
+
+	Context("When the workspaces of an existing tenant have been marked as notified before enabling notifications", func() {
+		BeforeEach(func() {
+			markAsNotified("ws1", "ws2") // as recorded while notifications are disabled
+			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
+				{Name: "ws1", Role: clv1alpha2.User},
+				{Name: "ws2", Role: clv1alpha2.Manager},
+			}
+		})
+
+		It("Should not send any email", func() {
+			Expect(mailer.sent).To(BeEmpty())
+			Expect(notified()).To(Equal(map[string]string{"ws1": oldTimestamp, "ws2": oldTimestamp}))
+		})
+
+		It("Should notify the later changes", func() {
+			setWorkspaces(clv1alpha2.TenantWorkspaceEntry{Name: "ws1", Role: clv1alpha2.User})
+			Expect(reconcileTenant()).To(Succeed())
+
+			Expect(mailer.sent).To(ConsistOf(removedNotification("Workspace Two")))
+			Expect(notified()).To(Equal(map[string]string{"ws1": oldTimestamp}))
+		})
 	})
 
 	Context("When the tenant is a candidate for a workspace", func() {
 		BeforeEach(func() {
-			markAsNew("")
 			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
 				{Name: "ws1", Role: clv1alpha2.Candidate},
 			}
@@ -190,13 +235,13 @@ var _ = Describe("Workspace notifications", func() {
 
 		It("Should not send any email until the candidature is approved", func() {
 			Expect(mailer.sent).To(BeEmpty())
-			Expect(notifiedAnnotation()).To(Equal(""))
+			Expect(notified()).To(BeEmpty())
 
 			setWorkspaces(clv1alpha2.TenantWorkspaceEntry{Name: "ws1", Role: clv1alpha2.User})
 			Expect(reconcileTenant()).To(Succeed())
 
 			Expect(mailer.sent).To(ConsistOf(addedNotification("Workspace One", clv1alpha2.User)))
-			Expect(notifiedAnnotation()).To(Equal("ws1"))
+			Expect(notified()).To(SatisfyAll(HaveLen(1), HaveKeyWithValue("ws1", recentTimestamp())))
 		})
 
 		It("Should not send any email if the candidature is rejected", func() {
@@ -204,21 +249,21 @@ var _ = Describe("Workspace notifications", func() {
 			Expect(reconcileTenant()).To(Succeed())
 
 			Expect(mailer.sent).To(BeEmpty())
-			Expect(notifiedAnnotation()).To(Equal(""))
+			Expect(notified()).To(BeEmpty())
 		})
 	})
 
 	Context("When the tenant is removed from a notified workspace", func() {
 		BeforeEach(func() {
-			markAsNew("ws1,ws2")
+			markAsNotified("ws1", "ws2")
 			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
 				{Name: "ws2", Role: clv1alpha2.User},
 			}
 		})
 
-		It("Should notify the removal and drop the workspace from the annotation", func() {
+		It("Should notify the removal and delete the annotation of the workspace", func() {
 			Expect(mailer.sent).To(ConsistOf(removedNotification("Workspace One")))
-			Expect(notifiedAnnotation()).To(Equal("ws2"))
+			Expect(notified()).To(Equal(map[string]string{"ws2": oldTimestamp}))
 		})
 
 		It("Should not notify the removal again at the next reconcile", func() {
@@ -226,7 +271,7 @@ var _ = Describe("Workspace notifications", func() {
 			Expect(mailer.sent).To(HaveLen(1))
 		})
 
-		It("Should send a new email when the tenant is added back", func() {
+		It("Should send a new email when the tenant is added back, recording its time", func() {
 			setWorkspaces(
 				clv1alpha2.TenantWorkspaceEntry{Name: "ws1", Role: clv1alpha2.User},
 				clv1alpha2.TenantWorkspaceEntry{Name: "ws2", Role: clv1alpha2.User},
@@ -237,13 +282,17 @@ var _ = Describe("Workspace notifications", func() {
 				removedNotification("Workspace One"),
 				addedNotification("Workspace One", clv1alpha2.User),
 			))
-			Expect(notifiedAnnotation()).To(Equal("ws1,ws2"))
+			Expect(notified()).To(SatisfyAll(
+				HaveLen(2),
+				HaveKeyWithValue("ws1", recentTimestamp()),
+				HaveKeyWithValue("ws2", oldTimestamp),
+			))
 		})
 	})
 
 	Context("When the tenant is removed from a workspace that has been deleted", func() {
 		BeforeEach(func() {
-			markAsNew("ws1,ws9") // ws9 does not exist anymore
+			markAsNotified("ws1", "ws9") // ws9 does not exist anymore
 			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
 				{Name: "ws1", Role: clv1alpha2.User},
 			}
@@ -251,13 +300,13 @@ var _ = Describe("Workspace notifications", func() {
 
 		It("Should notify the removal using the workspace name", func() {
 			Expect(mailer.sent).To(ConsistOf(removedNotification("ws9")))
-			Expect(notifiedAnnotation()).To(Equal("ws1"))
+			Expect(notified()).To(haveWorkspaces("ws1"))
 		})
 	})
 
 	Context("When notifying a removal fails", func() {
 		BeforeEach(func() {
-			markAsNew("ws1,ws2")
+			markAsNotified("ws1", "ws2")
 			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
 				{Name: "ws2", Role: clv1alpha2.User},
 			}
@@ -265,9 +314,9 @@ var _ = Describe("Workspace notifications", func() {
 			tnReconcileErrExpected = HaveOccurred()
 		})
 
-		It("Should keep the workspace in the annotation", func() {
+		It("Should keep the annotation of the workspace", func() {
 			Expect(mailer.sent).To(BeEmpty())
-			Expect(notifiedAnnotation()).To(Equal("ws1,ws2"))
+			Expect(notified()).To(Equal(map[string]string{"ws1": oldTimestamp, "ws2": oldTimestamp}))
 		})
 
 		It("Should notify the removal at the next reconcile", func() {
@@ -275,7 +324,7 @@ var _ = Describe("Workspace notifications", func() {
 			Expect(reconcileTenant()).To(Succeed())
 
 			Expect(mailer.sent).To(ConsistOf(removedNotification("Workspace One")))
-			Expect(notifiedAnnotation()).To(Equal("ws2"))
+			Expect(notified()).To(haveWorkspaces("ws2"))
 		})
 	})
 
@@ -287,27 +336,24 @@ var _ = Describe("Workspace notifications", func() {
 		})
 
 		Context("and it has not been notified yet", func() {
-			BeforeEach(func() { markAsNew("") })
-
 			It("Should neither send an email nor record the workspace", func() {
 				Expect(mailer.sent).To(BeEmpty())
-				Expect(notifiedAnnotation()).To(Equal(""))
+				Expect(notified()).To(BeEmpty())
 			})
 		})
 
 		Context("and it has already been notified", func() {
-			BeforeEach(func() { markAsNew("ws3") })
+			BeforeEach(func() { markAsNotified("ws3") })
 
-			It("Should keep the workspace in the annotation, without notifying a removal", func() {
+			It("Should keep the annotation of the workspace, without notifying a removal", func() {
 				Expect(mailer.sent).To(BeEmpty())
-				Expect(notifiedAnnotation()).To(Equal("ws3"))
+				Expect(notified()).To(Equal(map[string]string{"ws3": oldTimestamp}))
 			})
 		})
 	})
 
 	Context("When sending an email fails", func() {
 		BeforeEach(func() {
-			markAsNew("")
 			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
 				{Name: "ws1", Role: clv1alpha2.User},
 				{Name: "ws2", Role: clv1alpha2.User},
@@ -318,7 +364,7 @@ var _ = Describe("Workspace notifications", func() {
 
 		It("Should record only the workspaces whose email was sent", func() {
 			Expect(mailer.sent).To(ConsistOf(addedNotification("Workspace One", clv1alpha2.User)))
-			Expect(notifiedAnnotation()).To(Equal("ws1"))
+			Expect(notified()).To(haveWorkspaces("ws1"))
 		})
 
 		It("Should not affect the tenant readiness", func() {
@@ -333,22 +379,21 @@ var _ = Describe("Workspace notifications", func() {
 				addedNotification("Workspace One", clv1alpha2.User),
 				addedNotification("Workspace Two", clv1alpha2.User),
 			))
-			Expect(notifiedAnnotation()).To(Equal("ws1,ws2"))
+			Expect(notified()).To(haveWorkspaces("ws1", "ws2"))
 		})
 	})
 
 	Context("When notifications are disabled", func() {
 		BeforeEach(func() {
 			notificationMailer = nil
-			markAsNew("")
 			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
 				{Name: "ws1", Role: clv1alpha2.User},
 			}
 		})
 
-		It("Should record the workspaces without sending any email", func() {
+		It("Should record the workspaces with the time they were added, without sending any email", func() {
 			Expect(mailer.sent).To(BeEmpty())
-			Expect(notifiedAnnotation()).To(Equal("ws1"))
+			Expect(notified()).To(SatisfyAll(HaveLen(1), HaveKeyWithValue("ws1", recentTimestamp())))
 		})
 
 		It("Should not send emails for those workspaces once notifications are enabled", func() {
@@ -357,12 +402,12 @@ var _ = Describe("Workspace notifications", func() {
 			Expect(mailer.sent).To(BeEmpty())
 		})
 
-		It("Should drop removed workspaces without sending any email", func() {
+		It("Should delete the annotations of removed workspaces without sending any email", func() {
 			setWorkspaces()
 			Expect(reconcileTenant()).To(Succeed())
 
 			Expect(mailer.sent).To(BeEmpty())
-			Expect(notifiedAnnotation()).To(Equal(""))
+			Expect(notified()).To(BeEmpty())
 		})
 	})
 })

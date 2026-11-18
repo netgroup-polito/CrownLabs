@@ -18,7 +18,8 @@ configurations:
     # Send an email to tenants when they are added to or removed from a workspace. Notified workspaces
     # are tracked even when disabled, so enabling it never sends emails for earlier changes.
     # Requires the crownmail chart (crownmail-templates ConfigMap and crownmail-configs Secret) in
-    # the same namespace, and the mutating webhook to notify new tenants about their initial workspaces.
+    # the same namespace. Keep it disabled on the first deployment, otherwise existing tenants are
+    # emailed about all their current workspaces.
     workspaceNotifications: false
 
   # Where the crownmail templates and SMTP configuration are mounted, if workspace notifications are enabled.

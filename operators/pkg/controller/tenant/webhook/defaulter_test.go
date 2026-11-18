@@ -29,7 +29,6 @@ import (
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 // DummyObject implements runtime.Object to test error case.
@@ -97,10 +96,6 @@ var _ = Describe("Defaulter webhook", func() {
 				Expect(err).To(BeNil())
 				labels := tenant.GetLabels()
 				Expect(labels).To(HaveKeyWithValue(opSelector.GetKey(), opSelector.GetValue()))
-			})
-			It("should mark the tenant as tracked for workspace notifications", func() {
-				Expect(mutatingWH.Default(ctx, obj)).To(Succeed())
-				Expect(tenant.GetAnnotations()).To(HaveKeyWithValue(forge.NotifiedWorkspacesAnnotation, ""))
 			})
 		})
 
@@ -269,85 +264,6 @@ var _ = Describe("Defaulter webhook", func() {
 					oldTenant:      forgeTenantWithLabels(testTenantName, forgeOpSelectorMap(customVal)),
 					expectedLabels: forgeOpSelectorMap(customVal),
 				})
-			})
-		})
-	})
-
-	Describe("The TenantMutator.EnforceNotifiedWorkspacesAnnotation method", func() {
-		type EnforceNotifiedWorkspacesCase struct {
-			operation           admissionv1.Operation
-			annotations         map[string]string
-			bypass              bool
-			expectedAnnotations map[string]string
-		}
-
-		WhenBody := func(c EnforceNotifiedWorkspacesCase) {
-			var actualAnnotations map[string]string
-
-			BeforeEach(func() {
-				newTenant := forgeTenantWithLabels(testTenantName, nil)
-				var oldTenant *clv1alpha2.Tenant
-				if c.operation == admissionv1.Update {
-					oldTenant = forgeTenantWithLabels(testTenantName, nil)
-				}
-				request = forgeRequest(c.operation, newTenant, oldTenant)
-			})
-			JustBeforeEach(func() {
-				if c.bypass {
-					// the groups configured on the defaulter, which is built in the outer JustBeforeEach
-					request.UserInfo.Groups = mutatingWH.BypassGroups
-				}
-				actualAnnotations = mutatingWH.EnforceNotifiedWorkspacesAnnotation(context.TODO(), &request, c.annotations)
-			})
-			It("Should return the expected annotations", func() {
-				Expect(actualAnnotations).To(Equal(c.expectedAnnotations))
-			})
-		}
-
-		When("a tenant without annotations is created", func() {
-			WhenBody(EnforceNotifiedWorkspacesCase{
-				operation:           admissionv1.Create,
-				expectedAnnotations: map[string]string{forge.NotifiedWorkspacesAnnotation: ""},
-			})
-		})
-
-		When("a tenant is created with the annotation already set", func() {
-			WhenBody(EnforceNotifiedWorkspacesCase{
-				operation:           admissionv1.Create,
-				annotations:         map[string]string{"other": "value", forge.NotifiedWorkspacesAnnotation: "ws1"},
-				expectedAnnotations: map[string]string{"other": "value", forge.NotifiedWorkspacesAnnotation: ""},
-			})
-		})
-
-		When("a tenant is created with the annotation already set by an admin/operator", func() {
-			WhenBody(EnforceNotifiedWorkspacesCase{
-				operation:           admissionv1.Create,
-				annotations:         map[string]string{forge.NotifiedWorkspacesAnnotation: "ws1"},
-				bypass:              true,
-				expectedAnnotations: map[string]string{forge.NotifiedWorkspacesAnnotation: "ws1"},
-			})
-		})
-
-		When("a tenant is created by an admin/operator without the annotation", func() {
-			WhenBody(EnforceNotifiedWorkspacesCase{
-				operation:           admissionv1.Create,
-				bypass:              true,
-				expectedAnnotations: map[string]string{forge.NotifiedWorkspacesAnnotation: ""},
-			})
-		})
-
-		When("a tenant is updated", func() {
-			WhenBody(EnforceNotifiedWorkspacesCase{
-				operation:           admissionv1.Update,
-				annotations:         map[string]string{forge.NotifiedWorkspacesAnnotation: "ws1"},
-				expectedAnnotations: map[string]string{forge.NotifiedWorkspacesAnnotation: "ws1"},
-			})
-		})
-
-		When("a tenant without the annotation is updated", func() {
-			WhenBody(EnforceNotifiedWorkspacesCase{
-				operation:           admissionv1.Update,
-				expectedAnnotations: nil,
 			})
 		})
 	})

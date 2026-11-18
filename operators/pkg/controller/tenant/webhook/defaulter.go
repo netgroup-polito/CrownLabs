@@ -28,7 +28,6 @@ import (
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	ctrlcommon "github.com/netgroup-polito/CrownLabs/operators/pkg/controller/common"
-	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -69,38 +68,9 @@ func (tm *TenantDefaulter) Default(ctx context.Context, obj runtime.Object) erro
 
 	tenant.SetLabels(labels)
 
-	tenant.SetAnnotations(tm.EnforceNotifiedWorkspacesAnnotation(ctx, &req, tenant.GetAnnotations()))
-
 	tm.EnforceTenantBaseWorkspaces(ctx, tenant)
 
 	return nil
-}
-
-// EnforceNotifiedWorkspacesAnnotation sets the notified workspaces annotation to an empty list
-// on tenant creation. This allows the tenant controller to tell new tenants, which are notified
-// about their initial workspaces, apart from tenants created before the introduction of workspace
-// notifications, which lack the annotation and whose workspaces are recorded without notifying.
-// Users in the bypass groups can preserve a value set on creation (e.g., when restoring a backup).
-func (tm *TenantDefaulter) EnforceNotifiedWorkspacesAnnotation(
-	ctx context.Context,
-	req *admission.Request,
-	annotations map[string]string,
-) map[string]string {
-	if req.Operation != admissionv1.Create {
-		return annotations
-	}
-
-	if annotations == nil {
-		annotations = map[string]string{}
-	}
-
-	if _, ok := annotations[forge.NotifiedWorkspacesAnnotation]; ok && tm.CheckWebhookOverride(req) {
-		ctrl.LoggerFrom(ctx).Info("webhook override: preserving notified workspaces annotation")
-		return annotations
-	}
-
-	annotations[forge.NotifiedWorkspacesAnnotation] = ""
-	return annotations
 }
 
 // DecodeTenant decodes the tenant from the incoming request.
