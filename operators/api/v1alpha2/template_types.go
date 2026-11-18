@@ -41,6 +41,17 @@ const (
 	ClassLocalVM EnvironmentType = "LocalVM"
 )
 
+// GuiMode defines how the graphical desktop of an environment is reached.
+// +kubebuilder:validation:Enum="Native";"Web"
+type GuiMode string
+
+const (
+	// GuiModeNative -> the desktop is served by QEMU's VNC server (VM environments only).
+	GuiModeNative GuiMode = "Native"
+	// GuiModeWeb -> the desktop is served by the TigerVNC/noVNC stack installed in the image.
+	GuiModeWeb GuiMode = "Web"
+)
+
 // CleanupOptions defines the automatic actions to enforce termination policies.
 type CleanupOptions struct {
 	// +kubebuilder:validation:Pattern="^(never|[0-9]+[smhd])$"
@@ -119,10 +130,15 @@ type Environment struct {
 
 	// +kubebuilder:default=true
 
-	// Whether the environment is characterized by a graphical desktop (with the TigerVNC/noVNC
-	// stack installed in the image) or not. VM-family environments without this flag get
-	// KubeVirt's native VNC (QEMU) instead, over masquerade networking.
+	// Whether the environment is characterized by a graphical desktop or not.
+	// Deprecated: use guiMode, which takes precedence when set.
 	GuiEnabled bool `json:"guiEnabled,omitempty"`
+
+	// How the graphical desktop of the environment is reached: Native (QEMU's VNC server,
+	// VM environments only) or Web (the TigerVNC/noVNC stack installed in the image).
+	// When unset, guiEnabled decides: true means Web, false means no graphical desktop.
+	// +optional
+	GuiMode GuiMode `json:"guiMode,omitempty"`
 
 	// +kubebuilder:default=false
 
