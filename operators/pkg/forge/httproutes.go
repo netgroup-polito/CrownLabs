@@ -163,6 +163,9 @@ func HTTPRouteRuleFilters(environment *clv1alpha2.Environment) []gatewayv1.HTTPR
 			return filters
 		}
 	case clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM, clv1alpha2.ClassVM:
+		if !environment.GuiEnabled {
+			filters = append(filters, StripCookieHeaderFilter())
+		}
 		return filters
 	default:
 		return nil
@@ -186,6 +189,19 @@ func URLRewriteFilter(target string) gatewayv1.HTTPRouteFilter {
 	}
 
 	return filter
+}
+
+// StripCookieHeaderFilter returns a RequestHeaderModifier filter that removes the Cookie
+// header before forwarding to the backend. Used for native-VNC environments, whose QEMU
+// websocket listener has a small header-size limit and rejects the large session cookies
+// forwarded by the authentication gate.
+func StripCookieHeaderFilter() gatewayv1.HTTPRouteFilter {
+	return gatewayv1.HTTPRouteFilter{
+		Type: gatewayv1.HTTPRouteFilterRequestHeaderModifier,
+		RequestHeaderModifier: &gatewayv1.HTTPHeaderFilter{
+			Remove: []string{"Cookie"},
+		},
+	}
 }
 
 // GUI Path helpers for the environment GUI exposure.

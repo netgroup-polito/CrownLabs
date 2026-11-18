@@ -119,7 +119,9 @@ type Environment struct {
 
 	// +kubebuilder:default=true
 
-	// Whether the environment is characterized by a graphical desktop or not.
+	// Whether the environment is characterized by a graphical desktop (with the TigerVNC/noVNC
+	// stack installed in the image) or not. VM-family environments without this flag get
+	// KubeVirt's native VNC (QEMU) instead, over masquerade networking.
 	GuiEnabled bool `json:"guiEnabled,omitempty"`
 
 	// +kubebuilder:default=false
