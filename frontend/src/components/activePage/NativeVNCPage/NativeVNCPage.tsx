@@ -10,6 +10,7 @@ import { useParams } from 'react-router-dom';
 import { VncScreen, type VncScreenHandle } from 'react-vnc';
 import { AuthContext } from '../../../contexts/AuthContext';
 import './NativeVNCPage.css';
+import { Button } from 'antd';
 
 // X11 keysym of the V key.
 const XK_v = 0x0076;
@@ -31,6 +32,15 @@ const NativeVNCPage: FC = () => {
   const [connectionFailed, setConnectionFailed] = useState(false);
   const connectedRef = useRef(false);
   const vncRef = useRef<VncScreenHandle>(null);
+
+  const [disconnected, setDisconnected] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+
+  const reconnect = () => {
+    connectedRef.current = false;
+    setDisconnected(false);
+    setAttempt(a => a + 1);
+  };
 
   // Keep the focus while a capture is in progress (https://github.com/roerohan/react-vnc/issues/5).
   const keepFocusDuringCapture = () => {
@@ -119,31 +129,53 @@ const NativeVNCPage: FC = () => {
       </div>
     );
 
+  if (disconnected)
+    return (
+      <div className="native-vnc-page-status">
+        <p>
+          The console was closed, possibly because it was opened in another
+          window.
+        </p>
+        <Button type="primary" onClick={reconnect}>
+          Reconnect
+        </Button>
+      </div>
+    );
+
   return (
-    <div onBlur={keepFocusDuringCapture} onFocus={sendLocalClipboard} onKeyDownCapture={letBrowserPaste}>
-    <VncScreen
-      ref={vncRef}
-      url={wsUrl}
-      // The gateway authenticates this endpoint with an OIDC redirect, which a WebSocket
-      // handshake cannot follow, and the WebSocket API cannot set request headers. The
-      // token therefore travels as the last WebSocket subprotocol, one of the locations
-      // the gateway's JWT provider reads.
-      // "binary" must come first, since QEMU rejects a handshake that does not offer it,
-      // and the token last, since the gateway reads to the end of the header value.
-      rfbOptions={{ wsProtocols: ['binary', token] }}
-      resizeSession
-      scaleViewport
-      focusOnClick
-      background="#000000"
-      className="native-vnc-page"
-      onConnect={() => {
-        connectedRef.current = true;
-      }}
-      onDisconnect={() => {
-        if (!connectedRef.current) setConnectionFailed(true);
-      }}
-      onClipboard={copyToLocalClipboard}
-    />
+    <div
+      onBlur={keepFocusDuringCapture}
+      onFocus={sendLocalClipboard}
+      onKeyDownCapture={letBrowserPaste}
+    >
+      <VncScreen
+        key={attempt}
+        ref={vncRef}
+        url={wsUrl}
+        // The gateway authenticates this endpoint with an OIDC redirect, which a WebSocket
+        // handshake cannot follow, and the WebSocket API cannot set request headers. The
+        // token therefore travels as the last WebSocket subprotocol, one of the locations
+        // the gateway's JWT provider reads.
+        // "binary" must come first, since QEMU rejects a handshake that does not offer it,
+        // and the token last, since the gateway reads to the end of the header value.
+        // shared: false makes QEMU drop the other connections, since two simultaneous clients
+        // break the display.
+
+        rfbOptions={{ shared: false, wsProtocols: ['binary', token] }}
+        resizeSession
+        scaleViewport
+        focusOnClick
+        background="#000000"
+        className="native-vnc-page"
+        onConnect={() => {
+          connectedRef.current = true;
+        }}
+        onDisconnect={() => {
+          if (connectedRef.current) setDisconnected(true);
+          else setConnectionFailed(true);
+        }}
+        onClipboard={copyToLocalClipboard}
+      />
     </div>
   );
 };
