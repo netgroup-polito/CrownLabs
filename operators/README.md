@@ -444,6 +444,7 @@ The actions performed by the operator are the following:
   - check if the tenant subscribed to non-existing workspaces, in case some are found add to the tenant status
   - append a label for each subscribed workspace that exists
   - create or update the corresponding user in keycloak and assign him/her a role for each subscribed workspace
+  - send an email to the tenant when it is added to or removed from a workspace ([details](#workspace-notifications))
   - delete all managed resources upon tenant deletion
 - `Workspace` ([details](pkg/controller/workspace/))
   - create or update some cluster resources
@@ -474,6 +475,22 @@ In other words, a user can consume a quota Q1 for all the pods belonging to work
 Furthermore, a further quota (e.g., QP) is specified for the pods belonging to his Personal Workspace.
 
 To increase the resources available to a Tenant in their personal workspace, you must modify the `personalWorkspace` field in the Tenant CR.
+
+### Workspace notifications
+With `--enable-workspace-notifications`, the operator emails a tenant when it becomes a `user` or `manager` of a workspace, and when it is removed from it, using the `tenant_workspace_added_notification.yaml` and `tenant_workspace_removed_notification.yaml` [crownmail](pkg/utils/mail/README.md) templates.
+Candidates are not notified until their request is approved (nor if it is rejected), and base workspaces (`--base-workspaces`) are never notified.
+Deleting a workspace removes all its tenants, so each of them receives a removal email.
+
+Each workspace the tenant has been notified about has its own annotation on the Tenant, `notified-workspace.crownlabs.polito.it/<workspace>`, whose value is the time the addition was recorded (RFC 3339, e.g., `2026-11-18T10:30:00Z`):
+
+- The annotation is created once the email about joining the workspace has been sent, and deleted once the email about leaving it has been sent, so being added again sends a new email (and records a new time).
+- A failed email leaves the annotation of that workspace unchanged, so it is retried at the next reconcile, without affecting the tenant readiness.
+- The annotations are kept up to date in the same way even when notifications are disabled, without sending emails, so enabling them never sends emails for earlier changes.
+  In that case, the timestamp is when the operator detected the addition (shortly after the tenant was added, as the change triggers a reconcile).
+- Any workspace without an annotation is notified, including those of the tenants created before this feature. To avoid emailing all of them, deploy the first version with notifications disabled, so that the operator records their current workspaces without sending any email, and enable notifications afterwards.
+  Only the tenants the operator manages to reconcile in the meantime are recorded: the others (e.g., not yet verified) are notified about all their workspaces once reconciled.
+  The timestamp of these workspaces is the time of that first deployment, as the time the tenants actually joined them is not stored anywhere.
+- Annotations are limited to 256 KiB in total per object: with the longest workspace names (53 characters, as the `crownlabs.polito.it/workspace-<workspace>` label allows), a tenant can be notified about up to roughly 2,300 workspaces.
 
 ### Usage
 
@@ -514,6 +531,12 @@ Arguments:
                 Enable the instance controller
   --enable-webhooks
                 Enable webhook endpoints in the operator
+  --enable-workspace-notifications
+                Send an email to tenants when they are added to or removed from a workspace
+  --mail-config-dir
+                The directory containing the SMTP configuration (smtp-config.yaml)
+  --mail-template-dir
+                The directory containing the email templates
   --mydrive-pvcs-size
                 The dimension of the user's personal space
   --mydrive-pvcs-storage-class-name

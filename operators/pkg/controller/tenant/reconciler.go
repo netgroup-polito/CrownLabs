@@ -63,6 +63,7 @@ type Reconciler struct {
 	BaseWorkspaces              []string
 	Concurrency                 int
 	Reschedule                  ctrlcommon.Rescheduler
+	Mailer                      Mailer // Used to notify tenants added to or removed from a workspace. If nil, notifications are disabled (but still tracked).
 }
 
 // Reconcile reconciles the state of a tenant resource.
@@ -225,9 +226,15 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 		return reschedule, err
 	}
 
+	// Notify the tenant about the workspaces it has been added to
+	var notificationErr error
+	if !hasErrors {
+		notificationErr = r.syncWorkspaceNotifications(ctx, log, &tn)
+	}
+
 	tn.Status.Ready = !hasErrors
 
-	return reschedule, nil
+	return reschedule, notificationErr
 }
 
 // SetupWithManager registers a new controller for Tenant resources.
