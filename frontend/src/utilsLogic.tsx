@@ -48,6 +48,10 @@ import {
 import type { DeepPartial } from '@apollo/client/utilities';
 import type { JointContent } from 'antd/lib/message/interface';
 import type { Notifier } from './contexts/TenantContext';
+import {
+  getEnvironmentWorkerCount,
+  hasClusterEnvironment,
+} from './utils/cluster';
 
 type Nullable<T> = T | null | undefined;
 
@@ -95,23 +99,33 @@ export const makeGuiTemplate = (
 
   const environmentList = tq.original.spec?.environmentList ?? [];
   const hasMultipleEnvironments = environmentList.length > 1;
+  const hasCluster = hasClusterEnvironment(environmentList);
 
-  const hasGUI = environmentList.some(env => env?.guiEnabled);
-  const hasPersistent = environmentList.some(env => env?.persistent);
+  const hasGUI = environmentList.some(
+    env => env?.environmentType !== EnvironmentType.Cluster && env?.guiEnabled,
+  );
+  const hasPersistent = environmentList.some(
+    env => env?.environmentType !== EnvironmentType.Cluster && env?.persistent,
+  );
 
   // Aggregate Resources from Environments of template
   const aggregatedResources = environmentList.reduce(
     (acc, env) => {
       if (env?.resources) {
-        acc.cpu += env.resources.cpu ?? 0;
+        const workers = getEnvironmentWorkerCount(env);
+        const isCluster = env.environmentType === EnvironmentType.Cluster;
+        acc.cpu += (env.resources.cpu ?? 0) * workers;
         acc.memorySum += env.resources.memory
-          ? convertToGiB(env.resources.memory)
+          ? convertToGiB(env.resources.memory) * workers
           : 0;
-        acc.diskSum += env.resources.disk
-          ? convertToGiB(env.resources.disk)
-          : 0;
+        acc.diskSum +=
+          !isCluster && env.resources.disk
+            ? convertToGiB(env.resources.disk)
+            : 0;
 
-        const envOther = parseOtherResources(env.resources?.otherResources);
+        const envOther = isCluster
+          ? {}
+          : parseOtherResources(env.resources?.otherResources);
         Object.entries(envOther).forEach(([k, v]) => {
           acc.otherResources[k] = (acc.otherResources[k] || 0) + v;
         });
@@ -155,14 +169,22 @@ export const makeGuiTemplate = (
     },
     environmentList: environmentList.map(env => ({
       name: env?.name ?? '',
-      guiEnabled: !!env?.guiEnabled,
+      guiEnabled:
+        env?.environmentType !== EnvironmentType.Cluster && !!env?.guiEnabled,
       disableControls: env?.disableControls ?? undefined,
       containerStartupOptions: env?.containerStartupOptions ?? undefined,
       storageClassName: env?.storageClassName,
       rewriteUrl: !!env?.rewriteURL,
-      persistent: !!env?.persistent,
+      persistent:
+        env?.environmentType !== EnvironmentType.Cluster && !!env?.persistent,
       environmentType: env?.environmentType,
-      mountMyDriveVolume: env?.mountMyDriveVolume ?? true,
+      cluster: env?.cluster
+        ? { workersCount: getEnvironmentWorkerCount(env) }
+        : undefined,
+      mountMyDriveVolume:
+        env?.environmentType === EnvironmentType.Cluster
+          ? false
+          : (env?.mountMyDriveVolume ?? true),
       image: env?.image ?? '',
       sharedVolumeMounts:
         env?.sharedVolumeMounts
@@ -175,9 +197,15 @@ export const makeGuiTemplate = (
       resources: {
         cpu: env?.resources?.cpu ?? 0,
         memory: env?.resources?.memory ?? '',
-        disk: env?.resources?.disk ?? '0Gi',
+        disk:
+          env?.environmentType === EnvironmentType.Cluster
+            ? '0Gi'
+            : (env?.resources?.disk ?? '0Gi'),
         reservedCPUPercentage: env?.resources?.reservedCPUPercentage ?? 50,
-        otherResources: parseOtherResources(env?.resources?.otherResources),
+        otherResources:
+          env?.environmentType === EnvironmentType.Cluster
+            ? {}
+            : parseOtherResources(env?.resources?.otherResources),
       },
     })),
     hasMultipleEnvironments,
@@ -187,7 +215,8 @@ export const makeGuiTemplate = (
     workspaceNamespace:
       'workspace-' +
       (tq.original.spec?.workspaceCrownlabsPolitoItWorkspaceRef?.name ?? ''),
-    allowPublicExposure: tq.original.spec?.allowPublicExposure ?? false,
+    allowPublicExposure:
+      !hasCluster && (tq.original.spec?.allowPublicExposure ?? false),
   } as Template;
 };
 
@@ -386,23 +415,28 @@ export const makeGuiInstance = (
       const parsedOther = parseOtherResources(
         templateEnv?.resources?.otherResources,
       );
+      const workers = getEnvironmentWorkerCount(templateEnv ?? {});
+      const isCluster =
+        templateEnv?.environmentType === EnvironmentType.Cluster;
 
       return {
         name: envStatus?.name ?? templateEnv?.name ?? '',
         phase: envStatus?.phase,
         ip: envStatus?.ip,
-        guiEnabled: templateEnv?.guiEnabled ?? false,
-        persistent: templateEnv?.persistent ?? false,
+        guiEnabled: !isCluster && (templateEnv?.guiEnabled ?? false),
+        persistent: !isCluster && (templateEnv?.persistent ?? false),
         environmentType: templateEnv?.environmentType,
+        cluster: isCluster ? { workersCount: workers } : undefined,
         quota: {
-          cpu: templateEnv?.resources?.cpu || 0,
+          cpu: (templateEnv?.resources?.cpu || 0) * workers,
           memory: templateEnv?.resources?.memory
-            ? convertToGiB(templateEnv?.resources?.memory)
+            ? convertToGiB(templateEnv?.resources?.memory) * workers
             : 0,
-          disk: templateEnv?.resources?.disk
-            ? convertToGiB(templateEnv?.resources?.disk)
-            : 0,
-          otherResources: parsedOther,
+          disk:
+            !isCluster && templateEnv?.resources?.disk
+              ? convertToGiB(templateEnv?.resources?.disk)
+              : 0,
+          otherResources: isCluster ? {} : parsedOther,
         },
       } as InstanceEnvironment;
     }) ?? [];
@@ -417,8 +451,10 @@ export const makeGuiInstance = (
 
   // determine if public exposure is allowed from template spec
   const allowPublicExposure =
-    spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
-      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ?? false;
+    !hasClusterEnvironment(environments) &&
+    (spec?.templateCrownlabsPolitoItTemplateRef?.templateWrapper
+      ?.itPolitoCrownlabsV1alpha2Template?.spec?.allowPublicExposure ??
+      false);
 
   const instanceID = tenantNamespace + '/' + metadata?.name;
 
@@ -435,8 +471,9 @@ export const makeGuiInstance = (
     id: instanceID,
     name: name || '',
     prettyName: prettyName || '',
-    gui: guiEnabled || false,
-    persistent: persistent || false,
+    gui: environmentType !== EnvironmentType.Cluster && (guiEnabled || false),
+    persistent:
+      environmentType !== EnvironmentType.Cluster && (persistent || false),
     templatePrettyName: templatePrettyName,
     templateName: templateName,
     templateId: makeTemplateKey(templateName, workspaceName),
@@ -773,10 +810,13 @@ export const getTemplatesMapped = (
         guiEnabled: env.guiEnabled || false,
         persistent: env.persistent || false,
         environmentType: env.environmentType,
+        cluster: env.cluster,
         resources: {
-          cpu: env.quota?.cpu || 0,
+          cpu: (env.quota?.cpu || 0) / getEnvironmentWorkerCount(env),
           disk: env.quota?.disk ? `${env.quota.disk}Gi` : '',
-          memory: env.quota?.memory ? `${env.quota.memory}Gi` : '',
+          memory: env.quota?.memory
+            ? `${env.quota.memory / getEnvironmentWorkerCount(env)}Gi`
+            : '',
           otherResources: env.quota?.otherResources || {},
         },
         image: '',

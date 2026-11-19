@@ -6,3 +6,12 @@ metadata:
 spec:
   prettyName: My Lemon Drive
   size: 1Gi
+---
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: SharedVolume
+metadata:
+  name: myorange
+  namespace: workspace-olympia
+spec:
+  prettyName: My Orange Drive
+  size: 1Gi

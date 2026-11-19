@@ -253,11 +253,16 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
         (env): EnvironmentListListItemInput => ({
           name: env.name,
           mountMyDriveVolume:
+            env.mountMyDriveVolume ??
             usedTemplate?.environmentList.find(e => e.name === env.name)
-              ?.mountMyDriveVolume ?? true,
+              ?.mountMyDriveVolume ??
+            true,
           guiEnabled: env.gui,
           persistent: env.persistent,
           environmentType: env.environmentType,
+          ...(env.environmentType === EnvironmentType.Cluster && {
+            cluster: env.cluster,
+          }),
           resources: {
             reservedCPUPercentage: env.reservedCpu,
             cpu: env.cpu,
@@ -319,9 +324,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
       // - if undefined: not touched by user, keep existing value (don't patch)
       // - if null: user wants to remove it (from Fixed/Chosen by user to Automatic)
       // - if defined (can be {} or {...}): set it using 'add' (works for both create and update)
-      if (t.nodeSelector === null && usedTemplate?.nodeSelector !== null) {
+      if (t.nodeSelector === null && usedTemplate?.nodeSelector != null) {
         patches.push({ op: 'remove', path: '/spec/nodeSelector' });
-      } else if (t.nodeSelector !== null) {
+      } else if (t.nodeSelector != null) {
         patches.push({
           op: 'add',
           path: '/spec/nodeSelector',
@@ -468,6 +473,8 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
                         persistent: env.persistent,
                         environmentType:
                           env.environmentType ?? EnvironmentType.VirtualMachine,
+                        cluster: env.cluster,
+                        mountMyDriveVolume: env.mountMyDriveVolume,
                         cpu: env.resources.cpu,
                         reservedCpu: env.resources.reservedCPUPercentage ?? 50,
                         ram: env.resources.memory

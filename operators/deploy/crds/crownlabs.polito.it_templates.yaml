@@ -118,6 +118,18 @@ spec:
                   description: Environment defines the characteristics of an environment
                     composing the Template.
                   properties:
+                    cluster:
+                      description: The specification of the cluster to be created
+                        when instantiating the environment.
+                      properties:
+                        workersCount:
+                          description: The number of nodes in the cluster.
+                          maximum: 10
+                          minimum: 1
+                          type: integer
+                      required:
+                      - workersCount
+                      type: object
                     containerStartupOptions:
                       description: Options to customize container startup
                       properties:
@@ -151,13 +163,14 @@ spec:
                     environmentType:
                       description: |-
                         The type of environment to be instantiated, among VirtualMachine,
-                        Container, CloudVM, LocalVM and Standalone.
+                        Container, CloudVM, LocalVM, Standalone and Cluster.
                       enum:
                       - VirtualMachine
                       - Container
                       - CloudVM
                       - Standalone
                       - LocalVM
+                      - Cluster
                       type: string
                     guiEnabled:
                       default: true
@@ -293,6 +306,11 @@ spec:
                   - name
                   - resources
                   type: object
+                  x-kubernetes-validations:
+                  - message: cluster can only be set for Cluster environments
+                    rule: self.environmentType == 'Cluster' || !has(self.cluster)
+                  - message: cluster is required for Cluster environments
+                    rule: self.environmentType != 'Cluster' || has(self.cluster)
                 maxItems: 10
                 type: array
                 x-kubernetes-list-map-keys:

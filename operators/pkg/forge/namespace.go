@@ -29,6 +29,9 @@ import (
 // Deployments can override it through the operator's snapshot-public-namespace flag.
 const DefaultPublicSnapshotNamespace = "crownlabs-public-snapshots"
 
+// DefaultClusterFlavorNamespace is the namespace hosting shared cluster blueprints.
+const DefaultClusterFlavorNamespace = "crownlabs-clusterflavors"
+
 // WorkspaceNamespaceName returns the name of the namespace hosting the resources of the workspace
 // with the given name.
 func WorkspaceNamespaceName(wsName string) string {

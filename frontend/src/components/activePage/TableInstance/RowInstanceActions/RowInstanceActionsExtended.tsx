@@ -7,12 +7,18 @@ import { SelectOutlined } from '@ant-design/icons';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
 import { EnvironmentType, Phase2 } from '../../../../generated-types';
+import {
+  hasClusterEnvironment,
+  supportsEnvironmentSSH,
+} from '../../../../utils/cluster';
 const { Text } = Typography;
 
 const getSSHTooltipText = (
   isInstanceReady: boolean,
   environmentType: EnvironmentType,
 ) => {
+  if (environmentType === EnvironmentType.Cluster)
+    return 'Cluster connection credentials are not available through the dashboard yet.';
   if (environmentType === EnvironmentType.Standalone)
     return 'Standalone applications do not support SSH connection (yet!)';
   if (environmentType === EnvironmentType.Container)
@@ -45,10 +51,17 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
     environments,
   } = instance;
 
-  const sshDisabled =
-    status !== Phase2.Ready ||
-    environmentType === EnvironmentType.Container ||
-    environmentType === EnvironmentType.Standalone;
+  const hasCluster = hasClusterEnvironment(environments ?? [instance]);
+  const sshEnvironmentType =
+    environments?.find(supportsEnvironmentSSH)?.environmentType ??
+    environmentType;
+  const sshDisabled = hasCluster
+    ? !environments?.some(
+        env => supportsEnvironmentSSH(env) && env.phase === Phase2.Ready,
+      )
+    : status !== Phase2.Ready ||
+      environmentType === EnvironmentType.Container ||
+      environmentType === EnvironmentType.Standalone;
 
   // Disable Public Exposure if instance is not ready
   const publicExposureDisabled = status !== Phase2.Ready;
@@ -118,9 +131,7 @@ const RowInstanceActionsExtended: FC<IRowInstanceActionsExtendedProps> = ({
         </Popover>
 
         <span className="hidden xl:inline-flex items-center">
-          <Tooltip
-            title={getSSHTooltipText(status === Phase2.Ready, environmentType!)}
-          >
+          <Tooltip title={getSSHTooltipText(!sshDisabled, sshEnvironmentType!)}>
             <span className={sshDisabled ? 'cursor-not-allowed' : ''}>
               <Button
                 disabled={sshDisabled}

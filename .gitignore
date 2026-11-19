@@ -9,7 +9,9 @@
 .history
 .idea
 ./.vscode
+.vscode
 node_modules
+__debug_*
 
 # MacBook
 .DS_Store

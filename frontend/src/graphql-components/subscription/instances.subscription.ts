@@ -1,4 +1,5 @@
 import gql from 'graphql-tag';
+import { TemplateEnvironmentFieldsFragmentDoc } from '../../generated-types';
 
 export default gql`
   subscription updatedOwnedInstances(
@@ -69,16 +70,7 @@ export default gql`
                     deleteAfterInactivity
                   }
                   environmentList {
-                    name
-                    guiEnabled
-                    persistent
-                    environmentType
-                    resources {
-                      cpu
-                      memory
-                      disk
-                      otherResources
-                    }
+                    ...TemplateEnvironmentFields
                   }
                 }
               }
@@ -88,4 +80,5 @@ export default gql`
       }
     }
   }
+  ${TemplateEnvironmentFieldsFragmentDoc}
 `;

@@ -2,6 +2,7 @@ import {
   VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS,
   VITE_APP_CROWNLABS_IMAGELIST_STANDALONE,
   VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
+  VITE_APP_CROWNLABS_IMAGELIST_CLUSTER_FLAVORS,
 } from '../../../env';
 import {
   EnvironmentType,
@@ -13,6 +14,43 @@ import type { Template } from './ModalCreateTemplate';
 import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
 import { useMemo } from 'react';
 import type { ApolloError, QueryHookOptions } from '@apollo/client';
+import { getEnvironmentWorkerCount } from '../../../utils/cluster';
+
+// Returns undefined when the catalog is missing, to distinguish it from an
+// existing but empty catalog
+export const getClusterFlavorNames = (
+  catalog: ImageList | undefined,
+): string[] | undefined => {
+  if (!catalog) return;
+
+  return [
+    ...new Set(
+      catalog.images.flatMap(image => (image.name ? [image.name] : [])),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+};
+
+export const normalizeClusterEnvironment = (
+  env: TemplateFormEnv,
+): TemplateFormEnv => {
+  const { cluster, ...fields } = env;
+  if (env.environmentType !== EnvironmentType.Cluster) return fields;
+
+  return {
+    ...fields,
+    cluster: { workersCount: getEnvironmentWorkerCount({ ...env, cluster }) },
+    gui: false,
+    persistent: false,
+    rewriteUrl: false,
+    disk: 0,
+    otherResources: {},
+    sharedVolumeMounts: [],
+    mountMyDriveVolume: false,
+    disableControls: false,
+    containerStartupOptions: undefined,
+    storageClassName: undefined,
+  };
+};
 
 export const internalRegistry = 'harbor.ng.crownlabs.polito.it';
 export const defaultProjectNameVM = 'crownlabs-containerdisks';
@@ -221,6 +259,25 @@ export const usePublicSnapshotImageList = (
     publicSnapshotImageList: imageList,
     loadingPublicSnapshotImageList: loading,
     publicSnapshotImageListError: Boolean(error),
+  };
+};
+
+// ClusterFlavors are published by the operator as a cluster-scoped ImageList,
+// where each image name is a selectable flavor
+export const useClusterFlavorNames = (options: ImageListQueryOptions = {}) => {
+  const { imageList, loading, error } = useImageList(
+    VITE_APP_CROWNLABS_IMAGELIST_CLUSTER_FLAVORS,
+    options,
+  );
+  const clusterFlavorNames = useMemo(
+    () => getClusterFlavorNames(imageList),
+    [imageList],
+  );
+
+  return {
+    clusterFlavorNames,
+    loadingClusterFlavors: loading,
+    clusterFlavorsError: Boolean(error),
   };
 };
 export const isInImageList = (

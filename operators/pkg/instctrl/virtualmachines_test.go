@@ -25,8 +25,10 @@ import (
 	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/serializer"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	clientgotesting "k8s.io/client-go/testing"
 	"k8s.io/utils/ptr"
 	virtv1 "kubevirt.io/api/core/v1"
 	cdiv1beta1 "kubevirt.io/containerized-data-importer-api/pkg/apis/core/v1beta1"
@@ -88,7 +90,9 @@ var _ = Describe("Generation of the virtual machine and virtual machine instance
 
 	BeforeEach(func() {
 		ctx = ctrl.LoggerInto(context.Background(), logr.Discard())
-		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjects(
+		// The default managed-fields tracker cannot reflect KubeVirt's uint64 fields.
+		tracker := clientgotesting.NewObjectTracker(scheme.Scheme, serializer.NewCodecFactory(scheme.Scheme).UniversalDecoder())
+		clientBuilder = *fake.NewClientBuilder().WithScheme(scheme.Scheme).WithObjectTracker(tracker).WithObjects(
 			// These objects are required by the EnforceCloudInitSecret function.
 			&corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{Name: webdavCredentials, Namespace: instanceNamespace},

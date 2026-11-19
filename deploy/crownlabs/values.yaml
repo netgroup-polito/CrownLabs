@@ -3,6 +3,8 @@
 # Declare variables to be passed into your templates.
 
 global:
+  # Namespace for both ClusterFlavor resolution and the default ImageList source.
+  clusterFlavorNamespace: crownlabs-clusterflavors
   version: "" # default set while packaging
   gateway:
     gatewayApiMode: true
@@ -53,6 +55,7 @@ frontend-app:
       enabled: false
       standalone: harbor-standalone
       containerdisks: harbor-containerdisks
+      clusterFlavors: local-clusterflavors
     publicRegistryNameDestination: crownlabs-public-snapshots
 
     defaultTimeouts:
@@ -155,6 +158,10 @@ operator:
           registryName: crownlabs-public-snapshots
           type: public-snapshots
           namespace: crownlabs-public-snapshots
+        - name: clusterflavors
+          type: clusterflavors
+          # Inherits global.clusterFlavorNamespace.
+          imageListName: local-clusterflavors
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin

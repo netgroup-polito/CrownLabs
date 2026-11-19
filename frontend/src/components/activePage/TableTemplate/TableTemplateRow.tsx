@@ -5,6 +5,7 @@ import {
   MoreOutlined,
   AppstoreAddOutlined,
   DockerOutlined,
+  DeploymentUnitOutlined,
 } from '@ant-design/icons';
 import { Badge, Dropdown, Space, Tooltip, Typography } from 'antd';
 import { Button } from 'antd';
@@ -12,6 +13,7 @@ import { type FC, useMemo, useState } from 'react';
 import SvgInfinite from '../../../assets/infinite.svg?react';
 import { type Template, WorkspaceRole } from '../../../utils';
 import ModalGroupDeletion from '../ModalGroupDeletion/ModalGroupDeletion';
+import { EnvironmentType } from '../../../generated-types';
 
 const { Text } = Typography;
 export interface ITableTemplateRowProps {
@@ -51,7 +53,15 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
                     <div key={index} className="p-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-medium">{env.name}</span>
-                        {env.guiEnabled ? (
+                        {env.environmentType === EnvironmentType.Cluster ? (
+                          <Space>
+                            <DeploymentUnitOutlined />
+                            <span>
+                              Kubernetes Cluster ({env.cluster?.workersCount}{' '}
+                              workers)
+                            </span>
+                          </Space>
+                        ) : env.guiEnabled ? (
                           <div className="flex items-center gap-1.5">
                             <DesktopOutlined
                               style={{ fontSize: '14px', color: '#1c7afd' }}
@@ -110,6 +120,12 @@ const TableTemplateRow: FC<ITableTemplateRowProps> = ({ ...props }) => {
                 style={{ fontSize: '24px', color: '#1c7afd' }}
               />
             </Tooltip>
+          ) : template.environmentList[0]?.environmentType ===
+            EnvironmentType.Cluster ? (
+            <DeploymentUnitOutlined
+              className="primary-color-fg"
+              style={{ fontSize: '24px' }}
+            />
           ) : gui ? (
             <DesktopOutlined
               className="primary-color-fg"
