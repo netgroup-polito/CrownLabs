@@ -27,6 +27,7 @@ const getDefaultEnvironment = (envCount: number): TemplateFormEnv => {
 };
 
 interface IEnvironmentLabelProps {
+  clusterFlavorNames?: string[];
   availableImagesVM: Image[];
   availableImagesContainer: Image[];
   resources: Resources;
@@ -39,6 +40,7 @@ interface IEnvironmentLabelProps {
 }
 
 export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
+  clusterFlavorNames,
   availableImagesVM,
   availableImagesContainer,
   resources,
@@ -133,6 +135,7 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
                 label: <EnvironmentTabLabel envIndex={name} />,
                 children: (
                   <Environment
+                    clusterFlavorNames={clusterFlavorNames}
                     restField={restField}
                     parentFormName={name}
                     availableImagesVM={availableImagesVM}
@@ -141,7 +144,9 @@ export const EnvironmentList: FC<IEnvironmentLabelProps> = ({
                     sharedVolumes={sharedVolumes}
                     isPersonal={isPersonal}
                     publicSnapshotImageList={publicSnapshotImageList}
-                    loadingPublicSnapshotImageList={loadingPublicSnapshotImageList}
+                    loadingPublicSnapshotImageList={
+                      loadingPublicSnapshotImageList
+                    }
                     publicSnapshotImageListError={publicSnapshotImageListError}
                   />
                 ),

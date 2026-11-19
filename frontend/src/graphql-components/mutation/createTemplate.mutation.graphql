@@ -43,16 +43,7 @@ mutation createTemplate(
       allowPublicExposure
       nodeSelector
       environmentList {
-        name
-        guiEnabled
-        persistent
-        resources {
-          cpu
-          disk
-          memory
-          otherResources
-          reservedCPUPercentage
-        }
+        ...TemplateEnvironmentFields
       }
     }
     metadata {

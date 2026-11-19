@@ -36,6 +36,22 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
 )
 
+type typedTenantValidator struct {
+	*webhook.TenantValidator
+}
+
+func (v typedTenantValidator) ValidateCreate(ctx context.Context, obj *clv1alpha2.Tenant) (admission.Warnings, error) {
+	return v.TenantValidator.ValidateCreate(ctx, obj)
+}
+
+func (v typedTenantValidator) ValidateUpdate(ctx context.Context, oldObj, newObj *clv1alpha2.Tenant) (admission.Warnings, error) {
+	return v.TenantValidator.ValidateUpdate(ctx, oldObj, newObj)
+}
+
+func (v typedTenantValidator) ValidateDelete(ctx context.Context, obj *clv1alpha2.Tenant) (admission.Warnings, error) {
+	return v.TenantValidator.ValidateDelete(ctx, obj)
+}
+
 var _ = Describe("Validator webhook", func() {
 	forgeTenantWithWorkspace := func(ws clv1alpha2.TenantWorkspaceEntry) *clv1alpha2.Tenant {
 		return &clv1alpha2.Tenant{
@@ -130,10 +146,9 @@ var _ = Describe("Validator webhook", func() {
 				BypassGroups: bypassGroups,
 			}}
 
-		tnWebhook = admission.WithCustomValidator(
+		tnWebhook = admission.WithValidator(
 			scheme,
-			&clv1alpha2.Tenant{},
-			tnValidator,
+			typedTenantValidator{tnValidator},
 		)
 	})
 

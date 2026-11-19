@@ -119,6 +119,44 @@ Instance IP addresses and SSH access instructions are handled through a joint ba
    ```
 2. **WebSSH Connection**: For in-browser SSH sessions, the frontend builds the URL `/instance/${namespace}/${name}/${envName}/ssh`, launching the WebSSH terminal component (`SSHTerminal`) which connects via WebSockets to the Bastion service exposed on `/webssh`.
 
+## Kubernetes cluster templates
+
+Workspace managers can select **Kubernetes Cluster** in the template editor,
+choose a ClusterFlavor, and configure 1–10 workers with CPU/RAM **per worker**.
+Users instantiate these templates through the existing **Create** action.
+
+The flavor selector reads the ImageList configured by
+`VITE_APP_CROWNLABS_IMAGELIST_CLUSTER_FLAVORS` (default:
+`local-clusterflavors`). For Helm, set
+`configuration.imagelist.clusterFlavors` in the frontend chart, or
+`frontend.configuration.imagelist.clusterFlavors` in the umbrella chart.
+The ImageList updater and Instance Operator must use the same central
+ClusterFlavor namespace. Flavor names are stored verbatim in the environment's
+`image` field; neither the catalog namespace nor a version tag is appended.
+
+Install the updated Template CRD and restart qlkube before deploying this
+frontend. Its GraphQL schema must expose `EnvironmentType.Cluster` and
+`cluster.workersCount`. Regenerate types against that backend with:
+
+```bash
+GRAPHQL_URL=http://localhost:8085/graph npm run generate
+npm test
+npm run build-app
+```
+
+Template and instance resource summaries, including quota prechecks, count CPU
+and RAM for all workers. These are worker-only estimates: the flavor's
+control-plane and storage allocations are not exposed by the catalog, and
+Kubernetes remains authoritative for resource quota enforcement.
+
+Cluster GUI/SSH/kubeconfig access and stop/restart are not implemented by the
+current backend. The editor hides unsupported environment controls; templates
+containing a cluster disable inactivity cleanup, public port exposure, and
+node selection, while preserving maximum-lifetime cleanup. Instance power
+controls are also unavailable for mixed VM/cluster templates. Supported VM
+connections remain available individually in mixed instances. Cluster
+instances can still be monitored and deleted.
+
 ## Useful links
 
 - [Useful answer for deploying react app on subroute](https://stackoverflow.com/questions/49429906/how-should-i-configure-create-react-app-to-serve-app-from-subdirectory/58508562#58508562)

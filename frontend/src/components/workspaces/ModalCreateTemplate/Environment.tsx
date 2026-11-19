@@ -11,6 +11,7 @@ import {
   Cascader,
   ConfigProvider,
   Empty,
+  Typography,
 } from 'antd';
 import { useContext, useEffect, useState, type FC } from 'react';
 import { EnvironmentType, Phase4 } from '../../../generated-types';
@@ -38,6 +39,7 @@ const environmentTypeOptions = [
   { value: EnvironmentType.VirtualMachine, label: 'Virtual Machine' },
   { value: EnvironmentType.CloudVm, label: 'Cloud VM' },
   { value: EnvironmentType.LocalVm, label: 'Local VM' },
+  { value: EnvironmentType.Cluster, label: 'Cluster' },
   { value: EnvironmentType.Standalone, label: 'Container (Standalone)' },
   //{ value: EnvironmentType.Container, label: 'Container' },
 ];
@@ -107,6 +109,7 @@ const getAvailableImagesForEnvironment = (
 };
 
 type EnvironmentProps = {
+  clusterFlavorNames?: string[];
   availableImagesVM: Image[];
   availableImagesContainer: Image[];
   resources: Resources;
@@ -118,6 +121,7 @@ type EnvironmentProps = {
 } & ChildFormItem;
 
 export const Environment: FC<EnvironmentProps> = ({
+  clusterFlavorNames,
   parentFormName: name,
   restField,
   availableImagesVM,
@@ -234,6 +238,7 @@ export const Environment: FC<EnvironmentProps> = ({
   };
 
   const currentEnvironmentType = getEnvironmentType(name);
+  const isCluster = currentEnvironmentType === EnvironmentType.Cluster;
   const canConfigureGui =
     currentEnvironmentType === EnvironmentType.VirtualMachine ||
     currentEnvironmentType === EnvironmentType.LocalVm;
@@ -498,12 +503,31 @@ export const Environment: FC<EnvironmentProps> = ({
             case EnvironmentType.VirtualMachine:
               rewriteUrl = false;
               break;
+            case EnvironmentType.Cluster:
+              gui = false;
+              rewriteUrl = false;
+              persistent = false;
+              disk = 0;
+              break;
           }
 
           return {
             ...env,
             environmentType: envType,
+            cluster:
+              envType === EnvironmentType.Cluster
+                ? (env.cluster ?? { workersCount: 1 })
+                : undefined,
+            ...(envType === EnvironmentType.Cluster && {
+              sharedVolumeMounts: [],
+              otherResources: {},
+              mountMyDriveVolume: false,
+              storageClassName: undefined,
+              containerStartupOptions: undefined,
+            }),
             image:
+              envType === EnvironmentType.Cluster ||
+              env.environmentType === EnvironmentType.Cluster ||
               envType === EnvironmentType.LocalVm ||
               env.environmentType === EnvironmentType.LocalVm
                 ? ''
@@ -660,7 +684,77 @@ export const Environment: FC<EnvironmentProps> = ({
       </Form.Item>
 
       {/* VM Image Selection - Remove {...fullLayout} */}
-      {currentEnvironmentType === EnvironmentType.LocalVm ? (
+      {isCluster ? (
+        <>
+          <ConfigProvider
+            renderEmpty={() => (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description="No data"
+              />
+            )}
+          >
+            <Form.Item
+              {...restField}
+              label="Cluster flavor"
+              name={[name, 'image']}
+              dependencies={[['environments', name, 'environmentType']]}
+              rules={[
+                { required: true, message: 'Select a cluster flavor' },
+                {
+                  validator: async (_, value: string | undefined) => {
+                    if (value && !clusterFlavorNames?.includes(value)) {
+                      throw new Error(
+                        'The selected ClusterFlavor is unavailable. Select an available flavor.',
+                      );
+                    }
+                  },
+                },
+              ]}
+              {...formItemLayout}
+              getValueProps={(value?: string) => ({
+                value: value || undefined,
+              })}
+            >
+              <Select
+                showSearch
+                optionFilterProp="label"
+                placeholder="Select a cluster flavour"
+                options={(clusterFlavorNames ?? []).map(flavor => ({
+                  label: flavor,
+                  value: flavor,
+                }))}
+                loading={loadingPublicSnapshotImageList}
+                disabled={
+                  loadingPublicSnapshotImageList ||
+                  publicSnapshotImageListError ||
+                  clusterFlavorNames === undefined
+                }
+                getPopupContainer={trigger =>
+                  trigger.parentElement || document.body
+                }
+              />
+            </Form.Item>
+          </ConfigProvider>
+          <Form.Item
+            {...restField}
+            label="Workers"
+            name={[name, 'cluster', 'workersCount']}
+            rules={[
+              {
+                required: true,
+                type: 'integer',
+                min: 1,
+                max: 10,
+                message: 'Worker count must be an integer from 1 to 10.',
+              },
+            ]}
+            {...formItemLayout}
+          >
+            <InputNumber min={1} max={10} step={1} />
+          </Form.Item>
+        </>
+      ) : currentEnvironmentType === EnvironmentType.LocalVm ? (
         <ConfigProvider
           theme={{ components: { Cascader: { dropdownHeight: 'auto' } } }}
         >
@@ -840,63 +934,64 @@ export const Environment: FC<EnvironmentProps> = ({
         </>
       )}
 
-      <Flex
-        vertical={!isVM(name)}
-        {...(isVM(name) && { justify: 'space-evenly' })}
-        className="ml-6 gap-2"
-      >
-        {/* GUI Toggle - hidden for Standalone as it's always enabled */}
-        {getEnvironmentType(name) !== EnvironmentType.Standalone && (
-          <Form.Item label="GUI" className="mb-0">
-            <div className="flex items-center gap-2">
-              <Form.Item
-                {...restField}
-                name={[name, 'gui']}
-                valuePropName="checked"
-                className="mb-0"
-              >
-                <Checkbox disabled={!canConfigureGui} />
-              </Form.Item>
+      {!isCluster && (
+        <Flex
+          vertical={!isVM(name)}
+          {...(isVM(name) && { justify: 'space-evenly' })}
+          className="ml-6 gap-2"
+        >
+          {/* GUI Toggle - hidden for Standalone as it's always enabled */}
+          {getEnvironmentType(name) !== EnvironmentType.Standalone && (
+            <Form.Item label="GUI" className="mb-0">
+              <div className="flex items-center gap-2">
+                <Form.Item
+                  {...restField}
+                  name={[name, 'gui']}
+                  valuePropName="checked"
+                  className="mb-0"
+                >
+                  <Checkbox disabled={!canConfigureGui} />
+                </Form.Item>
 
-              {currentEnvironmentType === EnvironmentType.LocalVm && (
-                <Tooltip title="Make sure the selected image contains an operating system with a graphical desktop installed.">
-                  <InfoCircleOutlined aria-label="Local VM GUI requirements" />
-                </Tooltip>
-              )}
+                {currentEnvironmentType === EnvironmentType.LocalVm && (
+                  <Tooltip title="Make sure the selected image contains an operating system with a graphical desktop installed.">
+                    <InfoCircleOutlined aria-label="Local VM GUI requirements" />
+                  </Tooltip>
+                )}
 
-              <div className="ant-form-item-extra text-xs">
-                {getGUIDescription(name)}
+                <div className="ant-form-item-extra text-xs">
+                  {getGUIDescription(name)}
+                </div>
               </div>
-            </div>
-          </Form.Item>
-        )}
+            </Form.Item>
+          )}
 
-        {/* Persistent Checkbox */}
-        <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
-          <Form.Item label="Persistent" className="mb-0">
-            <div className="flex items-center ">
-              <Form.Item
-                {...restField}
-                name={[name, 'persistent']}
-                valuePropName="checked"
-                className="mb-0"
-              >
-                <Checkbox
-                  disabled={
-                    getEnvironmentType(name) === EnvironmentType.CloudVm ||
-                    getEnvironmentType(name) === EnvironmentType.LocalVm
-                  }
-                  onChange={value =>
-                    handlePersistentChange(value.target.checked)
-                  }
-                />
-              </Form.Item>
-            </div>
-          </Form.Item>
-        </Tooltip>
+          {/* Persistent Checkbox */}
+          <Tooltip title="A persistent VM/container disk space won't be destroyed after being turned off.">
+            <Form.Item label="Persistent" className="mb-0">
+              <div className="flex items-center ">
+                <Form.Item
+                  {...restField}
+                  name={[name, 'persistent']}
+                  valuePropName="checked"
+                  className="mb-0"
+                >
+                  <Checkbox
+                    disabled={
+                      getEnvironmentType(name) === EnvironmentType.CloudVm ||
+                      getEnvironmentType(name) === EnvironmentType.LocalVm
+                    }
+                    onChange={value =>
+                      handlePersistentChange(value.target.checked)
+                    }
+                  />
+                </Form.Item>
+              </div>
+            </Form.Item>
+          </Tooltip>
 
-        {/* Rewrite URL toggle - only for Standalone */}
-        {/* {getEnvironmentType(name) === EnvironmentType.Standalone && (
+          {/* Rewrite URL toggle - only for Standalone */}
+          {/* {getEnvironmentType(name) === EnvironmentType.Standalone && (
         <Form.Item label="Rewrite URL" className="mb-0">
           <div className="flex items-center gap-2">
             <Form.Item
@@ -914,8 +1009,14 @@ export const Environment: FC<EnvironmentProps> = ({
           </div>
         </Form.Item>
       )} */}
-      </Flex>
+        </Flex>
+      )}
 
+      {isCluster && (
+        <Typography.Text type="secondary" className="block ml-2 mb-2">
+          CPU and RAM are assigned per worker.
+        </Typography.Text>
+      )}
       <Space direction="horizontal" className="ml-2 mb-4">
         {/* CPU Input */}
         <Form.Item
@@ -923,12 +1024,30 @@ export const Environment: FC<EnvironmentProps> = ({
           label={
             <>
               CPU{' '}
-              <Tooltip title="Number of virtual CPUs allocated to the environment">
+              <Tooltip
+                title={
+                  isCluster
+                    ? 'Number of virtual CPUs allocated to each worker'
+                    : 'Number of virtual CPUs allocated to the environment'
+                }
+              >
                 <InfoCircleOutlined className="ml-1" />
               </Tooltip>
             </>
           }
           name={[name, 'cpu']}
+          rules={
+            isCluster
+              ? [
+                  {
+                    required: true,
+                    type: 'integer',
+                    min: resources.cpu.min,
+                    max: resources.cpu.max,
+                  },
+                ]
+              : []
+          }
           {...propInputField}
         >
           <InputNumber
@@ -945,10 +1064,28 @@ export const Environment: FC<EnvironmentProps> = ({
         <Form.Item
           {...restField}
           name={[name, 'ram']}
+          rules={
+            isCluster
+              ? [
+                  {
+                    required: true,
+                    type: 'number',
+                    min: resources.ram.min,
+                    max: resources.ram.max,
+                  },
+                ]
+              : []
+          }
           label={
             <>
               RAM{' '}
-              <Tooltip title="Amount of RAM allocated to the environment">
+              <Tooltip
+                title={
+                  isCluster
+                    ? 'Amount of RAM allocated to each worker'
+                    : 'Amount of RAM allocated to the environment'
+                }
+              >
                 <InfoCircleOutlined className="ml-1" />
               </Tooltip>
             </>
@@ -966,161 +1103,190 @@ export const Environment: FC<EnvironmentProps> = ({
         </Form.Item>
 
         {/* Disk */}
-        <Form.Item
-          {...restField}
-          name={[name, 'disk']}
-          dependencies={[['environments', name, 'persistent']]}
-          rules={[
-            {
-              validator: async (_, value: number | null | undefined) => {
-                if (
-                  form.getFieldValue(['environments', name, 'persistent']) &&
-                  resources.disk.max === 0
-                ) {
-                  throw new Error(
-                    'Persistent environments require a workspace disk quota.',
-                  );
-                }
-                if (
-                  currentEnvironmentType === EnvironmentType.LocalVm &&
-                  localVmMinimumDisk > resources.disk.max
-                ) {
-                  throw new Error(
-                    `The selected image requires at least ${localVmMinimumDisk} GiB, but the maximum disk size is ${resources.disk.max} GiB.`,
-                  );
-                }
-                if (
-                  value !== null &&
-                  value !== undefined &&
-                  value > resources.disk.max
-                ) {
-                  throw new Error(
-                    `Disk cannot exceed the maximum of ${resources.disk.max} GiB.`,
-                  );
-                }
-                if (currentEnvironmentType !== EnvironmentType.LocalVm) return;
-                if ((value ?? 0) < localVmMinimumDisk) {
-                  throw new Error(
-                    `Disk must be at least ${localVmMinimumDisk} GiB for the selected image.`,
-                  );
-                }
+        {!isCluster && (
+          <Form.Item
+            {...restField}
+            name={[name, 'disk']}
+            dependencies={[['environments', name, 'persistent']]}
+            rules={[
+              {
+                validator: async (_, value: number | null | undefined) => {
+                  if (
+                    form.getFieldValue(['environments', name, 'persistent']) &&
+                    resources.disk.max === 0
+                  ) {
+                    throw new Error(
+                      'Persistent environments require a workspace disk quota.',
+                    );
+                  }
+                  if (
+                    currentEnvironmentType === EnvironmentType.LocalVm &&
+                    localVmMinimumDisk > resources.disk.max
+                  ) {
+                    throw new Error(
+                      `The selected image requires at least ${localVmMinimumDisk} GiB, but the maximum disk size is ${resources.disk.max} GiB.`,
+                    );
+                  }
+                  if (
+                    value !== null &&
+                    value !== undefined &&
+                    value > resources.disk.max
+                  ) {
+                    throw new Error(
+                      `Disk cannot exceed the maximum of ${resources.disk.max} GiB.`,
+                    );
+                  }
+                  if (currentEnvironmentType !== EnvironmentType.LocalVm)
+                    return;
+                  if ((value ?? 0) < localVmMinimumDisk) {
+                    throw new Error(
+                      `Disk must be at least ${localVmMinimumDisk} GiB for the selected image.`,
+                    );
+                  }
+                },
               },
-            },
-          ]}
-          label={
-            <>
-              Disk{' '}
-              <Tooltip
-                title={
-                  <div>
+            ]}
+            label={
+              <>
+                Disk{' '}
+                <Tooltip
+                  title={
                     <div>
-                      {currentEnvironmentType === EnvironmentType.LocalVm &&
-                      selectedImageMinimumDisk !== undefined
-                        ? `The selected image requires a disk of at least ${localVmMinimumDisk} GiB.`
-                        : 'Amount of disk space allocated to the environment, if persistent.'}
+                      <div>
+                        {currentEnvironmentType === EnvironmentType.LocalVm &&
+                        selectedImageMinimumDisk !== undefined
+                          ? `The selected image requires a disk of at least ${localVmMinimumDisk} GiB.`
+                          : 'Amount of disk space allocated to the environment, if persistent.'}
+                      </div>
+                      <div>Maximum disk size: {resources.disk.max} GiB.</div>
                     </div>
-                    <div>Maximum disk size: {resources.disk.max} GiB.</div>
-                  </div>
-                }
-              >
-                <InfoCircleOutlined className="ml-1" />
-              </Tooltip>
-            </>
-          }
-          {...propInputField}
-        >
-          <InputNumber
-            step={1}
-            style={{ width: '120px', textAlignLast: 'center' }}
-            addonAfter="GiB"
-            disabled={!isPersistent(name)}
-            min={
-              getEnvironmentType(name) === EnvironmentType.LocalVm
-                ? localVmMinimumDisk
-                : getEnvironmentType(name) === EnvironmentType.VirtualMachine
-                  ? isPersistent(name)
-                    ? resources.disk.min
-                    : 0
-                  : 0
+                  }
+                >
+                  <InfoCircleOutlined className="ml-1" />
+                </Tooltip>
+              </>
             }
-          />
-        </Form.Item>
+            {...propInputField}
+          >
+            <InputNumber
+              step={1}
+              style={{ width: '120px', textAlignLast: 'center' }}
+              addonAfter="GiB"
+              disabled={!isPersistent(name)}
+              min={
+                getEnvironmentType(name) === EnvironmentType.LocalVm
+                  ? localVmMinimumDisk
+                  : getEnvironmentType(name) === EnvironmentType.VirtualMachine
+                    ? isPersistent(name)
+                      ? resources.disk.min
+                      : 0
+                    : 0
+              }
+            />
+          </Form.Item>
+        )}
 
         {/* Reserved CPU Percentage */}
-        <Form.Item
-          {...restField}
-          name={[name, 'reservedCpu']}
-          label={
-            <>
-              Reserved CPU{' '}
-              <Tooltip title="Percentage of CPU reserved for the environment">
-                <InfoCircleOutlined className="ml-1" />
-              </Tooltip>
-            </>
-          }
-          {...propInputField}
-        >
-          <InputNumber
-            onChange={value => handleResourceChange(name, 'reservedCpu', value)}
-            step={1}
-            style={{ width: '120px', textAlignLast: 'center' }}
-            addonAfter="%"
-            max={100}
-            min={1}
-          />
-        </Form.Item>
+        {!isCluster && (
+          <Form.Item
+            {...restField}
+            name={[name, 'reservedCpu']}
+            label={
+              <>
+                Reserved CPU{' '}
+                <Tooltip title="Percentage of CPU reserved for the environment">
+                  <InfoCircleOutlined className="ml-1" />
+                </Tooltip>
+              </>
+            }
+            {...propInputField}
+          >
+            <InputNumber
+              onChange={value =>
+                handleResourceChange(name, 'reservedCpu', value)
+              }
+              step={1}
+              style={{ width: '120px', textAlignLast: 'center' }}
+              addonAfter="%"
+              max={100}
+              min={1}
+            />
+          </Form.Item>
+        )}
       </Space>
+      {isCluster && (
+        <Form.Item shouldUpdate className="ml-2 mb-4">
+          {() => {
+            const workers =
+              form.getFieldValue([
+                'environments',
+                name,
+                'cluster',
+                'workersCount',
+              ]) ?? 0;
+            const cpu = form.getFieldValue(['environments', name, 'cpu']) ?? 0;
+            const ram = form.getFieldValue(['environments', name, 'ram']) ?? 0;
+            return (
+              <Typography.Text strong>
+                Total resources: {cpu * workers} vCPU, {ram * workers} GiB RAM
+              </Typography.Text>
+            );
+          }}
+        </Form.Item>
+      )}
 
       {/* Extended Resources Row Layout */}
-      <Space direction="horizontal" className="ml-2 mb-4">
-        {/* NVIDIA GPU Quantity Selector */}
-        <Form.Item
-          {...restField}
-          name={[name, 'otherResources', 'nvidiaComGpu']}
-          label={
-            <>
-              NVIDIA GPU{' '}
-              <Tooltip title="Number of dedicated NVIDIA GPUs to assign to this environment">
-                <InfoCircleOutlined className="ml-1" />
-              </Tooltip>
-            </>
-          }
-          {...propInputField}
-        >
-          <InputNumber
-            step={1}
-            style={{ width: '120px', textAlignLast: 'center' }}
-            min={0}
-            max={4}
-            addonAfter="#"
-          />
-        </Form.Item>
+      {!isCluster && (
+        <Space direction="horizontal" className="ml-2 mb-4">
+          {/* NVIDIA GPU Quantity Selector */}
+          <Form.Item
+            {...restField}
+            name={[name, 'otherResources', 'nvidiaComGpu']}
+            label={
+              <>
+                NVIDIA GPU{' '}
+                <Tooltip title="Number of dedicated NVIDIA GPUs to assign to this environment">
+                  <InfoCircleOutlined className="ml-1" />
+                </Tooltip>
+              </>
+            }
+            {...propInputField}
+          >
+            <InputNumber
+              step={1}
+              style={{ width: '120px', textAlignLast: 'center' }}
+              min={0}
+              max={4}
+              addonAfter="#"
+            />
+          </Form.Item>
 
-        {/* AMD GPU Quantity Selector */}
-        <Form.Item
-          {...restField}
-          name={[name, 'otherResources', 'amdComGpu']}
-          label={
-            <>
-              AMD GPU{' '}
-              <Tooltip title="Number of dedicated AMD GPUs to assign to this environment">
-                <InfoCircleOutlined className="ml-1" />
-              </Tooltip>
-            </>
-          }
-          {...propInputField}
-        >
-          <InputNumber
-            step={1}
-            style={{ width: '120px', textAlignLast: 'center' }}
-            min={0}
-            max={4}
-            addonAfter="#"
-          />
-        </Form.Item>
-      </Space>
+          {/* AMD GPU Quantity Selector */}
+          <Form.Item
+            {...restField}
+            name={[name, 'otherResources', 'amdComGpu']}
+            label={
+              <>
+                AMD GPU{' '}
+                <Tooltip title="Number of dedicated AMD GPUs to assign to this environment">
+                  <InfoCircleOutlined className="ml-1" />
+                </Tooltip>
+              </>
+            }
+            {...propInputField}
+          >
+            <InputNumber
+              step={1}
+              style={{ width: '120px', textAlignLast: 'center' }}
+              min={0}
+              max={4}
+              addonAfter="#"
+            />
+          </Form.Item>
+        </Space>
+      )}
 
-      {!isPersonal && (
+      {!isPersonal && !isCluster && (
         <SharedVolumeList parentFormName={name} sharedVolumes={sharedVolumes} />
       )}
     </>

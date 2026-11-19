@@ -50,12 +50,15 @@ func getProjectRoot() string {
 // ForgeEnvtestEnv creates and returns an envtest.Environment with the specified configuration (whether to include CRDs from deploy and test folders).
 func ForgeEnvtestEnv(includeTestRes bool) *envtest.Environment {
 	projectRoot := getProjectRoot()
-	k8sBinsDir := filepath.Join(projectRoot, "bin", "k8s")
-	files, err := os.ReadDir(k8sBinsDir)
-	if err != nil || len(files) != 1 || !files[0].IsDir() {
-		panic("Could not find envtest binaries in " + k8sBinsDir)
+	k8sBinsDir := os.Getenv("KUBEBUILDER_ASSETS")
+	if k8sBinsDir == "" {
+		k8sBinsDir = filepath.Join(projectRoot, "bin", "k8s")
+		files, err := os.ReadDir(k8sBinsDir)
+		if err != nil || len(files) != 1 || !files[0].IsDir() {
+			panic("Could not uniquely identify envtest binaries in " + k8sBinsDir + "; set KUBEBUILDER_ASSETS to the desired binary directory")
+		}
+		k8sBinsDir = filepath.Join(k8sBinsDir, files[0].Name())
 	}
-	k8sBinsDir = filepath.Join(k8sBinsDir, files[0].Name())
 	crdPaths := []string{filepath.Join(projectRoot, "deploy", "crds")}
 	if includeTestRes {
 		crdPaths = append(crdPaths, filepath.Join(projectRoot, "tests", "crds"))

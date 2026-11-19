@@ -1,4 +1,5 @@
 import gql from 'graphql-tag';
+import { TemplateEnvironmentFieldsFragmentDoc } from '../../generated-types';
 
 export default gql`
   subscription updatedInstancesLabelSelector($labels: String) {
@@ -72,10 +73,7 @@ export default gql`
                     deleteAfterInactivity
                   }
                   environmentList {
-                    name
-                    guiEnabled
-                    persistent
-                    environmentType
+                    ...TemplateEnvironmentFields
                   }
                 }
               }
@@ -85,4 +83,5 @@ export default gql`
       }
     }
   }
+  ${TemplateEnvironmentFieldsFragmentDoc}
 `;

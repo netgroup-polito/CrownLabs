@@ -181,7 +181,6 @@ func init() {
 
 // SetupWebhookWithManager setups the webhook with the given manager.
 func (r *Tenant) SetupWebhookWithManager(mgr ctrl.Manager) error {
-	return ctrl.NewWebhookManagedBy(mgr).
-		For(r).
+	return ctrl.NewWebhookManagedBy(mgr, r).
 		Complete()
 }

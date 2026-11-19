@@ -1,6 +1,50 @@
 import type { IQuota } from '../contexts/OwnedInstancesContext';
 import { Phase2, type TenantQuery } from '../generated-types';
-import { convertToGiB, getOriginalK8sKey, type Instance } from '../utils';
+import {
+  convertToGiB,
+  getOriginalK8sKey,
+  type Instance,
+  type Template,
+} from '../utils';
+
+export const canCreateInstance = (
+  template: Template,
+  availableQuota: IQuota,
+): boolean => {
+  if (!availableQuota) return true;
+
+  const templateCpu = template.resources?.cpu || 0;
+  const templateMemory = convertToGiB(template.resources?.memory || '0Gi');
+  const templateDisk = convertToGiB(template.resources?.disk || '0Gi');
+  const templateOtherResources = {
+    ...template.resources?.otherResources,
+  };
+  const normalizedQuotaOther: Record<string, number> = {};
+  if (availableQuota.otherResources) {
+    Object.entries(availableQuota.otherResources).forEach(([qKey, qVal]) => {
+      const k8sKey = getOriginalK8sKey(qKey);
+      normalizedQuotaOther[k8sKey] =
+        (normalizedQuotaOther[k8sKey] || 0) + Number(qVal);
+    });
+  }
+  let otherResourcesAllowed = true;
+  for (const [key, val] of Object.entries(templateOtherResources)) {
+    const required = Number(val) || 0;
+    if (required <= 0) continue;
+    const available = normalizedQuotaOther[getOriginalK8sKey(key)] || 0;
+    if (available < required) {
+      otherResourcesAllowed = false;
+      break;
+    }
+  }
+  return (
+    availableQuota.instances >= 1 &&
+    availableQuota.cpu >= templateCpu &&
+    availableQuota.memory >= templateMemory &&
+    availableQuota.disk >= templateDisk &&
+    otherResourcesAllowed
+  );
+};
 
 // Internal helper to convert GraphQL camelCase keys into standard K8s format
 function normalizeTotalOtherResources(
