@@ -3,7 +3,6 @@ import {
   ExportOutlined,
   DownOutlined,
   CodeOutlined,
-  ExperimentOutlined,
 } from '@ant-design/icons';
 import { Tooltip, Dropdown } from 'antd';
 import type { MenuProps } from 'antd';
@@ -12,6 +11,7 @@ import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   EnvironmentType,
+  GuiMode,
   Phase2,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
@@ -96,8 +96,6 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   const connectDisabled =
     status !== Phase2.Ready ||
     (environmentType === EnvironmentType.Container && !gui);
-  // TODO: remove this button when native VNC migration is complete
-  const nativeVncEnv = environments?.find(env => !env.guiEnabled);
   const font22px = { fontSize: '22px' };
 
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
@@ -110,12 +108,20 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const handleEnvironmentConnect = (env: InstanceEnvironment) => {
-    if (env.guiEnabled) {
-      const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
-      const envUrl = `${baseUrl}/${env.name}/`;
-      window.open(envUrl, '_blank');
-    } else {
-      setSshModal(true);
+    switch (env.guiMode) {
+      case GuiMode.Native:
+        window.open(
+          `${BASE_URL}instance/${tenantNamespace}/${name}/${env.name}/vnc`,
+          '_blank',
+        );
+        break;
+      case GuiMode.Web: {
+        const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
+        window.open(`${baseUrl}/${env.name}/`, '_blank');
+        break;
+      }
+      default:
+        setSshModal(true);
     }
   };
 
@@ -205,28 +211,6 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           }
         />
       </Tooltip>
-      {nativeVncEnv && (
-        <Tooltip placement="top" title="Test native VNC (provisional)">
-          <Button
-            onClick={() =>
-              window.open(
-                `${BASE_URL}instance/${tenantNamespace}/${name}/${nativeVncEnv.name}/vnc`,
-                '_blank',
-              )
-            }
-            type="link"
-            className={`hidden ${extended ? 'sm:block' : 'xs:block'} py-0 border-0`}
-            shape="circle"
-            size="middle"
-            icon={
-              <ExperimentOutlined
-                className="flex justify-center items-center"
-                style={font22px}
-              />
-            }
-          />
-        </Tooltip>
-      )}
 
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
