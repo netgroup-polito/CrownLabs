@@ -19,6 +19,7 @@ query workspaceTemplates($workspaceNamespace: String!) {
           mountMyDriveVolume
           image
           guiEnabled
+          guiMode
           disableControls
           rewriteURL
           persistent

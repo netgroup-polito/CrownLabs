@@ -64,6 +64,7 @@ query ownedInstances($tenantNamespace: String!) {
                 environmentList {
                   name
                   guiEnabled
+                  guiMode
                   persistent
                   environmentType
                   resources {
