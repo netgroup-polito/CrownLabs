@@ -14,8 +14,6 @@ import {
   type EnvironmentListListItemInput,
   type SharedVolumeMountsListItemInput,
   useApplyTemplateJsonPatchMutation,
-  useImagesQuery,
-  type ImagesQuery,
 } from '../../../../generated-types';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import { updatedWorkspaceTemplates } from '../../../../graphql-components/subscription';
@@ -245,14 +243,9 @@ const TemplatesTableLogic: FC<ITemplateTableLogicProps> = ({ ...props }) => {
 
   const [usedTemplate, setUsedTemplate] = useState<Template | null>(null);
 
-  const { data: dataImages } = useImagesQuery({
-    variables: {},
+  const { availableImagesVM, availableImagesContainer } = useImageLists({
     onError: apolloErrorCatcher,
   });
-
-  const { availableImagesVM, availableImagesContainer } = useImageLists(
-    dataImages ?? ({} as ImagesQuery),
-  );
 
   const submitPatchHandler = async (t: TemplateForm) => {
     try {

@@ -3,21 +3,18 @@ import {
   VITE_APP_CROWNLABS_IMAGELIST_STANDALONE,
   VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
 } from '../../../env';
-import { EnvironmentType, type ImagesQuery } from '../../../generated-types';
+import {
+  EnvironmentType,
+  useImageListQuery,
+  type ImageListQuery,
+  type ImageListQueryVariables,
+} from '../../../generated-types';
 import type { Template } from './ModalCreateTemplate';
 import type { TemplateFormEnv, Image, ImageList, Resources } from './types';
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import type { ApolloError, QueryHookOptions } from '@apollo/client';
 
 export const internalRegistry = 'harbor.ng.crownlabs.polito.it';
-export const imageListContainderDisksDefault =
-  'harbor-containerdisks-pre-production';
-export const imageListStandaloneDefault = 'harbor-standalone-pre-production';
-export const projectName = [
-  VITE_APP_CROWNLABS_IMAGELIST_STANDALONE,
-  VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS,
-  imageListStandaloneDefault,
-  imageListContainderDisksDefault,
-];
 export const defaultProjectNameVM = 'crownlabs-containerdisks';
 export const defaultProjectNameContainer = 'crownlabs-standalone';
 export const formItemLayout = {
@@ -111,66 +108,24 @@ export const getImagesFromList = (imageList: ImageList): Image[] => {
   return images;
 };
 
-// Process image lists from the query
-export const getImageLists = (data: ImagesQuery): ImageList[] => {
-  if (!data?.imageList?.images) return [];
-  return data.imageList.images.flatMap(img => {
-    const spec = img?.spec;
-    const name = img?.metadata?.name;
-    if (!name || !spec?.registryName) return [];
+export type ImageListQueryOptions = Pick<
+  QueryHookOptions<ImageListQuery, ImageListQueryVariables>,
+  'skip' | 'fetchPolicy' | 'onError'
+>;
 
-    const normalized = name.trim();
-    if (!projectName.some(proj => proj && normalized === proj.trim())) {
-      return [];
-    }
-
-    return [
-      {
-        name,
-        registryName: spec.registryName,
-        projectBaseName: spec.projectBaseName || undefined,
-        images: spec.images
-          .filter((image): image is NonNullable<typeof image> =>
-            Boolean(image?.name),
-          )
-          .map(image => ({
-            name: image.name,
-            versions: image.versions.filter(
-              (version): version is string => version !== null,
-            ),
-            versionDetails: image.versionDetails
-              ?.filter(
-                (detail): detail is NonNullable<typeof detail> =>
-                  detail !== null,
-              )
-              .map(detail => ({
-                version: detail.version,
-                volumeSize: detail.volumeSize ?? undefined,
-              })),
-          })),
-      },
-    ];
-  });
-};
-
-// Public local images are published by the operator as a cluster-scoped
-// ImageList. Unlike workspace images, this list is a catalog: its registryName
-// contains the namespace of the public PVCs and versions identify each image.
-export const getPublicSnapshotImageList = (
-  data: ImagesQuery,
+// Convert the ImageList returned by the query into the format used by the form
+const toImageList = (
+  imageList: ImageListQuery['imageList'],
 ): ImageList | undefined => {
-  const imageList = data?.imageList?.images?.find(
-    image =>
-      image?.metadata?.name === VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
-  );
-
-  if (!imageList?.spec?.registryName || !imageList.spec.images) return;
+  const name = imageList?.metadata?.name;
+  const spec = imageList?.spec;
+  if (!name || !spec?.registryName) return;
 
   return {
-    name: imageList.metadata?.name ?? '',
-    registryName: imageList.spec.registryName,
-    projectBaseName: imageList.spec.projectBaseName || undefined,
-    images: imageList.spec.images
+    name,
+    registryName: spec.registryName,
+    projectBaseName: spec.projectBaseName || undefined,
+    images: spec.images
       .filter((image): image is NonNullable<typeof image> =>
         Boolean(image?.name),
       )
@@ -191,59 +146,81 @@ export const getPublicSnapshotImageList = (
   };
 };
 
-export const useImageLists = (dataImages: ImagesQuery) => {
-  const [availableImagesVM, setAvailableImagesVM] = useState<Image[]>([]);
-  const [availableImagesContainer, setAvailableImagesContainer] = useState<
-    Image[]
-  >([]);
-  const [projectBaseNameVM, setProjectBaseNameVM] = useState<string>('');
-  const [projectBaseNameContainer, setProjectBaseNameContainer] =
-    useState<string>('');
+const isNotFoundError = (error: ApolloError) =>
+  error.graphQLErrors.some(err => err.extensions?.statusCode === 404);
 
-  useEffect(() => {
-    if (!dataImages) {
-      setAvailableImagesVM([]);
-      setAvailableImagesContainer([]);
-      return;
-    }
+// Fetch a single ImageList by name. When the name is not set or the ImageList
+// does not exist, the list is empty; other errors are forwarded to onError.
+const useImageList = (name: string, options: ImageListQueryOptions) => {
+  const { data, loading, error } = useImageListQuery({
+    variables: { name },
+    skip: !name || options.skip,
+    fetchPolicy: options.fetchPolicy,
+    onError: err => {
+      if (isNotFoundError(err)) {
+        console.warn(
+          `WARNING: IMAGELIST ${name} NOT FOUND, the related image list will be empty`,
+        );
+        return;
+      }
+      options.onError?.(err);
+    },
+  });
 
-    const imageLists = getImageLists(dataImages);
-    const internalImagesVM =
-      imageLists.find(
-        list => list.name === VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS,
-      ) ||
-      imageLists.find(list => list.name === imageListContainderDisksDefault);
-    setProjectBaseNameVM(
-      internalImagesVM?.projectBaseName || defaultProjectNameVM,
-    );
+  const imageList = useMemo(() => toImageList(data?.imageList), [data]);
 
-    const internalImagesContainer =
-      imageLists.find(
-        list => list.name === VITE_APP_CROWNLABS_IMAGELIST_STANDALONE,
-      ) || imageLists.find(list => list.name === imageListStandaloneDefault);
+  return {
+    imageList,
+    loading,
+    error: error && !isNotFoundError(error) ? error : undefined,
+  };
+};
 
-    setProjectBaseNameContainer(
-      internalImagesContainer?.projectBaseName || defaultProjectNameContainer,
-    );
+// Fetch the ImageLists of VM (containerdisks) and container (standalone)
+// images, whose names are set through the environment
+export const useImageLists = (options: ImageListQueryOptions = {}) => {
+  const { imageList: imageListVM } = useImageList(
+    VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS,
+    options,
+  );
+  const { imageList: imageListContainer } = useImageList(
+    VITE_APP_CROWNLABS_IMAGELIST_STANDALONE,
+    options,
+  );
 
-    if (!internalImagesVM) {
-      setAvailableImagesVM([]);
-      return;
-    }
-
-    if (!internalImagesContainer) {
-      setAvailableImagesContainer([]);
-      return;
-    }
-    setAvailableImagesContainer(getImagesFromList(internalImagesContainer));
-    setAvailableImagesVM(getImagesFromList(internalImagesVM));
-  }, [dataImages]);
+  const availableImagesVM = useMemo(
+    () => (imageListVM ? getImagesFromList(imageListVM) : []),
+    [imageListVM],
+  );
+  const availableImagesContainer = useMemo(
+    () => (imageListContainer ? getImagesFromList(imageListContainer) : []),
+    [imageListContainer],
+  );
 
   return {
     availableImagesVM,
     availableImagesContainer,
-    projectBaseNameVM,
-    projectBaseNameContainer,
+    projectBaseNameVM: imageListVM?.projectBaseName || defaultProjectNameVM,
+    projectBaseNameContainer:
+      imageListContainer?.projectBaseName || defaultProjectNameContainer,
+  };
+};
+
+// Public local images are published by the operator as a cluster-scoped
+// ImageList. Unlike workspace images, this list is a catalog: its registryName
+// contains the namespace of the public PVCs and versions identify each image.
+export const usePublicSnapshotImageList = (
+  options: ImageListQueryOptions = {},
+) => {
+  const { imageList, loading, error } = useImageList(
+    VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS,
+    options,
+  );
+
+  return {
+    publicSnapshotImageList: imageList,
+    loadingPublicSnapshotImageList: loading,
+    publicSnapshotImageListError: Boolean(error),
   };
 };
 export const isInImageList = (

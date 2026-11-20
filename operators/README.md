@@ -220,6 +220,7 @@ Below you will find a concise description of the reconcile flow, the assignment 
 - The Instance controller reconciles the Instance and invokes the public-exposure enforcement (see `pkg/instctrl/publicexposure.go`). When `spec.publicExposure` is present and valid, the controller creates or updates a `Service` of type `LoadBalancer` to expose the requested port mappings.
 - The public IP and ports are allocated according to controller rules and constraints: the IP is picked from a configured pool (Helm), while target and external ports come from the `spec.publicExposure` request.
 - Once the LoadBalancer Service is created/updated, the operator sets `status.publicExposure` on the Instance and creates or removes the corresponding `NetworkPolicy` to allow traffic to the instance (`pkg/instctrl/networkpolicy.go`).
+- The controller watches the LoadBalancer Service, hence the external IP is reported in `status.publicExposure` as soon as the LoadBalancer controller assigns it.
 
 #### Developer reference (implementation and useful links)
 - `pkg/instctrl/publicexposure.go` — entrypoint for the feature. Contains `EnforcePublicExposure`, `enforcePublicExposurePresence` and `enforcePublicExposureAbsence`, which orchestrate Service creation/update/deletion and Instance status updates.
@@ -253,19 +254,35 @@ Below you will find a concise description of the reconcile flow, the assignment 
   After the Service is ready, the operator updates `instance.Status.PublicExposure` with the `ExternalIP` and the assigned ports, and creates the needed `NetworkPolicy` to allow traffic to the Instance (`pkg/instctrl/networkpolicy.go`).
 
 #### Helm
-The public exposure configuration is in the instance-operator values chart under `configurations.publicExposure`.
+The public exposure configuration is in the instance-operator values chart under `configurations.publicExposure`. The defaults target Cilium LB-IPAM:
   ```yaml
   configurations:
     publicExposure:
-    # IP pool used to assign public IPs to Services
-    ipPool:
-      - "172.18.0.240-172.18.0.249"
-      - "172.18.0.250/30"
-    # Common annotations applied to all LoadBalancers (format: key1=val1,key2=val2)
-    commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
-    # Annotation key used to pre-assign IPs to LoadBalancers
-    loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
+      # IP pool used to assign public IPs to Services (single IPs, ranges or CIDRs)
+      ipPool:
+        - "130.192.77.93-130.192.77.95"
+      # Common annotations applied to all LoadBalancers (format: key1=val1,key2=val2)
+      commonAnnotations: "lbipam.cilium.io/sharing-key=crownlabs-pe,lbipam.cilium.io/sharing-cross-namespace=*"
+      # Common labels applied to all LoadBalancers (format: key1=val1,key2=val2)
+      commonLabels: "lb-ipam.cilium.io/pool=public"
+      # Annotation key used to pre-assign IPs to LoadBalancers
+      loadBalancerIPsKey: "lbipam.cilium.io/ips"
   ```
+
+With Cilium LB-IPAM, a sharing key is scoped to a single namespace: Instances of different tenants requesting the same IP stay pending unless cross-namespace sharing is allowed on all the Services sharing it. Since the annotations are comma-separated, only the `*` value is supported. The pool must not include addresses of LoadBalancer Services that cannot be shared, such as the SSH bastion. The operator only considers the public exposure Services when looking for free IPs and ports, hence the bastion should be pinned to an address outside the pool (e.g., `lbipam.cilium.io/ips: "130.192.77.92"` in `bastion.serviceAnnotations`), otherwise Cilium may assign it one of the pool addresses.
+
+With MetalLB (e.g., on a local kind cluster), the configuration becomes:
+  ```yaml
+  configurations:
+    publicExposure:
+      ipPool:
+        - "172.18.0.240-172.18.0.249"
+        - "172.18.0.250/30"
+      commonAnnotations: "metallb.universe.tf/allow-shared-ip=pe"
+      loadBalancerIPsKey: "metallb.universe.tf/loadBalancerIPs"
+  ```
+
+Common labels and annotations are enforced on every reconciliation, hence configuration changes are propagated also to the existing Services.
 
 #### Validation and controls
 - Requests are validated by `ValidatePublicExposureRequest` (checks for duplicates, ranges, protocols, etc.).
@@ -334,7 +351,7 @@ The operator will also create or update the corresponding `Service` of type `Loa
 
 The SSH bastion is composed of two basic blocks:
 
-1. `ssh-bastion`: a lightweight alpine based container running [sshd](https://man.cx/sshd)
+1. `ssh-bastion`: a lightweight alpine-based container running `sshd`.
 2. `ssh-controller`: an operator-like tool based on on [Kubebuilder 2.3](https://github.com/kubernetes-sigs/kubebuilder.git) to read and sync SSH keys which also tracks forwarded SSH connections, leveraging the netfilter/conntrack subsystem, and exposing them as metrics for Prometheus.
 
 ### Bastion SSH Tracker
@@ -798,7 +815,7 @@ query publicSnapshotCatalog {
 }
 ```
 
-The current frontend [images query](../frontend/src/graphql-components/query/images.query.graphql) only requests image names and versions. Consuming the public catalog and its capacity metadata also requires updating the frontend selection logic, query and generated GraphQL types.
+The frontend does not list all ImageLists: it fetches only the ones it uses, each one by name, with the [imageList query](../frontend/src/graphql-components/query/imageList.query.graphql), which also requests `versionDetails`. The name of the public catalog is read from `VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS`, set by the frontend Helm chart; see [Frontend image lists](../deploy/crownlabs/README.md#frontend-image-lists) for how the chart chooses it.
 
 #### Refresh behavior and permissions
 
