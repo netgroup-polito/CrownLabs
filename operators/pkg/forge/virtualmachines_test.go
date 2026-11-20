@@ -91,13 +91,14 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 
 	Describe("The forge.VirtualMachineSpec function", func() {
 		var spec virtv1.VirtualMachineSpec
+		operatorSelectorLabels := map[string]string{"crownlabs.polito.it/operator-selector": "test"}
 
 		JustBeforeEach(func() {
-			spec = forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos)
+			spec = forge.VirtualMachineSpec(&instance, &template, &environment, mountInfos, operatorSelectorLabels)
 		})
 
 		It("Should set the correct template labels", func() {
-			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.EnvironmentSelectorLabels(&instance, &environment)))
+			Expect(spec.Template.ObjectMeta.GetLabels()).To(Equal(forge.VirtualMachineLabels(&environment, forge.EnvironmentSelectorLabels(&instance, &environment), operatorSelectorLabels)))
 		})
 		It("Should set the correct template spec", func() {
 			Expect(spec.Template.Spec).To(Equal(forge.VirtualMachineInstanceSpec(&instance, &template, &environment, mountInfos)))
@@ -285,6 +286,26 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 			Expect(domain.Devices.Filesystems).To(Equal(forge.VirtualMachineFilesystems(mountInfos)))
 			Expect(domain.Devices.Interfaces).To(ContainElement(*virtv1.DefaultBridgeNetworkInterface()))
 		})
+
+		When("the environment is served by native VNC", func() {
+			BeforeEach(func() {
+				environment.EnvironmentType = clv1alpha2.ClassVM
+				environment.GuiMode = clv1alpha2.GuiModeNative
+			})
+
+			It("Should set the masquerade network interface", func() {
+				// Every port is forwarded to the guest except the native VNC one, so that
+				// QEMU's VNC server can be reached directly on the pod.
+				expectedIface := virtv1.DefaultMasqueradeNetworkInterface()
+				expectedIface.PortRanges = []virtv1.PortRange{
+					{Protocol: "TCP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+					{Protocol: "TCP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+					{Protocol: "UDP", Start: 1, End: forge.NativeVNCPortNumber - 1},
+					{Protocol: "UDP", Start: forge.NativeVNCPortNumber + 1, End: 65535},
+				}
+				Expect(domain.Devices.Interfaces).To(ContainElement(*expectedIface))
+			})
+		})
 	})
 
 	Describe("The forge.Volumes function", func() {
@@ -454,5 +475,11 @@ var _ = Describe("VirtualMachines and VirtualMachineInstances forging", func() {
 				Port:        forge.SSHPortNumber,
 			}),
 		)
+
+		It("Should return no probe when the environment is served by native VNC", func() {
+			environment := clv1alpha2.Environment{EnvironmentType: clv1alpha2.ClassVM, GuiMode: clv1alpha2.GuiModeNative}
+			Expect(forge.VirtualMachineReadinessProbe(&environment)).To(BeNil())
+		})
 	})
+
 })

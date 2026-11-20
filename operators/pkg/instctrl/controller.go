@@ -306,7 +306,7 @@ func (r *InstanceReconciler) enforceEnvironments(ctx context.Context) error {
 		case clv1alpha2.ClassStandalone, clv1alpha2.ClassContainer:
 			urlNeeded = true
 		case clv1alpha2.ClassVM, clv1alpha2.ClassCloudVM, clv1alpha2.ClassLocalVM:
-			if tmplEnv.GuiEnabled {
+			if forge.EnvironmentGuiMode(tmplEnv) != "" {
 				urlNeeded = true
 			}
 		}

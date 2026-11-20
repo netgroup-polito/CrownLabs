@@ -21,6 +21,7 @@ import type {
 import {
   AutoEnroll,
   EnvironmentType,
+  GuiMode,
   Phase,
   Phase2,
   Phase5,
@@ -82,6 +83,15 @@ const parseOtherResources = (
   });
 
   return parsed;
+};
+
+// Mirrors forge.EnvironmentGuiMode in the operator: guiMode wins when set,
+// otherwise the deprecated guiEnabled flag means Web.
+export const environmentGuiMode = (
+  env?: Maybe<{ guiEnabled?: Maybe<boolean>; guiMode?: Maybe<GuiMode> }>,
+): GuiMode | undefined => {
+  if (env?.guiMode) return env.guiMode;
+  return env?.guiEnabled ? GuiMode.Web : undefined;
 };
 
 export const makeGuiTemplate = (
@@ -387,11 +397,14 @@ export const makeGuiInstance = (
         templateEnv?.resources?.otherResources,
       );
 
+      const guiMode = environmentGuiMode(templateEnv);
+
       return {
         name: envStatus?.name ?? templateEnv?.name ?? '',
         phase: envStatus?.phase,
         ip: envStatus?.ip,
-        guiEnabled: templateEnv?.guiEnabled ?? false,
+        guiEnabled: guiMode !== undefined,
+        guiMode,
         persistent: templateEnv?.persistent ?? false,
         environmentType: templateEnv?.environmentType,
         quota: {
@@ -413,7 +426,7 @@ export const makeGuiInstance = (
   const primaryEnvironment = (templateEnvironmentList ?? [])[0] ?? {};
   const primaryStatus = environments[0];
 
-  const { guiEnabled, persistent, environmentType } = primaryEnvironment;
+  const { persistent, environmentType } = primaryEnvironment;
 
   // determine if public exposure is allowed from template spec
   const allowPublicExposure =
@@ -435,7 +448,7 @@ export const makeGuiInstance = (
     id: instanceID,
     name: name || '',
     prettyName: prettyName || '',
-    gui: guiEnabled || false,
+    gui: environmentGuiMode(primaryEnvironment) !== undefined,
     persistent: persistent || false,
     templatePrettyName: templatePrettyName,
     templateName: templateName,

@@ -1,5 +1,10 @@
 import type { Dispatch, ReactNode, SetStateAction } from 'react';
-import type { EnvironmentType, Phase2, Phase5 } from './generated-types';
+import type {
+  EnvironmentType,
+  GuiMode,
+  Phase2,
+  Phase5,
+} from './generated-types';
 import { Role } from './generated-types';
 import type { ContainerStartupOptionsForm } from './components/workspaces/ModalCreateTemplate/types';
 import { VITE_APP_CUSTOM_RESOURCES } from './env';
@@ -58,6 +63,7 @@ export type InstanceEnvironment = {
   phase?: Phase2;
   ip?: string;
   guiEnabled?: boolean;
+  guiMode?: GuiMode;
   persistent?: boolean;
   environmentType?: EnvironmentType;
   quota: InstanceResources;
