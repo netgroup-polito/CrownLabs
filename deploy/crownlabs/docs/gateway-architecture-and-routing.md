@@ -56,11 +56,11 @@ subgraph TenantNS["`Tenant Namespace:
     TargetService["Target Service"]
 end
 
-User --> FrontendApp
 User --> LoadBalancer
-FrontendApp --> LoadBalancer
 LoadBalancer --> Proxy
 Proxy --> TargetService
+Proxy --> FrontendApp
+FrontendApp --> TargetService
 
 EnvoyGatewayController -. creates/updates .-> Proxy
 
@@ -115,15 +115,15 @@ subgraph TenantNS["`Tenant Namespace: _tenant-xyz_`"]
     TargetService["Target Service"]
 end
 
-User -.-> FrontendApp
-User -.-> Gateway
-FrontendApp -.-> Gateway
-Gateway -.-> Routes
-Gateway -.-> OtherRoute
+User .-> FrontendApp
+User .-> Gateway
+FrontendApp .-> Gateway
+Gateway -- is referenced by --> Routes
+Gateway -- is referenced by --> OtherRoute
 Gateway -. authenticated through .-> SecPols
-SecPolG -.-> CallbackRoute
-SecPolG -.-> OtherRoute
-SecPolDummy -.-> PublicRoutes
+SecPolG .-> CallbackRoute
+SecPolG .-> OtherRoute
+SecPolDummy .-> PublicRoutes
 
 EnvoyGatewayController -. watches .-> Gateway
 EnvoyGatewayController -. watches .-> Routes
