@@ -4,44 +4,96 @@ This file describes the structure and general coding guidelines of the CrownLabs
 
 ## Frontend Logic
 
-The diagram summarizes the frontend's main authentication and service interactions. 
+### Authentication
 
-Sign-in starts from the login page and is handled by *Keycloak* through OIDC. After a successful authentication, it redirects the browser to the frontend with an authorization code, which the frontend exchanges for tokens.
-
-Depending on the type of interaction, the frontend can use different paths to reach instance-related virtual environments:
-
-- **GraphQL API:** The frontend sends GraphQL queries or mutations with the access token. 
-- **Interactive remote desktop:** The frontend opens a connection to the Remote Desktop so the user can interact with an instance. 
-- **Direct service route:** When a service is exposed through a Gateway API route, the frontend can connect to that route directly.
+The Frontend uses Keycloak to authenticate the users. After authentication and the OIDC token callback, the load balancer returns `/app`. From there, the user can access and manage CrownLabs instances.
 
 ```mermaid
-flowchart LR
+sequenceDiagram
+    actor User
+    participant LB as Gateway + Load Balancer
+    participant Frontend as Frontend Page<br/>/app
+    participant Keycloak as Keycloak<br/>OIDC Authentication
+    participant Instance as Instance
 
-Home["`Home Page
-    _crownlabs.polito.it_`"]:::FrontendStyle
-Login["Login Page"]:::FrontendStyle
-Frontend["`Front-end
-    _crownlabs.polito.it/app_`"]:::FrontendStyle
-Remote["Remote Desktop"]
-Keycloak["`Keycloak
-    (OIDC Authentication)`"]
-Graph["`GraphQL
-    _crownlabs.polito.it/graph_`"]:::FrontendStyle
-GWAPI["Gateway (Balancer)"]
+    User->>LB: Open crownlabs.polito.it/app
 
-Home --> Login
-Login -. OIDC sign-in request .-> Keycloak
-Keycloak -. redirects back with authorization code .-> Frontend
-Frontend -. exchanges code for tokens .-> Keycloak
-Frontend -. GraphQL requests with access token .-> Graph
-Graph -. routes through .-> GWAPI
-Frontend -. connects .-> Remote
-Frontend -. connects .-> GWAPI
-Remote --> GWAPI
+    opt User is not authenticated
+        LB->>Keycloak: Redirect to login
+        Keycloak-->>User: Show login page
+        User->>Keycloak: Submit credentials
+        Keycloak-->>LB: OIDC callback with authorization code
+        LB->>Keycloak: Exchange the authorization code for tokens
+        Keycloak-->>LB: Return ID and access tokens
+        LB-->>User: Send token and cookies
+        Note over User,Keycloak: Authentication successful
+    end
 
-classDef FrontendStyle stroke:#FDDCD7,rx:12,ry:12,fill:none
+    LB->>Frontend: Return /app
+    Frontend-->>User: Display /app
+
+    Note over User,Instance: The user can manage and access instances
+
 ```
 
+### GraphQL
+
+Through the `/graph` route, the end user can send queries and mutations over HTTP. The Gateway forwards them to QLKube, which accesses the Kubernetes API server.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant LB as Gateway + Load Balancer
+    participant GraphQL as QLKube<br/>/graph
+    participant APIServer as Kubernetes API Server
+
+    alt Query or mutation
+        User->>LB: Send HTTP query or mutation with Bearer token
+        LB->>GraphQL: Route /graph to qlkube
+        GraphQL->>APIServer: Query or update Kubernetes resources
+        APIServer-->>GraphQL: Return resource data or mutation result
+        GraphQL-->>LB: Return the GraphQL response
+        LB-->>User: Forward the response
+    end
+```
+
+### Instance access
+
+The frontend provides three ways to access an instance:
+
+- **Interactive remote desktop:** the browser opens the graphical environment such as VSCode or the GNOME of the Distro.
+- **Direct service route:** the browser opens an application or service exposed through an instance-specific route.
+- **Web SSH:** the browser opens a WebSocket connection; the Bastion service then provides SSH access to the selected instance.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant LB as Gateway + Load Balancer
+    participant Frontend as Frontend Page<br/>/app
+    participant Instance as Instance Environment
+    participant Bastion as Bastion WebSSH
+
+    alt Interactive remote desktop
+        User->>Frontend: Choose the interactive remote desktop
+        Frontend->>LB: Open the instance-specific desktop route
+        LB->>Instance: Rewrite and route the request
+        Instance-->>LB: Return the remote desktop
+        LB-->>User: Display the instance desktop
+    else Direct service route
+        User->>Frontend: Choose a direct service exposed by the instance
+        Frontend->>LB: Open the instance-specific service route
+        LB->>Instance: Forward the service request
+        Instance-->>LB: Return the exposed service
+        LB-->>User: Display the direct service
+    else Web SSH
+        User->>Frontend: Choose Web SSH
+        Frontend->>LB: Open WebSocket /webssh
+        LB->>Bastion: Route the WebSocket connection
+        Bastion->>Instance: Establish SSH access
+        Instance-->>Bastion: Open the terminal session
+        Bastion-->>User: Display the Web SSH terminal
+    end
+```
 
 ## Setup
 
