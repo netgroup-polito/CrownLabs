@@ -152,7 +152,7 @@ run-operator: generate ## Run the main operator locally
 # per-realm-install and must still be passed explicitly, e.g.:
 #   make run-operator-local KEYCLOAK_CLIENT_SECRET="$SECRET"
 .PHONY: run-operator-local
-run-operator-local: KEYCLOAK_URL=https://keycloak.crownlabs.local
+run-operator-local: KEYCLOAK_URL=https://keycloak.crownlabs.local:8443
 run-operator-local: KEYCLOAK_REALM=crownlabs
 run-operator-local: KEYCLOAK_TARGET_CLIENT=k8s
 run-operator-local: KEYCLOAK_CLIENT_ID=operator-local
