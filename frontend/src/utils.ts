@@ -32,6 +32,7 @@ export type TemplateEnvironment = {
   guiEnabled: boolean;
   persistent: boolean;
   environmentType?: EnvironmentType;
+  cluster?: { workersCount: number };
   resources: Resources;
   image: string;
   mountMyDriveVolume?: boolean;
@@ -60,6 +61,7 @@ export type InstanceEnvironment = {
   guiEnabled?: boolean;
   persistent?: boolean;
   environmentType?: EnvironmentType;
+  cluster?: { workersCount: number };
   quota: InstanceResources;
 };
 

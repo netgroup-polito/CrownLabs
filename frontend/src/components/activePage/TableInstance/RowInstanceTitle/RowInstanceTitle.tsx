@@ -3,13 +3,17 @@ import {
   DesktopOutlined,
   AppstoreAddOutlined,
   DockerOutlined,
+  DeploymentUnitOutlined,
 } from '@ant-design/icons';
 import { Checkbox, Space, Tooltip, Typography } from 'antd';
 import SvgInfinite from '../../../../assets/infinite.svg?react';
 import type { ApolloError } from '@apollo/client';
 import { type FC, useContext, useEffect, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
-import { useApplyInstanceMutation } from '../../../../generated-types';
+import {
+  EnvironmentType,
+  useApplyInstanceMutation,
+} from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { setInstancePrettyname } from '../../../../utilsLogic';
 import PersistentIcon from '../../../common/PersistentIcon/PersistentIcon';
@@ -137,7 +141,16 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                             <div key={index} className="p-1">
                               <div className="flex items-center gap-2 mb-1">
                                 <span className="font-medium">{env.name}</span>
-                                {env.guiEnabled ? (
+                                {env.environmentType ===
+                                EnvironmentType.Cluster ? (
+                                  <Space>
+                                    <DeploymentUnitOutlined />
+                                    <span>
+                                      Kubernetes Cluster (
+                                      {env.cluster?.workersCount} workers)
+                                    </span>
+                                  </Space>
+                                ) : env.guiEnabled ? (
                                   <div className="flex items-center gap-1.5">
                                     <DesktopOutlined
                                       style={{
@@ -213,6 +226,11 @@ const RowInstanceTitle: FC<IRowInstanceTitleProps> = ({ ...props }) => {
                         style={{ fontSize: '24px', color: '#1c7afd' }}
                       />
                     </Tooltip>
+                  ) : instance.environmentType === EnvironmentType.Cluster ? (
+                    <DeploymentUnitOutlined
+                      className="primary-color-fg"
+                      style={{ fontSize: '24px' }}
+                    />
                   ) : gui ? (
                     <DesktopOutlined
                       className="primary-color-fg"

@@ -55,11 +55,14 @@ mutation createInstance(
             spec {
               prettyName
               description
+              allowPublicExposure
+              cleanup {
+                deleteAfterCreation
+                stopAfterInactivity
+                deleteAfterInactivity
+              }
               environmentList {
-                name
-                guiEnabled
-                persistent
-                environmentType
+                ...TemplateEnvironmentFields
               }
             }
           }

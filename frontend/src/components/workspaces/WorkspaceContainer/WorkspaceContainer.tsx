@@ -8,7 +8,10 @@ import type {
   EnvironmentListListItemInput,
   SharedVolumeMountsListItemInput,
 } from '../../../generated-types';
-import { useCreateTemplateMutation } from '../../../generated-types';
+import {
+  EnvironmentType,
+  useCreateTemplateMutation,
+} from '../../../generated-types';
 import type { Workspace } from '../../../utils';
 import { WorkspaceRole, getOriginalK8sKey } from '../../../utils';
 import UserListLogic from '../../accountPage/UserListLogic/UserListLogic';
@@ -51,8 +54,11 @@ const WorkspaceContainer: FC<IWorkspaceContainerProps> = ({ ...props }) => {
       const env: EnvironmentListListItemInput = {
         name: formEnv.name.trim(),
         environmentType: formEnv.environmentType,
+        ...(formEnv.environmentType === EnvironmentType.Cluster && {
+          cluster: formEnv.cluster,
+        }),
         image: formEnv.image,
-        mountMyDriveVolume: true,
+        mountMyDriveVolume: formEnv.mountMyDriveVolume ?? true,
         resources: {
           cpu: formEnv.cpu,
           reservedCPUPercentage: formEnv.reservedCpu,

@@ -1,4 +1,5 @@
 import gql from 'graphql-tag';
+import { TemplateEnvironmentFieldsFragmentDoc } from '../../generated-types';
 
 export default gql`
   subscription updatedWorkspaceTemplates(
@@ -15,17 +16,14 @@ export default gql`
           prettyName
           description
           allowPublicExposure
+          nodeSelector
+          cleanup {
+            deleteAfterCreation
+            stopAfterInactivity
+            deleteAfterInactivity
+          }
           environmentList {
-            name
-            guiEnabled
-            persistent
-            resources {
-              cpu
-              disk
-              memory
-              reservedCPUPercentage
-              otherResources
-            }
+            ...TemplateEnvironmentFields
           }
           workspaceCrownlabsPolitoItWorkspaceRef {
             name
@@ -38,4 +36,5 @@ export default gql`
       }
     }
   }
+  ${TemplateEnvironmentFieldsFragmentDoc}
 `;

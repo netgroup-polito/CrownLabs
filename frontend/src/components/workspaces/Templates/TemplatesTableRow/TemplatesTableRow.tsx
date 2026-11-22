@@ -6,6 +6,7 @@ import {
   AppstoreAddOutlined,
   DockerOutlined,
   ClockCircleOutlined,
+  DeploymentUnitOutlined,
 } from '@ant-design/icons';
 import { Space, Tooltip, Dropdown, Badge } from 'antd';
 import { Button } from 'antd';
@@ -21,6 +22,7 @@ import type {
 import {
   useInstancesLabelSelectorQuery,
   useNodesLabelsQuery,
+  EnvironmentType,
 } from '../../../../generated-types';
 import { TenantContext } from '../../../../contexts/TenantContext';
 import {
@@ -36,6 +38,8 @@ import { cleanupLabels, convertToGiB, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import { TemplatesTableRowSettings } from '../TemplatesTableRowSettings';
 import NodeSelectorIcon from '../../../common/NodeSelectorIcon/NodeSelectorIcon';
+import { hasClusterEnvironment } from '../../../../utils/cluster';
+import { canCreateInstance } from '../../../../utils/quota';
 
 export interface ITemplatesTableRowProps {
   template: Template;
@@ -66,49 +70,24 @@ export interface ITemplatesTableRowProps {
   >;
   expandRow: (value: string, create: boolean) => void;
 }
-const canCreateInstance = (
-  template: Template,
-  availableQuota: IQuota,
-): boolean => {
-  if (!availableQuota) return true;
-
-  const templateCpu = template.resources?.cpu || 0;
-  const templateMemory = convertToGiB(template.resources?.memory || '0Gi');
-  const templateDisk = convertToGiB(template.resources?.disk || '0Gi');
-
-  const templateOtherResources = {
-    ...template.environmentList?.[0]?.resources?.otherResources,
-  };
-
-  const normalizedQuotaOther: Record<string, number> = {};
-  if (availableQuota.otherResources) {
-    Object.entries(availableQuota.otherResources).forEach(([qKey, qVal]) => {
-      const k8sKey = getOriginalK8sKey(qKey);
-      normalizedQuotaOther[k8sKey] =
-        (normalizedQuotaOther[k8sKey] || 0) + Number(qVal);
-    });
-  }
-
-  let otherResourcesAllowed = true;
-  for (const [key, val] of Object.entries(templateOtherResources)) {
-    const required = Number(val) || 0;
-    if (required <= 0) continue;
-
-    const k8sKey = getOriginalK8sKey(key);
-    const available = normalizedQuotaOther[k8sKey] || 0;
-
-    if (available < required) {
-      otherResourcesAllowed = false;
-      break;
-    }
-  }
-
+const ClusterInfo: FC<{ env: Template['environmentList'][number] }> = ({
+  env,
+}) => {
+  const workers = env.cluster?.workersCount ?? 1;
+  const ram = convertToGiB(env.resources.memory);
   return (
-    availableQuota.instances >= 1 &&
-    availableQuota.cpu >= templateCpu &&
-    availableQuota.memory >= templateMemory &&
-    availableQuota.disk >= templateDisk &&
-    otherResourcesAllowed
+    <>
+      <div>Workers: {workers}</div>
+      <div>Flavor: {env.image}</div>
+      <div>
+        CPU: {env.resources.cpu * workers} vCPU(s) ({env.resources.cpu} per
+        worker)
+      </div>
+      <div>
+        RAM: {ram ? ram * workers : 'unavailable'} GiB ({ram || 'unavailable'}{' '}
+        per worker)
+      </div>
+    </>
   );
 };
 
@@ -124,6 +103,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
   workspaceAvailableQuota,
 }) => {
   const canCreate = canCreateInstance(template, workspaceAvailableQuota);
+  const hasCluster = hasClusterEnvironment(template.environmentList);
 
   const stopTimeout = template.cleanup?.stopAfterInactivity ?? 'never';
   const deleteTimeout = template.cleanup?.deleteAfterInactivity ?? 'never';
@@ -268,7 +248,15 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                         <div key={index} className="p-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-medium">{env.name}</span>
-                            {env.guiEnabled ? (
+                            {env.environmentType === EnvironmentType.Cluster ? (
+                              <Space>
+                                <DeploymentUnitOutlined />
+                                <span>
+                                  Kubernetes Cluster (
+                                  {env.cluster?.workersCount} workers)
+                                </span>
+                              </Space>
+                            ) : env.guiEnabled ? (
                               <div className="flex items-center gap-1.5">
                                 <DesktopOutlined
                                   style={{ fontSize: '14px', color: '#1c7afd' }}
@@ -377,6 +365,11 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                     />
                   </Badge>
                 </Tooltip>
+              ) : template.environmentList[0]?.environmentType ===
+                EnvironmentType.Cluster ? (
+                <DeploymentUnitOutlined
+                  style={{ fontSize: '24px', color: '#1c7afd' }}
+                />
               ) : template.gui ? (
                 <DesktopOutlined
                   style={{ fontSize: '24px', color: '#1c7afd' }}
@@ -503,14 +496,20 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                           className="mb-2 p-2 border-l-2 border-blue-300"
                         >
                           <div className="font-medium">Env: {env.name}</div>
-                          <div>GUI: {env.guiEnabled ? 'Yes' : 'No'}</div>
-                          <div>CPU: {env.resources.cpu} core(s)</div>
-                          <div>
-                            RAM:{' '}
-                            {convertToGiB(env.resources.memory) ||
-                              'unavailable'}{' '}
-                            GiB
-                          </div>
+                          {env.environmentType === EnvironmentType.Cluster ? (
+                            <ClusterInfo env={env} />
+                          ) : (
+                            <>
+                              <div>GUI: {env.guiEnabled ? 'Yes' : 'No'}</div>
+                              <div>CPU: {env.resources.cpu} core(s)</div>
+                              <div>
+                                RAM:{' '}
+                                {convertToGiB(env.resources.memory) ||
+                                  'unavailable'}{' '}
+                                GiB
+                              </div>
+                            </>
+                          )}
                           {env.persistent && (
                             <div>
                               DISK:{' '}
@@ -588,14 +587,22 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                   </div>
                 ) : (
                   <>
-                    <div>
-                      CPU: {template.resources.cpu || 'unavailable'}vCPU(s)
-                    </div>
-                    <div>
-                      RAM:{' '}
-                      {convertToGiB(template.resources.memory) || 'unavailable'}
-                      GiB
-                    </div>
+                    {template.environmentList[0]?.environmentType ===
+                    EnvironmentType.Cluster ? (
+                      <ClusterInfo env={template.environmentList[0]} />
+                    ) : (
+                      <>
+                        <div>
+                          CPU: {template.resources.cpu || 'unavailable'}vCPU(s)
+                        </div>
+                        <div>
+                          RAM:{' '}
+                          {convertToGiB(template.resources.memory) ||
+                            'unavailable'}
+                          GiB
+                        </div>
+                      </>
+                    )}
                     <div>
                       {template.persistent
                         ? ` DISK: ${
@@ -669,6 +676,7 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
               <Button
                 onClick={createInstanceHandler}
                 className="xs:hidden block"
+                disabled={createDisabled || !canCreate}
                 type="link"
                 color="primary"
                 size="large"
@@ -699,7 +707,8 @@ const TemplatesTableRow: FC<ITemplatesTableRowProps> = ({
                 </Button>
               </span>
             </Tooltip>
-          ) : template.nodeSelector &&
+          ) : !hasCluster &&
+            template.nodeSelector &&
             JSON.stringify(template.nodeSelector) === '{}' ? (
             <Dropdown.Button
               menu={{

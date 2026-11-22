@@ -14,36 +14,7 @@ mutation applyTemplateJsonPatch(
       prettyName
       description
       environmentList {
-        name
-        guiEnabled
-        persistent
-        image
-        disableControls
-        rewriteURL
-        storageClassName
-        mountMyDriveVolume
-        containerStartupOptions {
-          sourceArchiveURL
-          contentPath
-          startupArgs
-          enforceWorkdir
-        }
-        environmentType
-        resources {
-          cpu
-          disk
-          memory
-          reservedCPUPercentage
-          otherResources
-        }
-        sharedVolumeMounts {
-          sharedVolume {
-            namespace
-            name
-          }
-          mountPath
-          readOnly
-        }
+        ...TemplateEnvironmentFields
       }
     }
     metadata {

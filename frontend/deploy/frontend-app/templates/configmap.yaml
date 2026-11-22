@@ -28,6 +28,7 @@ data:
     window.VITE_APP_CROWNLABS_IMAGELIST_CONTAINERDISKS="harbor-containerdisks-pre-production";
     window.VITE_APP_CROWNLABS_IMAGELIST_PUBLIC_SNAPSHOTS="crownlabs-public-local-snapshots-pre-production";
     {{- end }}
+    window.VITE_APP_CROWNLABS_IMAGELIST_CLUSTER_FLAVORS ={{ .Values.configuration.imagelist.clusterFlavors | default "local-clusterflavors" | quote }};
     window.VITE_APP_DEFAULT_STOP_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.stopAfterInactivity }}";
     window.VITE_APP_DEFAULT_DELETE_AFTER_INACTIVITY="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterInactivity }}";
     window.VITE_APP_DEFAULT_DELETE_AFTER_CREATION="{{ .Values.configuration.defaultTimeouts.cleanup.deleteAfterCreation }}";

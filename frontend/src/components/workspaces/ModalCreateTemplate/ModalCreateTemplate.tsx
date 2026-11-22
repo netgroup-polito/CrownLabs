@@ -44,11 +44,14 @@ import type { Interval, TemplateForm } from './types';
 import {
   formItemLayout,
   getDefaultTemplate,
+  normalizeClusterEnvironment,
   internalRegistry,
+  useClusterFlavorNames,
   useImageLists,
   usePublicSnapshotImageList,
   type ImageListQueryOptions,
 } from './utils';
+import { hasClusterEnvironment } from '../../../utils/cluster';
 
 const { Text } = Typography;
 
@@ -142,15 +145,26 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
     loadingPublicSnapshotImageList,
     publicSnapshotImageListError,
   } = usePublicSnapshotImageList(imageListOptions);
+  const { clusterFlavorNames, loadingClusterFlavors, clusterFlavorsError } =
+    useClusterFlavorNames(imageListOptions);
 
   const [form] = Form.useForm<TemplateForm>();
-  const environments = Form.useWatch('environments', form);
+  const environments = Form.useWatch<TemplateForm['environments'] | undefined>(
+    'environments',
+    form,
+  );
+  const hasCluster = hasClusterEnvironment(
+    environments ?? template?.environments ?? [],
+  );
   const isPersistent =
     (
       environments ??
       form.getFieldValue('environments') ??
       template?.environments
-    )?.some(env => env?.persistent) ?? false;
+    )?.some(
+      (env: TemplateForm['environments'][number]) =>
+        env.environmentType !== EnvironmentType.Cluster && env.persistent,
+    ) ?? false;
 
   const stopInputRef = useRef<React.ComponentRef<typeof InputNumber>>(null);
   const deleteInactivityInputRef =
@@ -231,7 +245,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   // Determine the final image URL
   const parseImage = (envType: EnvironmentType, image: string): string => {
-    if (envType === EnvironmentType.LocalVm) return image;
+    if (
+      envType === EnvironmentType.LocalVm ||
+      envType === EnvironmentType.Cluster
+    )
+      return image;
     // The form stores internal images as "name:version", matching Image.name
     if (envType === EnvironmentType.VirtualMachine) {
       const selectedImage = availableImagesVM.find(i => i.name === image);
@@ -261,7 +279,9 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
   const handleFormFinish = async (template: TemplateForm) => {
     let nodeSelectorObject: { [key: string]: string } | undefined | null;
-    if (nodeSelectorMode === NodeSelectorOptionMap['SelectAnyNode']) {
+    if (hasCluster) {
+      nodeSelectorObject = props.template?.nodeSelector ? null : undefined;
+    } else if (nodeSelectorMode === NodeSelectorOptionMap['SelectAnyNode']) {
       nodeSelectorObject = {};
     } else if (
       nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] &&
@@ -287,15 +307,17 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
 
     const parsedTemplate = {
       ...template,
-      allowPublicExposure: isPublicExposureEnabled,
+      allowPublicExposure: !hasCluster && isPublicExposureEnabled,
       description: template.description || template.name,
       cleanup: {
         stopAfterInactivity:
-          timeouts.stopAfterInactivity.value === 0
+          hasCluster || timeouts.stopAfterInactivity.value === 0
             ? 'never'
             : `${timeouts.stopAfterInactivity.value}${timeouts.stopAfterInactivity.unit}`,
         deleteAfterInactivity:
-          !isPersistent || timeouts.deleteAfterInactivity.value === 0
+          hasCluster ||
+          !isPersistent ||
+          timeouts.deleteAfterInactivity.value === 0
             ? 'never'
             : `${timeouts.deleteAfterInactivity.value}${timeouts.deleteAfterInactivity.unit}`,
         deleteAfterCreation:
@@ -304,7 +326,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             : `${timeouts.deleteAfterCreation.value}${timeouts.deleteAfterCreation.unit}`,
       },
       environments: template.environments.map(env => ({
-        ...env,
+        ...normalizeClusterEnvironment(env),
         image: parseImage(env.environmentType, env.image),
       })),
       ...(nodeSelectorObject !== undefined && {
@@ -619,6 +641,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       | 'deleteAfterInactivity'
       | 'deleteAfterCreation',
   ) => {
+    if (hasCluster) return;
     const toMinutes = (
       t: { value: number; unit: string } | string | undefined,
     ) => {
@@ -742,13 +765,17 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         }
         name={['cleanup', 'stopAfterInactivity']}
         validateTrigger="onChange"
-        rules={[
-          { validator: validateTimeout },
-          {
-            validator: (rule, value) =>
-              validateTimeoutOrder(rule, value, 'stopAfterInactivity'),
-          },
-        ]}
+        rules={
+          hasCluster
+            ? []
+            : [
+                { validator: validateTimeout },
+                {
+                  validator: (rule, value) =>
+                    validateTimeoutOrder(rule, value, 'stopAfterInactivity'),
+                },
+              ]
+        }
         {...formItemLayout}
       >
         <div className="flex flex-1 w-full items-center justify-between">
@@ -777,12 +804,13 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           <div className="flex gap-4 items-center">
             <InputNumber
               ref={stopInputRef}
+              disabled={hasCluster}
               onChange={value =>
                 handleTimeoutValueChange(value, 'stopAfterInactivity')
               }
               onBlur={e => handleTimeoutInputSync(e, 'stopAfterInactivity')}
               min={0}
-              defaultValue={timeouts.stopAfterInactivity.value}
+              value={hasCluster ? 0 : timeouts.stopAfterInactivity.value}
             />
 
             <Select
@@ -790,14 +818,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               onChange={value =>
                 handleTimeUnitChange(value, 'stopAfterInactivity')
               }
-              disabled={isTimeUnitDisabled('stopAfterInactivity')}
+              disabled={hasCluster || isTimeUnitDisabled('stopAfterInactivity')}
               placeholder="Select Time unit"
               getPopupContainer={trigger =>
                 trigger.parentElement || document.body
               }
-              defaultValue={
-                parseTimeoutString(template?.cleanup?.stopAfterInactivity).unit
-              }
+              value={hasCluster ? 'd' : timeouts.stopAfterInactivity.unit}
             >
               {TimeUnitOptions.map(option => (
                 <Select.Option key={option.value} value={option.value}>
@@ -822,7 +848,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
         }
         name={['cleanup', 'deleteAfterInactivity']}
         validateTrigger="onChange"
-        rules={[{ validator: validateTimeout }]}
+        rules={hasCluster ? [] : [{ validator: validateTimeout }]}
         {...formItemLayout}
       >
         <div className="flex flex-1 w-full items-center justify-between">
@@ -851,8 +877,12 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               }
               onBlur={e => handleTimeoutInputSync(e, 'deleteAfterInactivity')}
               min={0}
-              value={!isPersistent ? 0 : timeouts.deleteAfterInactivity.value}
-              disabled={!isPersistent}
+              value={
+                hasCluster || !isPersistent
+                  ? 0
+                  : timeouts.deleteAfterInactivity.value
+              }
+              disabled={hasCluster || !isPersistent}
             />
 
             <Select
@@ -861,13 +891,19 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                 handleTimeUnitChange(value, 'deleteAfterInactivity')
               }
               disabled={
-                !isPersistent || isTimeUnitDisabled('deleteAfterInactivity')
+                hasCluster ||
+                !isPersistent ||
+                isTimeUnitDisabled('deleteAfterInactivity')
               }
               placeholder="Select Time unit"
               getPopupContainer={trigger =>
                 trigger.parentElement || document.body
               }
-              value={!isPersistent ? 'd' : timeouts.deleteAfterInactivity.unit}
+              value={
+                hasCluster || !isPersistent
+                  ? 'd'
+                  : timeouts.deleteAfterInactivity.unit
+              }
             >
               {TimeUnitOptions.map(option => (
                 <Select.Option key={option.value} value={option.value}>
@@ -919,7 +955,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               }
               onBlur={e => handleTimeoutInputSync(e, 'deleteAfterCreation')}
               min={0}
-              defaultValue={timeouts.deleteAfterCreation.value}
+              value={timeouts.deleteAfterCreation.value}
             />
 
             <Select
@@ -932,9 +968,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               getPopupContainer={trigger =>
                 trigger.parentElement || document.body
               }
-              defaultValue={
-                parseTimeoutString(template?.cleanup?.deleteAfterCreation).unit
-              }
+              value={timeouts.deleteAfterCreation.unit}
             >
               {TimeUnitOptions.map(option => (
                 <Select.Option key={option.value} value={option.value}>
@@ -951,6 +985,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
   const environmentListForm = (
     <>
       <EnvironmentList
+        clusterFlavorNames={clusterFlavorNames}
         availableImagesVM={availableImagesVM}
         availableImagesContainer={availableImagesContainer}
         publicSnapshotImageList={publicSnapshotImageList}
@@ -987,9 +1022,11 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
       <Form.Item
         name="allowPublicExposure"
         valuePropName="checked"
+        getValueProps={(value?: boolean) => ({ checked: !hasCluster && value })}
         className="gap-6 "
       >
         <Checkbox
+          disabled={hasCluster}
           onChange={e => setIsPublicExposureEnabled(e.target.checked)}
           className="ml-4"
         >
@@ -1014,6 +1051,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
             </Tooltip>
           </Typography.Paragraph>
           <Select
+            disabled={hasCluster}
             style={{ width: '100%' }}
             value={nodeSelectorMode}
             onChange={handleNodeSelectorModeChange}
@@ -1029,44 +1067,45 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
           </Select>
         </Space>
         <Space direction="vertical" style={{ width: '50%' }}>
-          {nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && (
-            <>
-              <Typography.Paragraph className="mb-0">
-                Labels:{' '}
-                <Tooltip
-                  title={
-                    <span>
-                      Select on which node types instances based on this
-                      template can be scheduled. This option is enabled only if{' '}
-                      <strong>Fixed</strong> is selected. For the same tag, only
-                      one value can be selected (e.g. nodeSize=big and
-                      nodeSize=small cannot be selected simultaneously).
-                    </span>
+          {!hasCluster &&
+            nodeSelectorMode === NodeSelectorOptionMap['FixedSelection'] && (
+              <>
+                <Typography.Paragraph className="mb-0">
+                  Labels:{' '}
+                  <Tooltip
+                    title={
+                      <span>
+                        Select on which node types instances based on this
+                        template can be scheduled. This option is enabled only
+                        if <strong>Fixed</strong> is selected. For the same tag,
+                        only one value can be selected (e.g. nodeSize=big and
+                        nodeSize=small cannot be selected simultaneously).
+                      </span>
+                    }
+                  >
+                    <InfoCircleOutlined className="ml-1" />
+                  </Tooltip>
+                </Typography.Paragraph>
+                <Select
+                  disabled={
+                    nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection']
                   }
-                >
-                  <InfoCircleOutlined className="ml-1" />
-                </Tooltip>
-              </Typography.Paragraph>
-              <Select
-                disabled={
-                  nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection']
-                }
-                style={{ width: '100%' }}
-                mode="multiple"
-                placeholder="Select"
-                onChange={handleSelectorLabelChange}
-                options={getNodeLabelsOptions}
-                value={selectedLabels}
-                status={
-                  nodeSelectorMode ===
-                    NodeSelectorOptionMap['FixedSelection'] &&
-                  selectedLabels.length === 0
-                    ? 'error'
-                    : undefined
-                }
-              />
-            </>
-          )}
+                  style={{ width: '100%' }}
+                  mode="multiple"
+                  placeholder="Select"
+                  onChange={handleSelectorLabelChange}
+                  options={getNodeLabelsOptions}
+                  value={selectedLabels}
+                  status={
+                    nodeSelectorMode ===
+                      NodeSelectorOptionMap['FixedSelection'] &&
+                    selectedLabels.length === 0
+                      ? 'error'
+                      : undefined
+                  }
+                />
+              </>
+            )}
         </Space>
       </Flex>
     </>
@@ -1127,7 +1166,7 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               key: '1',
               label: (
                 <Typography.Text strong>
-                  Virtual Machines / Containers
+                  Virtual Machines / Containers / Clusters
                 </Typography.Text>
               ),
               children: environmentListForm,
@@ -1156,13 +1195,17 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                   <Text keyboard>
                     Stop{' '}
                     <StatusIcon
-                      active={!isTimeUnitDisabled('stopAfterInactivity')}
+                      active={
+                        !hasCluster &&
+                        !isTimeUnitDisabled('stopAfterInactivity')
+                      }
                     />
                   </Text>{' '}
                   <Text keyboard delete={!isPersistent}>
                     Delete{' '}
                     <StatusIcon
                       active={
+                        !hasCluster &&
                         isPersistent &&
                         !isTimeUnitDisabled('deleteAfterInactivity')
                       }
@@ -1188,14 +1231,18 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
               extra: (
                 <>
                   <Text keyboard>
-                    Exposure <StatusIcon active={isPublicExposureEnabled} />
+                    Exposure{' '}
+                    <StatusIcon
+                      active={!hasCluster && isPublicExposureEnabled}
+                    />
                   </Text>{' '}
                   <Text keyboard>
                     Node Selector{' '}
                     <StatusIcon
                       active={
+                        !hasCluster &&
                         nodeSelectorMode !==
-                        NodeSelectorOptionMap['NodeSelectorDisabled']
+                          NodeSelectorOptionMap['NodeSelectorDisabled']
                       }
                     />
                   </Text>
@@ -1237,16 +1284,24 @@ const ModalCreateTemplate: FC<IModalCreateTemplateProps> = ({ ...props }) => {
                     env.name.trim() !== '' &&
                     env.environmentType &&
                     env.image &&
-                    env.image.trim() !== '',
+                    env.image.trim() !== '' &&
+                    (env.environmentType !== EnvironmentType.Cluster ||
+                      (clusterFlavorNames?.includes(env.image) &&
+                        Number.isInteger(env.cluster?.workersCount) &&
+                        (env.cluster?.workersCount ?? 0) >= 1 &&
+                        (env.cluster?.workersCount ?? 0) <= 10)),
                 );
 
               // Node selector validation
               const nodeSelectorValid =
+                hasCluster ||
                 nodeSelectorMode !== NodeSelectorOptionMap['FixedSelection'] ||
                 selectedLabels.length > 0;
 
               const isDisabled =
                 hasErrors ||
+                (hasCluster &&
+                  (loadingClusterFlavors || clusterFlavorsError)) ||
                 !hasTemplateName ||
                 !hasValidEnvironments ||
                 !nodeSelectorValid;

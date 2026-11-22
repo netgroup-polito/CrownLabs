@@ -1,0 +1,35 @@
+fragment TemplateEnvironmentFields on EnvironmentListListItem {
+  name
+  environmentType
+  image
+  cluster {
+    workersCount
+  }
+  guiEnabled
+  persistent
+  mountMyDriveVolume
+  disableControls
+  rewriteURL
+  storageClassName
+  containerStartupOptions {
+    sourceArchiveURL
+    contentPath
+    startupArgs
+    enforceWorkdir
+  }
+  resources {
+    cpu
+    disk
+    memory
+    reservedCPUPercentage
+    otherResources
+  }
+  sharedVolumeMounts {
+    sharedVolume {
+      name
+      namespace
+    }
+    mountPath
+    readOnly
+  }
+}
