@@ -129,7 +129,7 @@ EnvoyGatewayController -. watches .-> Gateway
 EnvoyGatewayController -. watches .-> Routes
 EnvoyGatewayController -. watches .-> SecPols
 EnvoyGatewayController -. watches .-> OtherRoute
-Routes -.-> TargetService
+FrontendRoute -.-> OtherRoute
 OtherRoute -.-> TargetService
 
 classDef ReleaseNSStyle stroke:#FF8000,rx:12,ry:12,fill:none,stroke-dasharray:8
