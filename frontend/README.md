@@ -6,7 +6,7 @@ This file describes the structure and general coding guidelines of the CrownLabs
 
 This section describes the client-side behavior of the CrownLabs interactions. It handles authentication via **Keycloak** (OpenID Connect) and use **QLKube** to interact with the Kubernetes resources.
 
-### Scenario 1: SPA Loading and Authentication (Login)
+### Scenario 1: Login and Authentication
 
 CrownLabs is a **Single Page Application (SPA)**: after loading the initial assets, the JavaScript code runs in the user's browser and detects whether the user is already authenticated or not, triggering the OIDC authentication procedure with **Keycloak** if a valid session or active token is missing.
 
@@ -66,7 +66,7 @@ sequenceDiagram
     participant GraphQL as QLKube
     participant APIServer as Kubernetes API Server
 
-    Note over User,LB: User must be authenticated (with a valid Bearer Token)
+    Note over User,LB: User must be authenticated with a valid Bearer Token (see Scenario 1)
     User->>Browser: Perform UI action (read or write)
     Browser->>LB: HTTP POST /graph (Query/Mutation + Authorization: Bearer <token>)
     LB->>LB: Validate token and enforce access policies
