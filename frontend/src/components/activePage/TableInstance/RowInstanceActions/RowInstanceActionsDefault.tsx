@@ -11,12 +11,14 @@ import { type FC, type SetStateAction, useContext, useState } from 'react';
 import { ErrorContext } from '../../../../errorHandling/ErrorContext';
 import {
   EnvironmentType,
+  GuiMode,
   Phase2,
   useDeleteInstanceMutation,
 } from '../../../../generated-types';
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
+import { BASE_URL } from '../../../../env';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -94,7 +96,8 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   const connectDisabled =
     status !== Phase2.Ready ||
     (environmentType === EnvironmentType.Container && !gui);
-
+  // The instance UID, the last segment of its URL (https://<host>/instance/<uid>/).
+  const instanceUid = url?.match(/\/instance\/([^/]+)\/?$/)?.[1];
   const font22px = { fontSize: '22px' };
 
   const [showDeleteModalConfirm, setShowDeleteModalConfirm] = useState(false);
@@ -107,12 +110,17 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const handleEnvironmentConnect = (env: InstanceEnvironment) => {
-    if (env.guiEnabled) {
-      const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
-      const envUrl = `${baseUrl}/${env.name}/`;
-      window.open(envUrl, '_blank');
-    } else {
-      setSshModal(true);
+    switch (env.guiMode) {
+      case GuiMode.Native:
+        window.open(`${BASE_URL}vnc/${instanceUid}/${env.name}`, '_blank');
+        break;
+      case GuiMode.Web: {
+        const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
+        window.open(`${baseUrl}/${env.name}/`, '_blank');
+        break;
+      }
+      default:
+        setSshModal(true);
     }
   };
 
@@ -202,6 +210,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           }
         />
       </Tooltip>
+
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
           className={`hidden ${
