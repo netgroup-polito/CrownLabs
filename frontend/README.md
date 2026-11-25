@@ -4,71 +4,91 @@ This file describes the structure and general coding guidelines of the CrownLabs
 
 ## Frontend Logic
 
-### Authentication
+This section describes the client-side behavior of the CrownLabs interactions. It handles authentication via **Keycloak** (OpenID Connect) and use **QLKube** to interact with the Kubernetes resources.
 
-The Frontend uses Keycloak to authenticate the users. After authentication and the OIDC token callback, the load balancer returns `/app`. From there, the user can access and manage CrownLabs instances.
+### SPA Loading and Authentication (Login)
+
+CrownLabs is a **Single Page Application (SPA)**: after loading the initial assets, the JavaScript code runs in the user's browser and detects whether the user is already authenticated or not, triggering the OIDC authentication procedure with **Keycloak** if a valid session or active token is missing.
+
+Main Interacting Elements:
+* **Browser:** The user browser executes the SPA's JavaScript code, managing state, routing, and rendering.
+* **Web Server:** Delivers the static frontend application files.
+* **Keycloak:** Acts as the *Identity & Authorization Server*, handling login, SSO sessions, and JWT token issuance.
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant LB as Gateway + Load Balancer
-    participant Frontend as Frontend Page<br/>/app
-    participant Keycloak as Keycloak<br/>OIDC Authentication
-    participant Instance as Instance
+    participant Browser as Browser<br/>(SPA Client)
+    participant Server as Web Server<br/>(Assets)
+    participant Keycloak as Keycloak<br/>(OIDC Provider)
 
-    User->>LB: Open crownlabs.polito.it/app
+    User->>Browser: Navigate to crownlabs.polito.it/app
+    Browser->>Server: Request assets
+    Server-->>Browser: Return HTML, CSS, and JS bundle
+    Browser->>Browser: Execute JS bundle and initialize SPA
+    Browser->>Browser: Check for active token / valid session
 
     opt User is not authenticated
-        LB->>Keycloak: Redirect to login
-        Keycloak-->>User: Show login page
-        User->>Keycloak: Submit credentials
-        Keycloak-->>LB: OIDC callback with authorization code
-        LB->>Keycloak: Exchange the authorization code for tokens
-        Keycloak-->>LB: Return ID and access tokens
-        LB-->>User: Send token and cookies
+        Browser->>Keycloak: Redirect to Keycloak
+        Keycloak-->>Browser: Return login page
+        Browser-->>User: Display login form
+        User->>Browser: Enter credentials
+        Browser->>Keycloak: Submit credentials
+        Keycloak->>Keycloak: Verify credentials
+        Keycloak-->>Browser: Redirect to Callback URL with Authorization Code
+        Browser->>Keycloak: Exchange Authorization Code for tokens
+        Keycloak-->>Browser: Return Access, Refresh, and ID Tokens
+        Browser->>Browser: Store/manage tokens in session memory
         Note over User,Keycloak: Authentication successful
     end
 
-    LB->>Frontend: Return /app
-    Frontend-->>User: Display /app
-
-    Note over User,Instance: The user can manage and access instances
-
+    Browser->>Browser: Render SPA user interface (UI)
+    Browser-->>User: Display CrownLabs main page
 ```
 
-### GraphQL
+### GraphQL Operations (Queries and Mutations)
 
-Through the `/graph` route, the end user can send queries and mutations over HTTP. The Gateway forwards them to QLKube, which accesses the Kubernetes API server.
+Describes how the User can reads or modifies the state of **Kubernetes** resources via the GraphQL endpoint. Every action request carries the `Bearer Token` to enable identity validation and permission checks across the chain, therefore the User must be already authenticate.
+
+**Note**: Access the GraphQL playground at `crownlabs.polito.it/graph`.
+
+Main Interacting Elements:
+* **QLKube:** GraphQL layer that translates frontend queries and *mutations* into operations on Kubernetes resources.
+* **Kubernetes API Server:** Core cluster component that exposes and persists the state of Kubernetes resources.
+* **Gateway API Data Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
 
 ```mermaid
 sequenceDiagram
+    autonumber
     actor User
-    participant LB as Gateway + Load Balancer
-    participant GraphQL as QLKube<br/>/graph
+    participant Browser as User Browser
+    participant LB as Gateway API Data Plane
+    participant GraphQL as QLKube
     participant APIServer as Kubernetes API Server
 
-    alt Query or mutation
-        User->>LB: Send HTTP query or mutation with Bearer token
-        LB->>GraphQL: Route /graph to qlkube
-        GraphQL->>APIServer: Query or update Kubernetes resources
-        APIServer-->>GraphQL: Return resource data or mutation result
-        GraphQL-->>LB: Return the GraphQL response
-        LB-->>User: Forward the response
-    end
+    Note over User,LB: User must be authenticated (with a valid Bearer Token)
+    User->>Browser: Perform UI action (read or write)
+    Browser->>LB: HTTP POST /graph (Query/Mutation + Authorization: Bearer <token>)
+    LB->>LB: Validate token and enforce access policies
+    LB->>GraphQL: Route /graph request
+    GraphQL->>APIServer: Query or update Kubernetes resources (CRDs/objects)
+    APIServer-->>GraphQL: Return resource data or operation result
+    GraphQL-->>LB: Return GraphQL payload
+    LB-->>Browser: Forward GraphQL response
+    Browser-->>User: Display response
 ```
 
-### Instance access
+### Accessing a Remote Instance
 
-The frontend provides three ways to access an instance:
+CrownLabs front-end provides **two main ways** to access an instance:
 
-- **Interactive remote desktop:** the browser opens the graphical environment such as VSCode or the GNOME of the Distro.
-- **Direct service route:** the browser opens an application or service exposed through an instance-specific route.
+- **Interactive Remote Desktop:** the browser opens the graphical environment such as VSCode or the GNOME of the Distro.
 - **Web SSH:** the browser opens a WebSocket connection; the Bastion service then provides SSH access to the selected instance.
 
 ```mermaid
 sequenceDiagram
     actor User
-    participant LB as Gateway + Load Balancer
+    participant LB as Gateway API Data Plane
     participant Frontend as Frontend Page<br/>/app
     participant Instance as Instance Environment
     participant Bastion as Bastion WebSSH
@@ -79,12 +99,6 @@ sequenceDiagram
         LB->>Instance: Rewrite and route the request
         Instance-->>LB: Return the remote desktop
         LB-->>User: Display the instance desktop
-    else Direct service route
-        User->>Frontend: Choose a direct service exposed by the instance
-        Frontend->>LB: Open the instance-specific service route
-        LB->>Instance: Forward the service request
-        Instance-->>LB: Return the exposed service
-        LB-->>User: Display the direct service
     else Web SSH
         User->>Frontend: Choose Web SSH
         Frontend->>LB: Open WebSocket /webssh
@@ -93,6 +107,47 @@ sequenceDiagram
         Instance-->>Bastion: Open the terminal session
         Bastion-->>User: Display the Web SSH terminal
     end
+```
+
+
+Describes how a request to a specific instance (`<uuid>/<env>`) is handled through the **Gateway API Data Plane**, verifying authentication/authorization and forwarding traffic to the target instance.
+
+Main Diagram Elements:
+* **Gateway API Data Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
+* **Remote Instance:** The virtual environment that exposes the remote service or desktop interface.
+* **Keycloak:** Acts as the *Identity & Authorization Server*, handling login, SSO sessions, and JWT token issuance.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser as User Browser
+    participant LB as Gateway API Data Plane
+    participant Keycloak as Keycloak<br/>(OIDC Provider)
+    participant Instance as Remote Instance
+
+    User->>Browser: Navigate to /app/instance/<uuid>/<env>
+    Browser->>LB: HTTP GET /app/instance/<uuid>/<env>
+    LB->>LB: Enforce Security Policy and check authentication
+
+    alt User is not authenticated or token is invalid
+        LB->>Keycloak: Redirect to Keycloak login page
+        Keycloak-->>Browser: Return login page
+        Browser-->>User: Display login form
+        User->>Browser: Enter credentials
+        Browser->>Keycloak: Submit credentials
+        Keycloak->>Keycloak: Verify credentials
+        Keycloak-->>LB: Redirect to Gateway through callback route with Authorization Code
+        LB->>Keycloak: Exchange Authorization Code for tokens
+        Keycloak-->>LB: Return Access, Refresh, and ID Tokens
+        LB-->>Browser: Set session cookie and redirect to /app/instance/<uuid>/<env>
+        Browser->>LB: HTTP GET /app/instance/<uuid>/<env> (authenticated)
+    end
+
+    LB->>Instance: Route traffic
+    Instance-->>LB: Instance response
+    LB-->>Browser: Forward response
+    Browser-->>User: Display the instance environment
+    Note over User,Instance: User can access and manage the instance
 ```
 
 ## Setup
