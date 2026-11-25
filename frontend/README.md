@@ -6,7 +6,7 @@ This file describes the structure and general coding guidelines of the CrownLabs
 
 This section describes the client-side behavior of the CrownLabs interactions. It handles authentication via **Keycloak** (OpenID Connect) and use **QLKube** to interact with the Kubernetes resources.
 
-### SPA Loading and Authentication (Login)
+### Scenario 1: SPA Loading and Authentication (Login)
 
 CrownLabs is a **Single Page Application (SPA)**: after loading the initial assets, the JavaScript code runs in the user's browser and detects whether the user is already authenticated or not, triggering the OIDC authentication procedure with **Keycloak** if a valid session or active token is missing.
 
@@ -46,7 +46,7 @@ sequenceDiagram
     Browser-->>User: Display CrownLabs main page
 ```
 
-### GraphQL Operations (Queries and Mutations)
+### Scenario 2: GraphQL Operations (Queries and Mutations)
 
 Describes how the User can reads or modifies the state of **Kubernetes** resources via the GraphQL endpoint. Every action request carries the `Bearer Token` to enable identity validation and permission checks across the chain, therefore the User must be already authenticate.
 
@@ -55,14 +55,14 @@ Describes how the User can reads or modifies the state of **Kubernetes** resourc
 Main Interacting Elements:
 * **QLKube:** GraphQL layer that translates frontend queries and *mutations* into operations on Kubernetes resources.
 * **Kubernetes API Server:** Core cluster component that exposes and persists the state of Kubernetes resources.
-* **Gateway API Data Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
+* **Gateway API Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
 
 ```mermaid
 sequenceDiagram
     autonumber
     actor User
     participant Browser as User Browser
-    participant LB as Gateway API Data Plane
+    participant LB as Gateway API Plane
     participant GraphQL as QLKube
     participant APIServer as Kubernetes API Server
 
@@ -78,56 +78,65 @@ sequenceDiagram
     Browser-->>User: Display response
 ```
 
-### Accessing a Remote Instance
+### Scenario 3: Accessing a Remote Instance
 
-CrownLabs front-end provides **two main ways** to access an instance:
+CrownLabs frontend provides **two main ways** to access an instance:
 
-- **Interactive Remote Desktop:** the browser opens the graphical environment such as VSCode or the GNOME of the Distro.
-- **Web SSH:** the browser opens a WebSocket connection; the Bastion service then provides SSH access to the selected instance.
+- **Interactive Remote Desktop (`/app/instance/<uuid>/<env>`):** the browser opens the graphical environment, such as VS Code or the distro's GNOME desktop.
+- **Web SSH (`/app/instance/<uuid>/<env>/ssh`):** the browser opens a WebSocket connection routed to the `/webssh` gateway endpoint; the Bastion service then establishes SSH access to the selected instance.
 
-```mermaid
-sequenceDiagram
-    actor User
-    participant LB as Gateway API Data Plane
-    participant Frontend as Frontend Page<br/>/app
-    participant Instance as Instance Environment
-    participant Bastion as Bastion WebSSH
+Main Interconnecting Elements:
+- **Gateway API Data Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
+- **Keycloak:** Acts as the *Identity & Authorization Server*, handling login, SSO sessions, and JWT token issuance.
+- **Instance Environment:** The virtual environment that exposes the remote desktop or SSH target.
+- **Bastion WebSSH:** Intermediary service that establishes the SSH session to the target instance.
 
-    alt Interactive remote desktop
-        User->>Frontend: Choose the interactive remote desktop
-        Frontend->>LB: Open the instance-specific desktop route
-        LB->>Instance: Rewrite and route the request
-        Instance-->>LB: Return the remote desktop
-        LB-->>User: Display the instance desktop
-    else Web SSH
-        User->>Frontend: Choose Web SSH
-        Frontend->>LB: Open WebSocket /webssh
-        LB->>Bastion: Route the WebSocket connection
-        Bastion->>Instance: Establish SSH access
-        Instance-->>Bastion: Open the terminal session
-        Bastion-->>User: Display the Web SSH terminal
-    end
-```
+#### 1. Instance Access Modes
 
-
-Describes how a request to a specific instance (`<uuid>/<env>`) is handled through the **Gateway API Data Plane**, verifying authentication/authorization and forwarding traffic to the target instance.
-
-Main Diagram Elements:
-* **Gateway API Data Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
-* **Remote Instance:** The virtual environment that exposes the remote service or desktop interface.
-* **Keycloak:** Acts as the *Identity & Authorization Server*, handling login, SSO sessions, and JWT token issuance.
+Illustrates the traffic routing through the **Gateway API Plane** for both access modes once the user is authenticated.
 
 ```mermaid
 sequenceDiagram
     actor User
     participant Browser as User Browser
-    participant LB as Gateway API Data Plane
-    participant Keycloak as Keycloak<br/>(OIDC Provider)
-    participant Instance as Remote Instance
+    participant LB as Gateway API Plane
+    participant Instance as Instance Environment
+    participant Bastion as Bastion WebSSH
 
-    User->>Browser: Navigate to /app/instance/<uuid>/<env>
-    Browser->>LB: HTTP GET /app/instance/<uuid>/<env>
-    LB->>LB: Enforce Security Policy and check authentication
+    alt Interactive Remote Desktop
+        User->>Browser: Choose "Connect to the GUI"
+        Browser->>LB: HTTP GET /app/instance/<uuid>/<env>
+        LB->>LB: Enforce Security Policy (check session/token)
+        Note over User,LB: If unauthenticated, see the OIDC Authentication Flow diagram in point 2 below
+        LB->>Instance: Rewrite and route request
+        Instance-->>LB: Return remote desktop interface
+        LB-->>Browser: Forward response
+        Browser-->>User: Display instance desktop
+    else Web SSH
+        User->>Browser: Choose "Connect through SSH"
+        Browser->>LB: Open WebSocket via /app/instance/<uuid>/<env>/ssh 
+        LB->>LB: Enforce Security Policy (check session/token)
+        Note over User,LB: If unauthenticated, see the OIDC Authentication Flow diagram in point 2 below
+        LB->>Bastion: Route WebSocket connection to /webssh
+        Bastion->>Instance: Establish SSH session
+        Instance-->>Bastion: Open terminal stream
+        Bastion-->>LB: Stream terminal session
+        LB-->>Browser: Forward response
+        Browser-->>User: Display SSH terminal
+    end
+    Note over User,Instance: User can access and manage the instance
+```
+
+#### 2. OIDC Authentication Flow (Unauthenticated Access)
+
+Describes the steps performed by the **Gateway API Plane** and **Keycloak** when an unauthenticated user attempts to access either `/app/instance/<uuid>/<env>` or `/app/instance/<uuid>/<env>/ssh` (described on point 1 above).
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser as User Browser
+    participant LB as Gateway API Plane
+    participant Keycloak as Keycloak<br/>(OIDC Provider)
 
     alt User is not authenticated or token is invalid
         LB->>Keycloak: Redirect to Keycloak login page
@@ -135,19 +144,13 @@ sequenceDiagram
         Browser-->>User: Display login form
         User->>Browser: Enter credentials
         Browser->>Keycloak: Submit credentials
-        Keycloak->>Keycloak: Verify credentials
-        Keycloak-->>LB: Redirect to Gateway through callback route with Authorization Code
+        Keycloak->>Keycloak: Verify credentials and create SSO session
+        Keycloak-->>LB: Redirect to Gateway callback route with Authorization Code
         LB->>Keycloak: Exchange Authorization Code for tokens
         Keycloak-->>LB: Return Access, Refresh, and ID Tokens
-        LB-->>Browser: Set session cookie and redirect to /app/instance/<uuid>/<env>
-        Browser->>LB: HTTP GET /app/instance/<uuid>/<env> (authenticated)
+        LB-->>Browser: Set session cookie and redirect to original URL
+        Browser->>LB: Retry request to /app/instance/<uuid>/<env>[/ssh] (authenticated)
     end
-
-    LB->>Instance: Route traffic
-    Instance-->>LB: Instance response
-    LB-->>Browser: Forward response
-    Browser-->>User: Display the instance environment
-    Note over User,Instance: User can access and manage the instance
 ```
 
 ## Setup
