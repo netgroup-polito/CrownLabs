@@ -1,14 +1,14 @@
 # CrownLabs frontend
 
-This file describes the structure and general coding guidelines of the CrownLabs frontend.
+This file describes the logical flow, structure, and general coding guidelines of the CrownLabs frontend.
 
 ## Frontend Logic
 
-This section describes the client-side behavior of the CrownLabs interactions. It handles authentication via **Keycloak** (OpenID Connect) and use **QLKube** to interact with the Kubernetes resources.
+The CrownLabs frontend is implemented as a **Single Page Application (SPA)** responsible for rendering the user interface, managing client-side state. The following scenarios detail its core operational flows: user authentication through **Keycloak**, resource management via the **GraphQL** API layer, and secure access to remote environments across the **Gateway API Data Plane**.
 
 ### Scenario 1: Login and Authentication
 
-CrownLabs is a **Single Page Application (SPA)**: after loading the initial assets, the JavaScript code runs in the user's browser and detects whether the user is already authenticated or not, triggering the OIDC authentication procedure with **Keycloak** if a valid session or active token is missing.
+CrownLabs is a **SPA**: after loading the initial assets, the JavaScript code runs in the user's browser and detects whether the user is already authenticated or not, triggering the OIDC authentication procedure with **Keycloak** if a valid session or active token is missing.
 
 Main Interacting Elements:
 * **Browser:** The user browser executes the SPA's JavaScript code, managing state, routing, and rendering.
@@ -85,6 +85,8 @@ CrownLabs frontend provides **two main ways** to access an instance:
 - **Interactive Remote Desktop (`/app/instance/<uuid>/<env>`):** the browser opens the graphical environment, such as VS Code or the distro's GNOME desktop.
 - **Web SSH (`/app/instance/<uuid>/<env>/ssh`):** the browser opens a WebSocket connection routed to the `/webssh` gateway endpoint; the Bastion service then establishes SSH access to the selected instance.
 
+**Note**: Crownlabs provides also a [direct SSH connection](#environment-ip-resolution--ssh-access). 
+
 Main Interconnecting Elements:
 - **Gateway API Data Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
 - **Keycloak:** Acts as the *Identity & Authorization Server*, handling login, SSO sessions, and JWT token issuance.
@@ -138,13 +140,15 @@ sequenceDiagram
     participant LB as Gateway API Plane
     participant Keycloak as Keycloak<br/>(OIDC Provider)
 
+    Note over User, LB: User try to access to an instance (see point 1 above)
+
     alt User is not authenticated or token is invalid
         LB->>Keycloak: Redirect to Keycloak login page
         Keycloak-->>Browser: Return login page
         Browser-->>User: Display login form
         User->>Browser: Enter credentials
         Browser->>Keycloak: Submit credentials
-        Keycloak->>Keycloak: Verify credentials and create SSO session
+        Keycloak->>Keycloak: Verify credentials
         Keycloak-->>LB: Redirect to Gateway callback route with Authorization Code
         LB->>Keycloak: Exchange Authorization Code for tokens
         Keycloak-->>LB: Return Access, Refresh, and ID Tokens
