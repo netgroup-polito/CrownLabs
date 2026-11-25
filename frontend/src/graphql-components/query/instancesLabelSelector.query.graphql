@@ -67,7 +67,6 @@ query instancesLabelSelector($labels: String) {
                 environmentList {
                   name
                   guiEnabled
-                  guiMode
                   persistent
                   environmentType
                 }

@@ -74,7 +74,6 @@ export default gql`
                   environmentList {
                     name
                     guiEnabled
-                    guiMode
                     persistent
                     environmentType
                   }

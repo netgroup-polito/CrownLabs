@@ -58,7 +58,6 @@ mutation createInstance(
               environmentList {
                 name
                 guiEnabled
-                guiMode
                 persistent
                 environmentType
               }
