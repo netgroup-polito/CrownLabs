@@ -224,7 +224,10 @@ ADDLICENSE ?= $(LOCALBIN)/addlicense
 
 ## Tool Versions
 ADDLICENSE_VERSION ?= v1.1.1
-CONTROLLER_TOOLS_VERSION ?= v0.19.0
+#CONTROLLER_TOOLS_VERSION is the version of controller-gen, pinned in go.mod via the tool directive
+CONTROLLER_TOOLS_VERSION ?= $(shell v='$(call gomodver,sigs.k8s.io/controller-tools)'; \
+  [ -n "$$v" ] || { echo "Set CONTROLLER_TOOLS_VERSION manually (controller-tools not found in go.mod)" >&2; exit 1; }; \
+  printf '%s\n' "$$v")
 
 #ENVTEST_VERSION is the version of controller-runtime release branch to fetch the envtest setup script (i.e. release-0.20)
 ENVTEST_VERSION ?= $(shell v='$(call gomodver,sigs.k8s.io/controller-runtime)'; \

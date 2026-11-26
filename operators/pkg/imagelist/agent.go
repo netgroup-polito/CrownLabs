@@ -29,6 +29,7 @@ import (
 
 // RegistryConfig contains the configuration for a single image list source.
 // Type public-snapshots reads DataVolume artifacts; instancesnapshot reads registry export Jobs.
+// Type clusterflavors catalogs ClusterFlavor resources in the configured namespace.
 type RegistryConfig struct {
 	Name          string `json:"name"`
 	Type          string `json:"type"`
@@ -38,7 +39,7 @@ type RegistryConfig struct {
 	Password      string `json:"password"`
 	ImageListName string `json:"imageListName"`
 	Project       string `json:"project,omitempty"`   // Only for Harbor
-	Namespace     string `json:"namespace,omitempty"` // Required for public-snapshots and instancesnapshot sources.
+	Namespace     string `json:"namespace,omitempty"` // Required for public-snapshots, clusterflavors and instancesnapshot sources.
 }
 
 // UpdateResult represents the result of updating a single image list.
@@ -152,6 +153,10 @@ func (u *BackgroundUpdater) Update(ctx context.Context) error {
 
 // ProcessSingleRegistryConfig processes a single registry configuration.
 func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) error {
+	if regConfig.Type == "clusterflavors" {
+		_, err := updateClusterFlavorImageList(ctx, regConfig, k8sClient, log)
+		return err
+	}
 	if regConfig.Type == "public-snapshots" {
 		_, err := updatePublicSnapshotImageList(ctx, regConfig, k8sClient, log)
 		return err
@@ -198,6 +203,9 @@ func ProcessSingleRegistryConfig(ctx context.Context, regConfig *RegistryConfig,
 
 // ProcessSingleRegistryConfigWithItems processes a single registry configuration and returns the updated items.
 func ProcessSingleRegistryConfigWithItems(ctx context.Context, regConfig *RegistryConfig, k8sClient client.Client, log logr.Logger) ([]clv1alpha1.ImageListItem, error) {
+	if regConfig.Type == "clusterflavors" {
+		return updateClusterFlavorImageList(ctx, regConfig, k8sClient, log)
+	}
 	if regConfig.Type == "public-snapshots" {
 		return updatePublicSnapshotImageList(ctx, regConfig, k8sClient, log)
 	}

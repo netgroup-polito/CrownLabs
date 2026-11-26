@@ -4,6 +4,9 @@
 
 replicaCount: 1
 
+global:
+  clusterFlavorNamespace: crownlabs-clusterflavors
+
 configurations:
   features:
     tenant: true

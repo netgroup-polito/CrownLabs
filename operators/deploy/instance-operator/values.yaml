@@ -115,4 +115,5 @@ webssh:
 rbacResourcesName: crownlabs-instance-operator
 
 global:
+  clusterFlavorNamespace: crownlabs-clusterflavors
   gateway: {}
