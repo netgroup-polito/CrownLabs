@@ -220,6 +220,7 @@ export const Environment: FC<EnvironmentProps> = ({
       const customOption = {
         value: value,
         label: value,
+        isCustom: true,
         children: [{ value: '', label: '' }],
       };
 
@@ -705,7 +706,7 @@ export const Environment: FC<EnvironmentProps> = ({
           theme={{
             components: {
               Cascader: {
-                dropdownHeight: 'min(320px, 40vh)',
+                dropdownHeight: 'auto',
               },
             },
           }}
@@ -784,13 +785,23 @@ export const Environment: FC<EnvironmentProps> = ({
                         .toLowerCase()
                         .indexOf(inputValue.toLowerCase()) > -1,
                   ),
-                render: () => {
-                  return <div>Click here to use custom image</div>;
-                },
+                render: (_inputValue, path) =>
+                  path[0]?.isCustom ? (
+                    <div>Click here to use custom image</div>
+                  ) : (
+                    path.map(option => option.label).join(' / ')
+                  ),
               }}
               getPopupContainer={trigger =>
                 trigger.parentElement || document.body
               }
+              // Size the menu to its content (e.g. a single custom image entry), up
+              // to a max height; columns are stretched to keep them equally tall
+              classNames={{
+                popup: {
+                  root: '[&_.ant-cascader-menus]:items-stretch [&_.ant-cascader-menu]:max-h-[min(320px,40vh)]',
+                },
+              }}
               onChange={() => {
                 setImagesSearchOptions(
                   getImageNamesCascader(currentAvailableImages),

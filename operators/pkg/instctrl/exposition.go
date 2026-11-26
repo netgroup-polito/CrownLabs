@@ -71,9 +71,7 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 	// Enforce the HTTPRoute presence
 	httpRoute := gatewayv1.HTTPRoute{ObjectMeta: forge.ObjectMetaWithSuffix(instance, environment.Name)}
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &httpRoute, func() error {
-		// HTTPRoute specifications are forged only at creation time, to prevent issues in case of updates.
-		// Indeed, enforcing the specs may cause service disruption if they diverge from the service configuration.
-		if httpRoute.CreationTimestamp.IsZero() {
+		if httpRoute.CreationTimestamp.IsZero() || r.gatewayDiffers(&httpRoute) {
 			tpl := &forge.HTTPRouteTemplate{
 				Path:        forge.ExpositionGUICleanPath(instance, environment),
 				ServiceName: svc.GetName(),
@@ -311,4 +309,14 @@ func (r *InstanceReconciler) getHTTPRouteAcceptedStatus(ctx context.Context, hr 
 	}
 
 	return false, nil
+}
+
+// gatewayDiffers checks if the route's parent Gateway diverges from configuration.
+func (r *InstanceReconciler) gatewayDiffers(hr *gatewayv1.HTTPRoute) bool {
+	if len(hr.Spec.ParentRefs) != 1 || hr.Spec.ParentRefs[0].Namespace == nil {
+		return true
+	}
+	parent := hr.Spec.ParentRefs[0]
+	return string(parent.Name) != r.ExpositionConfig.GatewayName ||
+		string(*parent.Namespace) != r.ExpositionConfig.GatewayNamespace
 }

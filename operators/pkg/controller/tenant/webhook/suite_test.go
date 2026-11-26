@@ -37,9 +37,10 @@ var (
 	scheme *runtime.Scheme
 	ctx    = context.Background()
 
-	bypassGroups   = []string{"admins"}
-	testTenantName = "test-tenant"
-	testWorkspace  = "test-workspace"
+	bypassGroups      = []string{"admins"}
+	testTenantName    = "test-tenant"
+	testWorkspace     = "test-workspace"
+	testBaseWorkspace = "test-base-workspace"
 
 	testTenantPersonalNamespace = "tenant-" + testTenantName
 )

@@ -128,7 +128,9 @@ var _ = Describe("Validator webhook", func() {
 			TenantWebhook: webhook.TenantWebhook{
 				Client:       fakeClient,
 				BypassGroups: bypassGroups,
-			}}
+			},
+			BaseWorkspaces: []string{testBaseWorkspace},
+		}
 
 		tnWebhook = admission.WithCustomValidator(
 			scheme,
@@ -402,6 +404,45 @@ var _ = Describe("Validator webhook", func() {
 			})
 			It("should allow the change", func() {
 				Expect(response.Allowed).To(BeTrue())
+			})
+		})
+
+		When("a new user is created with the base workspace added by the mutating webhook", func() {
+			BeforeEach(func() {
+				oldTenant = &clv1alpha2.Tenant{}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: []clv1alpha2.TenantWorkspaceEntry{
+					{Name: testWorkspace, Role: clv1alpha2.User},
+					{Name: testBaseWorkspace, Role: clv1alpha2.User},
+				}}}
+				operation = admissionv1.Create
+			})
+			It("should allow the change", func() {
+				Expect(response.Allowed).To(BeTrue())
+			})
+		})
+
+		When("a new user is created with a base workspace role other than user", func() {
+			BeforeEach(func() {
+				oldTenant = &clv1alpha2.Tenant{}
+				newTenant = &clv1alpha2.Tenant{Spec: clv1alpha2.TenantSpec{Workspaces: []clv1alpha2.TenantWorkspaceEntry{
+					{Name: testWorkspace, Role: clv1alpha2.User},
+					{Name: testBaseWorkspace, Role: clv1alpha2.Manager},
+				}}}
+				operation = admissionv1.Create
+			})
+			It("should deny the change", func() {
+				Expect(response.Allowed).To(BeFalse())
+			})
+		})
+
+		When("an existing user is demoted in a base workspace", func() {
+			BeforeEach(func() {
+				oldTenant = forgeTenantWithWorkspace(clv1alpha2.TenantWorkspaceEntry{Name: testBaseWorkspace, Role: clv1alpha2.Manager})
+				newTenant = forgeTenantWithWorkspaceUser(testBaseWorkspace)
+				operation = admissionv1.Update
+			})
+			It("should deny the change", func() {
+				Expect(response.Allowed).To(BeFalse())
 			})
 		})
 	})
