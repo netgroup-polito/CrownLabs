@@ -19,6 +19,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"slices"
 	"time"
 
 	admissionv1 "k8s.io/api/admission/v1"
@@ -41,6 +42,9 @@ const LastLoginToleration = time.Hour * 24
 type TenantValidator struct {
 	admission.CustomValidator
 	TenantWebhook
+
+	// The workspaces added to every tenant by the mutating webhook
+	BaseWorkspaces []string
 }
 
 // ValidatePreflightResult is a struct that holds the result of the preflight validation.
@@ -325,9 +329,19 @@ func (tv *TenantValidator) HandleWorkspaceEdit(
 
 	workspacesDiff := CalculateWorkspacesDiff(newTenant, oldTenant)
 	managerWorkspaces := mapFromWorkspacesList(manager)
+	oldWorkspaces := mapFromWorkspacesList(oldTenant)
+	newWorkspaces := mapFromWorkspacesList(newTenant)
 
 	for ws, changed := range workspacesDiff {
-		if changed && managerWorkspaces[ws] != clv1alpha2.Manager {
+		if !changed {
+			continue
+		}
+		// The mutating webhook adds the missing base workspaces with the user role:
+		// such an addition is not a change made by the requester.
+		if slices.Contains(tv.BaseWorkspaces, ws) && oldWorkspaces[ws] == "" && newWorkspaces[ws] == clv1alpha2.User {
+			continue
+		}
+		if managerWorkspaces[ws] != clv1alpha2.Manager {
 			log.Info("denied: unexpected tenant spec change", "not-a-manager-for", ws)
 			return nil, kerrors.NewForbidden(schema.GroupResource{}, newTenant.Name, fmt.Errorf("you are not a manager for workspace %s, so you cannot change it in the tenant", ws))
 		}

@@ -216,7 +216,8 @@ func setupTenantWebhook(
 	if err := ctrl.NewWebhookManagedBy(mgr).
 		For(&clv1alpha2.Tenant{}).
 		WithValidator(&webhook.TenantValidator{
-			TenantWebhook: tnWh,
+			TenantWebhook:  tnWh,
+			BaseWorkspaces: baseWorkspaces,
 		}).
 		WithValidatorCustomPath(TenantValidatorWebhookPath).
 		WithDefaulter(&webhook.TenantDefaulter{
