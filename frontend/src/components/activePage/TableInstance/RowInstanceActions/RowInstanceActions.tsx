@@ -10,6 +10,7 @@ import RowInstanceActionsPersistent from './RowInstanceActionsPersistent';
 import RowInstanceActionsDropdown from './RowInstanceActionsDropdown';
 import RowInstanceActionsExtended from './RowInstanceActionsExtended';
 import SSHModalContent from '../SSHModalContent/SSHModalContent';
+import { hasClusterEnvironment } from '../../../../utils/cluster';
 import RowInstanceActionsDefault from './RowInstanceActionsDefault';
 import { PublicExposureModal } from '../PublicExposureModal/PublicExposureModal';
 import {
@@ -78,6 +79,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
   const allowPublic = instance.allowPublicExposure;
 
   const { persistent } = instance;
+  const hasCluster = hasClusterEnvironment(instance.environments ?? [instance]);
 
   const [sshModal, setSshModal] = useState(false);
   const [showExposureModal, setShowExposureModal] = useState(false);
@@ -146,7 +148,7 @@ const RowInstanceActions: FC<IRowInstanceActionsProps> = ({
           } ${extended ? 'pr-2' : ''}`}
         >
           <RowInstanceActionsDropdown {...fieldsDropdown} />
-          {persistent && (
+          {persistent && !hasCluster && (
             <RowInstanceActionsPersistent
               instance={instance}
               extended={extended}

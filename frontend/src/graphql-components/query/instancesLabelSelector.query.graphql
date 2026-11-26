@@ -65,10 +65,7 @@ query instancesLabelSelector($labels: String) {
                   deleteAfterInactivity
                 }
                 environmentList {
-                  name
-                  guiEnabled
-                  persistent
-                  environmentType
+                  ...TemplateEnvironmentFields
                 }
               }
             }

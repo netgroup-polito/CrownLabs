@@ -62,16 +62,7 @@ query ownedInstances($tenantNamespace: String!) {
                   deleteAfterInactivity
                 }
                 environmentList {
-                  name
-                  guiEnabled
-                  persistent
-                  environmentType
-                  resources {
-                    cpu
-                    memory
-                    disk
-                    otherResources
-                  }
+                  ...TemplateEnvironmentFields
                 }
               }
             }

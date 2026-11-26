@@ -1,7 +1,11 @@
 import type { FC } from 'react';
 import { EnvironmentType } from '../../../generated-types';
 import { Form, Space } from 'antd';
-import { DesktopOutlined, DockerOutlined } from '@ant-design/icons';
+import {
+  DesktopOutlined,
+  DockerOutlined,
+  DeploymentUnitOutlined,
+} from '@ant-design/icons';
 
 type EnvironmentTabLabelProps = {
   envIndex: number;
@@ -28,11 +32,23 @@ export const EnvironmentTabLabel: FC<EnvironmentTabLabelProps> = ({
 
   const nameErrors = form.getFieldError(['environments', envIndex, 'name']);
   const imageErrors = form.getFieldError(['environments', envIndex, 'image']);
-  const hasErrors = nameErrors.length > 0 || imageErrors.length > 0 || !name;
+  const workerErrors = form.getFieldError([
+    'environments',
+    envIndex,
+    'cluster',
+    'workersCount',
+  ]);
+  const hasErrors =
+    nameErrors.length > 0 ||
+    imageErrors.length > 0 ||
+    workerErrors.length > 0 ||
+    !name;
 
   return (
     <Space className={hasErrors ? 'text-red-500' : ''}>
-      {type === EnvironmentType.Container ? (
+      {type === EnvironmentType.Cluster ? (
+        <DeploymentUnitOutlined />
+      ) : type === EnvironmentType.Container ? (
         <DockerOutlined />
       ) : (
         <DesktopOutlined />

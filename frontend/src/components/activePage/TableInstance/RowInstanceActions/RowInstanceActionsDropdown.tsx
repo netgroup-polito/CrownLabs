@@ -46,6 +46,10 @@ import {
 } from '../../../common/ImageCreationModal';
 import { OwnedInstancesContext } from '../../../../contexts/OwnedInstancesContext';
 import { ThemeContext } from '../../../../contexts/ThemeContext';
+import {
+  hasClusterEnvironment,
+  supportsEnvironmentSSH,
+} from '../../../../utils/cluster';
 
 export interface IRowInstanceActionsDropdownProps {
   instance: Instance;
@@ -75,6 +79,9 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     environmentType,
     gui,
   } = instance;
+  const hasCluster = hasClusterEnvironment(instance.environments ?? [instance]);
+  const isCluster = environmentType === EnvironmentType.Cluster;
+  const sshEnvironments = instance.environments?.filter(supportsEnvironmentSSH);
 
   const font20px = { fontSize: '20px' };
 
@@ -238,10 +245,19 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     environmentType === EnvironmentType.Container ||
     environmentType === EnvironmentType.Standalone;
 
-  const sshDisabled = status !== Phase2.Ready || isContainer;
+  const sshDisabled = hasCluster
+    ? !sshEnvironments?.some(env => env.phase === Phase2.Ready)
+    : status !== Phase2.Ready || isContainer;
   const fileManagerDisabled = status !== Phase2.Ready && isContainer;
 
-  const connectDisabled = status !== Phase2.Ready || (isContainer && !gui);
+  const connectDisabled = hasCluster
+    ? !instance.environments?.some(
+        env =>
+          env.phase === Phase2.Ready &&
+          env.environmentType !== EnvironmentType.Cluster &&
+          (env.guiEnabled || supportsEnvironmentSSH(env)),
+      )
+    : status !== Phase2.Ready || (isContainer && !gui);
 
   const defaultImageName = `image-of-${instance.name}`
     .slice(0, 47)
@@ -401,9 +417,33 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               label: 'Connect',
               disabled: connectDisabled,
               icon: <SelectOutlined style={font20px} />,
-              onClick: gui
-                ? () => window.open(url!, '_blank')
-                : () => setSshModal(true),
+              children: hasCluster
+                ? instance.environments?.map(env => ({
+                    key: `connect-${env.name}`,
+                    label:
+                      env.environmentType === EnvironmentType.Cluster
+                        ? `${env.name} (cluster connection unavailable)`
+                        : env.name,
+                    disabled:
+                      env.phase !== Phase2.Ready ||
+                      env.environmentType === EnvironmentType.Cluster,
+                    onClick: () => {
+                      if (env.guiEnabled) {
+                        window.open(
+                          `${url?.replace(/\/$/, '')}/${env.name}/`,
+                          '_blank',
+                        );
+                      } else {
+                        setSshModal(true);
+                      }
+                    },
+                  }))
+                : undefined,
+              onClick: hasCluster
+                ? undefined
+                : gui && !isCluster
+                  ? () => window.open(url!, '_blank')
+                  : () => setSshModal(true),
               className: `flex items-center sm:hidden ${
                 !connectDisabled
                   ? extended
@@ -412,7 +452,7 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
                   : 'pointer-events-none'
               }`,
             },
-            persistent
+            persistent && !hasCluster
               ? {
                   key: 'persistent',
                   label: menuText,
@@ -458,7 +498,10 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
               key: 'ssh',
               icon: <CodeOutlined style={font20px} />,
               disabled: sshDisabled,
-              label: 'SSH',
+              label:
+                isCluster && !sshEnvironments?.length
+                  ? 'Cluster connection (not available yet)'
+                  : 'SSH',
               onClick: () => setSshModal(true),
               className: `flex items-center ${extended ? 'xl:hidden' : ''} ${sshDisabled ? 'pointer-events-none' : ''}`,
             },

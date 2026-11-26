@@ -31,6 +31,7 @@
     "start": "vite",
     "build-app": "tsc -b && vite build",
     "lint": "eslint .",
+    "test": "node --test tests/*.test.mjs",
     "prepare": "husky || true",
     "check-format-lint": "prettier --check **/*.{ts,tsx,js,jsx,json,css,graphql} --write && eslint . --ext .ts --ext .tsx --ext .js --ext .jsx --max-warnings=0 --fix",
     "pre-commit": "lint-staged",

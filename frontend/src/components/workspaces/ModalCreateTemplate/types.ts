@@ -27,6 +27,7 @@ export type TemplateForm = {
 export type TemplateFormEnv = {
   name: string;
   environmentType: EnvironmentType;
+  cluster?: { workersCount: number };
   image: string;
   registry: string;
   gui: boolean;

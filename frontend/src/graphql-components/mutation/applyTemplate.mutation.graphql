@@ -15,27 +15,7 @@ mutation applyTemplate(
       name: prettyName
       description
       environmentList {
-        name
-        guiEnabled
-        persistent
-        image
-        environmentType
-        rewriteURL
-        resources {
-          cpu
-          disk
-          memory
-          reservedCPUPercentage
-          otherResources
-        }
-        sharedVolumeMounts {
-          sharedVolume {
-            namespace
-            name
-          }
-          mountPath
-          readOnly
-        }
+        ...TemplateEnvironmentFields
       }
     }
     metadata {

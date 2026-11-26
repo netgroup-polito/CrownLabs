@@ -17,6 +17,10 @@ import {
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
+import {
+  hasClusterEnvironment,
+  supportsEnvironmentSSH,
+} from '../../../../utils/cluster';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
@@ -38,6 +42,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     environmentType,
     environments,
   } = instance;
+  const hasCluster = hasClusterEnvironment(environments ?? [instance]);
 
   const { apolloErrorCatcher } = useContext(ErrorContext);
 
@@ -46,6 +51,12 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   });
 
   const titleFromStatus = () => {
+    if (
+      environmentType === EnvironmentType.Cluster &&
+      environments?.length === 1
+    ) {
+      return 'Cluster connection credentials are not available through the dashboard yet.';
+    }
     if (!connectDisabled) {
       return gui ? 'Connect to the GUI' : `Connect through SSH`;
     } else
@@ -91,9 +102,15 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
     return 'default';
   };
 
-  const connectDisabled =
-    status !== Phase2.Ready ||
-    (environmentType === EnvironmentType.Container && !gui);
+  const connectDisabled = hasCluster
+    ? !environments?.some(
+        env =>
+          env.phase === Phase2.Ready &&
+          env.environmentType !== EnvironmentType.Cluster &&
+          (env.guiEnabled || supportsEnvironmentSSH(env)),
+      )
+    : status !== Phase2.Ready ||
+      (environmentType === EnvironmentType.Container && !gui);
 
   const font22px = { fontSize: '22px' };
 
@@ -107,6 +124,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   };
 
   const handleEnvironmentConnect = (env: InstanceEnvironment) => {
+    if (env.environmentType === EnvironmentType.Cluster) return;
     if (env.guiEnabled) {
       const baseUrl = url?.endsWith('/') ? url.slice(0, -1) : url;
       const envUrl = `${baseUrl}/${env.name}/`;
@@ -128,7 +146,7 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
         key: env.name,
         label: env.name,
         icon: isGuiEnabled ? <ExportOutlined /> : <CodeOutlined />,
-        disabled: !isReady,
+        disabled: !isReady || env.environmentType === EnvironmentType.Cluster,
         onClick: () => handleEnvironmentConnect(env),
       };
     });

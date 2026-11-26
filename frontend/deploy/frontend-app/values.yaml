@@ -31,6 +31,7 @@ configuration:
     standalone: harbor-standalone
     containerdisks: harbor-containerdisks
     publicSnapshots: public-local-snapshots
+    clusterFlavors: local-clusterflavors
   imageCreationWarning: "Before creating an image, reset cloud-init and complete any required manual configuration inside the VM."
   imageCreationHelp: "https://github.com/netgroup-polito/CrownLabs/blob/master/provisioning/virtual-machines/README-snapshot-init.md"
   publicRegistryNameDestination: crownlabs-public-snapshots
