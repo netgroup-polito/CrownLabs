@@ -38,7 +38,7 @@ It omits low-level components and services associated with cluster operation, su
 ```mermaid
 flowchart LR
 
-User@{shape: trap-b, label: "User Browser⁴"}
+User@{shape: trap-b, label: "User Browser⁵"}
 
 subgraph Cluster["Kubernetes Cluster"]
     %% Cells
@@ -48,8 +48,8 @@ subgraph Cluster["Kubernetes Cluster"]
     %% subgraphs
     subgraph ReleaseNS["CL Release Namespace¹"]
         Controllers@{shape: docs, label: "Controller Set¹"}
-        Frontend["Frontend-app⁴"]:::FrontendStyle
-        GraphQL["GraphQL Relay⁵"]
+        Frontend["Frontend-app⁵"]:::FrontendStyle
+        GraphQL["GraphQL Relay⁶"]
         Bastion["SSH Bastion"]
     end
     WorkspaceCR["`Workspace CR
@@ -57,7 +57,7 @@ subgraph Cluster["Kubernetes Cluster"]
         _workspace: abc_`"]:::CustomResourceStyle
     Controllers -- manages --> WorkspaceCR
     subgraph WorkspaceNS["`Workspace Namespace:
-    _workspace-abc_ ³`"]
+    _workspace-abc_ ⁴`"]
         direction LR
         TemplateCR["`Template CR
             template: _foo_`"]:::CustomResourceStyle
@@ -65,7 +65,7 @@ subgraph Cluster["Kubernetes Cluster"]
     TenantCR["`Tenant CR
         [cluster-wide]
         _tenant: xyz-efg_`"]:::CustomResourceStyle
-    subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ ²`"]
+    subgraph TenantNS["`Tenant Namespace: _tenant-xyz-efg_ ³`"]
         InstanceCR["`Instance CR
             _instance: bar_`"]:::CustomResourceStyle
         InstanceEnv@{shape: docs, label: "bar Environments"}
@@ -73,7 +73,7 @@ subgraph Cluster["Kubernetes Cluster"]
     end
     subgraph K8S["K8s Provided Infrastructure"]
         APIServer["API Server"]
-        GWAPI["Gateway Balancer"]
+        GWAPI["Envoy Gateway Data Plane²"]
     end
 end
 
@@ -116,11 +116,13 @@ class InstanceEnv EnvironmentStyle
 class TenantNS TenantNSStyle
 class Cluster ClusterStyle
 ```
+
 ¹More about how to deploy CrownLabs [here](deploy/crownlabs/README.md).  
-²More about Tenant soon.  
-³More about Workspace soon.  
-⁴More about Frontend [here](frontend/README.md).
-⁵More about QLKube [here](qlkube/README.md).  
+²The Envoy Gateway Data Plane comprises the external LoadBalancer and Envoy Proxy, which process and forward incoming traffic. See the [Gateway API architecture documentation](deploy/crownlabs/docs/gateway-architecture-and-routing.md) for details.  
+³More about Tenant soon.  
+⁴More about Workspace soon.  
+⁵More about Frontend [here](frontend/README.md).  
+⁶More about QLKube [here](qlkube/README.md).
 
 ### Graph Legend:
 
