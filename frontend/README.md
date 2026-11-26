@@ -116,14 +116,15 @@ sequenceDiagram
         Browser-->>User: Display instance desktop
     else Web SSH
         User->>Browser: Choose "Connect through SSH"
-        Browser->>LB: Open WebSocket via /app/instance/<uuid>/<env>/ssh 
+        Browser->>Browser: Resolve /app/instance/<uuid>/<env>/ssh & mount SSHTerminal
+        Browser->>LB: Open WebSocket to /webssh (via SSHTerminal)
         LB->>LB: Enforce Security Policy (check session/token)
         Note over User,LB: If unauthenticated, see the OIDC Authentication Flow diagram in point 2 below
         LB->>Bastion: Route WebSocket connection to /webssh
         Bastion->>Instance: Establish SSH session
         Instance-->>Bastion: Open terminal stream
         Bastion-->>LB: Stream terminal session
-        LB-->>Browser: Forward response
+        LB-->>Browser: Forward terminal stream to SSHTerminal
         Browser-->>User: Display SSH terminal
     end
     Note over User,Instance: User can access and manage the instance
