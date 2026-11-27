@@ -127,6 +127,11 @@ const (
 	// ExpiringWarningNotificationTimestampAnnotation -> annotation to store the timestamp of the expiring warning notification.
 	ExpiringWarningNotificationTimestampAnnotation = "crownlabs.polito.it/expiring-warning-notification-timestamp"
 
+	// NotifiedWorkspaceAnnotationPrefix -> prefix of the annotations, one per workspace, recording that the tenant has been
+	// notified (via email) about being added to a workspace: the key is the prefix followed by the workspace name, and the value
+	// is the RFC 3339 timestamp of when the addition was recorded.
+	NotifiedWorkspaceAnnotationPrefix = "notified-workspace.crownlabs.polito.it/"
+
 	// AuthorizationAnnotationKey is the key of the annotation that shows which labels are requested on the target namespace to mirror the PVC.
 	AuthorizationAnnotationKey = "pmp.crownlabs.polito.it/required-target-ns-labels"
 	// MyDriveAuthorizationAnnotationValue is the value of the annotation in case mirror origin is a MyDrive PVC.

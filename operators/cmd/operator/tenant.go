@@ -17,6 +17,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -33,6 +34,7 @@ import (
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant/webhook"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/args"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
 )
 
 var (
@@ -46,6 +48,9 @@ var (
 	mydrivePVCsStorageClassName   string
 	myDrivePVCsNamespace          string
 	waitUserVerification          bool // If true, the reconciliation will wait for the user to be verified in Keycloak before creating resources.
+	enableWorkspaceNotifications  bool
+	mailConfigDir                 string
+	mailTemplateDir               string
 )
 
 const (
@@ -71,6 +76,10 @@ func init() {
 	flag.StringVar(&mydrivePVCsStorageClassName, "mydrive-pvcs-storage-class-name", "rook-nfs", "The name for the user's storage class")
 	flag.StringVar(&myDrivePVCsNamespace, "mydrive-pvcs-namespace", "mydrive-pvcs", "The namespace where the PVCs are created")
 	flag.BoolVar(&waitUserVerification, "wait-user-verification", true, "Wait for the user to be verified in Keycloak before creating resources. If false, resources will be created immediately after the Tenant is created.")
+	flag.BoolVar(&enableWorkspaceNotifications, "enable-workspace-notifications", false,
+		"Send an email to tenants when they are added to or removed from a workspace. Notified workspaces are tracked even when disabled.")
+	flag.StringVar(&mailConfigDir, "mail-config-dir", "/etc/crownmail/configs", "The directory containing the SMTP configuration (smtp-config.yaml)")
+	flag.StringVar(&mailTemplateDir, "mail-template-dir", "/etc/crownmail/templates", "The directory containing the email templates")
 
 	flag.Int64Var(&forge.CapInstance, "cap-instance", 10, "The cap number of instances that can be requested by a Tenant.")
 	flag.IntVar(&forge.CapCPU, "cap-cpu", 25, "The cap amount of CPU cores that can be requested by a Tenant.")
@@ -91,6 +100,17 @@ func setupTenant(
 		log.Info("Base workspaces for tenants to be enforced", "workspaces", baseWorkspacesList)
 	}
 
+	// Left nil (not a nil *mail.Client) when disabled, so that the reconciler can detect it.
+	var mailer tenant.Mailer
+	if enableWorkspaceNotifications {
+		mailClient, err := mail.NewMailClientFromFilesystem(mailConfigDir, mailTemplateDir)
+		if err != nil {
+			return fmt.Errorf("failed creating mail client for workspace notifications: %w", err)
+		}
+		mailer = mailClient
+		log.Info("Workspace notifications enabled")
+	}
+
 	tn := &tenant.Reconciler{
 		Client:                      mgr.GetClient(),
 		Scheme:                      mgr.GetScheme(),
@@ -108,6 +128,7 @@ func setupTenant(
 		BaseWorkspaces:              baseWorkspacesList,
 		Concurrency:                 tenantMaxConcurrentReconciles,
 		Reschedule:                  reschedule,
+		Mailer:                      mailer,
 	}
 
 	if err := tn.SetupWithManager(mgr, log); err != nil {

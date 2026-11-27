@@ -1,0 +1,10 @@
+to: |-
+  { tenantEmail }
+subject: |-
+  CrownLabs: You have been added to workspace { workspacePrettyName }
+plaintext_content: |-
+  You have been added to the workspace { workspacePrettyName } as { workspaceRole }.
+  Log in to CrownLabs to see the environments available in this workspace.
+html_content: |-
+  <p>You have been added to the workspace <strong>{ workspacePrettyName }</strong> as <strong>{ workspaceRole }</strong>.</p>
+  <p>Log in to CrownLabs to see the environments available in this workspace.</p>

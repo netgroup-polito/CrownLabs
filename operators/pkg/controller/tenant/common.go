@@ -16,10 +16,13 @@ package tenant
 
 import (
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/go-logr/logr"
 
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils"
 )
 
@@ -39,4 +42,23 @@ func (r *Reconciler) enforcePreservingStatus(
 	tn.Status = prevStatus
 
 	return nil
+}
+
+// notifiedWorkspaceAnnotation returns the key of the annotation recording that the tenant
+// has been notified about being added to the given workspace.
+func notifiedWorkspaceAnnotation(workspace string) string {
+	return forge.NotifiedWorkspaceAnnotationPrefix + workspace
+}
+
+// notifiedWorkspaces returns the sorted names of the workspaces the tenant has been notified about,
+// as recorded in the given annotations.
+func notifiedWorkspaces(annotations map[string]string) []string {
+	var names []string
+	for key := range annotations {
+		if name, ok := strings.CutPrefix(key, forge.NotifiedWorkspaceAnnotationPrefix); ok && name != "" {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
 }

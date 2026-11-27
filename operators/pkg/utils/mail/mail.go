@@ -64,6 +64,9 @@ type Placeholders struct {
 	PrettyName    string `name:"prettyName"`
 	InstanceName  string `name:"instanceName"`
 	RemainingTime string `name:"remainingTime"`
+
+	WorkspacePrettyName string `name:"workspacePrettyName"`
+	WorkspaceRole       string `name:"workspaceRole"`
 }
 
 // NewMailClientFromFilesystem creates a new Client instance that reads configs and templates from filesystem paths.
