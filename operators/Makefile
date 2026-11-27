@@ -124,6 +124,49 @@ run-instance-local: install-local samples-res-local run-instance ## Prepare, the
 .PHONY: run-instance-automation-local
 run-instance-automation-local: install-local samples-res-local run-instance-automation ## Prepare, then run the instance automation controller locally with a custom domain for testing purposes.
 
+# Local development of Cluster environments: the workload cluster API servers are exposed through the local
+# Gateway, and authenticate the users through the local Keycloak, whose certificate is signed by a private CA.
+LOCAL_GATEWAY ?= default/crownlabs
+LOCAL_CLUSTERS_HOST ?= wcluster.crownlabs.local
+LOCAL_OIDC_ISSUER ?= https://keycloak.crownlabs.local:8443/realms/crownlabs
+LOCAL_OIDC_CLIENT_ID ?= k8s
+LOCAL_CA_SECRET_NAMESPACE ?= default
+LOCAL_CA_SECRET ?= crownlabs-tls
+LOCAL_CA_FILE ?= $(LOCALBIN)/local-crownlabs-ca.crt
+LOCAL_CLUSTER_NAMESPACE ?= tenant-john-doe
+LOCAL_CLUSTER_KUBECONFIG ?= $(LOCALBIN)/$(LOCAL_CLUSTER_INSTANCE).kubeconfig
+
+.PHONY: local-ca
+local-ca: $(LOCALBIN) ## Retrieve the CA trusted by the local Gateway and Keycloak.
+	kubectl get secret -n $(LOCAL_CA_SECRET_NAMESPACE) $(LOCAL_CA_SECRET) -o jsonpath='{.data.tls\.crt}' | base64 -d > "$(LOCAL_CA_FILE)"
+
+.PHONY: run-instance-clusters-local
+run-instance-clusters-local: generate local-ca ## Run the instance operator locally, exposing the workload cluster API servers through the local Gateway and Keycloak.
+	go run ./cmd/instance-operator\
+				--namespace-whitelist=crownlabs.polito.it/operator-selector=local\
+				--website-base-url=$(LOCAL_CLUSTERS_HOST)\
+				--instances-auth-url=crownlabs.polito.it/app/instances/auth\
+				--container-env-sidecars-tag=v0.14.5\
+				--gateway-api-mode=true\
+				--gateway-api-refs-values="$(LOCAL_GATEWAY)"\
+				--cluster-oidc-issuer-url=$(LOCAL_OIDC_ISSUER)\
+				--cluster-oidc-client-id=$(LOCAL_OIDC_CLIENT_ID)\
+				--cluster-oidc-ca-file="$(LOCAL_CA_FILE)"
+
+.PHONY: local-cluster-kubeconfig
+local-cluster-kubeconfig: local-ca ## Generate the kubeconfig to access a local workload cluster (LOCAL_CLUSTER_INSTANCE=<instance> is required).
+	@test -n "$(LOCAL_CLUSTER_INSTANCE)" || { echo "LOCAL_CLUSTER_INSTANCE is required" >&2; exit 1; }
+	@URL=$$(kubectl get instance -n $(LOCAL_CLUSTER_NAMESPACE) $(LOCAL_CLUSTER_INSTANCE) -o jsonpath='{.status.environments[0].apiServerURL}'); \
+	test -n "$$URL" || { echo "the API server of $(LOCAL_CLUSTER_NAMESPACE)/$(LOCAL_CLUSTER_INSTANCE) is not exposed yet" >&2; exit 1; }; \
+	export KUBECONFIG="$(LOCAL_CLUSTER_KUBECONFIG)"; rm -f "$$KUBECONFIG"; \
+	kubectl config set-cluster workload --server="$$URL" --certificate-authority="$(LOCAL_CA_FILE)" --embed-certs >/dev/null && \
+	kubectl config set-credentials oidc --exec-api-version=client.authentication.k8s.io/v1 --exec-interactive-mode=IfAvailable --exec-command=kubectl \
+		--exec-arg=oidc-login --exec-arg=get-token --exec-arg=--oidc-issuer-url=$(LOCAL_OIDC_ISSUER) \
+		--exec-arg=--oidc-client-id=$(LOCAL_OIDC_CLIENT_ID) --exec-arg=--certificate-authority=$(LOCAL_CA_FILE) >/dev/null && \
+	kubectl config set-context workload --cluster=workload --user=oidc >/dev/null && \
+	kubectl config use-context workload >/dev/null && \
+	echo "Generated $$KUBECONFIG for $$URL"
+
 .PHONY: run-operator
 run-operator: generate ## Run the main operator locally
 	go run cmd/operator/*.go\

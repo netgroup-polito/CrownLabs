@@ -100,6 +100,10 @@ func TestEnforceClusterAPIServerExposure(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: names.Cluster + "-kubeconfig", Namespace: ns},
 		Data:       map[string][]byte{"value": []byte(testKubeconfig)},
 	}
+	cpService := &corev1.Service{
+		ObjectMeta: metav1.ObjectMeta{Name: names.ControlPlane, Namespace: ns},
+		Spec:       corev1.ServiceSpec{ClusterIP: "10.43.1.2"},
+	}
 	acceptedRoute := &gatewayv1.HTTPRoute{
 		ObjectMeta: metav1.ObjectMeta{Name: forge.ClusterAPIServerExposureName(names.Cluster), Namespace: ns},
 		Spec:       forge.ClusterAPIServerHTTPRouteSpec(path, names.ControlPlane, &expo),
@@ -130,9 +134,9 @@ func TestEnforceClusterAPIServerExposure(t *testing.T) {
 		}}},
 		{name: "control plane not initialized", expo: expo, oidc: oidc, objects: []client.Object{caSecret, kubeconfigSecret}, wantRoute: true},
 		{name: "route not accepted", expo: expo, oidc: oidc, status: initialized,
-			objects: []client.Object{caSecret, kubeconfigSecret}, wantRoute: true, wantAdmins: true},
+			objects: []client.Object{caSecret, kubeconfigSecret, cpService}, wantRoute: true, wantAdmins: true},
 		{name: "exposed", expo: expo, oidc: oidc, status: initialized,
-			objects:   []client.Object{caSecret, kubeconfigSecret, acceptedRoute.DeepCopy()},
+			objects:   []client.Object{caSecret, kubeconfigSecret, cpService, acceptedRoute.DeepCopy()},
 			wantRoute: true, wantAdmins: true, wantURL: "https://crownlabs.example.com" + path, wantAccepted: true},
 	}
 
@@ -146,7 +150,7 @@ func TestEnforceClusterAPIServerExposure(t *testing.T) {
 			}
 			c := fake.NewClientBuilder().WithScheme(sch).WithObjects(tt.objects...).Build()
 			wl := fake.NewClientBuilder().WithScheme(sch).Build()
-			var wlHost string
+			var wlHost, wlServerName string
 
 			inst := instance.DeepCopy()
 			inst.Status.Environments[0].APIServerURL = "stale"
@@ -157,7 +161,7 @@ func TestEnforceClusterAPIServerExposure(t *testing.T) {
 			r := &InstanceReconciler{
 				Client: c, Scheme: sch, ExpositionConfig: tt.expo, ClusterAPIServerOpts: tt.oidc,
 				WorkloadClusterClientBuilder: func(cfg *rest.Config) (client.Client, error) {
-					wlHost = cfg.Host
+					wlHost, wlServerName = cfg.Host, cfg.ServerName
 					return wl, nil
 				},
 			}
@@ -201,8 +205,8 @@ func TestEnforceClusterAPIServerExposure(t *testing.T) {
 				if err != nil {
 					t.Fatalf("expected cluster admins binding: %v", err)
 				}
-				if want := "https://" + names.ControlPlane + "." + ns + ".svc:6443"; wlHost != want {
-					t.Fatalf("workload cluster host: got %q, want %q", wlHost, want)
+				if wlHost != "https://10.43.1.2:6443" || wlServerName != names.ControlPlane+"."+ns+".svc" {
+					t.Fatalf("workload cluster endpoint: got %q (server name %q)", wlHost, wlServerName)
 				}
 				wantSubjects := []rbacv1.Subject{
 					{Kind: rbacv1.UserKind, APIGroup: rbacv1.GroupName, Name: "alice"},

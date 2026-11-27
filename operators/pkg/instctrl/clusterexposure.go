@@ -71,7 +71,7 @@ func (r *InstanceReconciler) enforceClusterAPIServerExposure(ctx context.Context
 		return err
 	}
 
-	if err := r.enforceClusterAPIServerCAConfigMap(ctx, names, ca); err != nil {
+	if err := r.enforceCAConfigMap(ctx, forge.ClusterAPIServerExposureName(names.Cluster), ca); err != nil {
 		return err
 	}
 	if err := r.enforceClusterAPIServerBackendTLSPolicy(ctx, names); err != nil {
@@ -142,14 +142,14 @@ func validateCertificate(data []byte) error {
 	return err
 }
 
-// enforceClusterAPIServerCAConfigMap copies the workload cluster CA in a ConfigMap, to be referenced by the BackendTLSPolicy.
-func (r *InstanceReconciler) enforceClusterAPIServerCAConfigMap(ctx context.Context, names *forge.ClusterResourceNames, ca []byte) error {
+// enforceCAConfigMap stores the given PEM-encoded CA in a ConfigMap owned by the instance, under the ca.crt key.
+func (r *InstanceReconciler) enforceCAConfigMap(ctx context.Context, name string, ca []byte) error {
 	log := ctrl.LoggerFrom(ctx)
 	instance := clctx.InstanceFrom(ctx)
 	environment := clctx.EnvironmentFrom(ctx)
 
 	configMap := corev1.ConfigMap{}
-	configMap.SetName(forge.ClusterAPIServerExposureName(names.Cluster))
+	configMap.SetName(name)
 	configMap.SetNamespace(instance.Namespace)
 	res, err := ctrl.CreateOrUpdate(ctx, r.Client, &configMap, func() error {
 		configMap.Data = map[string]string{forge.ClusterAPIServerCAKey: string(ca)}
@@ -261,8 +261,26 @@ func (r *InstanceReconciler) workloadClusterClient(ctx context.Context, names *f
 	if err != nil {
 		return nil, fmt.Errorf("parse workload cluster kubeconfig %s: %w", key, err)
 	}
-	// Contact the control plane through its Service, whose hostname is part of the API server certificate SANs.
-	cfg.Host = forge.ClusterAPIServerInternalURL(names.ControlPlane, instance.Namespace)
+
+	svcKey := types.NamespacedName{Namespace: instance.Namespace, Name: names.ControlPlane}
+	var svc corev1.Service
+	if err := r.Get(ctx, svcKey, &svc); err != nil {
+		if kerrors.IsNotFound(err) {
+			log.V(utils.LogDebugLevel).Info("waiting for the workload cluster control plane service to be created", "service", svcKey)
+			return nil, nil
+		}
+		log.Error(err, "failed retrieving the workload cluster control plane service", "service", svcKey)
+		return nil, err
+	}
+	if svc.Spec.ClusterIP == "" || svc.Spec.ClusterIP == corev1.ClusterIPNone {
+		return nil, fmt.Errorf("workload cluster control plane service %s has no cluster IP", svcKey)
+	}
+
+	// Contact the control plane through the ClusterIP of its Service, verifying the certificate against the Service
+	// hostname (part of the API server SANs). This does not depend on the cluster DNS, hence it works also when the
+	// operator runs outside the cluster, as long as the Service network is routable.
+	cfg.Host = forge.ClusterAPIServerInternalURL(svc.Spec.ClusterIP)
+	cfg.ServerName = forge.ClusterAPIServerServiceHostname(names.ControlPlane, instance.Namespace)
 	cfg.Timeout = workloadClusterClientTimeout
 
 	builder := r.WorkloadClusterClientBuilder

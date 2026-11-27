@@ -72,7 +72,16 @@ func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) erro
 		return err
 	}
 
-	if _, err := r.enforceClusterAPIObject(ctx, forge.GVKKamajiControlPlane, names.ControlPlane, instance.Namespace, labels, forge.KamajiControlPlaneSpec(&flavor, forge.KamajiAPIServerExtraArgs(&r.ClusterAPIServerOpts)), nil); err != nil {
+	oidcCAConfigMapName := forge.ClusterOIDCCAConfigMapName(names.Cluster)
+	if r.ClusterAPIServerOpts.Enabled() && len(r.ClusterAPIServerOpts.OIDCCA) > 0 {
+		// Created before the control plane, as the API server pod cannot start until the volume is available.
+		if err := r.enforceCAConfigMap(ctx, oidcCAConfigMapName, r.ClusterAPIServerOpts.OIDCCA); err != nil {
+			return err
+		}
+	}
+
+	apiServerCfg := forge.KamajiAPIServerOIDCConfig(&r.ClusterAPIServerOpts, oidcCAConfigMapName)
+	if _, err := r.enforceClusterAPIObject(ctx, forge.GVKKamajiControlPlane, names.ControlPlane, instance.Namespace, labels, forge.KamajiControlPlaneSpec(&flavor, apiServerCfg), nil); err != nil {
 		return err
 	}
 

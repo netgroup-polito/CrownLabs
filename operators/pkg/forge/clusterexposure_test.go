@@ -19,13 +19,21 @@ import (
 	. "github.com/onsi/gomega"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
 
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 )
 
 var _ = Describe("Workload cluster API server exposure", func() {
-	DescribeTable("KamajiAPIServerExtraArgs",
+	DescribeTable("KamajiAPIServerOIDCConfig arguments",
 		func(opts forge.ClusterAPIServerOpts, expected []string) {
-			Expect(forge.KamajiAPIServerExtraArgs(&opts)).To(Equal(expected))
+			cfg := forge.KamajiAPIServerOIDCConfig(&opts, "oidc-ca")
+			if expected == nil {
+				Expect(cfg).To(BeNil())
+				return
+			}
+			Expect(cfg.ExtraArgs).To(Equal(expected))
+			Expect(cfg.ExtraVolumes).To(BeEmpty())
+			Expect(cfg.ExtraVolumeMounts).To(BeEmpty())
 		},
 		Entry("disabled without issuer", forge.ClusterAPIServerOpts{OIDCClientID: "k8s"}, nil),
 		Entry("disabled without client ID", forge.ClusterAPIServerOpts{OIDCIssuerURL: "https://issuer"}, nil),
@@ -39,6 +47,17 @@ var _ = Describe("Workload cluster API server exposure", func() {
 			"--oidc-groups-claim=groups", "--oidc-groups-prefix=kubernetes:",
 		}),
 	)
+
+	It("mounts the custom OIDC CA in the API server", func() {
+		opts := forge.ClusterAPIServerOpts{OIDCIssuerURL: "https://issuer", OIDCClientID: "k8s", OIDCCA: []byte("pem")}
+		spec := forge.KamajiControlPlaneSpec(&clv1alpha2.ClusterFlavor{}, forge.KamajiAPIServerOIDCConfig(&opts, "oidc-ca"))
+		Expect(spec.ApiServer.ExtraArgs).To(ContainElement("--oidc-ca-file=/etc/crownlabs/oidc/ca.crt"))
+		Expect(spec.Deployment.ExtraVolumes).To(HaveLen(1))
+		Expect(spec.Deployment.ExtraVolumes[0].ConfigMap.Name).To(Equal("oidc-ca"))
+		Expect(spec.ApiServer.ExtraVolumeMounts).To(HaveLen(1))
+		Expect(spec.ApiServer.ExtraVolumeMounts[0].Name).To(Equal(spec.Deployment.ExtraVolumes[0].Name))
+		Expect(spec.ApiServer.ExtraVolumeMounts[0].MountPath).To(Equal("/etc/crownlabs/oidc"))
+	})
 
 	DescribeTable("ClusterAPIServerPath",
 		func(prefix, expected string) {

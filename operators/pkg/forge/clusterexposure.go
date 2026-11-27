@@ -16,8 +16,11 @@ package forge
 
 import (
 	"fmt"
+	"net"
+	"strconv"
 	"strings"
 
+	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	"k8s.io/utils/ptr"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -48,6 +51,10 @@ const (
 	ClusterOIDCUsernamePrefix = "-"
 	// ClusterOIDCGroupsPrefix is the prefix of OIDC groups, matching the one adopted by the CrownLabs cluster.
 	ClusterOIDCGroupsPrefix = "kubernetes:"
+	// ClusterOIDCCAVolumeName is the name of the volume hosting the OIDC issuer CA in the API server pod.
+	ClusterOIDCCAVolumeName = "crownlabs-oidc-ca"
+	// ClusterOIDCCAMountPath is the path the OIDC issuer CA is mounted at in the API server container.
+	ClusterOIDCCAMountPath = "/etc/crownlabs/oidc"
 )
 
 // ClusterAPIServerOpts contains the configuration to expose the API server of the workload clusters.
@@ -61,6 +68,15 @@ type ClusterAPIServerOpts struct {
 	OIDCGroupsClaim string
 	// PathPrefix is the prefix of the path the API servers are exposed at.
 	PathPrefix string
+	// OIDCCA is the PEM-encoded CA used to verify the OIDC issuer certificate. If empty, the system CAs are used.
+	OIDCCA []byte
+}
+
+// KamajiAPIServerConfig groups the customizations applied to the kube-apiserver of the Kamaji control planes.
+type KamajiAPIServerConfig struct {
+	ExtraArgs         []string
+	ExtraVolumes      []corev1.Volume
+	ExtraVolumeMounts []corev1.VolumeMount
 }
 
 // Enabled returns whether the exposure of the workload cluster API servers is configured.
@@ -68,24 +84,42 @@ func (o *ClusterAPIServerOpts) Enabled() bool {
 	return o.OIDCIssuerURL != "" && o.OIDCClientID != ""
 }
 
-// KamajiAPIServerExtraArgs returns the extra kube-apiserver arguments to authenticate the CrownLabs users through OIDC.
-func KamajiAPIServerExtraArgs(opts *ClusterAPIServerOpts) []string {
+// KamajiAPIServerOIDCConfig returns the kube-apiserver customizations to authenticate the CrownLabs users through
+// OIDC, mounting the issuer CA (if configured) from the ConfigMap with the given name. It returns nil if disabled.
+func KamajiAPIServerOIDCConfig(opts *ClusterAPIServerOpts, caConfigMapName string) *KamajiAPIServerConfig {
 	if !opts.Enabled() {
 		return nil
 	}
 
-	args := []string{
+	cfg := &KamajiAPIServerConfig{ExtraArgs: []string{
 		"--oidc-issuer-url=" + opts.OIDCIssuerURL,
 		"--oidc-client-id=" + opts.OIDCClientID,
 		"--oidc-username-claim=" + ClusterOIDCUsernameClaim,
 		"--oidc-username-prefix=" + ClusterOIDCUsernamePrefix,
-	}
+	}}
 	if opts.OIDCGroupsClaim != "" {
-		args = append(args,
+		cfg.ExtraArgs = append(cfg.ExtraArgs,
 			"--oidc-groups-claim="+opts.OIDCGroupsClaim,
 			"--oidc-groups-prefix="+ClusterOIDCGroupsPrefix)
 	}
-	return args
+	if len(opts.OIDCCA) > 0 {
+		cfg.ExtraArgs = append(cfg.ExtraArgs, fmt.Sprintf("--oidc-ca-file=%s/%s", ClusterOIDCCAMountPath, ClusterAPIServerCAKey))
+		cfg.ExtraVolumes = []corev1.Volume{{
+			Name: ClusterOIDCCAVolumeName,
+			VolumeSource: corev1.VolumeSource{ConfigMap: &corev1.ConfigMapVolumeSource{
+				LocalObjectReference: corev1.LocalObjectReference{Name: caConfigMapName},
+			}},
+		}}
+		cfg.ExtraVolumeMounts = []corev1.VolumeMount{{
+			Name: ClusterOIDCCAVolumeName, MountPath: ClusterOIDCCAMountPath, ReadOnly: true,
+		}}
+	}
+	return cfg
+}
+
+// ClusterOIDCCAConfigMapName returns the name of the ConfigMap hosting the OIDC issuer CA for the given workload cluster.
+func ClusterOIDCCAConfigMapName(clusterName string) string {
+	return clusterName + StringSeparator + "oidc-ca"
 }
 
 // ClusterAPIServerPath returns the path the API server of the given workload cluster is exposed at.
@@ -107,9 +141,10 @@ func ClusterAPIServerServiceHostname(serviceName, namespace string) string {
 	return fmt.Sprintf("%s.%s.svc", serviceName, namespace)
 }
 
-// ClusterAPIServerInternalURL returns the in-cluster URL of the API server of the Kamaji control plane.
-func ClusterAPIServerInternalURL(serviceName, namespace string) string {
-	return fmt.Sprintf("https://%s:%d", ClusterAPIServerServiceHostname(serviceName, namespace), ClusterAPIServerPort)
+// ClusterAPIServerInternalURL returns the in-cluster URL of the API server of the Kamaji control plane, given
+// the address of its Service.
+func ClusterAPIServerInternalURL(serviceAddress string) string {
+	return "https://" + net.JoinHostPort(serviceAddress, strconv.Itoa(ClusterAPIServerPort))
 }
 
 // ClusterAPIServerExposureName returns the name shared by the HTTPRoute, BackendTLSPolicy and CA ConfigMap

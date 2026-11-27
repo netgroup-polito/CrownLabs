@@ -28,6 +28,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
 	virtv1 "kubevirt.io/api/core/v1"
@@ -73,6 +74,7 @@ func main() {
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
 	clusterAPIServerOpts := forge.ClusterAPIServerOpts{}
+	clusterOIDCCAFile := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -106,6 +108,7 @@ func main() {
 	flag.StringVar(&clusterAPIServerOpts.OIDCIssuerURL, "cluster-oidc-issuer-url", "", "The OIDC issuer URL trusted by the workload cluster API servers (API server exposure is disabled if empty)")
 	flag.StringVar(&clusterAPIServerOpts.OIDCClientID, "cluster-oidc-client-id", "", "The OIDC client ID trusted by the workload cluster API servers (API server exposure is disabled if empty)")
 	flag.StringVar(&clusterAPIServerOpts.OIDCGroupsClaim, "cluster-oidc-groups-claim", "groups", "The OIDC claim containing the user groups, used to grant permissions to workspace managers (disabled if empty)")
+	flag.StringVar(&clusterOIDCCAFile, "cluster-oidc-ca-file", "", "Path of the PEM-encoded CA used by the workload cluster API servers to verify the OIDC issuer (system CAs if empty)")
 	flag.StringVar(&clusterAPIServerOpts.PathPrefix, "cluster-api-server-path-prefix", forge.ClusterAPIServerDefaultPathPrefix, "The path prefix the workload cluster API servers are exposed at, through the Gateway")
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
@@ -198,8 +201,18 @@ func main() {
 	} else if gatewayAPIRefsValues != "" {
 		log.Info("Gateway parent provided but Gateway API mode is disabled")
 	}
+	if clusterOIDCCAFile != "" {
+		if clusterAPIServerOpts.OIDCCA, err = os.ReadFile(filepath.Clean(clusterOIDCCAFile)); err != nil {
+			log.Error(err, "failed to read the workload cluster OIDC CA", "path", clusterOIDCCAFile)
+			os.Exit(1)
+		}
+		if _, err = certutil.ParseCertsPEM(clusterAPIServerOpts.OIDCCA); err != nil {
+			log.Error(err, "invalid workload cluster OIDC CA", "path", clusterOIDCCAFile)
+			os.Exit(1)
+		}
+	}
 	log.Info("Workload cluster API server exposure", "enabled", gatewayAPIMode && clusterAPIServerOpts.Enabled(),
-		"issuer", clusterAPIServerOpts.OIDCIssuerURL, "clientID", clusterAPIServerOpts.OIDCClientID, "pathPrefix", clusterAPIServerOpts.PathPrefix)
+		"issuer", clusterAPIServerOpts.OIDCIssuerURL, "clientID", clusterAPIServerOpts.OIDCClientID, "customCA", clusterOIDCCAFile != "", "pathPrefix", clusterAPIServerOpts.PathPrefix)
 
 	if err = (&instctrl.InstanceReconciler{
 		Client:                    mgr.GetClient(),
