@@ -13,6 +13,10 @@ rules:
   resources: ["templates", "tenants", "sharedvolumes", "sharedvolumes/status"]
   verbs: ["get","list","watch"]
 
+- apiGroups: ["crownlabs.polito.it"]
+  resources: ["clusterflavors"]
+  verbs: ["get","list","watch"]
+
 - apiGroups: [""]
   resources: ["namespaces","pods"]
   verbs: ["get","list","watch"]
@@ -41,6 +45,15 @@ rules:
   resources: ["httproutes"]
   verbs: ["get","list","watch","create","patch","update","delete"]
 
+# Required to expose the API server of the workload clusters through the Gateway.
+- apiGroups: ["gateway.networking.k8s.io"]
+  resources: ["backendtlspolicies"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get","list","watch","create","patch","update"]
+
 - apiGroups: ["networking.k8s.io"]
   resources: ["networkpolicies"]
   verbs: ["get","list","watch","create","patch","update","delete"]
@@ -56,3 +69,23 @@ rules:
 - apiGroups: ["cdi.kubevirt.io"]
   resources: ["datavolumes/source"]
   verbs: ["create", "patch", "update"]
+
+- apiGroups: ["cluster.x-k8s.io"]
+  resources: ["clusters", "machinedeployments"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: ["controlplane.cluster.x-k8s.io"]
+  resources: ["kamajicontrolplanes"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: ["infrastructure.cluster.x-k8s.io"]
+  resources: ["kubevirtclusters", "kubevirtmachinetemplates"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: ["bootstrap.cluster.x-k8s.io"]
+  resources: ["kubeadmconfigtemplates"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: ["addons.cluster.x-k8s.io"]
+  resources: ["helmchartproxies"]
+  verbs: ["get","list","watch","create","patch","update"]

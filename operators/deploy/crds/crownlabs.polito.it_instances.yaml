@@ -201,6 +201,11 @@ spec:
                   description: InstanceStatusEnv reflects the status of an instance's
                     environment.
                   properties:
+                    apiServerURL:
+                      description: |-
+                        The external URL of the Kubernetes API server of the workload cluster,
+                        set only for Cluster environments once it is exposed through the Gateway.
+                      type: string
                     automation:
                       description: Timestamps of the Instance automation phases (check,
                         termination and submission).

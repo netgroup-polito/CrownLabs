@@ -17,6 +17,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -24,8 +25,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
+	certutil "k8s.io/client-go/util/cert"
 	"k8s.io/klog/v2"
 	"k8s.io/klog/v2/textlogger"
 	virtv1 "kubevirt.io/api/core/v1"
@@ -70,11 +73,14 @@ func main() {
 	enableAuth := true
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
+	clusterAPIServerOpts := forge.ClusterAPIServerOpts{}
+	clusterOIDCCAFile := ""
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
 		"Enable leader election for controller manager. Enabling this will ensure there is only one active controller manager.")
 	maxConcurrentReconciles := flag.Int("max-concurrent-reconciles", 1, "The maximum number of concurrent Reconciles which can be run for the Instance controller")
+	clusterFlavorNamespace := flag.String("cluster-flavor-namespace", forge.DefaultClusterFlavorNamespace, "Namespace hosting the shared ClusterFlavor resources")
 
 	namespaceWhiteList := flag.String("namespace-whitelist", "production=true", "The whitelist of the namespaces on "+
 		"which the controller will work. Different labels (key=value) can be specified, by separating them with a &"+
@@ -99,6 +105,11 @@ func main() {
 	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
 	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
 
+	flag.StringVar(&clusterAPIServerOpts.OIDCIssuerURL, "cluster-oidc-issuer-url", "", "The OIDC issuer URL trusted by the workload cluster API servers (API server exposure is disabled if empty)")
+	flag.StringVar(&clusterAPIServerOpts.OIDCClientID, "cluster-oidc-client-id", "", "The OIDC client ID trusted by the workload cluster API servers (API server exposure is disabled if empty)")
+	flag.StringVar(&clusterAPIServerOpts.OIDCGroupsClaim, "cluster-oidc-groups-claim", "groups", "The OIDC claim containing the user groups, used to grant permissions to workspace managers (disabled if empty)")
+	flag.StringVar(&clusterOIDCCAFile, "cluster-oidc-ca-file", "", "Path of the PEM-encoded CA used by the workload cluster API servers to verify the OIDC issuer (system CAs if empty)")
+	flag.StringVar(&clusterAPIServerOpts.PathPrefix, "cluster-api-server-path-prefix", forge.ClusterAPIServerDefaultPathPrefix, "The path prefix the workload cluster API servers are exposed at, through the Gateway")
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -106,6 +117,12 @@ func main() {
 	ctrl.SetLogger(textlogger.NewLogger(textlogger.NewConfig()))
 
 	log := ctrl.Log.WithName("setup")
+
+	if errors := validation.IsDNS1123Label(*clusterFlavorNamespace); len(errors) > 0 {
+		log.Error(fmt.Errorf("%s", strings.Join(errors, "; ")), "invalid cluster flavor namespace", "namespace", *clusterFlavorNamespace)
+		os.Exit(1)
+	}
+	log.Info("using centralized cluster flavors", "namespace", *clusterFlavorNamespace)
 
 	whiteListMap := parseMap(*namespaceWhiteList)
 	log.Info("restricting reconciled namespaces", "labels", *namespaceWhiteList)
@@ -184,6 +201,18 @@ func main() {
 	} else if gatewayAPIRefsValues != "" {
 		log.Info("Gateway parent provided but Gateway API mode is disabled")
 	}
+	if clusterOIDCCAFile != "" {
+		if clusterAPIServerOpts.OIDCCA, err = os.ReadFile(filepath.Clean(clusterOIDCCAFile)); err != nil {
+			log.Error(err, "failed to read the workload cluster OIDC CA", "path", clusterOIDCCAFile)
+			os.Exit(1)
+		}
+		if _, err = certutil.ParseCertsPEM(clusterAPIServerOpts.OIDCCA); err != nil {
+			log.Error(err, "invalid workload cluster OIDC CA", "path", clusterOIDCCAFile)
+			os.Exit(1)
+		}
+	}
+	log.Info("Workload cluster API server exposure", "enabled", gatewayAPIMode && clusterAPIServerOpts.Enabled(),
+		"issuer", clusterAPIServerOpts.OIDCIssuerURL, "clientID", clusterAPIServerOpts.OIDCClientID, "customCA", clusterOIDCCAFile != "", "pathPrefix", clusterAPIServerOpts.PathPrefix)
 
 	if err = (&instctrl.InstanceReconciler{
 		Client:                    mgr.GetClient(),
@@ -195,6 +224,8 @@ func main() {
 		WebSSHMasterPublicKey:     pubKeyBytes,
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
+		ClusterFlavorNamespace:    *clusterFlavorNamespace,
+		ClusterAPIServerOpts:      clusterAPIServerOpts,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)
