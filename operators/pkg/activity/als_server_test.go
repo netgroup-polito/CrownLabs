@@ -50,6 +50,8 @@ var _ = Describe("Envoy ALS Server", func() {
 		instanceUID = "als-test-instance-uid-12345"
 		instance    *clv1alpha2.Instance
 		service     *corev1.Service
+		customInst  *clv1alpha2.Instance
+		customSvc   *corev1.Service
 		alsServer   *activity.ALSServer
 		serverAddr  string
 	)
@@ -79,9 +81,27 @@ var _ = Describe("Envoy ALS Server", func() {
 			},
 		}
 
+		customInst = &clv1alpha2.Instance{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-ubuntu-vm",
+				Namespace: "tenant-als",
+				UID:       "ubuntu-uid-67890",
+			},
+		}
+
+		customSvc = &corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "my-ubuntu-vm-default-env",
+				Namespace: "tenant-als",
+				Labels: map[string]string{
+					forge.LabelInstanceKey: "my-ubuntu-vm",
+				},
+			},
+		}
+
 		cl = fake.NewClientBuilder().
 			WithScheme(scheme).
-			WithObjects(instance, service).
+			WithObjects(instance, service, customInst, customSvc).
 			Build()
 
 		tracker = activity.NewTracker(cl, 15*time.Minute)
@@ -172,6 +192,36 @@ var _ = Describe("Envoy ALS Server", func() {
 		Eventually(func() string {
 			var retrieved clv1alpha2.Instance
 			if err := cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved); err != nil {
+				return ""
+			}
+			return retrieved.Annotations[forge.LastActivityAnnotation]
+		}, 3*time.Second, 100*time.Millisecond).Should(Equal(logTime.Format(time.RFC3339)))
+
+		// Also verify instances whose names do not contain "instance" are tracked via labels/ownerRefs.
+		customReq := &als.StreamAccessLogsMessage{
+			LogEntries: &als.StreamAccessLogsMessage_HttpLogs{
+				HttpLogs: &als.StreamAccessLogsMessage_HTTPAccessLogEntries{
+					LogEntry: []*data.HTTPAccessLogEntry{
+						{
+							CommonProperties: &data.AccessLogCommon{
+								StartTime:       timestamppb.New(logTime),
+								UpstreamCluster: "httproute/tenant-als/my-ubuntu-vm-default-env/rule/0/backend/0",
+							},
+						},
+					},
+				},
+			},
+		}
+		stream2, err := client.StreamAccessLogs(ctx)
+		Expect(err).ToNot(HaveOccurred())
+		Expect(stream2.Send(customReq)).To(Succeed())
+		resp2, err := stream2.CloseAndRecv()
+		Expect(err).ToNot(HaveOccurred())
+		Expect(resp2).ToNot(BeNil())
+
+		Eventually(func() string {
+			var retrieved clv1alpha2.Instance
+			if err := cl.Get(ctx, types.NamespacedName{Namespace: customInst.Namespace, Name: customInst.Name}, &retrieved); err != nil {
 				return ""
 			}
 			return retrieved.Annotations[forge.LastActivityAnnotation]

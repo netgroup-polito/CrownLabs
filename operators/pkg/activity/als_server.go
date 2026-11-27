@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"strings"
 	"time"
 
 	als "github.com/envoyproxy/go-control-plane/envoy/service/accesslog/v3"
@@ -87,11 +86,6 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 				targetNamespace, targetName, ok = ExtractTargetFromClusterOrRoute(route)
 			}
 			if !ok {
-				continue
-			}
-
-			// Discard non-instance traffic.
-			if !strings.Contains(targetName, "instance") {
 				continue
 			}
 

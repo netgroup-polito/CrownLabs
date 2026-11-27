@@ -9,6 +9,10 @@ spec:
   - name: https
     port: 443
     targetPort: k8s-wh
+  - name: http
+    port: 80
+    targetPort: keycloak-wh
+    protocol: TCP
   - name: als-grpc
     port: 9000
     targetPort: als-grpc

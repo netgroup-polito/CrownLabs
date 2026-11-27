@@ -25,7 +25,9 @@ import (
 
 	"github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
+	kerrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/util/retry"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
@@ -40,6 +42,8 @@ const (
 	DefaultDebounceInterval = 15 * time.Minute
 	// maxCacheEntries caps the in-memory debounce map before stale entries are pruned.
 	maxCacheEntries = 1024
+	// maxFutureClockSkew limits how far ahead of local time an activity timestamp may be.
+	maxFutureClockSkew = 2 * time.Minute
 )
 
 // Tracker handles debounced activity timestamp updates for CrownLabs instances.
@@ -96,18 +100,45 @@ func (t *Tracker) setLastUpdatedKeys(ts time.Time, keys ...string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
-	if len(t.lastUpdated) >= maxCacheEntries {
-		for k, cached := range t.lastUpdated {
-			if ts.Sub(cached) >= t.debounceInterval {
-				delete(t.lastUpdated, k)
+	prunedExpired := false
+	for _, key := range keys {
+		if key == "" {
+			continue
+		}
+		if existing, exists := t.lastUpdated[key]; exists {
+			if ts.After(existing) {
+				t.lastUpdated[key] = ts
+			}
+			continue
+		}
+
+		if len(t.lastUpdated) >= maxCacheEntries && !prunedExpired {
+			for k, cached := range t.lastUpdated {
+				if ts.Sub(cached) >= t.debounceInterval {
+					delete(t.lastUpdated, k)
+				}
+			}
+			prunedExpired = true
+		}
+
+		// Enforce hard capacity cap by evicting the oldest entry if all remaining entries are still active.
+		if len(t.lastUpdated) >= maxCacheEntries {
+			var oldestKey string
+			var oldestTS time.Time
+			first := true
+			for k, cached := range t.lastUpdated {
+				if first || cached.Before(oldestTS) {
+					oldestKey = k
+					oldestTS = cached
+					first = false
+				}
+			}
+			if !first {
+				delete(t.lastUpdated, oldestKey)
 			}
 		}
-	}
 
-	for _, key := range keys {
-		if key != "" {
-			t.lastUpdated[key] = ts
-		}
+		t.lastUpdated[key] = ts
 	}
 }
 
@@ -163,10 +194,23 @@ func (t *Tracker) FindInstanceNameByServiceOrRoute(ctx context.Context, namespac
 	return "", fmt.Errorf("could not resolve instance for service/route %s/%s", namespace, name)
 }
 
+func validateTimestamp(ts time.Time) error {
+	if ts.IsZero() || ts.Unix() <= 0 {
+		return fmt.Errorf("invalid activity timestamp %v", ts)
+	}
+	if ts.After(time.Now().Add(maxFutureClockSkew)) {
+		return fmt.Errorf("activity timestamp %s is too far in the future", ts.Format(time.RFC3339))
+	}
+	return nil
+}
+
 // RecordActivityForService records user activity for an instance given the backend Service or HTTPRoute name.
 func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, serviceOrRouteName string, timestamp time.Time) error {
 	if namespace == "" || serviceOrRouteName == "" {
 		return fmt.Errorf("empty namespace or service name")
+	}
+	if err := validateTimestamp(timestamp); err != nil {
+		return err
 	}
 
 	routeKey := namespace + "/" + serviceOrRouteName
@@ -190,6 +234,9 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 
 // RecordActivityForInstance records user activity directly on a retrieved Instance object.
 func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time) error {
+	if err := validateTimestamp(timestamp); err != nil {
+		return err
+	}
 	key := instance.Namespace + "/" + instance.Name
 	if !t.ShouldUpdate(key, timestamp) {
 		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "instance", key)
@@ -199,37 +246,58 @@ func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1a
 }
 
 func (t *Tracker) recordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time, routeKey string) error {
+	instKey := types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}
 	key := instance.Namespace + "/" + instance.Name
+	current := instance
 
-	// Check existing annotation on the instance if in-memory cache didn't have it.
-	if currentStr, ok := instance.Annotations[forge.LastActivityAnnotation]; ok {
-		if currentTime, err := time.Parse(time.RFC3339, currentStr); err == nil {
-			if timestamp.Sub(currentTime) < t.debounceInterval {
-				t.log.V(utils.LogDebugLevel).Info("Activity update skipped by existing annotation timestamp", "instance", key)
-				t.setLastUpdatedKeys(currentTime, key, routeKey)
-				return nil
+	return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+
+		if current == nil {
+			var fresh clv1alpha2.Instance
+			if err := t.client.Get(ctx, instKey, &fresh); err != nil {
+				return fmt.Errorf("failed fetching instance %s: %w", key, err)
+			}
+			current = &fresh
+		}
+
+		// Check existing annotation on the instance if in-memory cache didn't have it or after a conflict.
+		if currentStr, ok := current.Annotations[forge.LastActivityAnnotation]; ok {
+			if currentTime, err := time.Parse(time.RFC3339, currentStr); err == nil {
+				if timestamp.Sub(currentTime) < t.debounceInterval {
+					t.log.V(utils.LogDebugLevel).Info("Activity update skipped by existing annotation timestamp", "instance", key)
+					t.setLastUpdatedKeys(currentTime, key, routeKey)
+					return nil
+				}
 			}
 		}
-	}
 
-	orig := instance.DeepCopy()
-	if instance.Annotations == nil {
-		instance.Annotations = make(map[string]string)
-	}
-	instance.Annotations[forge.LastActivityAnnotation] = timestamp.Format(time.RFC3339)
-	if alertNum, ok := instance.Annotations[forge.AlertAnnotationNum]; ok && alertNum != "0" {
-		instance.Annotations[forge.AlertAnnotationNum] = "0"
-	}
+		orig := current.DeepCopy()
+		if current.Annotations == nil {
+			current.Annotations = make(map[string]string)
+		}
+		current.Annotations[forge.LastActivityAnnotation] = timestamp.Format(time.RFC3339)
+		if alertNum, ok := current.Annotations[forge.AlertAnnotationNum]; ok && alertNum != "0" {
+			current.Annotations[forge.AlertAnnotationNum] = "0"
+		}
 
-	if err := t.client.Patch(ctx, instance, client.MergeFrom(orig)); err != nil {
-		return fmt.Errorf("failed patching instance %s/%s activity: %w", instance.Namespace, instance.Name, err)
-	}
+		if err := t.client.Patch(ctx, current, client.MergeFromWithOptions(orig, client.MergeFromWithOptimisticLock{})); err != nil {
+			if kerrors.IsConflict(err) {
+				// Re-fetch the latest persisted Instance on the next retry so older timestamps cannot overwrite newer ones.
+				current = nil
+				return err
+			}
+			return fmt.Errorf("failed patching instance %s activity: %w", key, err)
+		}
 
-	t.log.Info("Recorded instance activity from Envoy ALS",
-		"instance", key,
-		"lastActivity", timestamp.Format(time.RFC3339),
-	)
+		t.log.Info("Recorded instance activity from Envoy ALS",
+			"instance", key,
+			"lastActivity", timestamp.Format(time.RFC3339),
+		)
 
-	t.setLastUpdatedKeys(timestamp, key, routeKey)
-	return nil
+		t.setLastUpdatedKeys(timestamp, key, routeKey)
+		return nil
+	})
 }

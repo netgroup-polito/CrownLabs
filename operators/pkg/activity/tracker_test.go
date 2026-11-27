@@ -16,6 +16,8 @@ package activity_test
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -269,5 +271,97 @@ var _ = Describe("Activity Tracker", func() {
 			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
 			Expect(retrieved.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
 		})
+
+		It("should reject zero and far-future timestamps without poisoning cache or annotation", func() {
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
+
+			afterDebounce := now.Add(20 * time.Minute)
+			Expect(tracker.RecordActivityForInstance(ctx, instance, time.Time{})).To(HaveOccurred())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, time.Unix(0, 0))).To(HaveOccurred())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, time.Now().Add(10*time.Minute))).To(HaveOccurred())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+
+			// Subsequent valid activity after the debounce window must still be accepted.
+			Expect(tracker.RecordActivityForInstance(ctx, &retrieved, afterDebounce)).To(Succeed())
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(afterDebounce.Format(time.RFC3339)))
+		})
+
+		It("should keep the newest timestamp under concurrent conflicting writes", func() {
+			firstPatchArrived := make(chan struct{})
+			releaseFirstPatch := make(chan struct{})
+			var once sync.Once
+
+			interceptedClient := &patchInterceptClient{
+				Client: cl,
+				onPatch: func(obj client.Object) {
+					if inst, ok := obj.(*clv1alpha2.Instance); ok && inst.Annotations[forge.LastActivityAnnotation] == now.Add(10*time.Minute).Format(time.RFC3339) {
+						once.Do(func() {
+							close(firstPatchArrived)
+							<-releaseFirstPatch
+						})
+					}
+				},
+			}
+
+			// Simulate two independent tracker instances (e.g. concurrent streams or two operator replicas)
+			// reading the same initial ResourceVersion before either patch completes.
+			trackerA := activity.NewTracker(interceptedClient, 15*time.Minute)
+			trackerB := activity.NewTracker(cl, 15*time.Minute)
+
+			var copyA, copyB clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &copyA)).To(Succeed())
+			copyB = *copyA.DeepCopy()
+
+			tsOlder := now.Add(10 * time.Minute)
+			tsNewer := now.Add(15 * time.Minute)
+
+			var errA error
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				errA = trackerA.RecordActivityForInstance(ctx, &copyA, tsOlder)
+			}()
+
+			<-firstPatchArrived
+			Expect(trackerB.RecordActivityForInstance(ctx, &copyB, tsNewer)).To(Succeed())
+			close(releaseFirstPatch)
+			wg.Wait()
+
+			Expect(errA).ToNot(HaveOccurred())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(tsNewer.Format(time.RFC3339)))
+		})
+
+		It("should strictly enforce cache capacity when exceeding maxCacheEntries with active keys", func() {
+			for i := 0; i < 1024; i++ {
+				tracker.SetLastUpdated(fmt.Sprintf("tenant/active-route-%04d", i), now.Add(time.Duration(i)*100*time.Millisecond))
+			}
+
+			// Inserting one more active key within the debounce window must evict the oldest entry (0000).
+			checkTime := now.Add(5 * time.Minute)
+			tracker.SetLastUpdated("tenant/active-route-overflow", checkTime)
+
+			Expect(tracker.ShouldUpdate("tenant/active-route-0000", checkTime)).To(BeTrue())
+			Expect(tracker.ShouldUpdate("tenant/active-route-0001", checkTime)).To(BeFalse())
+		})
 	})
 })
+
+type patchInterceptClient struct {
+	client.Client
+	onPatch func(obj client.Object)
+}
+
+func (p *patchInterceptClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	if p.onPatch != nil {
+		p.onPatch(obj)
+	}
+	return p.Client.Patch(ctx, obj, patch, opts...)
+}
