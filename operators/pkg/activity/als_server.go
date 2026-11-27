@@ -55,17 +55,14 @@ func NewALSServer(tracker *Tracker, bindAddr string, log logr.Logger) *ALSServer
 func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLogsServer) error {
 	ctx := stream.Context()
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
 		msg, err := stream.Recv()
 		if errors.Is(err, io.EOF) {
 			return stream.SendAndClose(&als.StreamAccessLogsResponse{})
 		}
 		if err != nil {
+			if ctx.Err() != nil {
+				return ctx.Err()
+			}
 			s.log.V(utils.LogDebugLevel).Info("ALS stream terminated or errored", "error", err.Error())
 			return err
 		}
@@ -93,23 +90,24 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 				continue
 			}
 
-			// Discard non-instance traffic (routes not matching the instance prefix).
-			if !strings.HasPrefix(targetName, "instance-") && !strings.Contains(targetName, "instance") {
+			// Discard non-instance traffic.
+			if !strings.Contains(targetName, "instance") {
 				continue
 			}
 
-			var path string
-			if req := entry.GetRequest(); req != nil {
-				path = req.GetPath()
+			if dbgLog := s.log.V(utils.LogDebugLevel); dbgLog.Enabled() {
+				var path string
+				if req := entry.GetRequest(); req != nil {
+					path = req.GetPath()
+				}
+				dbgLog.Info("Incoming ALS instance log entry",
+					"cluster", cluster,
+					"route", route,
+					"path", path,
+					"namespace", targetNamespace,
+					"name", targetName,
+				)
 			}
-
-			s.log.Info("Incoming ALS instance log entry",
-				"cluster", cluster,
-				"route", route,
-				"path", path,
-				"namespace", targetNamespace,
-				"name", targetName,
-			)
 
 			timestamp := time.Now()
 			if start := common.GetStartTime(); start != nil {
@@ -147,7 +145,17 @@ func (s *ALSServer) Start(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		s.log.Info("Shutting down Envoy ALS gRPC server gracefully")
-		s.grpcServer.GracefulStop()
+		stopped := make(chan struct{})
+		go func() {
+			s.grpcServer.GracefulStop()
+			close(stopped)
+		}()
+		select {
+		case <-stopped:
+		case <-time.After(2 * time.Second):
+			s.log.Info("Forcing Envoy ALS gRPC server stop after grace period")
+			s.grpcServer.Stop()
+		}
 		return nil
 	case serveErr := <-errChan:
 		return serveErr

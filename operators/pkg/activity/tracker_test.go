@@ -49,16 +49,26 @@ var _ = Describe("Activity Tracker", func() {
 			Expect(name).To(Equal("lab-workstation-gui"))
 		})
 
-		It("fails when target string does not match expected format", func() {
-			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("passthrough_cluster")
-			Expect(ok).To(BeFalse())
-			Expect(ns).To(BeEmpty())
-			Expect(name).To(BeEmpty())
+		It("correctly extracts namespace and name from Envoy Gateway route without suffix", func() {
+			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("httproute/tenant-lucia/lab-workstation-gui")
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal("tenant-lucia"))
+			Expect(name).To(Equal("lab-workstation-gui"))
+		})
 
-			ns, name, ok = activity.ExtractTargetFromClusterOrRoute("")
-			Expect(ok).To(BeFalse())
-			Expect(ns).To(BeEmpty())
-			Expect(name).To(BeEmpty())
+		It("fails when target string does not match expected format", func() {
+			for _, invalid := range []string{
+				"passthrough_cluster",
+				"",
+				"httproute/tenant-ns",
+				"httproute//vm-svc",
+				"httproute/tenant-ns/",
+			} {
+				ns, name, ok := activity.ExtractTargetFromClusterOrRoute(invalid)
+				Expect(ok).To(BeFalse())
+				Expect(ns).To(BeEmpty())
+				Expect(name).To(BeEmpty())
+			}
 		})
 	})
 
@@ -230,6 +240,34 @@ var _ = Describe("Activity Tracker", func() {
 			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
 			// Timestamp should now be updated to 12:15:01
 			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(timeFifteenMinLater.Format(time.RFC3339)))
+		})
+
+		It("should not overwrite a newer existing annotation with an older timestamp", func() {
+			instance.Annotations = map[string]string{
+				forge.LastActivityAnnotation: now.Format(time.RFC3339),
+			}
+			Expect(cl.Update(ctx, instance)).To(Succeed())
+
+			olderTime := now.Add(-5 * time.Minute)
+			Expect(tracker.RecordActivityForInstance(ctx, instance, olderTime)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("should reset AlertAnnotationNum to 0 when recording new activity", func() {
+			instance.Annotations = map[string]string{
+				forge.AlertAnnotationNum: "2",
+			}
+			Expect(cl.Update(ctx, instance)).To(Succeed())
+
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+			Expect(retrieved.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
 		})
 	})
 })

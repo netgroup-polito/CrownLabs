@@ -70,7 +70,6 @@ spec:
             - "--enable-imagelist={{.Values.configurations.features.imageList}}"
             - "--enable-activity-tracking={{.Values.configurations.features.activityTracking}}"
             - "--activity-debounce-interval={{ .Values.configurations.activityTracking.debounceInterval }}"
-            - "--activity-als-bind-addr=:{{ .Values.configurations.activityTracking.alsPort }}"
             # compatibility with older Keycloak versions
             - "--keycloak-compatibility-mode={{ .Values.configurations.keycloak.compatibilityMode }}"
             {{- if .Values.configurations.features.imageList }}

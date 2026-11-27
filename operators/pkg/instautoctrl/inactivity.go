@@ -410,8 +410,8 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 		lastActivityNginx time.Time
 		errNginx          error
 	)
-	if r.Prometheus.GetQueryNginxData() != "" {
-		queryNginx := fmt.Sprintf(r.Prometheus.GetQueryNginxData(), instance.Namespace, instance.Name)
+	if nginxQuery := r.Prometheus.GetQueryNginxData(); nginxQuery != "" {
+		queryNginx := fmt.Sprintf(nginxQuery, instance.Namespace, instance.Name)
 		lastActivityNginx, errNginx = r.Prometheus.GetLastActivityTime(queryNginx, lookback)
 		if errNginx != nil {
 			log.Error(errNginx, "failed querying Nginx activity")
@@ -421,37 +421,41 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 
 	// Query WebSSH activity across all environments (find maximum)
 	var lastActivityWebSSH time.Time
-	webSSHFound := false
-	for envIdx := range instance.Status.Environments {
-		env := &instance.Status.Environments[envIdx]
-		q := fmt.Sprintf(r.Prometheus.GetQueryWebSSHData(), env.IP)
-		t, errWebSSH := r.Prometheus.GetLastActivityTime(q, lookback)
-		if errWebSSH != nil {
-			log.Error(errWebSSH, "failed querying WebSSH activity", "environmentIP", env.IP)
-			queryErrors = append(queryErrors, fmt.Errorf("failed querying WebSSH activity for environment %q: %w", env.IP, errWebSSH))
-			continue
-		}
-		if !t.IsZero() && (!webSSHFound || t.After(lastActivityWebSSH)) {
-			lastActivityWebSSH = t
-			webSSHFound = true
+	if webSSHQuery := r.Prometheus.GetQueryWebSSHData(); webSSHQuery != "" {
+		webSSHFound := false
+		for envIdx := range instance.Status.Environments {
+			env := &instance.Status.Environments[envIdx]
+			q := fmt.Sprintf(webSSHQuery, env.IP)
+			t, errWebSSH := r.Prometheus.GetLastActivityTime(q, lookback)
+			if errWebSSH != nil {
+				log.Error(errWebSSH, "failed querying WebSSH activity", "environmentIP", env.IP)
+				queryErrors = append(queryErrors, fmt.Errorf("failed querying WebSSH activity for environment %q: %w", env.IP, errWebSSH))
+				continue
+			}
+			if !t.IsZero() && (!webSSHFound || t.After(lastActivityWebSSH)) {
+				lastActivityWebSSH = t
+				webSSHFound = true
+			}
 		}
 	}
 
 	// Query SSH activity across all environments (find maximum)
 	var lastActivitySSH time.Time
-	sshFound := false
-	for envIdx := range instance.Status.Environments {
-		env := &instance.Status.Environments[envIdx]
-		q := fmt.Sprintf(r.Prometheus.GetQuerySSHData(), env.IP)
-		t, errSSH := r.Prometheus.GetLastActivityTime(q, lookback)
-		if errSSH != nil {
-			log.Error(errSSH, "failed querying SSH activity", "environmentIP", env.IP)
-			queryErrors = append(queryErrors, fmt.Errorf("failed querying SSH activity for environment %q: %w", env.IP, errSSH))
-			continue
-		}
-		if !t.IsZero() && (!sshFound || t.After(lastActivitySSH)) {
-			lastActivitySSH = t
-			sshFound = true
+	if sshQuery := r.Prometheus.GetQuerySSHData(); sshQuery != "" {
+		sshFound := false
+		for envIdx := range instance.Status.Environments {
+			env := &instance.Status.Environments[envIdx]
+			q := fmt.Sprintf(sshQuery, env.IP)
+			t, errSSH := r.Prometheus.GetLastActivityTime(q, lookback)
+			if errSSH != nil {
+				log.Error(errSSH, "failed querying SSH activity", "environmentIP", env.IP)
+				queryErrors = append(queryErrors, fmt.Errorf("failed querying SSH activity for environment %q: %w", env.IP, errSSH))
+				continue
+			}
+			if !t.IsZero() && (!sshFound || t.After(lastActivitySSH)) {
+				lastActivitySSH = t
+				sshFound = true
+			}
 		}
 	}
 
@@ -470,10 +474,12 @@ func (r *InstanceInactiveTerminationReconciler) UpdateLastActivity(ctx context.C
 	activityFound := !maxActivity.IsZero()
 	newStr := maxActivity.Format(time.RFC3339)
 
-	// Preserve activity found by successful queries even if another source failed.
+	// Preserve activity found by successful queries even if another source failed,
+	// without moving an existing newer timestamp (e.g. from Envoy ALS) backwards.
 	// The Reconcile's defer func handles the actual patch.
 	if activityFound {
-		if instance.Annotations[forge.LastActivityAnnotation] != newStr {
+		existingTime, parseErr := time.Parse(time.RFC3339, instance.Annotations[forge.LastActivityAnnotation])
+		if parseErr != nil || maxActivity.After(existingTime) {
 			instance.Annotations[forge.LastActivityAnnotation] = newStr
 			instance.Annotations[forge.AlertAnnotationNum] = "0"
 			log.Info("Updated lastActivity annotation", "lastActivity", newStr)

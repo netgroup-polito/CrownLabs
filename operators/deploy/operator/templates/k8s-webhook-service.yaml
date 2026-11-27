@@ -9,3 +9,8 @@ spec:
   - name: https
     port: 443
     targetPort: k8s-wh
+  - name: als-grpc
+    port: 9000
+    targetPort: als-grpc
+    protocol: TCP
+    appProtocol: grpc

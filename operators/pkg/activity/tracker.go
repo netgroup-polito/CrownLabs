@@ -38,6 +38,8 @@ import (
 const (
 	// DefaultDebounceInterval defines the default time to suppress redundant activity updates.
 	DefaultDebounceInterval = 15 * time.Minute
+	// maxCacheEntries caps the in-memory debounce map before stale entries are pruned.
+	maxCacheEntries = 1024
 )
 
 // Tracker handles debounced activity timestamp updates for CrownLabs instances.
@@ -87,45 +89,74 @@ func (t *Tracker) ShouldUpdate(key string, now time.Time) bool {
 
 // SetLastUpdated manually sets the last updated timestamp in the memory cache (useful for initialization/testing).
 func (t *Tracker) SetLastUpdated(key string, ts time.Time) {
+	t.setLastUpdatedKeys(ts, key)
+}
+
+func (t *Tracker) setLastUpdatedKeys(ts time.Time, keys ...string) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	t.lastUpdated[key] = ts
+
+	if len(t.lastUpdated) >= maxCacheEntries {
+		for k, cached := range t.lastUpdated {
+			if ts.Sub(cached) >= t.debounceInterval {
+				delete(t.lastUpdated, k)
+			}
+		}
+	}
+
+	for _, key := range keys {
+		if key != "" {
+			t.lastUpdated[key] = ts
+		}
+	}
 }
 
 // ExtractTargetFromClusterOrRoute extracts the namespace and resource name from cluster or route (httproute/<namespace>/<name>/...).
 func ExtractTargetFromClusterOrRoute(target string) (namespace, name string, ok bool) {
-	parts := strings.Split(target, "/")
-	if len(parts) >= 3 && parts[0] == "httproute" && parts[1] != "" && parts[2] != "" {
-		return parts[1], parts[2], true
+	rest, found := strings.CutPrefix(target, "httproute/")
+	if !found {
+		return "", "", false
 	}
-	return "", "", false
+	namespace, rest, found = strings.Cut(rest, "/")
+	if !found || namespace == "" {
+		return "", "", false
+	}
+	name, _, _ = strings.Cut(rest, "/")
+	if name == "" {
+		return "", "", false
+	}
+	return namespace, name, true
+}
+
+func instanceNameFromObject(obj client.Object) (string, bool) {
+	if instName := obj.GetLabels()[forge.LabelInstanceKey]; instName != "" {
+		return instName, true
+	}
+	for _, owner := range obj.GetOwnerReferences() {
+		if owner.Kind == "Instance" && owner.Name != "" {
+			return owner.Name, true
+		}
+	}
+	return "", false
 }
 
 // FindInstanceNameByServiceOrRoute resolves the Instance name from a Service or HTTPRoute in the same namespace.
 func (t *Tracker) FindInstanceNameByServiceOrRoute(ctx context.Context, namespace, name string) (string, error) {
-	// 1. Try finding the Service
+	objKey := types.NamespacedName{Namespace: namespace, Name: name}
+
+	// 1. Try finding the Service.
 	var svc corev1.Service
-	if err := t.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, &svc); err == nil {
-		if instName, ok := svc.Labels[forge.LabelInstanceKey]; ok && instName != "" {
+	if err := t.client.Get(ctx, objKey, &svc); err == nil {
+		if instName, ok := instanceNameFromObject(&svc); ok {
 			return instName, nil
-		}
-		for _, owner := range svc.OwnerReferences {
-			if owner.Kind == "Instance" && owner.Name != "" {
-				return owner.Name, nil
-			}
 		}
 	}
 
-	// 2. Try finding the HTTPRoute
+	// 2. Try finding the HTTPRoute.
 	var route gatewayv1.HTTPRoute
-	if err := t.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: name}, &route); err == nil {
-		if instName, ok := route.Labels[forge.LabelInstanceKey]; ok && instName != "" {
+	if err := t.client.Get(ctx, objKey, &route); err == nil {
+		if instName, ok := instanceNameFromObject(&route); ok {
 			return instName, nil
-		}
-		for _, owner := range route.OwnerReferences {
-			if owner.Kind == "Instance" && owner.Name != "" {
-				return owner.Name, nil
-			}
 		}
 	}
 
@@ -138,7 +169,7 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 		return fmt.Errorf("empty namespace or service name")
 	}
 
-	routeKey := fmt.Sprintf("%s/%s", namespace, serviceOrRouteName)
+	routeKey := namespace + "/" + serviceOrRouteName
 	if !t.ShouldUpdate(routeKey, timestamp) {
 		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "route", routeKey)
 		return nil
@@ -154,32 +185,28 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 		return fmt.Errorf("failed fetching instance %s/%s: %w", namespace, instanceName, err)
 	}
 
-	return t.RecordActivityForInstanceWithKey(ctx, &instance, timestamp, routeKey)
+	return t.recordActivityForInstance(ctx, &instance, timestamp, routeKey)
 }
 
 // RecordActivityForInstance records user activity directly on a retrieved Instance object.
 func (t *Tracker) RecordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time) error {
-	key := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
-	return t.RecordActivityForInstanceWithKey(ctx, instance, timestamp, key)
+	key := instance.Namespace + "/" + instance.Name
+	if !t.ShouldUpdate(key, timestamp) {
+		t.log.V(utils.LogDebugLevel).Info("Activity update skipped by debounce in-memory cache", "instance", key)
+		return nil
+	}
+	return t.recordActivityForInstance(ctx, instance, timestamp, "")
 }
 
-// RecordActivityForInstanceWithKey records user activity and updates cache for instance and optional cacheKey.
-func (t *Tracker) RecordActivityForInstanceWithKey(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time, cacheKey string) error {
-	key := fmt.Sprintf("%s/%s", instance.Namespace, instance.Name)
-	uid := string(instance.GetUID())
+func (t *Tracker) recordActivityForInstance(ctx context.Context, instance *clv1alpha2.Instance, timestamp time.Time, routeKey string) error {
+	key := instance.Namespace + "/" + instance.Name
 
-	// Check existing annotation on the instance if in-memory cache didn't have it
+	// Check existing annotation on the instance if in-memory cache didn't have it.
 	if currentStr, ok := instance.Annotations[forge.LastActivityAnnotation]; ok {
 		if currentTime, err := time.Parse(time.RFC3339, currentStr); err == nil {
-			if timestamp.Sub(currentTime) < t.debounceInterval && !timestamp.Before(currentTime) {
+			if timestamp.Sub(currentTime) < t.debounceInterval {
 				t.log.V(utils.LogDebugLevel).Info("Activity update skipped by existing annotation timestamp", "instance", key)
-				t.SetLastUpdated(key, currentTime)
-				if cacheKey != "" {
-					t.SetLastUpdated(cacheKey, currentTime)
-				}
-				if uid != "" {
-					t.SetLastUpdated(uid, currentTime)
-				}
+				t.setLastUpdatedKeys(currentTime, key, routeKey)
 				return nil
 			}
 		}
@@ -190,6 +217,9 @@ func (t *Tracker) RecordActivityForInstanceWithKey(ctx context.Context, instance
 		instance.Annotations = make(map[string]string)
 	}
 	instance.Annotations[forge.LastActivityAnnotation] = timestamp.Format(time.RFC3339)
+	if alertNum, ok := instance.Annotations[forge.AlertAnnotationNum]; ok && alertNum != "0" {
+		instance.Annotations[forge.AlertAnnotationNum] = "0"
+	}
 
 	if err := t.client.Patch(ctx, instance, client.MergeFrom(orig)); err != nil {
 		return fmt.Errorf("failed patching instance %s/%s activity: %w", instance.Namespace, instance.Name, err)
@@ -200,12 +230,6 @@ func (t *Tracker) RecordActivityForInstanceWithKey(ctx context.Context, instance
 		"lastActivity", timestamp.Format(time.RFC3339),
 	)
 
-	t.SetLastUpdated(key, timestamp)
-	if cacheKey != "" {
-		t.SetLastUpdated(cacheKey, timestamp)
-	}
-	if uid != "" {
-		t.SetLastUpdated(uid, timestamp)
-	}
+	t.setLastUpdatedKeys(timestamp, key, routeKey)
 	return nil
 }
