@@ -65,7 +65,48 @@ type CleanupOptions struct {
 	DeleteAfterInactivity string `json:"deleteAfterInactivity"`
 }
 
+// TemplateJob defines how a batch job is started from an Instance of the Template.
+type TemplateJob struct {
+	// +kubebuilder:validation:Pattern="^[a-z\\d][a-z\\d-]{2,10}[a-z\\d]$"
+	// The name of the environment (in environmentList) whose instance is copied
+	// to run the job. It must be a persistent environment of type Container or
+	// Standalone.
+	EnvironmentName string `json:"environmentName"`
+
+	// The json tag of Args has no omitempty, so that absent and empty stay
+	// different for Go clients: a nil slice is sent as null, which the API
+	// server drops (absent), and an empty slice is sent as []. With omitempty,
+	// an empty slice would be sent as absent.
+
+	// +optional
+	// +kubebuilder:validation:MaxItems:=64
+	// +kubebuilder:validation:items:MaxLength:=8192
+	// The arguments of the container of the jobs (e.g., ["python", "train.py"]),
+	// used if editable is false.
+	// If absent, a job keeps the arguments of its container: the startupArgs
+	// of the environment, or else the CMD of the image. If set, even empty,
+	// the list replaces the arguments of the container, as it is: an empty
+	// list sets no arguments, and Kubernetes then uses the CMD of the image.
+	// The entrypoint of the image is never changed. The image can detect that
+	// it runs in a job through the environment variable CROWNLABS_JOB=true.
+	// If editable is true, the operator never reads this field: it is only
+	// the default that the dashboard shows and lets the user restore.
+	Args []string `json:"args"`
+
+	// +kubebuilder:default=false
+	// Whether a job may set its own arguments (spec.args of the CrownJob).
+	// If false, the jobs use the args of this Template, and a CrownJob may not
+	// set args. If true, the jobs use the args of the CrownJob, and the args
+	// of this Template are only a default for the dashboard.
+	Editable bool `json:"editable,omitempty"`
+
+	// The time limit (maxRunTime) and the resources of the jobs.
+	apicommon.JobLimits `json:",inline"`
+}
+
 // TemplateSpec is the specification of the desired state of the Template.
+// +kubebuilder:validation:XValidation:rule="!has(self.job) || self.environmentList.exists(e, e.name == self.job.environmentName)",message="job.environmentName must be the name of an environment in environmentList"
+// +kubebuilder:validation:XValidation:rule="!has(self.job) || self.environmentList.all(e, e.name != self.job.environmentName || (has(e.persistent) && e.persistent && (e.environmentType == 'Container' || e.environmentType == 'Standalone')))",message="job.environmentName must name a persistent environment of type Container or Standalone"
 type TemplateSpec struct {
 	// The human-readable name of the Template.
 	PrettyName string `json:"prettyName"`
@@ -95,6 +136,10 @@ type TemplateSpec struct {
 	// +kubebuilder:default=false
 	// Whether the Template has the authorization to be Public Exposed or not, using a LoadBalancer service.
 	AllowPublicExposure bool `json:"allowPublicExposure,omitempty"`
+
+	// How batch jobs are started from the Instances of this Template.
+	// If omitted, no job can be started from this Template.
+	Job *TemplateJob `json:"job,omitempty"`
 }
 
 // TemplateStatus reflects the most recently observed status of the Template.

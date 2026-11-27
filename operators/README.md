@@ -538,6 +538,131 @@ For a deeper definition go to
 - `Tenant` [YAML version](./deploy/crds/crownlabs.polito.it_tenants.yaml)
 - `Workspace` [GoLang code version](./api/v1alpha1/workspace_types.go)
 - `Workspace` [YAML version](./deploy/crds/crownlabs.polito.it_workspaces.yaml)
+- `CrownJob` [GoLang code version](./api/v1alpha2/crownjob_types.go)
+- `CrownJob` [YAML version](./deploy/crds/crownlabs.polito.it_crownjobs.yaml)
+
+### Job API
+
+The job API lets a user run a batch job from one of their Instances ("Run job"): the job copies the environment of the Instance, runs once, and ends. It consists of optional fields in Workspace and Template, and of the namespaced `CrownJob` resource (`crownlabs.polito.it/v1alpha2`), one object per run. The controller that runs the jobs follows in a later change: for now, the API server only stores and validates these resources.
+
+A Workspace runs jobs only if it has `jobOptions`:
+- `priority`, from 0 to 10000 (default 100), the priority of all the jobs of the Workspace: when jobs of several Workspaces wait for the same shared resources, the job with the higher value is admitted first. The operator creates one Kueue `WorkloadPriorityClass` per Workspace, named `workspace-<name of the Workspace>`, with this value: it orders the jobs in the queues of Kueue, and does not change the priority of their pods.
+- `queueLimits`, required: the limits of the job queue, named like the requests and limits of a container:
+  - `limits`, required, with at least one resource: the most that all the jobs of the Workspace may use at the same time;
+  - `requests`: the resources reserved for the jobs of the Workspace; the operator checks that requests do not exceed limits;
+  - `jobLimits`: the most that one job may run (`maxRunTime`) and ask for (`resources`);
+  - `perUser`: the limits of each member.
+- `overrideWindows`: each window changes some limits during given hours of given days. Every field set in `overrides` (`limits`, `requests`, `jobLimits`, `perUser`) replaces the default of `queueLimits` as a whole, without merging the content, and the omitted fields keep the default. `limits` is required only in `queueLimits`, not in `overrides`.
+
+The days and times of a window are in UTC, so a window does not follow daylight saving time (e.g., 20:00 in Rome is 19:00 UTC in winter and 18:00 UTC in summer). A window covers `[start, end)` within one day: `start` is included, `end` is excluded, and `end` may be `"24:00"`. A window cannot cross midnight (UTC), so a night needs two windows (`"20:00"`-`"24:00"` and `"00:00"`-`"06:00"`); quote the times in YAML. Durations are a positive number of at most four digits followed by `m`, `h` or `d` (e.g., `30m`, `6h`, `2d`), the format read by `ParseDurationWithDays`; `never` is not allowed.
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha1
+kind: Workspace
+metadata:
+  name: ml
+spec:
+  prettyName: Machine Learning
+  quota:
+    cpu: 16
+    memory: "32Gi"
+    instances: 4
+  jobOptions:
+    priority: 100
+    queueLimits:
+      limits:
+        cpu: "16"
+        memory: "64Gi"
+        nvidia.com/gpu: "2"
+      jobLimits:
+        maxRunTime: 6h
+        resources:
+          cpu: "8"
+          memory: "32Gi"
+          nvidia.com/gpu: "1"
+      perUser:
+        resources:
+          nvidia.com/gpu: "1"
+        maxActiveJobs: 2
+    overrideWindows:
+      - days: [Mon, Tue, Wed, Thu, Fri]
+        start: "19:00"
+        end: "24:00"
+        overrides:
+          limits:
+            cpu: "32"
+            memory: "128Gi"
+            nvidia.com/gpu: "4"
+```
+
+The operator will report the state of the job queue of a Workspace in `status.conditions`, as the condition of type `QueueReady`, also shown in the `Queue Ready` column of `kubectl get workspaces`: `True` if the job queue exists and its requests fit in the job capacity; `False`, with a reason and a message, if it could not be created or grown (e.g., the requests of all the queues would exceed the job capacity). In that case the Workspace itself is still created.
+
+`maxRunTime` and `resources` have one type, `JobLimits`: the `jobLimits` of a `queueLimits` in a Workspace, and inline in the `job` section of a Template, with the same validation in both. A `maxRunTime` is counted from the start of the pod of the job, so its set-up (mounting the disk, downloading the image) is included. In a Template they are the time limit and the resources of its jobs: the operator applies the smaller of its `maxRunTime` and that of the Workspace; a resource listed in `resources` (e.g., `cpu`, `memory`, `nvidia.com/gpu`) replaces the value of the Instance for the job, with requests equal to limits, the resources not listed keep the values of the Instance, and a quantity of 0 of an extended resource (e.g., `nvidia.com/gpu: 0`) means that the job does not ask for it, even if the Instance does.
+
+A Template enables "Run job" through a `job` section. The environment it names must be persistent and of type `Container` or `Standalone`. A job changes only the arguments of its container, never the entrypoint of the image: `args` and `editable` (default `false`) decide them.
+
+| `editable` | the args used | absent | a list, even empty |
+|---|---|---|---|
+| `false` | the `args` of the Template only | the args of the container | copied as they are |
+| `true` | the `args` of the CrownJob only | the args of the container | copied as they are |
+
+- **The args of the container** are the `startupArgs` of the environment, or else the CMD of the image.
+- **A list replaces them as it is.** An empty list sets no args, and Kubernetes then uses the CMD of the image.
+- **With `editable: true`, the operator never reads the `args` of the Template.** They are only the default that the dashboard shows and lets the user restore.
+- **A CrownJob may set `args`**, the empty list included, only if the `job` section of its Template is `editable`; the operator checks this.
+
+The image must be prepared to run its args in a job, and it can detect a job through the environment variable `CROWNLABS_JOB=true`.
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: Template
+metadata:
+  name: pytorch-gpu
+  namespace: workspace-ml
+spec:
+  prettyName: PyTorch (GPU)
+  description: JupyterLab with PyTorch
+  workspace.crownlabs.polito.it/WorkspaceRef:
+    name: ml
+  environmentList:
+    - name: jupyter-env
+      environmentType: Standalone
+      image: harbor.crownlabs.polito.it/crownlabs-standalone/jupyterlab:1.0.0
+      persistent: true
+      resources:
+        cpu: 4
+        memory: 8G
+        disk: 20G
+        reservedCPUPercentage: 50
+  job:
+    environmentName: jupyter-env
+    args: ["python", "train.py"]
+    resources:
+      nvidia.com/gpu: 1
+    maxRunTime: 4h
+```
+
+A CrownJob is created in the namespace of its Instance, whose name is in `spec.instance`. `spec.prettyName` is an optional free text for the user. The dashboard names each CrownJob through `metadata.generateName: <name of the Instance>-`, so the API server appends a random suffix (e.g., `pytorch-gpu-x7k2p-4mz9q`); with kubectl, such an object needs `kubectl create`, since `kubectl apply` requires a name. `spec.args` are the args of the run:
+
+| `spec.args` | the args of the container of the job |
+|---|---|
+| absent | unchanged: the `startupArgs` of the environment, or else the CMD of the image |
+| `[]` | none, so Kubernetes uses the CMD of the image |
+| a list | that list, as it is |
+
+`spec.args` may be set, `[]` included, only if the `job` section of the Template is `editable`; the operator checks this. Like that of InstanceSnapshot, its `spec` is immutable: to change a run, delete it and create a new one. `spec.maxRunTime`, like the `maxRunTime` of a Template, is counted from the start of the pod of the job, so its set-up is included. The operator will report the progress of the run in `status` (`phase`, `reason`, `message`, `queuePosition`, `deadline` and `runFolder`); `deadline` is the start of the pod of the job plus its maximum run time.
+
+```yaml
+apiVersion: crownlabs.polito.it/v1alpha2
+kind: CrownJob
+metadata:
+  generateName: pytorch-gpu-x7k2p-
+  namespace: tenant-mario
+spec:
+  instance: pytorch-gpu-x7k2p
+  prettyName: Training, 3 epochs
+  maxRunTime: 1h
+```
 
 ## CrownLabs InstanceSnapshot Controller
 

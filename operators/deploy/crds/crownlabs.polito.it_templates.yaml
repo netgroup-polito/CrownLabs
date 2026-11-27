@@ -298,6 +298,81 @@ spec:
                 x-kubernetes-list-map-keys:
                 - name
                 x-kubernetes-list-type: map
+              job:
+                description: |-
+                  How batch jobs are started from the Instances of this Template.
+                  If omitted, no job can be started from this Template.
+                properties:
+                  args:
+                    description: |-
+                      The arguments of the container of the jobs (e.g., ["python", "train.py"]),
+                      used if editable is false.
+                      If absent, a job keeps the arguments of its container: the startupArgs
+                      of the environment, or else the CMD of the image. If set, even empty,
+                      the list replaces the arguments of the container, as it is: an empty
+                      list sets no arguments, and Kubernetes then uses the CMD of the image.
+                      The entrypoint of the image is never changed. The image can detect that
+                      it runs in a job through the environment variable CROWNLABS_JOB=true.
+                      If editable is true, the operator never reads this field: it is only
+                      the default that the dashboard shows and lets the user restore.
+                    items:
+                      maxLength: 8192
+                      type: string
+                    maxItems: 64
+                    type: array
+                  editable:
+                    default: false
+                    description: |-
+                      Whether a job may set its own arguments (spec.args of the CrownJob).
+                      If false, the jobs use the args of this Template, and a CrownJob may not
+                      set args. If true, the jobs use the args of the CrownJob, and the args
+                      of this Template are only a default for the dashboard.
+                    type: boolean
+                  environmentName:
+                    description: |-
+                      The name of the environment (in environmentList) whose instance is copied
+                      to run the job. It must be a persistent environment of type Container or
+                      Standalone.
+                    pattern: ^[a-z\d][a-z\d-]{2,10}[a-z\d]$
+                    type: string
+                  maxRunTime:
+                    description: |-
+                      The maximum time a job may run, as a positive number of at most four
+                      digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d). It is
+                      counted from the start of the pod of the job, so its set-up (mounting
+                      the disk, downloading the image) is included. A job still running after
+                      this time is stopped.
+                      In the job section of a Template, it is the time limit of the jobs
+                      started from the Template: the operator applies the smaller of this
+                      value and the maxRunTime of the Workspace, and the maxRunTime of the
+                      Workspace if this one is absent.
+                      In the jobLimits of a Workspace, it is the most that one job may run.
+                      If absent in both the Template and the Workspace, the default of the
+                      operator applies.
+                    pattern: ^[1-9][0-9]{0,3}[mhd]$
+                    type: string
+                  resources:
+                    additionalProperties:
+                      anyOf:
+                      - type: integer
+                      - type: string
+                      pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                      x-kubernetes-int-or-string: true
+                    description: |-
+                      The resources of a job, by resource name (e.g., cpu, memory,
+                      nvidia.com/gpu).
+                      In the job section of a Template, they are the resources of each job
+                      started from the Template: a listed resource replaces the value of the
+                      Instance for the job, with requests equal to limits; the resources not
+                      listed keep the values of the Instance; a quantity of 0 of an extended
+                      resource (a name with a "/", e.g., nvidia.com/gpu: 0) means that the job
+                      does not ask for it, even if the Instance does.
+                      In the jobLimits of a Workspace, they are the most that one job may ask
+                      for (this is checked by the operator).
+                    type: object
+                required:
+                - environmentName
+                type: object
               nodeSelector:
                 additionalProperties:
                   type: string
@@ -330,6 +405,14 @@ spec:
             - environmentList
             - prettyName
             type: object
+            x-kubernetes-validations:
+            - message: job.environmentName must be the name of an environment in environmentList
+              rule: '!has(self.job) || self.environmentList.exists(e, e.name == self.job.environmentName)'
+            - message: job.environmentName must name a persistent environment of type
+                Container or Standalone
+              rule: '!has(self.job) || self.environmentList.all(e, e.name != self.job.environmentName
+                || (has(e.persistent) && e.persistent && (e.environmentType == ''Container''
+                || e.environmentType == ''Standalone'')))'
           status:
             description: TemplateStatus reflects the most recently observed status
               of the Template.

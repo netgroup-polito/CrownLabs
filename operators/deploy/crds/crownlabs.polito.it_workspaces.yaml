@@ -24,6 +24,9 @@ spec:
     - jsonPath: .status.ready
       name: Ready
       type: string
+    - jsonPath: .status.conditions[?(@.type=="QueueReady")].status
+      name: Queue Ready
+      type: string
     - jsonPath: .metadata.creationTimestamp
       name: Age
       type: date
@@ -61,6 +64,304 @@ spec:
                 - withApproval
                 - immediate
                 type: string
+              jobOptions:
+                description: |-
+                  The batch jobs ("Run job") of the members of this Workspace: their
+                  priority and the limits of their queue.
+                  If omitted, no job can be run in this Workspace.
+                properties:
+                  overrideWindows:
+                    description: |-
+                      The periods of the week during which some limits of the job queue
+                      differ from those in queueLimits (e.g., more GPUs at night).
+                      Their days and times are in UTC.
+                    items:
+                      description: |-
+                        JobWindow defines a period of the week during which some limits of the job
+                        queue of a Workspace differ from the defaults. On each of its days, a window
+                        covers [start, end): start is included and end is excluded. Days and times
+                        are in UTC.
+                      properties:
+                        days:
+                          description: |-
+                            The days of the week on which the window applies (Mon, Tue, Wed, Thu,
+                            Fri, Sat, Sun), in UTC.
+                          items:
+                            description: WeekDay is a day of the week, as used by
+                              the job windows of a Workspace.
+                            enum:
+                            - Mon
+                            - Tue
+                            - Wed
+                            - Thu
+                            - Fri
+                            - Sat
+                            - Sun
+                            type: string
+                          maxItems: 7
+                          minItems: 1
+                          type: array
+                          x-kubernetes-list-type: set
+                        end:
+                          description: |-
+                            The time of the day at which the window ends (excluded), as "HH:MM"
+                            (24-hour clock, from "00:01" to "24:00"), in UTC. Quote the value in
+                            YAML. It must be later than start on the same day: a window cannot
+                            cross midnight (UTC), so a night needs two windows (e.g.,
+                            "20:00"-"24:00" and "00:00"-"06:00").
+                          maxLength: 5
+                          pattern: ^(([01][0-9]|2[0-3]):[0-5][0-9]|24:00)$
+                          type: string
+                        overrides:
+                          description: |-
+                            The limits in force during the window. Each field set here (limits,
+                            requests, jobLimits, perUser) replaces the corresponding default of
+                            spec.jobOptions.queueLimits as a whole, without merging the content; the
+                            fields omitted here keep the default value.
+                          properties:
+                            jobLimits:
+                              description: |-
+                                The limits of each job: the most that one job may run (maxRunTime) and
+                                ask for (resources). If set in a window's overrides, it replaces the
+                                whole jobLimits of queueLimits.
+                              properties:
+                                maxRunTime:
+                                  description: |-
+                                    The maximum time a job may run, as a positive number of at most four
+                                    digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d). It is
+                                    counted from the start of the pod of the job, so its set-up (mounting
+                                    the disk, downloading the image) is included. A job still running after
+                                    this time is stopped.
+                                    In the job section of a Template, it is the time limit of the jobs
+                                    started from the Template: the operator applies the smaller of this
+                                    value and the maxRunTime of the Workspace, and the maxRunTime of the
+                                    Workspace if this one is absent.
+                                    In the jobLimits of a Workspace, it is the most that one job may run.
+                                    If absent in both the Template and the Workspace, the default of the
+                                    operator applies.
+                                  pattern: ^[1-9][0-9]{0,3}[mhd]$
+                                  type: string
+                                resources:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: |-
+                                    The resources of a job, by resource name (e.g., cpu, memory,
+                                    nvidia.com/gpu).
+                                    In the job section of a Template, they are the resources of each job
+                                    started from the Template: a listed resource replaces the value of the
+                                    Instance for the job, with requests equal to limits; the resources not
+                                    listed keep the values of the Instance; a quantity of 0 of an extended
+                                    resource (a name with a "/", e.g., nvidia.com/gpu: 0) means that the job
+                                    does not ask for it, even if the Instance does.
+                                    In the jobLimits of a Workspace, they are the most that one job may ask
+                                    for (this is checked by the operator).
+                                  type: object
+                              type: object
+                            limits:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                The most that all the jobs of the Workspace may use at the same time, by
+                                resource name (e.g., cpu, memory, nvidia.com/gpu), like the limits of a
+                                container. It is required in spec.jobOptions.queueLimits, with at least
+                                one resource; if absent in a window's overrides, the value in
+                                queueLimits applies.
+                              type: object
+                            perUser:
+                              description: |-
+                                The limits that apply to each member of the Workspace. If set in a
+                                window's overrides, it replaces the whole perUser of queueLimits.
+                              properties:
+                                maxActiveJobs:
+                                  description: |-
+                                    The maximum number of jobs (waiting and running) that one member may
+                                    have at the same time. This limit is not enforced yet: enforcement will
+                                    be added in a later version of the operator.
+                                  format: int32
+                                  minimum: 1
+                                  type: integer
+                                resources:
+                                  additionalProperties:
+                                    anyOf:
+                                    - type: integer
+                                    - type: string
+                                    pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                    x-kubernetes-int-or-string: true
+                                  description: |-
+                                    The maximum amount of resources that one member may use in total across
+                                    all of their running jobs, by resource name.
+                                  type: object
+                              type: object
+                            requests:
+                              additionalProperties:
+                                anyOf:
+                                - type: integer
+                                - type: string
+                                pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                x-kubernetes-int-or-string: true
+                              description: |-
+                                The resources reserved for the jobs of the Workspace, by resource name,
+                                like the requests of a container. If absent in queueLimits, nothing is
+                                reserved, and the jobs only use resources that other Workspaces are not
+                                using; if absent in a window's overrides, the value in queueLimits
+                                applies.
+                                The operator checks that requests do not exceed limits, on the values in
+                                force at each moment.
+                              type: object
+                          type: object
+                        start:
+                          description: |-
+                            The time of the day at which the window starts (included), as "HH:MM"
+                            (24-hour clock, from "00:00" to "23:59"), in UTC. Quote the value in
+                            YAML.
+                          maxLength: 5
+                          pattern: ^([01][0-9]|2[0-3]):[0-5][0-9]$
+                          type: string
+                      required:
+                      - days
+                      - end
+                      - overrides
+                      - start
+                      type: object
+                      x-kubernetes-validations:
+                      - message: 'the window start must be earlier than its end: a
+                          window cannot cross midnight'
+                        rule: self.start < self.end
+                    maxItems: 20
+                    type: array
+                  priority:
+                    default: 100
+                    description: |-
+                      The priority of the jobs of the members of this Workspace, from 0 to
+                      10000 (default 100). All the jobs of the Workspace have this priority.
+                      When jobs of several Workspaces wait for the same shared resources, the
+                      job with the higher value is admitted first. The operator creates one
+                      Kueue WorkloadPriorityClass per Workspace, named workspace-<name of the
+                      Workspace>, with this value: it orders the jobs in the queues of Kueue,
+                      and does not change the priority of their pods. The job windows cannot
+                      change it.
+                    format: int32
+                    maximum: 10000
+                    minimum: 0
+                    type: integer
+                  queueLimits:
+                    description: |-
+                      The limits of the job queue of this Workspace. Its limits field is
+                      required here, with at least one resource.
+                    properties:
+                      jobLimits:
+                        description: |-
+                          The limits of each job: the most that one job may run (maxRunTime) and
+                          ask for (resources). If set in a window's overrides, it replaces the
+                          whole jobLimits of queueLimits.
+                        properties:
+                          maxRunTime:
+                            description: |-
+                              The maximum time a job may run, as a positive number of at most four
+                              digits followed by a unit among m, h and d (e.g., 30m, 6h, 2d). It is
+                              counted from the start of the pod of the job, so its set-up (mounting
+                              the disk, downloading the image) is included. A job still running after
+                              this time is stopped.
+                              In the job section of a Template, it is the time limit of the jobs
+                              started from the Template: the operator applies the smaller of this
+                              value and the maxRunTime of the Workspace, and the maxRunTime of the
+                              Workspace if this one is absent.
+                              In the jobLimits of a Workspace, it is the most that one job may run.
+                              If absent in both the Template and the Workspace, the default of the
+                              operator applies.
+                            pattern: ^[1-9][0-9]{0,3}[mhd]$
+                            type: string
+                          resources:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              The resources of a job, by resource name (e.g., cpu, memory,
+                              nvidia.com/gpu).
+                              In the job section of a Template, they are the resources of each job
+                              started from the Template: a listed resource replaces the value of the
+                              Instance for the job, with requests equal to limits; the resources not
+                              listed keep the values of the Instance; a quantity of 0 of an extended
+                              resource (a name with a "/", e.g., nvidia.com/gpu: 0) means that the job
+                              does not ask for it, even if the Instance does.
+                              In the jobLimits of a Workspace, they are the most that one job may ask
+                              for (this is checked by the operator).
+                            type: object
+                        type: object
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          The most that all the jobs of the Workspace may use at the same time, by
+                          resource name (e.g., cpu, memory, nvidia.com/gpu), like the limits of a
+                          container. It is required in spec.jobOptions.queueLimits, with at least
+                          one resource; if absent in a window's overrides, the value in
+                          queueLimits applies.
+                        type: object
+                      perUser:
+                        description: |-
+                          The limits that apply to each member of the Workspace. If set in a
+                          window's overrides, it replaces the whole perUser of queueLimits.
+                        properties:
+                          maxActiveJobs:
+                            description: |-
+                              The maximum number of jobs (waiting and running) that one member may
+                              have at the same time. This limit is not enforced yet: enforcement will
+                              be added in a later version of the operator.
+                            format: int32
+                            minimum: 1
+                            type: integer
+                          resources:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              The maximum amount of resources that one member may use in total across
+                              all of their running jobs, by resource name.
+                            type: object
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          The resources reserved for the jobs of the Workspace, by resource name,
+                          like the requests of a container. If absent in queueLimits, nothing is
+                          reserved, and the jobs only use resources that other Workspaces are not
+                          using; if absent in a window's overrides, the value in queueLimits
+                          applies.
+                          The operator checks that requests do not exceed limits, on the values in
+                          force at each moment.
+                        type: object
+                    type: object
+                required:
+                - queueLimits
+                type: object
+                x-kubernetes-validations:
+                - message: queueLimits.limits must list at least one resource
+                  rule: has(self.queueLimits.limits) && size(self.queueLimits.limits)
+                    > 0
               prettyName:
                 description: The human-readable name of the Workspace.
                 type: string
@@ -123,6 +424,72 @@ spec:
             description: WorkspaceStatus reflects the most recently observed status
               of the Workspace.
             properties:
+              conditions:
+                description: |-
+                  The latest available observations of the state of the Workspace.
+                  The operator sets the condition of type QueueReady, about the job queue
+                  of the Workspace: True if the job queue exists and its requests fit in
+                  the job capacity; False, with a reason and a message, if it could not
+                  be created or grown (e.g., the requests of all the queues would exceed
+                  the job capacity). In that case the Workspace itself is still created.
+                items:
+                  description: Condition contains details for one aspect of the current
+                    state of this API Resource.
+                  properties:
+                    lastTransitionTime:
+                      description: |-
+                        lastTransitionTime is the last time the condition transitioned from one status to another.
+                        This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                      format: date-time
+                      type: string
+                    message:
+                      description: |-
+                        message is a human readable message indicating details about the transition.
+                        This may be an empty string.
+                      maxLength: 32768
+                      type: string
+                    observedGeneration:
+                      description: |-
+                        observedGeneration represents the .metadata.generation that the condition was set based upon.
+                        For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                        with respect to the current state of the instance.
+                      format: int64
+                      minimum: 0
+                      type: integer
+                    reason:
+                      description: |-
+                        reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                        Producers of specific condition types may define expected values and meanings for this field,
+                        and whether the values are considered a guaranteed API.
+                        The value should be a CamelCase string.
+                        This field may not be empty.
+                      maxLength: 1024
+                      minLength: 1
+                      pattern: ^[A-Za-z]([A-Za-z0-9_,:]*[A-Za-z0-9_])?$
+                      type: string
+                    status:
+                      description: status of the condition, one of True, False, Unknown.
+                      enum:
+                      - "True"
+                      - "False"
+                      - Unknown
+                      type: string
+                    type:
+                      description: type of condition in CamelCase or in foo.example.com/CamelCase.
+                      maxLength: 316
+                      pattern: ^([a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*/)?(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])$
+                      type: string
+                  required:
+                  - lastTransitionTime
+                  - message
+                  - reason
+                  - status
+                  - type
+                  type: object
+                type: array
+                x-kubernetes-list-map-keys:
+                - type
+                x-kubernetes-list-type: map
               namespace:
                 description: |-
                   The namespace containing all CrownLabs related objects of the Workspace.
