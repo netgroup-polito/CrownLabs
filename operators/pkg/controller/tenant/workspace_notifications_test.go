@@ -22,6 +22,8 @@ import (
 	"strings"
 	"time"
 
+	gocloak13 "github.com/Nerzal/gocloak/v13"
+	"github.com/golang/mock/gomock"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	gomegatypes "github.com/onsi/gomega/types"
@@ -32,6 +34,7 @@ import (
 
 	clv1alpha1 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha1"
 	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/mock"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/controller/tenant"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
 	"github.com/netgroup-polito/CrownLabs/operators/pkg/utils/mail"
@@ -408,6 +411,55 @@ var _ = Describe("Workspace notifications", func() {
 
 			Expect(mailer.sent).To(BeEmpty())
 			Expect(notified()).To(BeEmpty())
+		})
+	})
+
+	Context("When the tenant has not verified its email in Keycloak", func() {
+		var emailVerified bool
+
+		BeforeEach(func() {
+			emailVerified = false
+			tnResource.Spec.Workspaces = []clv1alpha2.TenantWorkspaceEntry{
+				{Name: "ws1", Role: clv1alpha2.User},
+				{Name: "ws2", Role: clv1alpha2.Manager},
+			}
+
+			keycloakActor = mock.NewMockKeycloakActorIface(mockCtrl)
+			keycloakActor.EXPECT().IsInitialized().Return(true).AnyTimes()
+			keycloakActor.EXPECT().GetUser(gomock.Any(), tnName).DoAndReturn(
+				func(context.Context, string) (*gocloak13.User, error) {
+					return &gocloak13.User{ID: gocloak13.StringP("user-id"), EmailVerified: gocloak13.BoolP(emailVerified)}, nil
+				}).AnyTimes()
+			keycloakActor.EXPECT().GetUserRoles(gomock.Any(), "user-id").Return(nil, nil).AnyTimes()
+			keycloakActor.EXPECT().GetRole(gomock.Any(), gomock.Any()).DoAndReturn(
+				func(_ context.Context, name string) (*gocloak13.Role, error) {
+					return &gocloak13.Role{Name: gocloak13.StringP(name)}, nil
+				}).AnyTimes()
+			keycloakActor.EXPECT().AddUserToRoles(gomock.Any(), "user-id", gomock.Any()).Return(nil).AnyTimes()
+
+			// The reconcile is run by the test, after disabling WaitUserVerification: otherwise,
+			// it would stop before the notifications for unverified tenants anyway.
+			runReconcile = false
+		})
+
+		AfterEach(func() {
+			runReconcile = true
+		})
+
+		It("Should notify the workspaces only once the email is verified, even without WaitUserVerification", func() {
+			tenantReconciler.WaitUserVerification = false
+
+			Expect(reconcileTenant()).To(Succeed())
+			Expect(mailer.sent).To(BeEmpty())
+			Expect(notified()).To(BeEmpty())
+
+			emailVerified = true
+			Expect(reconcileTenant()).To(Succeed())
+			Expect(mailer.sent).To(ConsistOf(
+				addedNotification("Workspace One", clv1alpha2.User),
+				addedNotification("Workspace Two", clv1alpha2.Manager),
+			))
+			Expect(notified()).To(haveWorkspaces("ws1", "ws2"))
 		})
 	})
 })

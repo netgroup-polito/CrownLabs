@@ -61,11 +61,20 @@ const (
 //
 // The annotations are kept up to date in the same way even when no Mailer is configured (i.e.,
 // notifications are disabled).
+//
+// Nothing is done until the tenant has verified its email address in Keycloak, whatever the value
+// of WaitUserVerification, so that no email reaches an address the tenant has not confirmed: once
+// verified, the tenant is notified about all its current workspaces.
 func (r *Reconciler) syncWorkspaceNotifications(
 	ctx context.Context,
 	log logr.Logger,
 	tn *clv1alpha2.Tenant,
 ) error {
+	if r.KeycloakActor.IsInitialized() && !tn.Status.Keycloak.UserConfirmed {
+		log.Info("Tenant email not verified in Keycloak yet, postponing workspace notifications")
+		return nil
+	}
+
 	notified := notifiedWorkspaces(tn.Annotations)
 
 	var (

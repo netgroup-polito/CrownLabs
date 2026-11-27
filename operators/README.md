@@ -479,12 +479,14 @@ To increase the resources available to a Tenant in their personal workspace, you
 ### Workspace notifications
 With `--enable-workspace-notifications`, the operator emails a tenant when it becomes a `user` or `manager` of a workspace, and when it is removed from it, using the `tenant_workspace_added_notification.yaml` and `tenant_workspace_removed_notification.yaml` [crownmail](pkg/utils/mail/README.md) templates.
 Candidates are not notified until their request is approved (nor if it is rejected), and base workspaces (`--base-workspaces`) are never notified.
+Tenants are notified only once they have verified their email address in Keycloak (whatever `--wait-user-verification`), and then about all their current workspaces. Without Keycloak, tenants are notified anyway.
 Deleting a workspace removes all its tenants, so each of them receives a removal email.
 
 Each workspace the tenant has been notified about has its own annotation on the Tenant, `notified-workspace.crownlabs.polito.it/<workspace>`, whose value is the time the addition was recorded (RFC 3339, e.g., `2026-11-18T10:30:00Z`):
 
 - The annotation is created once the email about joining the workspace has been sent, and deleted once the email about leaving it has been sent, so being added again sends a new email (and records a new time).
 - A failed email leaves the annotation of that workspace unchanged, so it is retried at the next reconcile, without affecting the tenant readiness.
+- An annotation for a workspace the tenant is not part of is treated as a removal: it is deleted, and a removal email is sent. To mark a workspace as already notified (e.g., in a bulk import), set its annotation in the same request that adds the tenant to the workspace, or keep notification disabled for the first reconciliation run (in order to update annotations).
 - The annotations are kept up to date in the same way even when notifications are disabled, without sending emails, so enabling them never sends emails for earlier changes.
   In that case, the timestamp is when the operator detected the addition (shortly after the tenant was added, as the change triggers a reconcile).
 - Any workspace without an annotation is notified, including those of the tenants created before this feature. To avoid emailing all of them, deploy the first version with notifications disabled, so that the operator records their current workspaces without sending any email, and enable notifications afterwards.
