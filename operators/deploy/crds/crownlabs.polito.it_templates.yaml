@@ -161,9 +161,20 @@ spec:
                       type: string
                     guiEnabled:
                       default: true
-                      description: Whether the environment is characterized by a graphical
-                        desktop or not.
+                      description: |-
+                        Whether the environment is characterized by a graphical desktop or not.
+
+                        Deprecated: use guiMode, which takes precedence when set.
                       type: boolean
+                    guiMode:
+                      description: |-
+                        How the graphical desktop of the environment is reached: Native (QEMU's VNC server,
+                        VM environments only) or Web (the TigerVNC/noVNC stack installed in the image).
+                        When unset, guiEnabled decides: true means Web, false means no graphical desktop.
+                      enum:
+                      - Native
+                      - Web
+                      type: string
                     image:
                       description: The VM or container to be started when instantiating
                         the environment.
