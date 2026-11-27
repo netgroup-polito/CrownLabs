@@ -152,8 +152,8 @@ func componentResourcesSpec(res *clv1alpha2.ComponentResources) corev1.ResourceR
 }
 
 // KamajiControlPlaneSpec returns the spec of the KamajiControlPlane resource, forged from the ClusterFlavor
-// referenced by the Cluster environment.
-func KamajiControlPlaneSpec(flavor *clv1alpha2.ClusterFlavor) *kamajicpv1alpha2.KamajiControlPlaneSpec {
+// referenced by the Cluster environment. The given extra arguments are appended to the kube-apiserver ones.
+func KamajiControlPlaneSpec(flavor *clv1alpha2.ClusterFlavor, apiServerExtraArgs []string) *kamajicpv1alpha2.KamajiControlPlaneSpec {
 	controlPlane := flavor.Spec.ControlPlane
 	return &kamajicpv1alpha2.KamajiControlPlaneSpec{
 		Replicas: ptr.To(controlPlane.Replicas),
@@ -164,7 +164,10 @@ func KamajiControlPlaneSpec(flavor *clv1alpha2.ClusterFlavor) *kamajicpv1alpha2.
 			Network: kamajicpv1alpha2.NetworkComponent{
 				ServiceType: "ClusterIP",
 			},
-			ApiServer:         kamajicpv1alpha2.ControlPlaneComponent{Resources: componentResourcesSpec(&controlPlane.APIServerResources)},
+			ApiServer: kamajicpv1alpha2.ControlPlaneComponent{
+				ExtraArgs: apiServerExtraArgs,
+				Resources: componentResourcesSpec(&controlPlane.APIServerResources),
+			},
 			Scheduler:         kamajicpv1alpha2.ControlPlaneComponent{Resources: componentResourcesSpec(&controlPlane.SchedulerResources)},
 			ControllerManager: kamajicpv1alpha2.ControlPlaneComponent{Resources: componentResourcesSpec(&controlPlane.ControllerManagerResources)},
 			Addons: kamajicpv1alpha2.AddonsSpec{

@@ -107,7 +107,7 @@ func TestTypedClusterSpecs(t *testing.T) {
 			}`,
 		},
 		{
-			name: "control plane", spec: forge.KamajiControlPlaneSpec(flavor),
+			name: "control plane", spec: forge.KamajiControlPlaneSpec(flavor, nil),
 			want: `{
 				"replicas":3,"version":"v1.35.0","dataStoreName":"etcd","dataStoreSchema":"etcd",
 				"network":{"serviceType":"ClusterIP"},

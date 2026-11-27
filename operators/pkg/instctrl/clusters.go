@@ -72,7 +72,7 @@ func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) erro
 		return err
 	}
 
-	if _, err := r.enforceClusterAPIObject(ctx, forge.GVKKamajiControlPlane, names.ControlPlane, instance.Namespace, labels, forge.KamajiControlPlaneSpec(&flavor), nil); err != nil {
+	if _, err := r.enforceClusterAPIObject(ctx, forge.GVKKamajiControlPlane, names.ControlPlane, instance.Namespace, labels, forge.KamajiControlPlaneSpec(&flavor, forge.KamajiAPIServerExtraArgs(&r.ClusterAPIServerOpts)), nil); err != nil {
 		return err
 	}
 
@@ -101,7 +101,7 @@ func (r *InstanceReconciler) EnforceClusterEnvironment(ctx context.Context) erro
 	}
 
 	instance.Status.Environments[envIndex].Phase = r.RetrievePhaseFromCluster(cluster)
-	return nil
+	return r.enforceClusterAPIServerExposure(ctx, &names, cluster)
 }
 
 // enforceClusterAPIObject creates or updates a single unstructured Cluster API (or related provider) resource,

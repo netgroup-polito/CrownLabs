@@ -134,6 +134,10 @@ type InstanceStatusEnv struct {
 	// in case it is not contacted from another CrownLabs Instance).
 	IP string `json:"ip,omitempty"`
 
+	// The external URL of the Kubernetes API server of the workload cluster,
+	// set only for Cluster environments once it is exposed through the Gateway.
+	APIServerURL string `json:"apiServerURL,omitempty"`
+
 	// The amount of time the Instance required to become ready for the first time
 	// upon creation.
 	InitialReadyTime string `json:"initialReadyTime,omitempty"`

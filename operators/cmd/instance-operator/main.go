@@ -72,6 +72,7 @@ func main() {
 	enableAuth := true
 	gatewayAPIMode := false
 	gatewayAPIRefsValues := ""
+	clusterAPIServerOpts := forge.ClusterAPIServerOpts{}
 
 	metricsAddr := flag.String("metrics-addr", ":8080", "The address the metric endpoint binds to.")
 	enableLeaderElection := flag.Bool("enable-leader-election", false,
@@ -102,6 +103,10 @@ func main() {
 	flag.BoolVar(&gatewayAPIMode, "gateway-api-mode", false, "Enable the use of Gateway API for public exposure instead of Ingress")
 	flag.StringVar(&gatewayAPIRefsValues, "gateway-api-refs-values", "", "Gateway minimal informations for route binding, in format namespace/name")
 
+	flag.StringVar(&clusterAPIServerOpts.OIDCIssuerURL, "cluster-oidc-issuer-url", "", "The OIDC issuer URL trusted by the workload cluster API servers (API server exposure is disabled if empty)")
+	flag.StringVar(&clusterAPIServerOpts.OIDCClientID, "cluster-oidc-client-id", "", "The OIDC client ID trusted by the workload cluster API servers (API server exposure is disabled if empty)")
+	flag.StringVar(&clusterAPIServerOpts.OIDCGroupsClaim, "cluster-oidc-groups-claim", "groups", "The OIDC claim containing the user groups, used to grant permissions to workspace managers (disabled if empty)")
+	flag.StringVar(&clusterAPIServerOpts.PathPrefix, "cluster-api-server-path-prefix", forge.ClusterAPIServerDefaultPathPrefix, "The path prefix the workload cluster API servers are exposed at, through the Gateway")
 	restcfg.InitFlags(nil)
 	klog.InitFlags(nil)
 	flag.Parse()
@@ -193,6 +198,8 @@ func main() {
 	} else if gatewayAPIRefsValues != "" {
 		log.Info("Gateway parent provided but Gateway API mode is disabled")
 	}
+	log.Info("Workload cluster API server exposure", "enabled", gatewayAPIMode && clusterAPIServerOpts.Enabled(),
+		"issuer", clusterAPIServerOpts.OIDCIssuerURL, "clientID", clusterAPIServerOpts.OIDCClientID, "pathPrefix", clusterAPIServerOpts.PathPrefix)
 
 	if err = (&instctrl.InstanceReconciler{
 		Client:                    mgr.GetClient(),
@@ -205,6 +212,7 @@ func main() {
 		PublicExposureOpts:        publicExposureOpts,
 		MirrorPVCStorageClassName: mirrorStorageClass,
 		ClusterFlavorNamespace:    *clusterFlavorNamespace,
+		ClusterAPIServerOpts:      clusterAPIServerOpts,
 	}).SetupWithManager(mgr, *maxConcurrentReconciles); err != nil {
 		log.Error(err, "unable to create controller", "controller", instanceCtrlName)
 		os.Exit(1)

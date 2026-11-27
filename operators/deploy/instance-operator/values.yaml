@@ -18,6 +18,18 @@ configurations:
     contentToolsImg: crownlabs/content-tools
   maxConcurrentReconciles: 1
 
+  # Exposure of the API server of the workload clusters (Cluster environments) through the Gateway.
+  # Requires the Gateway API mode, and is disabled if the OIDC issuer URL or client ID are empty.
+  clusterAPIServer:
+    # The OIDC issuer trusted by the workload cluster API servers (e.g., https://auth.example.com/realms/crownlabs).
+    oidcIssuerUrl: ""
+    # The OIDC client ID the tokens are issued for (e.g., k8s).
+    oidcClientId: ""
+    # The claim containing the user groups, used to grant permissions to the template workspace managers.
+    oidcGroupsClaim: groups
+    # The API servers are exposed at https://<websiteBaseUrl><pathPrefix>/<namespace>/<cluster-name>.
+    pathPrefix: /clusters
+
   monitoring:
     prometheusURL: http://monitoring-kube-prometheus-prometheus.monitoring:9090
     queryNginxAvailable: count(up{service="ingress-nginx-external-controller-metrics"})

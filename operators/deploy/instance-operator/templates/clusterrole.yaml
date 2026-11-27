@@ -45,6 +45,15 @@ rules:
   resources: ["httproutes"]
   verbs: ["get","list","watch","create","patch","update","delete"]
 
+# Required to expose the API server of the workload clusters through the Gateway.
+- apiGroups: ["gateway.networking.k8s.io"]
+  resources: ["backendtlspolicies"]
+  verbs: ["get","list","watch","create","patch","update"]
+
+- apiGroups: [""]
+  resources: ["configmaps"]
+  verbs: ["get","list","watch","create","patch","update"]
+
 - apiGroups: ["networking.k8s.io"]
   resources: ["networkpolicies"]
   verbs: ["get","list","watch","create","patch","update","delete"]

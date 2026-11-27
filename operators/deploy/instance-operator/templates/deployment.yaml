@@ -52,6 +52,10 @@ spec:
             - '--mirror-storage-class={{.Values.configurations.generic.mirrorStorageClass}}'
             - '--gateway-api-mode={{ .Values.configurations.generic.gatewayApiMode | default .Values.global.gateway.gatewayApiMode | default false }}'
             - '--gateway-api-refs-values={{ .Values.configurations.generic.gatewayApiRefsValues | default (printf "%s/%s" .Release.Namespace .Values.global.gateway.name) }}'
+            - '--cluster-oidc-issuer-url={{ .Values.configurations.clusterAPIServer.oidcIssuerUrl }}'
+            - '--cluster-oidc-client-id={{ .Values.configurations.clusterAPIServer.oidcClientId }}'
+            - '--cluster-oidc-groups-claim={{ .Values.configurations.clusterAPIServer.oidcGroupsClaim }}'
+            - '--cluster-api-server-path-prefix={{ .Values.configurations.clusterAPIServer.pathPrefix }}'
 
           ports:
             - name: op-metrics

@@ -129,7 +129,7 @@ func TestClusterSpecToUnstructured(t *testing.T) {
 		spec interface{}
 	}{
 		{"cluster", forge.ClusterSpec(names)},
-		{"control plane", forge.KamajiControlPlaneSpec(&clv1alpha2.ClusterFlavor{})},
+		{"control plane", forge.KamajiControlPlaneSpec(&clv1alpha2.ClusterFlavor{}, nil)},
 		{"workers", forge.MachineDeploymentSpec(names.Cluster, names, "v1.35.0", 2)},
 		{"worker VM", workerVM},
 		{"bootstrap", forge.KubeadmConfigTemplateSpec()},
