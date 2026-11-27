@@ -22,7 +22,7 @@ You can prevent all instances in a namespace from being considered for inactivit
 ## Additional details
 - The number of warning notifications sent before action is taken is controlled by the `inactiveTerminationMaxNumberOfAlerts` Helm parameter, and can be overridden per-template using the `crownlabs.polito.it/custom-number-alerts` annotation.
 - The time between notifications is controlled by the `inactiveTerminationNotificationInterval` Helm parameter.
-- The controller uses Prometheus metrics (Nginx and SSH) to determine last activity.
+- The controller uses Prometheus metrics (SSH / WebSSH / legacy Nginx) and, when Envoy ALS activity tracking is enabled (`operator.configurations.features.activityTracking: true`), real-time HTTP access logs streamed to the unified operator (`:9000`, `als-grpc`) to update `crownlabs.polito.it/last-activity` without moving newer timestamps backwards. Note that Envoy flushes HTTP access logs on stream completion, so open long-lived WebSocket tunnels (e.g. noVNC/WebSSH) are not periodically flushed while staying open (unlike regular HTTP requests or connection close events). See the [CrownLabs deployment README](../../deploy/crownlabs/README.md#instance-activity-tracking-via-envoy-als) for the required `EnvoyProxy` configuration.
 - The following annotations are used:
 	- `crownlabs.polito.it/number-alerts-sent`: Number of notifications sent to the tenant.
 	- `crownlabs.polito.it/last-notification-timestamp`: Timestamp of the last notification sent.

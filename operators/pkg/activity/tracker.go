@@ -18,6 +18,7 @@ package activity
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -45,6 +46,9 @@ const (
 	// maxFutureClockSkew limits how far ahead of local time an activity timestamp may be.
 	maxFutureClockSkew = 2 * time.Minute
 )
+
+// ErrInstanceNotResolved indicates that a Service or HTTPRoute does not map to a CrownLabs Instance.
+var ErrInstanceNotResolved = errors.New("could not resolve instance for service/route")
 
 // Tracker handles debounced activity timestamp updates for CrownLabs instances.
 type Tracker struct {
@@ -175,23 +179,19 @@ func instanceNameFromObject(obj client.Object) (string, bool) {
 func (t *Tracker) FindInstanceNameByServiceOrRoute(ctx context.Context, namespace, name string) (string, error) {
 	objKey := types.NamespacedName{Namespace: namespace, Name: name}
 
-	// 1. Try finding the Service.
-	var svc corev1.Service
-	if err := t.client.Get(ctx, objKey, &svc); err == nil {
-		if instName, ok := instanceNameFromObject(&svc); ok {
+	for _, candidate := range []client.Object{&corev1.Service{}, &gatewayv1.HTTPRoute{}} {
+		if err := t.client.Get(ctx, objKey, candidate); err != nil {
+			if !kerrors.IsNotFound(err) {
+				return "", fmt.Errorf("failed fetching %T %s/%s: %w", candidate, namespace, name, err)
+			}
+			continue
+		}
+		if instName, ok := instanceNameFromObject(candidate); ok {
 			return instName, nil
 		}
 	}
 
-	// 2. Try finding the HTTPRoute.
-	var route gatewayv1.HTTPRoute
-	if err := t.client.Get(ctx, objKey, &route); err == nil {
-		if instName, ok := instanceNameFromObject(&route); ok {
-			return instName, nil
-		}
-	}
-
-	return "", fmt.Errorf("could not resolve instance for service/route %s/%s", namespace, name)
+	return "", fmt.Errorf("%w %s/%s", ErrInstanceNotResolved, namespace, name)
 }
 
 func validateTimestamp(ts time.Time) error {
@@ -226,6 +226,9 @@ func (t *Tracker) RecordActivityForService(ctx context.Context, namespace, servi
 
 	var instance clv1alpha2.Instance
 	if err := t.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: instanceName}, &instance); err != nil {
+		if kerrors.IsNotFound(err) {
+			return fmt.Errorf("%w: %w", ErrInstanceNotResolved, err)
+		}
 		return fmt.Errorf("failed fetching instance %s/%s: %w", namespace, instanceName, err)
 	}
 
@@ -288,6 +291,9 @@ func (t *Tracker) recordActivityForInstance(ctx context.Context, instance *clv1a
 				// Re-fetch the latest persisted Instance on the next retry so older timestamps cannot overwrite newer ones.
 				current = nil
 				return err
+			}
+			if kerrors.IsNotFound(err) {
+				return fmt.Errorf("%w: %w", ErrInstanceNotResolved, err)
 			}
 			return fmt.Errorf("failed patching instance %s activity: %w", key, err)
 		}

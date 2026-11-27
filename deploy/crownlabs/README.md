@@ -181,6 +181,40 @@ The pre-production names are defined only in the [frontend chart configmap](../.
 CrownLabs uses **Envoy Gateway** implementing the Kubernetes Gateway API (`gateway.networking.k8s.io/v1`) for L7 traffic routing and authentication.
 
 For detailed information regarding the Gateway Configuration Model, Control Flags, and Authentication mechanisms, please refer to the dedicated [Authentication and Centralized Gateway](docs/authentication-and-gateway.md) document.
+
+#### Instance activity tracking via Envoy ALS
+
+When running with Gateway API, the unified operator (`operator.configurations.features.activityTracking: true`, debounce configured via `operator.configurations.activityTracking.debounceInterval`, default `15m`) exposes an Envoy gRPC Access Log Service (ALS) endpoint on port `9000` (`als-grpc`) through the operator's webhooks Service (`operator.rbacResourcesName`, default `crownlabs-operator`).
+
+To feed instance HTTP activity to the operator, configure an `ALS` sink on your `EnvoyProxy` resource (e.g., `public` in `envoy-gateway-system`) targeting that Service:
+
+```yaml
+spec:
+  telemetry:
+    accessLog:
+      settings:
+        - matches:
+            - >-
+              xds.route_name.startsWith('httproute/tenant-') ||
+              xds.cluster_name.startsWith('httproute/tenant-')
+          sinks:
+            - type: ALS
+              als:
+                type: HTTP
+                backendRefs:
+                  - group: ''
+                    kind: Service
+                    name: <operator-rbacResourcesName> # e.g. crownlabs-operator
+                    namespace: <crownlabs-namespace>
+                    port: 9000
+                    weight: 1
+```
+
+If `EnvoyProxy` lives in a different namespace than the CrownLabs release (such as `envoy-gateway-system`), ensure cross-namespace `backendRefs` are permitted (e.g., via a `ReferenceGrant` in `<crownlabs-namespace>` if required by your Envoy Gateway version).
+
+> [!NOTE]
+> **Long-lived WebSockets / tunnels (e.g. noVNC, WebSSH):** By default, Envoy's `HttpConnectionManager` flushes HTTP access logs only when a stream completes. As a result, HTTP page/API/asset requests are logged immediately, whereas an established long-lived WebSocket tunnel is not logged periodically while it stays open (only at stream close, similarly to legacy NGINX request counters). Periodic intermediate flushing would require an xDS `EnvoyPatchPolicy` (`access_log_options.access_log_flush_interval`) plus timestamp handling updates in the ALS server, and would also cause idle browser tabs left open to continuously refresh activity; it is therefore intentionally omitted.
+
 ---
 
 

@@ -109,7 +109,11 @@ func (s *ALSServer) StreamAccessLogs(stream als.AccessLogService_StreamAccessLog
 			}
 
 			if err := s.tracker.RecordActivityForService(ctx, targetNamespace, targetName, timestamp); err != nil {
-				s.log.V(utils.LogDebugLevel).Info("Could not record activity for service entry", "namespace", targetNamespace, "name", targetName, "error", err.Error())
+				if errors.Is(err, ErrInstanceNotResolved) {
+					s.log.V(utils.LogDebugLevel).Info("Ignoring non-instance ALS entry", "namespace", targetNamespace, "name", targetName)
+				} else if !errors.Is(err, context.Canceled) {
+					s.log.Error(err, "Failed recording instance activity from Envoy ALS", "namespace", targetNamespace, "name", targetName)
+				}
 			}
 		}
 	}

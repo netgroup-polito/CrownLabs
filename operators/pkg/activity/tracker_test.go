@@ -16,6 +16,7 @@ package activity_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -149,9 +150,10 @@ var _ = Describe("Activity Tracker", func() {
 			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
 		})
 
-		It("returns error when service or route does not exist", func() {
+		It("returns ErrInstanceNotResolved when service or route does not exist", func() {
 			err := tracker.RecordActivityForService(ctx, namespace, "non-existent-svc", now)
 			Expect(err).To(HaveOccurred())
+			Expect(errors.Is(err, activity.ErrInstanceNotResolved)).To(BeTrue())
 		})
 	})
 
