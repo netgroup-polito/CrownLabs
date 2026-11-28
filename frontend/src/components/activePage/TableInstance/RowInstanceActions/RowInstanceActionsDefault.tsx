@@ -17,17 +17,21 @@ import {
 import { type Instance, WorkspaceRole } from '../../../../utils';
 import { ModalAlert } from '../../../common/ModalAlert';
 import type { InstanceEnvironment } from '../../../../utils';
+import RunJobButton from '../RunJob/RunJobButton';
 export interface IRowInstanceActionsDefaultProps {
   extended: boolean;
   instance: Instance;
   viewMode: WorkspaceRole;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
+  onRunJob?: () => void;
+  activeJobs?: number;
 }
 
 const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
   ...props
 }) => {
-  const { extended, instance, viewMode, setSshModal } = props;
+  const { extended, instance, viewMode, setSshModal, onRunJob, activeJobs } =
+    props;
   const {
     prettyName,
     url,
@@ -202,6 +206,13 @@ const RowInstanceActionsDefault: FC<IRowInstanceActionsDefaultProps> = ({
           }
         />
       </Tooltip>
+      {onRunJob && (
+        <RunJobButton
+          extended={extended}
+          activeJobs={activeJobs ?? 0}
+          onClick={onRunJob}
+        />
+      )}
       <Tooltip placement="top" title={titleFromStatus()}>
         <div
           className={`hidden ${

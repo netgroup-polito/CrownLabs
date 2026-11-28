@@ -7,7 +7,7 @@ import {
 import { Badge, Button, Drawer, Empty, Table, Tooltip } from 'antd';
 import { useContext, useMemo, useState, type FC } from 'react';
 import {
-  Phase4,
+  Phase5,
   useDeleteWorkspaceImageMutation,
 } from '../../../generated-types';
 import { ErrorContext } from '../../../errorHandling/ErrorContext';
@@ -22,7 +22,7 @@ type WorkspaceImage = {
   description: string;
   size: string;
   createdAt: string;
-  phase?: Phase4;
+  phase?: Phase5;
 };
 
 const formatCreationDate = (value?: string | null) => {
@@ -122,9 +122,9 @@ const ImagesDrawer: FC = () => {
               <InfoCircleOutlined />
             </span>
           </Tooltip>
-          {image.phase === Phase4.Completed ? (
+          {image.phase === Phase5.Completed ? (
             <span className="success-color-fg font-medium">ready</span>
-          ) : image.phase === Phase4.Failed ? (
+          ) : image.phase === Phase5.Failed ? (
             <Tooltip title="Image creation failed">
               <CloseCircleOutlined
                 className="danger-color-fg"

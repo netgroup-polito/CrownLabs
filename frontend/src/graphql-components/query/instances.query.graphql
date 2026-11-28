@@ -56,6 +56,12 @@ query ownedInstances($tenantNamespace: String!) {
                 prettyName
                 description
                 allowPublicExposure
+                job {
+                  environmentName
+                  commandPolicy
+                  command
+                  maxRunTime
+                }
                 cleanup {
                   deleteAfterCreation
                   stopAfterInactivity

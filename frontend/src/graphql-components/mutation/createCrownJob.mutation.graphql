@@ -1,0 +1,27 @@
+mutation createCrownJob(
+  $tenantNamespace: String!
+  $name: String!
+  $instanceName: String!
+  $command: [String]
+  $maxRunTime: String
+) {
+  createdCrownJob: createCrownlabsPolitoItV1alpha2NamespacedCrownJob(
+    namespace: $tenantNamespace
+    itPolitoCrownlabsV1alpha2CrownJobInput: {
+      kind: "CrownJob"
+      apiVersion: "crownlabs.polito.it/v1alpha2"
+      metadata: { name: $name }
+      spec: {
+        instanceRef: { name: $instanceName }
+        command: $command
+        maxRunTime: $maxRunTime
+      }
+    }
+  ) {
+    metadata {
+      name
+      namespace
+      creationTimestamp
+    }
+  }
+}

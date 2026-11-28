@@ -1,0 +1,28 @@
+# The operator sets no label on a CrownJob and the CRD has no selectable field,
+# so the jobs of one instance are picked from this list by spec.instanceRef.name.
+query crownJobs($tenantNamespace: String!) {
+  crownJobList: listCrownlabsPolitoItV1alpha2NamespacedCrownJob(
+    namespace: $tenantNamespace
+  ) {
+    jobs: items {
+      metadata {
+        name
+        namespace
+        creationTimestamp
+        deletionTimestamp
+      }
+      spec {
+        instanceRef {
+          name
+        }
+      }
+      status {
+        phase
+        reason
+        message
+        queuePosition
+        deadline
+      }
+    }
+  }
+}

@@ -18,6 +18,7 @@ import {
   CaretRightOutlined,
   ExclamationCircleOutlined,
   CameraOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { Instance } from '../../../../utils';
 import {
@@ -53,6 +54,8 @@ export interface IRowInstanceActionsDropdownProps {
   extended: boolean;
   setSshModal: React.Dispatch<SetStateAction<boolean>>;
   onEnablePublicExposure?: () => void;
+  onRunJob?: () => void;
+  activeJobs?: number;
 }
 
 const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
@@ -64,6 +67,8 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
     extended,
     setSshModal,
     onEnablePublicExposure,
+    onRunJob,
+    activeJobs,
   } = props;
 
   const {
@@ -412,6 +417,28 @@ const RowInstanceActionsDropdown: FC<IRowInstanceActionsDropdownProps> = ({
                   : 'pointer-events-none'
               }`,
             },
+            ...(onRunJob
+              ? [
+                  {
+                    key: 'run-job',
+                    label: (
+                      <Space align="center">
+                        Run job
+                        <Badge
+                          count={activeJobs ?? 0}
+                          showZero={false}
+                          size="small"
+                        />
+                      </Space>
+                    ),
+                    icon: <ThunderboltOutlined style={font20px} />,
+                    onClick: onRunJob,
+                    className: `flex items-center ${
+                      extended ? 'sm:hidden' : 'xs:hidden'
+                    }`,
+                  },
+                ]
+              : []),
             persistent
               ? {
                   key: 'persistent',

@@ -1,0 +1,8 @@
+mutation deleteCrownJob($tenantNamespace: String!, $name: String!) {
+  deletedCrownJob: deleteCrownlabsPolitoItV1alpha2NamespacedCrownJob(
+    namespace: $tenantNamespace
+    name: $name
+  ) {
+    kind
+  }
+}

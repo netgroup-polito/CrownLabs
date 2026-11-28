@@ -63,6 +63,12 @@ export default gql`
                   prettyName
                   description
                   allowPublicExposure
+                  job {
+                    environmentName
+                    commandPolicy
+                    command
+                    maxRunTime
+                  }
                   cleanup {
                     deleteAfterCreation
                     stopAfterInactivity
