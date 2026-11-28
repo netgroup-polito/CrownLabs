@@ -14,6 +14,14 @@ rules:
   verbs: ["get", "list", "watch", "create", "update", "delete", "deletecollection"]
 
 - apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+
+- apiGroups: ["gateway.networking.k8s.io"]
+  resources: ["httproutes"]
+  verbs: ["get", "list", "watch"]
+
+- apiGroups: [""]
   resources: ["persistentvolumeclaims", "persistentvolumes", "events"]
   verbs: ["get", "list", "watch", "create", "patch", "update", "delete"]
 

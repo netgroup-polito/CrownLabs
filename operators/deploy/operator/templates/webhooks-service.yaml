@@ -1,0 +1,28 @@
+{{- if or .Values.configurations.features.webhooks .Values.configurations.waitUserVerification .Values.configurations.features.activityTracking }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "operator.webhookname" . }}
+spec:
+  selector:
+    {{- include "operator.selectorLabels" . | nindent 4 }}
+  ports:
+  {{- if .Values.configurations.features.webhooks }}
+  - name: https
+    port: 443
+    targetPort: k8s-wh
+  {{- end }}
+  {{- if .Values.configurations.waitUserVerification }}
+  - name: http
+    port: 80
+    targetPort: keycloak-wh
+    protocol: TCP
+  {{- end }}
+  {{- if .Values.configurations.features.activityTracking }}
+  - name: als-grpc
+    port: 9000
+    targetPort: als-grpc
+    protocol: TCP
+    appProtocol: grpc
+  {{- end }}
+{{- end }}

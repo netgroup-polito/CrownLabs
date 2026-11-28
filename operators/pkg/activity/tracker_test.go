@@ -1,0 +1,369 @@
+// Copyright 2020-2026 Politecnico di Torino
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package activity_test
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"sync"
+	"time"
+
+	. "github.com/onsi/ginkgo/v2"
+	. "github.com/onsi/gomega"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	gatewayv1 "sigs.k8s.io/gateway-api/apis/v1"
+
+	clv1alpha2 "github.com/netgroup-polito/CrownLabs/operators/api/v1alpha2"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/activity"
+	"github.com/netgroup-polito/CrownLabs/operators/pkg/forge"
+)
+
+var _ = Describe("Activity Tracker", func() {
+	Context("ExtractTargetFromClusterOrRoute", func() {
+		It("correctly extracts namespace and name from Envoy Gateway cluster name", func() {
+			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("httproute/tenant-mario/my-vm-default-env/rule/0/backend/0")
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal("tenant-mario"))
+			Expect(name).To(Equal("my-vm-default-env"))
+		})
+
+		It("correctly extracts namespace and name from Envoy Gateway route name", func() {
+			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("httproute/tenant-lucia/lab-workstation-gui/rule/0")
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal("tenant-lucia"))
+			Expect(name).To(Equal("lab-workstation-gui"))
+		})
+
+		It("correctly extracts namespace and name from Envoy Gateway route without suffix", func() {
+			ns, name, ok := activity.ExtractTargetFromClusterOrRoute("httproute/tenant-lucia/lab-workstation-gui")
+			Expect(ok).To(BeTrue())
+			Expect(ns).To(Equal("tenant-lucia"))
+			Expect(name).To(Equal("lab-workstation-gui"))
+		})
+
+		It("fails when target string does not match expected format", func() {
+			for _, invalid := range []string{
+				"passthrough_cluster",
+				"",
+				"httproute/tenant-ns",
+				"httproute//vm-svc",
+				"httproute/tenant-ns/",
+			} {
+				ns, name, ok := activity.ExtractTargetFromClusterOrRoute(invalid)
+				Expect(ok).To(BeFalse())
+				Expect(ns).To(BeEmpty())
+				Expect(name).To(BeEmpty())
+			}
+		})
+	})
+
+	Context("Service-based Activity Tracking", func() {
+		var (
+			ctx         context.Context
+			cl          client.Client
+			scheme      *runtime.Scheme
+			tracker     *activity.Tracker
+			instance    *clv1alpha2.Instance
+			service     *corev1.Service
+			httpRoute   *gatewayv1.HTTPRoute
+			now         time.Time
+			namespace   = "tenant-tester"
+			instName    = "test-instance"
+			serviceName = "test-instance-default-env"
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			scheme = runtime.NewScheme()
+			Expect(corev1.AddToScheme(scheme)).To(Succeed())
+			Expect(gatewayv1.Install(scheme)).To(Succeed())
+			Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
+
+			instance = &clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      instName,
+					Namespace: namespace,
+					UID:       "instance-uid-12345",
+				},
+			}
+
+			service = &corev1.Service{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      serviceName,
+					Namespace: namespace,
+					Labels: map[string]string{
+						forge.LabelInstanceKey: instName,
+					},
+				},
+			}
+
+			httpRoute = &gatewayv1.HTTPRoute{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "route-without-service",
+					Namespace: namespace,
+					Labels: map[string]string{
+						forge.LabelInstanceKey: instName,
+					},
+				},
+			}
+
+			cl = fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(instance, service, httpRoute).
+				Build()
+
+			tracker = activity.NewTracker(cl, 15*time.Minute)
+			now = time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
+		})
+
+		It("resolves instance from Service label and updates activity", func() {
+			Expect(tracker.RecordActivityForService(ctx, namespace, serviceName, now)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: namespace, Name: instName}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("resolves instance from HTTPRoute when Service is absent", func() {
+			Expect(tracker.RecordActivityForService(ctx, namespace, "route-without-service", now)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: namespace, Name: instName}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("returns ErrInstanceNotResolved when service or route does not exist", func() {
+			err := tracker.RecordActivityForService(ctx, namespace, "non-existent-svc", now)
+			Expect(err).To(HaveOccurred())
+			Expect(errors.Is(err, activity.ErrInstanceNotResolved)).To(BeTrue())
+		})
+	})
+
+	Context("Debounce logic and Kubernetes patching", func() {
+		var (
+			ctx         context.Context
+			cl          client.Client
+			scheme      *runtime.Scheme
+			tracker     *activity.Tracker
+			instanceUID = "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+			instance    *clv1alpha2.Instance
+			now         time.Time
+		)
+
+		BeforeEach(func() {
+			ctx = context.Background()
+			scheme = runtime.NewScheme()
+			Expect(clv1alpha2.AddToScheme(scheme)).To(Succeed())
+
+			instance = &clv1alpha2.Instance{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-instance",
+					Namespace: "tenant-tester",
+					UID:       types.UID(instanceUID),
+				},
+			}
+
+			cl = fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(instance).
+				Build()
+
+			tracker = activity.NewTracker(cl, 15*time.Minute)
+			now = time.Date(2026, 10, 16, 12, 0, 0, 0, time.UTC)
+		})
+
+		It("should use default 15m interval when non-positive is passed", func() {
+			t := activity.NewTracker(cl, 0)
+			Expect(t.GetDebounceInterval()).To(Equal(15 * time.Minute))
+
+			t2 := activity.NewTracker(cl, -5*time.Minute)
+			Expect(t2.GetDebounceInterval()).To(Equal(15 * time.Minute))
+		})
+
+		It("should update when instance is seen for the first time", func() {
+			key := instance.Namespace + "/" + instance.Name
+			Expect(tracker.ShouldUpdate(key, now)).To(BeTrue())
+
+			err := tracker.RecordActivityForInstance(ctx, instance, now)
+			Expect(err).ToNot(HaveOccurred())
+
+			// Verify annotation was written on the instance
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("should debounce updates within 15 minutes", func() {
+			key := instance.Namespace + "/" + instance.Name
+			// First update at 12:00
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
+
+			// Second update at 12:05 (only 5 minutes elapsed)
+			timeFiveMinLater := now.Add(5 * time.Minute)
+			Expect(tracker.ShouldUpdate(key, timeFiveMinLater)).To(BeFalse())
+
+			// RecordActivity at 12:05 should not update the annotation
+			Expect(tracker.RecordActivityForInstance(ctx, instance, timeFiveMinLater)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			// Timestamp should still be 12:00
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("should perform update after 15 minutes have elapsed", func() {
+			key := instance.Namespace + "/" + instance.Name
+			// First update at 12:00
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
+
+			// Next update at 12:15:01 (15m 1s elapsed)
+			timeFifteenMinLater := now.Add(15*time.Minute + 1*time.Second)
+			Expect(tracker.ShouldUpdate(key, timeFifteenMinLater)).To(BeTrue())
+
+			Expect(tracker.RecordActivityForInstance(ctx, instance, timeFifteenMinLater)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			// Timestamp should now be updated to 12:15:01
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(timeFifteenMinLater.Format(time.RFC3339)))
+		})
+
+		It("should not overwrite a newer existing annotation with an older timestamp", func() {
+			instance.Annotations = map[string]string{
+				forge.LastActivityAnnotation: now.Format(time.RFC3339),
+			}
+			Expect(cl.Update(ctx, instance)).To(Succeed())
+
+			olderTime := now.Add(-5 * time.Minute)
+			Expect(tracker.RecordActivityForInstance(ctx, instance, olderTime)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+		})
+
+		It("should reset AlertAnnotationNum to 0 when recording new activity", func() {
+			instance.Annotations = map[string]string{
+				forge.AlertAnnotationNum: "2",
+			}
+			Expect(cl.Update(ctx, instance)).To(Succeed())
+
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+			Expect(retrieved.Annotations[forge.AlertAnnotationNum]).To(Equal("0"))
+		})
+
+		It("should reject zero and far-future timestamps without poisoning cache or annotation", func() {
+			Expect(tracker.RecordActivityForInstance(ctx, instance, now)).To(Succeed())
+
+			afterDebounce := now.Add(20 * time.Minute)
+			Expect(tracker.RecordActivityForInstance(ctx, instance, time.Time{})).To(HaveOccurred())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, time.Unix(0, 0))).To(HaveOccurred())
+			Expect(tracker.RecordActivityForInstance(ctx, instance, time.Now().Add(10*time.Minute))).To(HaveOccurred())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(now.Format(time.RFC3339)))
+
+			// Subsequent valid activity after the debounce window must still be accepted.
+			Expect(tracker.RecordActivityForInstance(ctx, &retrieved, afterDebounce)).To(Succeed())
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(afterDebounce.Format(time.RFC3339)))
+		})
+
+		It("should keep the newest timestamp under concurrent conflicting writes", func() {
+			firstPatchArrived := make(chan struct{})
+			releaseFirstPatch := make(chan struct{})
+			var once sync.Once
+
+			interceptedClient := &patchInterceptClient{
+				Client: cl,
+				onPatch: func(obj client.Object) {
+					if inst, ok := obj.(*clv1alpha2.Instance); ok && inst.Annotations[forge.LastActivityAnnotation] == now.Add(10*time.Minute).Format(time.RFC3339) {
+						once.Do(func() {
+							close(firstPatchArrived)
+							<-releaseFirstPatch
+						})
+					}
+				},
+			}
+
+			// Simulate two independent tracker instances (e.g. concurrent streams or two operator replicas)
+			// reading the same initial ResourceVersion before either patch completes.
+			trackerA := activity.NewTracker(interceptedClient, 15*time.Minute)
+			trackerB := activity.NewTracker(cl, 15*time.Minute)
+
+			var copyA, copyB clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &copyA)).To(Succeed())
+			copyB = *copyA.DeepCopy()
+
+			tsOlder := now.Add(10 * time.Minute)
+			tsNewer := now.Add(15 * time.Minute)
+
+			var errA error
+			var wg sync.WaitGroup
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				errA = trackerA.RecordActivityForInstance(ctx, &copyA, tsOlder)
+			}()
+
+			<-firstPatchArrived
+			Expect(trackerB.RecordActivityForInstance(ctx, &copyB, tsNewer)).To(Succeed())
+			close(releaseFirstPatch)
+			wg.Wait()
+
+			Expect(errA).ToNot(HaveOccurred())
+
+			var retrieved clv1alpha2.Instance
+			Expect(cl.Get(ctx, types.NamespacedName{Namespace: instance.Namespace, Name: instance.Name}, &retrieved)).To(Succeed())
+			Expect(retrieved.Annotations[forge.LastActivityAnnotation]).To(Equal(tsNewer.Format(time.RFC3339)))
+		})
+
+		It("should strictly enforce cache capacity when exceeding maxCacheEntries with active keys", func() {
+			for i := 0; i < 1024; i++ {
+				tracker.SetLastUpdated(fmt.Sprintf("tenant/active-route-%04d", i), now.Add(time.Duration(i)*100*time.Millisecond))
+			}
+
+			// Inserting one more active key within the debounce window must evict the oldest entry (0000).
+			checkTime := now.Add(5 * time.Minute)
+			tracker.SetLastUpdated("tenant/active-route-overflow", checkTime)
+
+			Expect(tracker.ShouldUpdate("tenant/active-route-0000", checkTime)).To(BeTrue())
+			Expect(tracker.ShouldUpdate("tenant/active-route-0001", checkTime)).To(BeFalse())
+		})
+	})
+})
+
+type patchInterceptClient struct {
+	client.Client
+	onPatch func(obj client.Object)
+}
+
+func (p *patchInterceptClient) Patch(ctx context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+	if p.onPatch != nil {
+		p.onPatch(obj)
+	}
+	return p.Client.Patch(ctx, obj, patch, opts...)
+}

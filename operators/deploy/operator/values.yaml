@@ -15,6 +15,7 @@ configurations:
     keycloak: true
     webhooks: false
     imageList: false
+    activityTracking: true
 
   # Static labels added to tenant namespaces, after the chart prepends targetLabel.
   tenantNamespaceCommonLabels: crownlabs.polito.it/gw-access=crownlabs-main-production,crownlabs.polito.it/instance-resources-replication=true
@@ -84,6 +85,9 @@ configurations:
     storageClass:
       name: pvc-mirror
       deploy: false
+
+  activityTracking:
+    debounceInterval: "15m"
 
 image:
   repository: crownlabs/tenant-operator

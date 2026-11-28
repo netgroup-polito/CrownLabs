@@ -124,6 +124,7 @@ operator:
       webhooks: true
       imageList: true
       instanceSnapshot: true
+      activityTracking: true
     keycloak:
       url: "https://auth.crownlabs.example.com/"
       realm: crownlabs
@@ -155,6 +156,8 @@ operator:
           registryName: crownlabs-public-snapshots
           type: public-snapshots
           namespace: crownlabs-public-snapshots
+    activityTracking:
+      debounceInterval: "15m"
   webhook:
     deployment:
       webhookBypassGroups: system:masters,system:serviceaccounts,kubernetes:admin
