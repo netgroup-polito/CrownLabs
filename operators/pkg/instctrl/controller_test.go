@@ -455,6 +455,31 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 				})
 			})
 		})
+
+		// GUI-less VMs are not covered here: guiEnabled defaults to true and is omitted when false,
+		// so a template created through the typed client always ends up with a graphical desktop.
+		When("the graphical desktop is configured", func() {
+			GuiModeBody := func(name string, guiMode clv1alpha2.GuiMode) {
+				BeforeEach(func() {
+					testName = name
+					for i := range environmentList {
+						environmentList[i].EnvironmentType = clv1alpha2.ClassVM
+						environmentList[i].Persistent = false
+						environmentList[i].GuiMode = guiMode
+					}
+					runInstance = true
+				})
+
+				It("Should set the instance URL", func() {
+					Expect(RunReconciler()).To(Succeed())
+					Expect(instance.Status.URL).To(Equal(fmt.Sprintf("https://%v%v/%v/", host, IngressInstancePrefix, instance.UID)))
+				})
+			}
+
+			Context("through guiMode Native", func() { GuiModeBody("test-vm-gui-native", clv1alpha2.GuiModeNative) })
+			Context("through guiMode Web", func() { GuiModeBody("test-vm-gui-web", clv1alpha2.GuiModeWeb) })
+			Context("through the deprecated guiEnabled", func() { GuiModeBody("test-vm-gui-enabled", "") })
+		})
 	})
 
 	PodStatusIt := func(t string, envtype clv1alpha2.EnvironmentType, persistent bool) {
@@ -867,7 +892,6 @@ var _ = Describe("The instance-controller Reconcile method", func() {
 			runInstance = true
 			for i := range environmentList {
 				environmentList[i].EnvironmentType = clv1alpha2.ClassStandalone
-				environmentList[i].GuiEnabled = true
 			}
 		})
 

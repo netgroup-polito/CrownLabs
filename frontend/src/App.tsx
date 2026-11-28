@@ -23,6 +23,7 @@ import { VITE_APP_MYDRIVE_WORKSPACE_NAME } from './env';
 import TenantPage from './components/tenants/TenantPage';
 import TenantListPage from './components/tenants/TenantListPage';
 import WorkspaceListPage from './components/workspaces/WorkspaceListPage';
+import NativeVNCPage from './components/activePage/NativeVNCPage/NativeVNCPage';
 
 function App() {
   const { data: tenantData } = useContext(TenantContext);
@@ -128,6 +129,14 @@ function App() {
             <SSHTerminal key="/instance/:namespace/:VMname/:environment/ssh" />
           ),
           linkPosition: LinkPosition.WebSSH,
+        },
+        {
+          route: {
+            name: 'Native VNC',
+            path: '/vnc/:instanceId/:environment',
+          },
+          content: <NativeVNCPage key="/vnc/:instanceId/:environment" />,
+          linkPosition: LinkPosition.Hidden,
         },
       ]}
     />

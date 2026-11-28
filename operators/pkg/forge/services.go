@@ -41,13 +41,19 @@ const (
 func ServiceSpec(instance *clv1alpha2.Instance, environment *clv1alpha2.Environment) corev1.ServiceSpec {
 	ports := make([]corev1.ServicePort, 0)
 
+	isVMFamily := environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM
+
 	// Do not add the ssh port on container-based instances, since no deamon is present.
-	if environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM {
+	if isVMFamily {
 		ports = append(ports, serviceSpecTCPPort(SSHPortName, SSHPortNumber))
 	}
 
-	// Add the GUI port only if enabled.
-	if environment.GuiEnabled {
+	// Add the GUI port only if the environment has a graphical desktop: QEMU's native VNC
+	// or the TigerVNC/noVNC stack installed in the image.
+	switch {
+	case NativeVNCEnabled(environment):
+		ports = append(ports, serviceSpecTCPPort(GUIPortName, NativeVNCPortNumber))
+	case EnvironmentGuiMode(environment) == clv1alpha2.GuiModeWeb:
 		ports = append(ports, serviceSpecTCPPort(GUIPortName, GUIPortNumber))
 	}
 
