@@ -64,7 +64,7 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 	}
 
 	// No need to create HTTPRoute resources in case of gui-less VMs.
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && !environment.GuiEnabled {
+	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && forge.EnvironmentGuiMode(environment) == "" {
 		return nil
 	}
 
@@ -76,7 +76,13 @@ func (r *InstanceReconciler) enforceHTTPRoutePresence(ctx context.Context) error
 				Path:        forge.ExpositionGUICleanPath(instance, environment),
 				ServiceName: svc.GetName(),
 			}
-			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, forge.GUIPortNumber)
+			// Environments served by QEMU's native VNC are routed to its port instead of the
+			// TigerVNC/noVNC one.
+			var guiPort int32 = forge.GUIPortNumber
+			if forge.NativeVNCEnabled(environment) {
+				guiPort = forge.NativeVNCPortNumber
+			}
+			httpRoute.Spec = forge.HTTPRouteSpec(tpl, &r.ExpositionConfig, environment, guiPort)
 		}
 		httpRoute.SetLabels(forge.EnvironmentObjectLabels(httpRoute.GetLabels(), instance, environment))
 
@@ -131,7 +137,7 @@ func (r *InstanceReconciler) enforceIngressPresence(ctx context.Context) error {
 	}
 
 	// No need to create ingress resources in case of gui-less VMs
-	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && !environment.GuiEnabled {
+	if (environment.EnvironmentType == clv1alpha2.ClassVM || environment.EnvironmentType == clv1alpha2.ClassCloudVM || environment.EnvironmentType == clv1alpha2.ClassLocalVM) && forge.EnvironmentGuiMode(environment) == "" {
 		return nil
 	}
 
