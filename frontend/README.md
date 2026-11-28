@@ -1,6 +1,162 @@
 # CrownLabs frontend
 
-This file describes the structure and general coding guidelines of the CrownLabs frontend.
+This file describes the logical flow, structure, and general coding guidelines of the CrownLabs frontend.
+
+## Frontend Logic
+
+The CrownLabs frontend is implemented as a **Single Page Application (SPA)** responsible for rendering the user interface, managing client-side state. The following scenarios detail its core operational flows: user authentication through **Keycloak**, resource management via the **GraphQL** API layer, and secure access to remote environments across the **Gateway API Data Plane**.
+
+### Scenario 1: Login and Authentication
+
+CrownLabs is a **SPA**: after loading the initial assets, the JavaScript code runs in the user's browser and detects whether the user is already authenticated or not, triggering the OIDC authentication procedure with **Keycloak** if a valid session or active token is missing.
+
+Main Interacting Elements:
+* **Browser:** The user browser executes the SPA's JavaScript code, managing state, routing, and rendering.
+* **Web Server:** Delivers the static frontend application files.
+* **Keycloak:** Acts as the *Identity & Authorization Server*, handling login, SSO sessions, and JWT token issuance.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser as Browser<br/>(SPA Client)
+    participant Server as Web Server<br/>(Assets)
+    participant Keycloak as Keycloak<br/>(OIDC Provider)
+
+    User->>Browser: Navigate to crownlabs.polito.it/app
+    Browser->>Server: Request assets
+    Server-->>Browser: Return HTML, CSS, and JS bundle
+    Browser->>Browser: Execute JS bundle and initialize SPA
+    Browser->>Browser: Check for active token / valid session
+
+    opt User is not authenticated
+        Browser->>Keycloak: Redirect to Keycloak
+        Keycloak-->>Browser: Return login page
+        Browser-->>User: Display login form
+        User->>Browser: Enter credentials
+        Browser->>Keycloak: Submit credentials
+        Keycloak->>Keycloak: Verify credentials
+        Keycloak-->>Browser: Redirect to Callback URL with Authorization Code
+        Browser->>Keycloak: Exchange Authorization Code for tokens
+        Keycloak-->>Browser: Return Access, Refresh, and ID Tokens
+        Browser->>Browser: Store/manage tokens in session memory
+        Note over User,Keycloak: Authentication successful
+    end
+
+    Browser->>Browser: Render SPA user interface (UI)
+    Browser-->>User: Display CrownLabs main page
+```
+
+### Scenario 2: GraphQL Operations (Queries and Mutations)
+
+Describes how the User can reads or modifies the state of **Kubernetes** resources via the GraphQL endpoint. Every action request carries the `Bearer Token` to enable identity validation and permission checks across the chain, therefore the User must be already authenticate.
+
+**Note**: Access the GraphQL playground at `crownlabs.polito.it/graph`.
+
+Main Interacting Elements:
+* **QLKube:** GraphQL layer that translates frontend queries and *mutations* into operations on Kubernetes resources.
+* **Kubernetes API Server:** Core cluster component that exposes and persists the state of Kubernetes resources.
+* **Gateway API Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Browser as User Browser
+    participant LB as Gateway API Plane
+    participant GraphQL as QLKube
+    participant APIServer as Kubernetes API Server
+
+    Note over User,LB: User must be authenticated with a valid Bearer Token (see Scenario 1)
+    User->>Browser: Perform UI action (read or write)
+    Browser->>LB: HTTP POST /graph (Query/Mutation + Authorization: Bearer <token>)
+    LB->>LB: Validate token and enforce access policies
+    LB->>GraphQL: Route /graph request
+    GraphQL->>APIServer: Query or update Kubernetes resources (CRDs/objects)
+    APIServer-->>GraphQL: Return resource data or operation result
+    GraphQL-->>LB: Return GraphQL payload
+    LB-->>Browser: Forward GraphQL response
+    Browser-->>User: Display response
+```
+
+### Scenario 3: Accessing a Remote Instance
+
+CrownLabs frontend provides **two main ways** to access an instance:
+
+- **Interactive Remote Desktop (`/app/instance/<uuid>/<env>`):** the browser opens the graphical environment, such as VS Code or the distro's GNOME desktop.
+- **Web SSH (`/app/instance/<uuid>/<env>/ssh`):** the browser opens a WebSocket connection routed to the `/webssh` gateway endpoint; the Bastion service then establishes SSH access to the selected instance.
+
+**Note**: Crownlabs provides also a [direct SSH connection](#environment-ip-resolution--ssh-access). 
+
+Main Interconnecting Elements:
+- **Gateway API Data Plane:** Entry point for the traffic; enforces *Security Policies* and routes traffic.
+- **Keycloak:** Acts as the *Identity & Authorization Server*, handling login, SSO sessions, and JWT token issuance.
+- **Instance Environment:** The virtual environment that exposes the remote desktop or SSH target.
+- **Bastion WebSSH:** Intermediary service that establishes the SSH session to the target instance.
+
+#### 1. Instance Access Modes
+
+Illustrates the traffic routing through the **Gateway API Plane** for both access modes once the user is authenticated.
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser as User Browser
+    participant LB as Gateway API Plane
+    participant Instance as Instance Environment
+    participant Bastion as Bastion WebSSH
+
+    alt Interactive Remote Desktop
+        User->>Browser: Choose "Connect to the GUI"
+        Browser->>LB: HTTP GET /app/instance/<uuid>/<env>
+        LB->>LB: Enforce Security Policy (check session/token)
+        Note over User,LB: If unauthenticated, see the OIDC Authentication Flow diagram in point 2 below
+        LB->>Instance: Rewrite and route request
+        Instance-->>LB: Return remote desktop interface
+        LB-->>Browser: Forward response
+        Browser-->>User: Display instance desktop
+    else Web SSH
+        User->>Browser: Choose "Connect through SSH"
+        Browser->>Browser: Resolve /app/instance/<uuid>/<env>/ssh & mount SSHTerminal
+        Browser->>LB: Open WebSocket to /webssh (via SSHTerminal)
+        LB->>LB: Enforce Security Policy (check session/token)
+        Note over User,LB: If unauthenticated, see the OIDC Authentication Flow diagram in point 2 below
+        LB->>Bastion: Route WebSocket connection to /webssh
+        Bastion->>Instance: Establish SSH session
+        Instance-->>Bastion: Open terminal stream
+        Bastion-->>LB: Stream terminal session
+        LB-->>Browser: Forward terminal stream to SSHTerminal
+        Browser-->>User: Display SSH terminal
+    end
+    Note over User,Instance: User can access and manage the instance
+```
+
+#### 2. OIDC Authentication Flow (Unauthenticated Access)
+
+Describes the steps performed by the **Gateway API Plane** and **Keycloak** when an unauthenticated user attempts to access either `/app/instance/<uuid>/<env>` or `/app/instance/<uuid>/<env>/ssh` (described on point 1 above).
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant Browser as User Browser
+    participant LB as Gateway API Plane
+    participant Keycloak as Keycloak<br/>(OIDC Provider)
+
+    Note over User, LB: User try to access to an instance (see point 1 above)
+
+    alt User is not authenticated or token is invalid
+        LB->>Keycloak: Redirect to Keycloak login page
+        Keycloak-->>Browser: Return login page
+        Browser-->>User: Display login form
+        User->>Browser: Enter credentials
+        Browser->>Keycloak: Submit credentials
+        Keycloak->>Keycloak: Verify credentials
+        Keycloak-->>LB: Redirect to Gateway callback route with Authorization Code
+        LB->>Keycloak: Exchange Authorization Code for tokens
+        Keycloak-->>LB: Return Access, Refresh, and ID Tokens
+        LB-->>Browser: Set session cookie and redirect to original URL
+        Browser->>LB: Retry request to /app/instance/<uuid>/<env>[/ssh] (authenticated)
+    end
+```
 
 ## Setup
 
@@ -25,6 +181,7 @@ After the setup is complete, if you start the app locally and see the apiserver 
 Our frontend is a [React](https://it.reactjs.org/) application. We use [antd](https://ant.design/) as the main component library and [Tailwind](https://tailwindcss.com/) utilities to handle specific css scenarios (padding and margin). We chose to use [Typescript](https://www.typescriptlang.org/) to have a bettere development experience.
 
 The application is made to be deployed using docker and can be hosted on a custom subroute. The application takes some environment variables, each needs to have the `REACT_APP_CROWNLABS` prefix. In order to define environment variables at container run-time they need to be defined on the `window` object in the `public/config.js` file.
+
 
 ## CI checks
 
