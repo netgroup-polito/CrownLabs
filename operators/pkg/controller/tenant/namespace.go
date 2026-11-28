@@ -220,12 +220,30 @@ func (r *Reconciler) enforceResourceQuota(
 
 	// calculate the resource quota
 	quota := forge.TenantResourceList(wss, tn.Spec.PersonalWorkspace)
+	nsName := forge.GetTenantNamespaceName(tn)
+
+	// The resources of the pods are limited by a second quota, with scope NotTerminating, so that the pods of the jobs
+	// (which carry a pod-level activeDeadlineSeconds, and are limited by Kueue) are not counted. It is enforced first:
+	// when a quota created before the split is shrunk below, its CPU and memory limits already exist in the new one.
+	instancesRQ := corev1.ResourceQuota{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      forge.TenantInstancesResourceQuotaName,
+			Namespace: nsName,
+		},
+	}
+
+	if _, err := ctrlutil.CreateOrUpdate(ctx, r.Client, &instancesRQ, func() error {
+		forge.ConfigureTenantInstancesResourceQuota(&instancesRQ, &quota, forge.UpdateTenantResourceCommonLabels(instancesRQ.Labels, r.TargetLabel))
+
+		return ctrlutil.SetControllerReference(tn, &instancesRQ, r.Scheme)
+	}); err != nil {
+		return fmt.Errorf("error when creating instances resource quota for tenant %s: %w", tn.Name, err)
+	}
 
 	// update or create the resource quota
-	nsName := forge.GetTenantNamespaceName(tn)
 	rq := corev1.ResourceQuota{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "crownlabs-resource-quota",
+			Name:      forge.TenantResourceQuotaName,
 			Namespace: nsName,
 		},
 	}
@@ -247,14 +265,20 @@ func (r *Reconciler) enforceResourceQuotaAbsence(
 	tn *clv1alpha2.Tenant,
 ) error {
 	nsName := forge.GetTenantNamespaceName(tn)
-	rq := corev1.ResourceQuota{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "crownlabs-resource-quota",
-			Namespace: nsName,
-		},
+	for _, name := range []string{forge.TenantResourceQuotaName, forge.TenantInstancesResourceQuotaName} {
+		rq := corev1.ResourceQuota{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: nsName,
+			},
+		}
+
+		if err := utils.EnforceObjectAbsence(ctx, r.Client, &rq, "resource quota"); err != nil {
+			return err
+		}
 	}
 
-	return utils.EnforceObjectAbsence(ctx, r.Client, &rq, "resource quota")
+	return nil
 }
 
 func (r *Reconciler) enforceInstanceRoleBinding(

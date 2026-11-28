@@ -108,6 +108,12 @@ func (r *InstanceExpirationReconciler) Reconcile(ctx context.Context, req ctrl.R
 	}
 	tracer.Step("instance, template and tenant retrieved")
 
+	// An instance being deleted (e.g., kept by a finalizer while its jobs run) must not be notified or deleted again.
+	if !instance.DeletionTimestamp.IsZero() {
+		dbgLog.Info("instance is being deleted, skipping", "instance", instance.GetName(), "namespace", instance.GetNamespace())
+		return ctrl.Result{}, nil
+	}
+
 	// Get lifespan from template's deleteAfterCreation field
 	deleteAfterCreation := template.Spec.Cleanup.DeleteAfterCreation
 
