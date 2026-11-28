@@ -144,30 +144,30 @@ classDef DomainStyle rx:12,ry:12,fill:none,stroke-dasharray:8
 classDef EntityStyle rx:12,ry:12,fill:none
 ```
 
-## Controllers and Resource Management
+### Controllers and Resource Management
 
 CrownLabs business logic is implemented by custom Kubernetes operators, while the data model is defined with Kubernetes Custom Resource Definitions (CRDs).
 These operators reconcile cluster-wide and namespace-scoped resources across the namespace-oriented architecture.
 Main controllers are:
 
 * the **Instance Operator**, which implements the logic to spawn new environments starting from predefined templates;
-* the **Tenant Operator**, which automates the management of CrownLabs users (i.e. tenants) and groups (i.e. workspaces);
+* the **Crownlabs Operator**, which automates the management of CrownLabs users (i.e. tenants) and groups (i.e. workspaces);
 * the **Bastion Operator**, which configures an SSH bastion to provide command-line access to the environments instead of the web-based GUI.
 
 Furthermore, additional components simplify and automate companion tasks, such as listing the available images and deleting stale environments.
 
 For more information about the operators, as well as deployment and configuration instructions, please refer to the corresponding [README](./operators/README.md).
 
-## User Access
+### User Access
 
 The frontend dashboard, exposed through the release namespace, provides access to CrownLabs resources through an easy-to-use graphical interface.
 It allows users to explore the workspaces they are enrolled in, spawn new environments in tenant namespaces, and connect to their instances.
 Privileged users can also create, update, and delete templates and tenant resources, managing the environments and permissions available across the workspace and tenant namespaces.
 Authentication is managed through an external OIDC identity provider integrated with Kubernetes, while the authorizations to access specific resources are granted leveraging the Kubernetes RBAC approach.
 
-# Installation
+## Installation
 
-## Preliminary Note
+### Preliminary Note
 
 CrownLabs can be installed on any Kubernetes cluster, although with a non-negligible degree of adaptation.
 This would require a non-trivial knowledge of how Kubernetes (and the wonderful world of microservices) works.
@@ -180,20 +180,43 @@ Do not expect to complete this task in a few hours; likely, you may need several
 Help is available on our Slack channels.
 For more information, visit the CrownLabs website: [https://crownlabs.polito.it](https://crownlabs.polito.it).
 
-## Pre-Requirements
+### Pre-Requirements
 
 Crownlabs has been specifically designed for bare-metal clusters and this assumption will be adopted across the documentation. To deploy CrownLabs, we have to rely on a full-fledged Kubernetes cluster where at least a subset of nodes supports Hardware Virtualization.
 In [infrastructure](infrastructure/), we present all the services which should be installed on the cluster, with an example of configuration. We strongly suggest to set up on your cluster the same components that we used, in order to avoid feature mismatch.
 
-## Deploying the CrownLabs components
+### Deploying the CrownLabs components
 
 The deployment and configuration of the different CrownLabs components can be performed leveraging the provided Helm Chart.
 Please, refer to the corresponding [README](./deploy/crownlabs/README.md) file for more information about the installation procedure.
 
 Before installation, manually create the shared namespaces for MyDrive and the public instance snapshot catalog, and ensure their names match the deployment configuration. See [Required namespaces for MyDrive and instance snapshots](./deploy/crownlabs/README.md#required-namespaces-for-mydrive-and-instance-snapshots) for commands and configuration values.
 
-# CrownLabs run-time configuration
+## CrownLabs run-time configuration
 
 Crownlabs has several components, mostly operators, which may need to be configured with appropriate labels and/or other information in order to achieve the intended behaviour.
 
 The [Operators/docs](operators/docs/) section of the documentation presents the possible configuration options for the most important components.
+
+## Repo Structure
+
+The repository is organized by the main areas of the CrownLabs platform.
+The following directories provide the primary implementation and deployment entry points. Follow each link for setup instructions and additional details.
+
+- [`deploy/`](deploy/crownlabs/README.md) — Contains the main CrownLabs umbrella Helm chart, which assembles the charts for the Roles, Gateway, and Envoy' Security Policies. 
+
+- [`dev-local/`](dev-local/README.md) — Provides manifests and guides for creating a local Kubernetes environment and running CrownLabs components for development. The directory covers prerequisites such as k3s, Envoy Gateway, Keycloak, and local operator configuration.
+
+- `documentation/` [DEPRECATED] — Collects the architecture diagrams and visual resources that describe how the CrownLabs components interact.
+
+- [`frontend/`](frontend/README.md) — Hosts the React and TypeScript web dashboard used by students and instructors. It contains: the Helm chart for the frontend deploy and Kubernetes resources; UI components and pages.
+
+- [`infrastructure/`](infrastructure/README.md) [DEPRECATED] — Groups the infrastructure services required to operate CrownLabs on Kubernetes, such as networking, load balancing, DNS, storage, monitoring, certificate management, identity, and virtualization. 
+
+- [`operators/`](operators/README.md) — Implements the server-side business logic as Kubernetes operators and related components. This includes reconciliation of tenant, workspace, instance, bastion, and auxiliary resources, together with CRDs, deployment charts, and tests.
+
+- [`policies/`](policies/README.md) — Contains the Helm chart for Kyverno policies applied to sandbox namespaces. These policies enforce pod security settings, prevent the use of undesired Service types, and validate resource-specific requirements.
+
+- [`provisioning/`](provisioning/README.md) — Provides resources for building and packaging user environments based on virtual machines, containers, or standalone applications. It includes automation for VM images and tools for creating browser-accessible desktop applications such as VS Code and JupyterLab.
+
+- [`qlkube/`](qlkube/README.md) — Implements a GraphQL gateway over the Kubernetes API. It enables clients to query Kubernetes resources and use GraphQL subscriptions in a way tailored to CrownLabs.
