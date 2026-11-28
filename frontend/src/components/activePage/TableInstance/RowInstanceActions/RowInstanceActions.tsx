@@ -35,7 +35,7 @@ const EMPTY_QUOTA: IQuota = {
 };
 
 // Returns a human readable string of the time elapsed between now and timeStr
-const formatElapsedTime = (
+export const formatElapsedTime = (
   now: Date,
   timeStr?: string,
   fallback = 'unknown',

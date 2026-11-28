@@ -23,8 +23,6 @@ export interface IActiveViewProps {
 const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
   const { managerView, user, workspaces } = props;
 
-  const [expandAll, setExpandAll] = useState(false);
-  const [collapseAll, setCollapseAll] = useState(false);
   const [destroySelectedTrigger, setDestroySelectedTrigger] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [searchField, setSearchField] = useState('');
@@ -101,8 +99,6 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
             <div className="h-full flex justify-center items-center pl-6 gap-4">
               <Toolbox
                 setSearchField={setSearchField}
-                setExpandAll={setExpandAll}
-                setCollapseAll={setCollapseAll}
                 showAdvanced={showAdvanced}
                 setShowAdvanced={setShowAdvanced}
                 showCheckbox={showCheckbox}
@@ -121,10 +117,6 @@ const ActiveView: FC<IActiveViewProps> = ({ ...props }) => {
               workspaces={workspaces}
               user={user}
               filter={searchField}
-              collapseAll={collapseAll}
-              expandAll={expandAll}
-              setCollapseAll={setCollapseAll}
-              setExpandAll={setExpandAll}
               showAdvanced={showAdvanced}
               showCheckbox={showCheckbox}
               destroySelectedTrigger={destroySelectedTrigger}
